@@ -1,0 +1,81 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.15'
+    id "io.spring.dependency-management" version "1.1.7"
+}
+
+ext {
+    springModulithVersion = "2.1.0"
+}
+
+group = 'io.github.metdaisy.amaazon'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17' // Java 17 이상 권장
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // === 1. Web / MVC ===
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // === 2. JPA / ORM ===
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
+
+    // === 3. Database Migration (마이그레이션) ===
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
+
+    // === 4. Validation (검증) ===
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // === 5. Configuration Processor (설정 자동완성) ===
+    implementation 'org.springframework.boot:spring-boot-configuration-processor'
+
+    // === 6. Object Mapping (DTO 변환) ===
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+
+    // === 7. Modulith Core (도메인 모듈화) ===
+    implementation 'org.springframework.modulith:spring-modulith-starter-core'
+
+    // === 8. Database Driver (런타임용, 테스트용 포함) ===
+    runtimeOnly 'org.postgresql:postgresql' // PostgreSQL JDBC 드라이버
+
+    // === 9. Utilities (컴파일타임 유틸리티) ===
+    compileOnly 'org.projectlombok:lombok'              // Lombok (빌드타임)
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'  // MapStruct 프로세서 추가 권장
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+    // === 10. Development Tools (개발 도구) ===
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // === 11. Test (테스트 관련) ===
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.modulith:spring-modulith-bom:$springModulithVersion"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+

@@ -1,5 +1,19 @@
+# gradle
+.gradle/
+
+# continue
+.continue/
+.agents/
+
+# vscode
+.vscode/
+
+# intellij
+.idea/
+
 # Compiled class file
 *.class
+build/
 
 # Log file
 *.log
