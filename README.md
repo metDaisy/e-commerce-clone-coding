@@ -1,5 +1,11 @@
 # E-commerce-clone-coding
 
+[![CI Pipeline](https://github.com/metDaisy/e-commerce-clone-coding/actions/workflows/ci.yml/badge.svg)](https://github.com/metDaisy/e-commerce-clone-coding/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/metDaisy/e-commerce-clone-coding/graph/badge.svg?token=qUz12GJ8C4)](https://codecov.io/gh/metDaisy/e-commerce-clone-coding)
+[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.15-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
+
 ---
 
 <details>
