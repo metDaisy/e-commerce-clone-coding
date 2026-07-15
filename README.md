@@ -8,8 +8,12 @@
 
 ---
 
+[구현 계획](./docs/implmentation_plan.md)
+
+---
+
 <details>
-<summary>## 데이터베이스 다이어그램 (Mermaid)</summary>
+<summary> 데이터베이스 다이어그램 (Mermaid)</summary>
 
 ```mermaid
 erDiagram
