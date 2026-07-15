@@ -2,7 +2,14 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main"]
+
+# Test Reporter 액션이 PR 코멘트 및 Checks 탭에 결과를 쓸 수 있도록 권한 부여
+permissions:
+  contents: read
+  issues: read
+  checks: write
+  pull-requests: write
 
 jobs:
   build:
@@ -17,16 +24,30 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
+        # 기존의 단순 cache: gradle 대신 아래의 전문 캐싱 액션 사용
+
+    - name: Setup Gradle Build Cache
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        # Testcontainers 등의 빌드 결과물을 캐싱하여 변경사항이 없는 테스트는 즉시 패스(UP-TO-DATE)
+        cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build and Test with Gradle (Includes Jacoco Report)
+    - name: Build and Test with Gradle
       run: ./gradlew build jacocoTestReport
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always() # 빌드나 테스트가 실패하더라도 리포트를 생성하도록 보장
+      with:
+        files: |
+          build/test-results/**/*.xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
+      if: always()
       with:
         file: ./build/reports/jacoco/test/jacocoTestReport.xml
         token: ${{ secrets.CODECOV_TOKEN }}
