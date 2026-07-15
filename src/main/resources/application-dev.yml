@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/amaazon
+    username: amaazon
+    password: amaazon
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    database: PostgreSQL
+    defer-datasource-initialization: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc.batch_size: 100
+        order_inserts: true
+        order_updates: true
+        default_batch_fetch_size: 500
+    open-in-view: false
