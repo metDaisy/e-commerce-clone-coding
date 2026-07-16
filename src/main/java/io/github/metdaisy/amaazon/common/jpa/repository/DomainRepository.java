@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.common.jpa.repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface DomainRepository<T> {
 
@@ -11,5 +12,5 @@ public interface DomainRepository<T> {
 
   void delete(T entity);
 
-  Optional<T> findById(long id);
+  Optional<T> findById(UUID id);
 }

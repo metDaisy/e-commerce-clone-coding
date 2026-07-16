@@ -2,11 +2,8 @@ package io.github.metdaisy.amaazon.common.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -15,30 +12,28 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
-public abstract class ImmutableEntity {
+public abstract class ImmutableEntity implements Persistable<UUID> {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private long id;
-
-  @Column(name = "external_id", nullable = false)
-  private UUID externalId;
+  private UUID id;
 
   @CreatedDate
   @Column(updatable = false, nullable = false)
   private Instant createdAt;
 
-  @PrePersist
-  protected void prePersist() {
-    if (this.externalId == null) {
-      this.externalId = UUID.randomUUID();
-    }
+  protected ImmutableEntity() {
+    this.id = UUID.randomUUID();
+  }
+
+  @Override
+  public boolean isNew() {
+    return createdAt == null;
   }
 
   @Override
@@ -62,8 +57,7 @@ public abstract class ImmutableEntity {
     }
 
     ImmutableEntity that = (ImmutableEntity) o;
-    return Objects.equals(getId(), that.getId()) &&
-            Objects.equals(externalId, that.getExternalId());
+    return Objects.equals(getId(), that.getId());
   }
 
   @Override
@@ -71,6 +65,6 @@ public abstract class ImmutableEntity {
     if (this instanceof HibernateProxy) {
       return ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode();
     }
-    return Objects.hash(getClass(), getId(), getExternalId());
+    return Objects.hash(getClass(), getId());
   }
 }
