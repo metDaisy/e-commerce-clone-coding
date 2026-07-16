@@ -1,7 +1,6 @@
 package io.github.metdaisy.amaazon.user.application.dto;
 
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
 
 public record UserCreateRequest(
         @Pattern(regexp = "^[가-힣a-zA-Z]{1,10}$",
