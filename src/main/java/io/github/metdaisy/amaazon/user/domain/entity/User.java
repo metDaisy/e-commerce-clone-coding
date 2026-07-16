@@ -22,16 +22,17 @@ import org.hibernate.annotations.ColumnDefault;
 @Table(name = "users")
 public class User extends MutableEntity {
 
-  @Size(max = 255)
+  @Size(max = 10)
   @NotNull
   @Column(name = "name", nullable = false)
   private String name;
 
   @Size(max = 11)
+  @NotNull
   @Column(name = "phone_number", length = 11)
   private String phoneNumber;
 
-  @Size(max = 50)
+  @Size(max = 20)
   @NotNull
   @Column(name = "role", nullable = false, length = 50)
   @Enumerated(value = EnumType.STRING)
