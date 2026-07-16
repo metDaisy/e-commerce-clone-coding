@@ -1,0 +1,154 @@
+package io.github.metdaisy.amaazon.global.exception;
+
+import io.github.metdaisy.amaazon.common.exception.AmaazonException;
+import io.github.metdaisy.amaazon.global.exception.util.ViolationExceptionUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import java.io.IOException;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+@Slf4j
+@RestControllerAdvice
+@RequiredArgsConstructor
+public class GlobalExceptionHandler {
+
+  @ExceptionHandler(AmaazonException.class)
+  public ResponseEntity<ApiErrorResponse> handleBusinessException(AmaazonException e) {
+    log.warn(e.toString());
+    return ResponseEntity
+            .status(e.getStatus())
+            .body(ApiErrorResponse.from(e));
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiErrorResponse> handleMethodArgumentNotValidException(
+          MethodArgumentNotValidException e) {
+    String detailedErrorLog = e.getBindingResult().getFieldErrors().stream()
+            .map(error -> String.format("필드 [%s] - 입력값: [%s], 원인: [%s]",
+                    error.getField(),
+                    error.getRejectedValue(),
+                    error.getDefaultMessage()))
+            .collect(Collectors.joining(" | "));
+    log.warn("유효성 검사 실패 (MethodArgumentNotValidException) -> {}", detailedErrorLog);
+    return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiErrorResponse.from(e));
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ApiErrorResponse> handleConstraintViolationException(
+          ConstraintViolationException e) {
+    String detailedErrorLog = e.getConstraintViolations().stream()
+            .map(v -> String.format("경로 [%s] - 입력값: [%s], 원인: [%s]",
+                    v.getPropertyPath(),
+                    v.getInvalidValue(),
+                    v.getMessage()))
+            .collect(Collectors.joining(" | "));
+
+    boolean isFromController = ViolationExceptionUtils.isFromController(e);
+    if (isFromController) {
+      log.warn("제약조건 위반 (ConstraintViolationException) -> {}", detailedErrorLog);
+    } else {
+      log.error("제약조건 위반 (ConstraintViolationException) -> {}", detailedErrorLog, e);
+    }
+
+    HttpStatus status =
+            isFromController ? HttpStatus.BAD_REQUEST : HttpStatus.INTERNAL_SERVER_ERROR;
+    return ResponseEntity
+            .status(status)
+            .body(ApiErrorResponse.from(e));
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiErrorResponse> handleHttpMessageNotReadableException(
+          HttpMessageNotReadableException e
+  ) {
+    log.warn("요청 본문을 읽을 수 없음 (HttpMessageNotReadableException) -> {}", e.getMessage());
+    return ResponseEntity
+            .badRequest()
+            .body(ApiErrorResponse.from(e));
+  }
+
+  // 클라이언트가 SSE 연결을 끊을 때(브라우저 탭 닫기, 새로고침 등) 응답 스트림에 쓰다가 발생하는
+  // broken pipe성 IOException. 클라이언트가 이미 떠난 상태라 응답을 보낼 수 없고, 버그도 아니므로
+  // ERROR로 로그를 남기지 않고 조용히 무시한다.
+  @ExceptionHandler(IOException.class)
+  public void handleIOException(IOException e) {
+    log.debug("클라이언트 연결 종료로 응답 전송 실패: {}", e.getMessage());
+  }
+
+  // 존재하지 않는 경로로의 요청(봇/스캐너의 무작위 경로 탐색)에서 발생
+  // 버그가 아니므로 ERROR로 로그를 남기지 않고 404만 반환
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<ApiErrorResponse> handleNoResourceFoundException(
+          NoResourceFoundException e, HttpServletRequest request) {
+    log.warn("존재하지 않는 리소스 요청: {} | User-Agent: {}",
+            e.getMessage(), request.getHeader("User-Agent"));
+    return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ApiErrorResponse("NOT_FOUND", "요청하신 리소스를 찾을 수 없습니다.", null));
+  }
+
+  // 배치 작업 스레드 풀의 큐까지 가득 찬 상태에서 새 수집 요청이 들어오면 AbortPolicy가
+  // TaskRejectedException을 던진다. 일시적인 과부하이므로 503으로 매핑해 재시도를 유도한다.
+  @ExceptionHandler(TaskRejectedException.class)
+  public ResponseEntity<ApiErrorResponse> handleTaskRejectedException(TaskRejectedException e) {
+    log.warn("배치 작업 큐 포화로 요청 거부: {}", e.getMessage());
+    return ResponseEntity
+            .status(HttpStatus.SERVICE_UNAVAILABLE)
+            .body(new ApiErrorResponse("SERVICE_UNAVAILABLE",
+                    "현재 수집 작업이 많아 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.", null));
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiErrorResponse> handleException(Exception e) {
+    log.error("Unexpected exception", e);
+    return ResponseEntity
+            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(new ApiErrorResponse("INTERNAL_SERVER_ERROR",
+                    "서버 내부 에러가 발생했습니다.", null));
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiErrorResponse> handleMissingServletRequestParameterException(
+          MissingServletRequestParameterException e
+  ) {
+    log.warn(e.toString());
+    return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiErrorResponse.from(e));
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatchException(
+          MethodArgumentTypeMismatchException e
+  ) {
+    log.warn(e.toString());
+    return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(ApiErrorResponse.from(e));
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolationException(
+          DataIntegrityViolationException e
+  ) {
+    log.warn("데이터 무결성 제약조건 위반: {}", e.getMessage());
+    return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(ApiErrorResponse.from(e));
+  }
+}
