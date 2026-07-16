@@ -27,7 +27,7 @@ public abstract class ImmutableEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private long id;
 
-  @Column(name = "external_id", unique = true, nullable = false)
+  @Column(name = "external_id", nullable = false)
   private UUID externalId;
 
   @CreatedDate
@@ -73,14 +73,4 @@ public abstract class ImmutableEntity {
     }
     return Objects.hash(getClass(), getId(), getExternalId());
   }
-
-  @Override
-  public final String toString() {
-    return "ImmutableEntity{" +
-            "id=" + id +
-            ", externalId='" + externalId + '\'' +
-            ", createdAt=" + createdAt +
-            '}';
-  }
 }
-
