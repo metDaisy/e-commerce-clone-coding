@@ -1,19 +1,19 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.15'
+    id 'org.springframework.boot' version '3.5.16'
     id "io.spring.dependency-management" version "1.1.7"
     id 'jacoco'
 }
 
 ext {
-    springModulithVersion = "2.1.0"
+    springModulithVersion = "1.4.12"
 }
 
 group = 'io.github.metdaisy.amaazon'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    sourceCompatibility = '17' // Java 17 이상 권장
+    sourceCompatibility = '17'
 }
 
 configurations {
@@ -68,7 +68,7 @@ dependencies {
     testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.testcontainers:postgresql'
-    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:junit-jupiter'
 }
 dependencyManagement {
     imports {
