@@ -33,42 +33,21 @@ public class UserCredential extends MutableEntity {
   @Column(name = "password", nullable = false)
   private String password;
 
-  @Size(max = 512)
-  @NotNull
-  @Column(name = "refresh_token", nullable = false)
-  private String refreshToken;
-
-  @Size(max = 512)
-  @Column(name = "pre_refresh_token")
-  private String preRefreshToken;
-
-  @Builder
-  private UserCredential(UUID userId, String email, String password, String refreshToken) {
+  @Builder(access = AccessLevel.PRIVATE)
+  private UserCredential(UUID userId, String email, String password) {
     this.userId = userId;
     this.email = email;
     this.password = password;
-    this.refreshToken = refreshToken;
   }
 
-  public static UserCredential of(UUID userId, String email, String password, String refreshToken) {
-    return UserCredential.builder()
-            .userId(userId)
-            .email(email)
-            .password(password)
-            .refreshToken(refreshToken)
+  public static UserCredential of(UUID userId, String email, String password) {
+    return UserCredential.builder().userId(userId).email(email).password(password)
             .build();
   }
 
   public void updatePassword(String password, Consumer<String> validator) {
     if (shouldUpdate(this.password, password, validator)) {
       this.password = password;
-    }
-  }
-
-  public void updateRefreshToken(String refreshToken, Consumer<String> validator) {
-    if (shouldUpdate(this.refreshToken, refreshToken, validator)) {
-      this.preRefreshToken = this.refreshToken;
-      this.refreshToken = refreshToken;
     }
   }
 }
