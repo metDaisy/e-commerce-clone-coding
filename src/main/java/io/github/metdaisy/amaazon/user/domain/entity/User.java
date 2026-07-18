@@ -43,7 +43,7 @@ public class User extends MutableEntity {
   @Column(name = "point_balance", nullable = false)
   private int pointBalance;
 
-  @Builder
+  @Builder(access = AccessLevel.PRIVATE)
   private User(String name, String phoneNumber, UserRole role, int pointBalance) {
     this.name = name;
     this.phoneNumber = phoneNumber;
