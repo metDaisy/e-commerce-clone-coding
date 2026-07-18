@@ -6,8 +6,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.util.UUID;
-import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,25 +37,34 @@ public class RefreshToken extends MutableEntity {
   @Column(name = "pre_token", length = 512)
   private String preToken;
 
+  @NotNull
+  @Column(name = "expired_at")
+  private Instant expiredAt;
+
   @Builder(access = AccessLevel.PRIVATE)
-  private RefreshToken(UUID userId, String deviceId, String token) {
+  private RefreshToken(UUID userId, String deviceId, String token, Instant expiredAt) {
     this.userId = userId;
     this.deviceId = deviceId;
     this.token = token;
+    this.expiredAt = expiredAt;
   }
 
-  public static RefreshToken of(UUID userId, String deviceId, String token) {
+  public static RefreshToken of(UUID userId, String deviceId, String token, Instant expiredAt) {
     return RefreshToken.builder()
             .userId(userId)
             .deviceId(deviceId)
             .token(token)
+            .expiredAt(expiredAt)
             .build();
   }
 
-  public void reissue(String token, Consumer<String> validator) {
-    if (shouldUpdate(this.token, token, validator)) {
-      this.preToken = this.token;
-      this.token = token;
-    }
+  public void reissue(String token, Instant expiredAt) {
+    updateIfChanged(this.token, token, value -> this.preToken = this.token);
+    this.token = token;
+    this.expiredAt = expiredAt;
+  }
+
+  public boolean isExpired(Instant now) {
+    return this.expiredAt.isBefore(now);
   }
 }
