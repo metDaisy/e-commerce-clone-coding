@@ -18,8 +18,6 @@ CREATE TABLE user_credentials
     user_id           UUID         NOT NULL,
     email             VARCHAR(100) NOT NULL,
     password          VARCHAR(255) NOT NULL,
-    refresh_token     varchar(512) not null,
-    pre_refresh_token varchar(512),
     created_at        TIMESTAMP WITH TIME ZONE,
     updated_at        TIMESTAMP WITH TIME ZONE
 );
@@ -221,9 +219,21 @@ CREATE TABLE event_publication
     status                 VARCHAR(255)
 );
 
+create table refresh_tokens
+(
+    id UUID primary key,
+    user_id UUID not null,
+    device_id varchar(100) not null,
+    token varchar(512) not null,
+    pre_token varchar(512),
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone
+);
+
 -- ------------------------------------------------------------------------------
 -- 3. Unique Constraints & Indexes
 -- ------------------------------------------------------------------------------
+create index idx_refresh_tokens_user_id on refresh_tokens (user_id);
 
 CREATE UNIQUE INDEX idx_user_credentials_user_id ON user_credentials (user_id);
 
@@ -242,7 +252,6 @@ CREATE UNIQUE INDEX idx_cart_items_unique ON cart_items (cart_id, product_id);
 ALTER TABLE deliveries
     ADD CONSTRAINT uq_deliveries_order_id UNIQUE (order_id);
 
-CREATE INDEX idx_images_target ON images (target_type, target_id);
 CREATE INDEX idx_products_category_id ON products (category_id);
 CREATE INDEX idx_reviews_product_id ON reviews (product_id);
 CREATE UNIQUE INDEX idx_reviews_user_product ON reviews (user_id, product_id);
