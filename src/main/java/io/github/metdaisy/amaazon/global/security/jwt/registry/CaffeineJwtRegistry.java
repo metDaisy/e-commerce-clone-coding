@@ -1,10 +1,8 @@
 package io.github.metdaisy.amaazon.global.security.jwt.registry;
 
-import io.github.metdaisy.amaazon.global.security.jwt.dto.JwtToken;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtTokenNotFoundException;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,7 +20,7 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 @ConditionalOnProperty(value = "amaazon.jwt.registry-store-type", havingValue = "caffeine")
 public class CaffeineJwtRegistry implements JwtRegistry {
 
-  private final Cache<String, JwtToken> tokenCache;
+  private final Cache<String, UUID> tokenCache;
   private final Map<UUID, Set<String>> userTokenSet;
 
   public CaffeineJwtRegistry(@Qualifier("caffeineWorker") Executor caffeineWorker,
@@ -35,15 +33,19 @@ public class CaffeineJwtRegistry implements JwtRegistry {
   }
 
   @Override
-  public void register(JwtToken jwtToken) {
-    tokenCache.put(jwtToken.token(), jwtToken);
-    userTokenSet.computeIfAbsent(jwtToken.userId(), k -> ConcurrentHashMap.newKeySet())
-        .add(jwtToken.token());
+  public void register(UUID userId, String token) {
+    tokenCache.put(token, userId);
+    userTokenSet.computeIfAbsent(userId, k -> ConcurrentHashMap.newKeySet())
+        .add(token);
   }
 
   @Override
-  public Optional<JwtToken> findByToken(String token) {
-    return Optional.ofNullable(tokenCache.getIfPresent(token));
+  public UUID findByToken(String token) {
+    UUID userId = tokenCache.getIfPresent(token);
+    if (userId == null) {
+      throw new JwtTokenNotFoundException(token);
+    }
+    return userId;
   }
 
   @Override
@@ -57,19 +59,12 @@ public class CaffeineJwtRegistry implements JwtRegistry {
     tokenCache.invalidate(token);
   }
 
-  @Override
-  public boolean isActiveSession(UUID userId, String device) {
-    Set<String> tokens = userTokenSet.getOrDefault(userId, Collections.emptySet());
-    return tokens.stream().map(tokenCache::getIfPresent).filter(Objects::nonNull)
-        .anyMatch(jwtToken -> jwtToken.device().equals(device));
-  }
-
-  private void onTokenRemoved(String token, JwtToken jwtToken, RemovalCause cause) {
-    if (jwtToken == null) {
+  private void onTokenRemoved(String token, UUID userId, RemovalCause cause) {
+    if (userId == null) {
       return;
     }
-    userTokenSet.computeIfPresent(jwtToken.userId(),
-        (userId, tokens) -> removeAndCheckEmpty(tokens, token));
+    userTokenSet.computeIfPresent(userId,
+        (id, tokens) -> removeAndCheckEmpty(tokens, token));
   }
 
   private Set<String> removeAndCheckEmpty(Set<String> tokens, String token) {
