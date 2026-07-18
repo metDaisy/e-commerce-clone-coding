@@ -226,6 +226,7 @@ create table refresh_tokens
     device_id varchar(100) not null,
     token varchar(512) not null,
     pre_token varchar(512),
+    expired_at timestamp with time zone not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone
 );

@@ -15,6 +15,9 @@ amaazon:
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
     refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
     secret-key: ${JWT_SECRET_KEY}
+  cache:
+    caffeine:
+      capacity: 10000
 
 logging:
   file:
