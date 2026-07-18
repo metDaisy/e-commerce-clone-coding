@@ -9,18 +9,24 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
   @Bean
-  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+  public SecurityFilterChain filterChain(HttpSecurity http,
+          AuthenticationSuccessHandler loginSuccessHandler,
+          AuthenticationFailureHandler loginFailureHandler) throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(
                     session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .formLogin(form ->
                     form.loginProcessingUrl(SecurityConstants.LOGIN_URL)
+                            .successHandler(loginSuccessHandler)
+                            .failureHandler(loginFailureHandler)
                             .usernameParameter(SecurityConstants.USERNAME_PARAMETER)
                             .passwordParameter(SecurityConstants.PASSWORD_PARAMETER))
             .logout(logout ->
