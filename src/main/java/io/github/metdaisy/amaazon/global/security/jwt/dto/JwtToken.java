@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.global.security.jwt;
+package io.github.metdaisy.amaazon.global.security.jwt.dto;
 
 import java.time.Instant;
 import java.util.UUID;

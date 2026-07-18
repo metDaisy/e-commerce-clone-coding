@@ -1,5 +1,6 @@
-package io.github.metdaisy.amaazon.global.security.jwt;
+package io.github.metdaisy.amaazon.global.security.jwt.registry;
 
+import io.github.metdaisy.amaazon.global.security.jwt.dto.JwtToken;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
