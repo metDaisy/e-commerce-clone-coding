@@ -1,8 +1,10 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
-import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialEmailAlreadyExistsException;
+import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
+import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,7 +27,7 @@ public class AuthService {
 
   private void validateEmail(String email) {
     if (repository.existsByEmail(email)) {
-      throw new UserCredentialEmailAlreadyExistsException(email);
+      throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS, Map.of("email", email));
     }
   }
 }

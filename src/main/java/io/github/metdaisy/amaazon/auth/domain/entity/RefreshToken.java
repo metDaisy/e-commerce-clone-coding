@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -66,5 +67,13 @@ public class RefreshToken extends MutableEntity {
 
   public boolean isExpired(Instant now) {
     return this.expiredAt.isBefore(now);
+  }
+
+  public boolean isCompromised(String token) {
+    return Objects.equals(this.preToken, token);
+  }
+
+  public boolean isCurrentToken(String token) {
+    return this.token.equals(token);
   }
 }
