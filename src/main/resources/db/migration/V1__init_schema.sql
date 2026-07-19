@@ -231,10 +231,28 @@ create table refresh_tokens
     updated_at timestamp with time zone
 );
 
+create table blacklist_tokens
+(
+    id UUID primary key,
+    token varchar(36) not null,
+    expired_at timestamp with time zone not null,
+    created_at timestamp with time zone
+);
+
+create table blacklist_users
+(
+    id UUID primary key,
+    user_id UUID not null,
+    compromised_at timestamp with time zone not null,
+    created_at timestamp with time zone
+);
+
 -- ------------------------------------------------------------------------------
 -- 3. Unique Constraints & Indexes
 -- ------------------------------------------------------------------------------
-create index idx_refresh_tokens_user_id on refresh_tokens (user_id);
+create index idx_blacklist_tokens_token on blacklist_tokens (token);
+create unique index idx_blacklist_users_user_id on blacklist_users (user_id);
+create index idx_refresh_tokens_token on refresh_tokens (token);
 
 CREATE UNIQUE INDEX idx_user_credentials_user_id ON user_credentials (user_id);
 
