@@ -1,33 +1,31 @@
 package io.github.metdaisy.amaazon.common.exception;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
 
-@Getter
 public abstract class AmaazonException extends RuntimeException {
 
-  private final HttpStatus status;
-  private final String exceptionType;
-  private final String message; // client 에게 보낼 message
+  @Getter
+  private final AmaazonErrorType errorType;
+  private final String code;
   private final String detailMessage; // logging 을 위한 message
 
-  public AmaazonException(HttpStatus status, String message) {
-    this(status, message, null);
+  public AmaazonException(AmaazonErrorCode errorCode) {
+    this(errorCode, Collections.emptyMap());
   }
 
-  public AmaazonException(HttpStatus status, String message, Map<String, Object> details) {
-    super(message);
-    this.status = status;
-    this.exceptionType = this.getClass().getSimpleName();
-    this.message = message;
-    this.detailMessage = formatDetailMessage(this.message, details);
+  public AmaazonException(AmaazonErrorCode errorCode, Map<String, Object> details) {
+    super(errorCode.getMessage());
+    this.errorType = errorCode.getErrorType();
+    this.code = errorCode.getCode();
+    this.detailMessage = formatDetailMessage(errorCode.getMessage(), details);
   }
 
   private String formatDetailMessage(String defaultMessage, Map<String, Object> details) {
-    if (details == null || details.isEmpty()) {
+    if (details.isEmpty()) {
       return defaultMessage;
     }
     return details.entrySet().stream()
@@ -37,8 +35,8 @@ public abstract class AmaazonException extends RuntimeException {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", this.exceptionType + "[", "]")
-            .add("HttpStatus=" + status)
+    return new StringJoiner(", ", this.code + "[", "]")
+            .add("ErrorType=" + errorType)
             .add("detailMessage='" + detailMessage + "'")
             .toString();
   }
