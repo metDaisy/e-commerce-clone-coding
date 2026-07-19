@@ -1,15 +1,16 @@
 package io.github.metdaisy.amaazon.user.application.service;
 
-import io.github.metdaisy.amaazon.user.application.dto.UserCreateRequest;
-import io.github.metdaisy.amaazon.user.domain.entity.User;
-import io.github.metdaisy.amaazon.user.domain.event.UserCreatedEvent;
-import io.github.metdaisy.amaazon.user.domain.exception.UserNameAlreadyExistsException;
-import io.github.metdaisy.amaazon.user.domain.exception.UserPhoneNumberAlreadyExistsException;
-import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import io.github.metdaisy.amaazon.user.application.dto.UserCreateRequest;
+import io.github.metdaisy.amaazon.user.domain.entity.User;
+import io.github.metdaisy.amaazon.user.domain.event.UserCreatedEvent;
+import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
+import io.github.metdaisy.amaazon.user.domain.exception.UserException;
+import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @Transactional
@@ -30,13 +31,14 @@ public class UserService {
 
   private void validateName(String name) {
     if (repository.existsByName(name)) {
-      throw new UserNameAlreadyExistsException(name);
+      throw new UserException(UserErrorCode.NAME_ALREADY_EXISTS, Map.of("name", name));
     }
   }
 
   private void validatePhoneNumber(String phoneNumber) {
     if (repository.existsByPhoneNumber(phoneNumber)) {
-      throw new UserPhoneNumberAlreadyExistsException(phoneNumber);
+      throw new UserException(UserErrorCode.PHONE_ALREADY_EXISTS,
+          Map.of("phoneNumber", phoneNumber));
     }
   }
 }
