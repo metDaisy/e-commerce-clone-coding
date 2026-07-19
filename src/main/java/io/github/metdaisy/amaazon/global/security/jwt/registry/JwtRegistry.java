@@ -7,10 +7,10 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("jwt")
 public interface JwtRegistry {
 
-  void blacklistToken(String accessToken);
+  void blacklistToken(String jti, Instant expiredAt);
 
   void blacklistUser(UUID userId, Instant compromisedAt);
 
-  boolean isBlacklisted(String accessToken, UUID userId, Instant issuedAt);
+  boolean isBlacklisted(String jti, UUID userId, Instant issuedAt);
 
 }
