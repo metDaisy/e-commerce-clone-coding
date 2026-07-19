@@ -1,17 +1,16 @@
 package io.github.metdaisy.amaazon.global.security.jwt.registry;
 
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.modulith.NamedInterface;
 
 @NamedInterface("jwt")
 public interface JwtRegistry {
 
-  void register(UUID userId, String token);
+  void blacklistToken(String accessToken);
 
-  UUID findByToken(String token);
+  void blacklistUser(UUID userId, Instant compromisedAt);
 
-  void invalidateAllByUserId(UUID userId);
-
-  void invalidateByToken(String token);
+  boolean isBlacklisted(String accessToken, UUID userId, Instant issuedAt);
 
 }

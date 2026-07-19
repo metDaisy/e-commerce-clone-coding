@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.NamedInterface;
@@ -35,7 +36,7 @@ import org.springframework.util.StringUtils;
 @Component
 public class JwtTokenProvider {
 
-  private static final String AUTHORITIES_KEY = "role";
+  private final String authoritiesKey = "role";
   private final JwtProperties jwtProperties;
   private final JWSSigner signer;
   private final JWSVerifier verifier;
@@ -62,7 +63,7 @@ public class JwtTokenProvider {
             () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
     JWTClaimsSet claims = getOrThrow(signedJWT::getJWTClaimsSet,
             () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 파싱할 수 없습니다."));
-    String authClaim = getOrThrow(() -> claims.getStringClaim(AUTHORITIES_KEY),
+    String authClaim = getOrThrow(() -> claims.getStringClaim(authoritiesKey),
             () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
                     "payload 에서 role 을 파싱할 수 없습니다."));
 
@@ -88,7 +89,6 @@ public class JwtTokenProvider {
 
     Date expirationTime = getOrThrow(() -> signedJWT.getJWTClaimsSet().getExpirationTime(),
             () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다."));
-
     if (expirationTime == null) {
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "토큰 유효기간을 찾을 수 없습니다.");
     }
@@ -97,15 +97,23 @@ public class JwtTokenProvider {
     }
   }
 
+  public String parseJti(String token) {
+    JWTClaimsSet claimsSet = getOrThrow(() -> SignedJWT.parse(token).getJWTClaimsSet(),
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("jwtToken", token)));
+    return getOrThrow(claimsSet::getJWTID, () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+            Map.of("token", token, "detailMessage", "jti 를 찾을 수 없습니다.")));
+  }
+
   private String buildToken(String subject, String authorities, long expirationMillis) {
     long now = System.currentTimeMillis();
     JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
+            .jwtID(UUID.randomUUID().toString())
             .subject(subject)
             .issueTime(new Date(now))
             .expirationTime(new Date(now + expirationMillis));
 
     if (StringUtils.hasText(authorities)) {
-      builder.claim(AUTHORITIES_KEY, authorities);
+      builder.claim(authoritiesKey, authorities);
     }
 
     SignedJWT signedJWT = new SignedJWT(header, builder.build());
