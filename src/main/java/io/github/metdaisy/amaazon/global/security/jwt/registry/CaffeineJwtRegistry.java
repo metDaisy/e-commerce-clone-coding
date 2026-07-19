@@ -26,6 +26,7 @@ public class CaffeineJwtRegistry implements JwtRegistry {
   public CaffeineJwtRegistry(
           @Qualifier("caffeineWorker") Executor caffeineWorker,
           @Value("${amaazon.jwt.access-token-expiration}") long accessTokenExpiration,
+          @Value("${amaazon.jwt.refresh-token-expiration}") long refreshTokenExpiration,
           @Value("${amaazon.cache.caffeine.capacity}") int cacheCapacity,
           ApplicationEventPublisher eventPublisher) {
     this.eventPublisher = eventPublisher;
@@ -38,7 +39,7 @@ public class CaffeineJwtRegistry implements JwtRegistry {
 
     this.userBlacklist = Caffeine.newBuilder()
             .initialCapacity(cacheCapacity)
-            .expireAfterWrite(accessTokenExpiration, TimeUnit.SECONDS)
+            .expireAfterWrite(refreshTokenExpiration, TimeUnit.SECONDS)
             .executor(caffeineWorker)
             .build();
   }
