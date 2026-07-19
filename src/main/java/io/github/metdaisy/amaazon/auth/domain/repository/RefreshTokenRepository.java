@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface RefreshTokenRepository extends DomainRepository<RefreshToken> {
 
   Optional<RefreshToken> findByToken(String token);
+
+  void deleteByTokenDirectly(String jti);
 }
