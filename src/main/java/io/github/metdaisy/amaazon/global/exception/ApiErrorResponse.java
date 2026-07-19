@@ -19,7 +19,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public record ApiErrorResponse(String exceptionType, String message, Object details) {
 
   public static ApiErrorResponse from(AmaazonException ex) {
-    return new ApiErrorResponse(ex.getExceptionType(), ex.getMessage(), null);
+    return new ApiErrorResponse(ex.getCode(), ex.getMessage(), null);
   }
 
   public static ApiErrorResponse from(MethodArgumentNotValidException ex) {

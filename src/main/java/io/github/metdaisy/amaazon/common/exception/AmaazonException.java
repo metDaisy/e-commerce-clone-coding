@@ -9,8 +9,9 @@ import lombok.Getter;
 public abstract class AmaazonException extends RuntimeException {
 
   @Getter
-  private final AmaazonErrorType errorType;
   private final String code;
+  @Getter
+  private final AmaazonErrorType errorType;
   private final String detailMessage; // logging 을 위한 message
 
   public AmaazonException(AmaazonErrorCode errorCode) {

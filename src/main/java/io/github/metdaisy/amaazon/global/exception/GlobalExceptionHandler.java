@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.global.exception;
 
 import io.github.metdaisy.amaazon.common.exception.AmaazonException;
+import io.github.metdaisy.amaazon.global.exception.util.ErrorTypeResolver;
 import io.github.metdaisy.amaazon.global.exception.util.ViolationExceptionUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -29,7 +30,7 @@ public class GlobalExceptionHandler {
   public ResponseEntity<ApiErrorResponse> handleBusinessException(AmaazonException e) {
     log.warn(e.toString());
     return ResponseEntity
-            .status(e.getStatus())
+            .status(ErrorTypeResolver.resolve(e.getErrorType()))
             .body(ApiErrorResponse.from(e));
   }
 
