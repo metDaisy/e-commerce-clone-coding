@@ -1,13 +1,23 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   flyway:
-    enabled: true
-    baseline-on-migrate: true
+    enabled: false
+    baseline-on-migrate: false
   servlet:
     multipart:
-      max-file-size: ${MAX_FILE_SIZE}
-      max-request-size: ${MAX_REQUEST_SIZE}
+      max-file-size: ${MAX_FILE_SIZE:10MB}
+      max-request-size: ${MAX_REQUEST_SIZE:10MB}
+
+amaazon:
+  jwt:
+    registry-store-type: ${JWT_REGISTRY_STORE_TYPE} # caffeine | redis
+    access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
+    refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
+    secret-key: ${JWT_SECRET_KEY}
+  cache:
+    caffeine:
+      capacity: 10000
 
 logging:
   file:

@@ -1,0 +1,9 @@
+language: "ko-KR"
+
+reviews:
+  path_filters:
+    - "!build/**"
+    - "!target/**"
+    - "!.gradle/**"
+    - "!**/*.class"
+    - "!**/*.jar"
