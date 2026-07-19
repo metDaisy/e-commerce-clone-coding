@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.global.security.jwt.registry;
 
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtTokenNotFoundException;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class CaffeineJwtRegistry implements JwtRegistry {
   public UUID findByToken(String token) {
     UUID userId = tokenCache.getIfPresent(token);
     if (userId == null) {
-      throw new JwtTokenNotFoundException(token);
+      throw new JwtException(JwtErrorCode.TOKEN_NOT_FOUND, Map.of("refreshToken", token));
     }
     return userId;
   }

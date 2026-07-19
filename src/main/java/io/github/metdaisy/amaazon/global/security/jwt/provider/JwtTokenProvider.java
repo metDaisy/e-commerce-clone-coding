@@ -11,17 +11,13 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import io.github.metdaisy.amaazon.common.exception.AmaazonException;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtExpiredException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtClaimExtractionException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtRoleNotFoundException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtRoleExtractionException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtParseException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtSignException;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtVerificationException;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.modulith.NamedInterface;
@@ -63,13 +59,15 @@ public class JwtTokenProvider {
 
   public Authentication getAuthentication(String token) {
     SignedJWT signedJWT = getOrThrow(() -> SignedJWT.parse(token),
-            () -> new JwtParseException(token));
-    JWTClaimsSet claims = getOrThrow(signedJWT::getJWTClaimsSet, JwtClaimExtractionException::new);
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
+    JWTClaimsSet claims = getOrThrow(signedJWT::getJWTClaimsSet,
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 파싱할 수 없습니다."));
     String authClaim = getOrThrow(() -> claims.getStringClaim(AUTHORITIES_KEY),
-            JwtRoleExtractionException::new);
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+                    "payload 에서 role 을 파싱할 수 없습니다."));
 
     if (!StringUtils.hasText(authClaim)) {
-      throw new JwtRoleNotFoundException();
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 에서 role 을 찾을 수 없습니다.");
     }
 
     Collection<? extends GrantedAuthority> authorities = parseAuthorities(authClaim);
@@ -79,19 +77,23 @@ public class JwtTokenProvider {
 
   public void validate(String token) {
     SignedJWT signedJWT = getOrThrow(() -> SignedJWT.parse(token),
-            () -> new JwtParseException(token));
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
 
-    boolean verified = getOrThrow(() -> signedJWT.verify(verifier), JwtVerificationException::new);
+    boolean verified = getOrThrow(() -> signedJWT.verify(verifier),
+            () -> new JwtException(JwtErrorCode.VERIFICATION_FAILED));
 
     if (!verified) {
-      throw new JwtVerificationException();
+      throw new JwtException(JwtErrorCode.INVALID_SIGNATURE);
     }
 
     Date expirationTime = getOrThrow(() -> signedJWT.getJWTClaimsSet().getExpirationTime(),
-            JwtClaimExtractionException::new);
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다."));
 
-    if (expirationTime == null || new Date().after(expirationTime)) {
-      throw new JwtExpiredException();
+    if (expirationTime == null) {
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "토큰 유효기간을 찾을 수 없습니다.");
+    }
+    if (expirationTime.before(new Date())) {
+      throw new JwtException(JwtErrorCode.TOKEN_EXPIRED);
     }
   }
 
@@ -108,7 +110,7 @@ public class JwtTokenProvider {
 
     SignedJWT signedJWT = new SignedJWT(header, builder.build());
     runOrThrow(() -> signedJWT.sign(signer),
-            () -> new JwtSignException("서명 처리 중 예외가 발생했습니다."));
+            () -> new JwtException(JwtErrorCode.SIGN_FAILED));
     return signedJWT.serialize();
   }
 
