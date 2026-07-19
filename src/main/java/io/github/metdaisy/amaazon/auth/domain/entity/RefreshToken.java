@@ -29,13 +29,13 @@ public class RefreshToken extends MutableEntity {
   @Column(name = "device_id", nullable = false, length = 100)
   private String deviceId;
 
-  @Size(max = 512)
+  @Size(max = 36)
   @NotNull
-  @Column(name = "token", nullable = false, length = 512)
+  @Column(name = "token", nullable = false, length = 36)
   private String token;
 
-  @Size(max = 512)
-  @Column(name = "pre_token", length = 512)
+  @Size(max = 36)
+  @Column(name = "pre_token", length = 36)
   private String preToken;
 
   @NotNull

@@ -1,11 +1,15 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
-import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCreatedEvent;
-import io.github.metdaisy.amaazon.auth.application.event.JwtTokenExpiredEvent;
-import io.github.metdaisy.amaazon.auth.application.event.JwtTokenReissuedEvent;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
@@ -13,13 +17,7 @@ import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
@@ -34,37 +32,42 @@ public class JwtTokenService {
 
   public JwtLoginDto reissue(String token) {
     provider.validate(token);
-    RefreshToken tokenEntity = repository.findByToken(token)
-            .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
-                    Map.of("refreshToken", token)));
-    UUID userId = tokenEntity.getUserId();
-    if (tokenEntity.isCompromised(token)) {
-      eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId));
-      throw new AuthException(AuthErrorCode.TOKEN_COMPROMISED,
-              Map.of("userId", userId, "refreshToken", token, "device", tokenEntity.getDeviceId()));
-    }
-    if (!tokenEntity.isCurrentToken(token)) {
-      eventPublisher.publishEvent(new JwtTokenExpiredEvent(token));
-      throw new AuthException(AuthErrorCode.TOKEN_EXPIRED,
-              Map.of("userId", userId, "refreshToken", token, "device", tokenEntity.getDeviceId()));
-    }
-    AuthUserDto userDto = userPort.loadUser(userId);
-    String accessToken = provider.generateAccessToken(userDto.userId(), userDto.role());
-    String refreshToken = provider.generateRefreshToken(userDto.userId());
-    Instant expiredAt = Instant.now().plusSeconds(properties.refreshTokenExpiration());
-    tokenEntity.reissue(refreshToken, expiredAt);
-    eventPublisher.publishEvent(new JwtTokenReissuedEvent(userId, refreshToken));
-    return new JwtLoginDto(userDto.userId(), accessToken, refreshToken);
+    String jti = provider.parseJti(token);
+    RefreshToken tokenEntity = repository.findByToken(jti)
+        .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
+            Map.of("refreshToken", token)));
+    validateTokenEntity(tokenEntity, jti);
+    AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId());
+    return issueTokens(userDto, tokenEntity::reissue);
   }
 
   public JwtLoginDto create(UUID userId, String device) {
     AuthUserDto userDto = userPort.loadUser(userId);
+    return issueTokens(userDto, (jti, expiredAt) -> {
+      RefreshToken tokenEntity = RefreshToken.of(userId, device, jti, expiredAt);
+      repository.save(tokenEntity);
+    });
+  }
+
+  private void validateTokenEntity(RefreshToken tokenEntity, String jti) {
+    UUID userId = tokenEntity.getUserId();
+    if (tokenEntity.isCompromised(jti)) {
+      eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId, Instant.now()));
+      throw new AuthException(AuthErrorCode.TOKEN_COMPROMISED,
+          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+    }
+    if (!tokenEntity.isCurrentToken(jti)) {
+      throw new AuthException(AuthErrorCode.TOKEN_EXPIRED,
+          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+    }
+  }
+
+  private JwtLoginDto issueTokens(AuthUserDto userDto, BiConsumer<String, Instant> tokenAction) {
     String accessToken = provider.generateAccessToken(userDto.userId(), userDto.role());
-    String refreshToken = provider.generateRefreshToken(userId);
+    String refreshToken = provider.generateRefreshToken(userDto.userId());
+    String jti = provider.parseJti(refreshToken);
     Instant expiredAt = Instant.now().plusSeconds(properties.refreshTokenExpiration());
-    RefreshToken tokenEntity = RefreshToken.of(userId, device, refreshToken, expiredAt);
-    repository.save(tokenEntity);
-    eventPublisher.publishEvent(new JwtTokenCreatedEvent(userId, refreshToken));
-    return new JwtLoginDto(userId, accessToken, refreshToken);
+    tokenAction.accept(jti, expiredAt);
+    return new JwtLoginDto(userDto.userId(), accessToken, refreshToken);
   }
 }
