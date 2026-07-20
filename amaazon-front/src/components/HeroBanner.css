@@ -1,0 +1,120 @@
+.hero {
+  position: relative;
+  width: 100%;
+  margin-bottom: -80px;
+  z-index: 1;
+}
+
+.hero__slider {
+  position: relative;
+  width: 100%;
+  height: 350px;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .hero__slider {
+    height: 450px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero__slider {
+    height: 600px;
+  }
+}
+
+.hero__slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+}
+
+.hero__slide--active {
+  opacity: 1;
+}
+
+.hero__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Navigation Arrows */
+.hero__arrow {
+  position: absolute;
+  top: 0;
+  height: 55%;
+  width: 55px;
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color var(--transition-fast);
+  user-select: none;
+  padding: 0;
+}
+
+.hero__arrow:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.hero__arrow--left {
+  left: 0;
+}
+
+.hero__arrow--right {
+  right: 0;
+}
+
+/* Bottom Gradient Fade (Amazon-style) */
+.hero__fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(
+    to bottom,
+    rgba(234, 237, 237, 0) 0%,
+    rgba(234, 237, 237, 0.6) 50%,
+    rgba(234, 237, 237, 1) 100%
+  );
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Dots */
+.hero__dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.hero__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hero__dot--active {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.4);
+}

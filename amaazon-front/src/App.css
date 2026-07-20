@@ -1,0 +1,42 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main {
+  flex: 1;
+  background-color: var(--amazon-light);
+  padding-bottom: 20px;
+}
+
+/* Customs notices banner (like Amazon's customs info) */
+.main > .product-grid:first-of-type {
+  margin-top: 0;
+}
+
+/* Promo Banner */
+.promo-banner {
+  margin: 0 20px 20px;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(135deg, #232f3e 0%, #37475a 50%, #485769 100%);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.promo-banner__inner {
+  padding: 30px 40px;
+}
+
+.promo-banner__title {
+  color: #fff;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.promo-banner__subtitle {
+  color: #ccc;
+  font-size: var(--font-size-base);
+}
