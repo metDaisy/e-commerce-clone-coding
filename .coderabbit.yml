@@ -1,9 +1,90 @@
 language: "ko-KR"
+tone_instructions: "1. When reviewing, specifically point out the problems or limitations of the changes.
+  2. Explain clearly with reasons why it is inefficient or not recommended.
+  3. When suggesting alternatives, explain the options and the pros and cons of each logically.
+  4. Focus on improvement directions rather than simple criticism, and leave comments that help understanding from a learning perspective.
+  5. Do not be overly stiff, but ensure the flow of logic is conveyed clearly."
 
 reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_instructions: |
+    Please write the summary following the PR template structure below.
+    Instead of simply listing implementation details,
+    focus on why this change was necessary, what choices were made,
+    and what has changed in the existing code flow.
+
+    Fill in all sections below, but if information is lacking or uncertain,
+    do not guess randomly and specify as "Not measured".
+
+    ---
+
+    ## 🔗 Related Issue
+    - close #{issue_number}
+
+    ## 📝 Work Details
+    - Summarize the problem this PR is trying to solve.
+    - Also explain the inconveniences or limitations of the existing structure.
+
+    ### Key Changes
+    1. The biggest changes from a structural or responsibility perspective.
+    2. Changes in data flow, exception handling, API contracts, etc.
+    3. Changes or trade-offs that you would like reviewers to pay special attention to.
+
+    ### 📊 Summary of Change Effects (If possible)
+    - Include only measurable metrics such as changes in the number of lines/files of code, number of unit tests added, etc.
+    - If it is difficult to derive or the meaning is small, explicitly state "Quantitative metrics are not measured in this PR".
+    ---
+  sequence_diagrams: false
+  changed_files_summary: false
+  suggested_labels: false
+  suggested_reviewers: false
+  poem: false
+  abort_on_close: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+  tools:
+    gitleaks:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    sqlfluff:
+      enabled: true
   path_filters:
     - "!build/**"
     - "!target/**"
     - "!.gradle/**"
     - "!**/*.class"
     - "!**/*.jar"
+
+chat:
+  auto_reply: true
+
+code_generation:
+  docstrings:
+    language: "ko-KR"
+    path_instructions:
+      - path: "src/main/java/**"
+        instructions: |
+          - Write Docstrings in English, following the official JavaDoc format.
+          - Clearly describe the method's purpose, parameters, return values, and exception information.
+          - Describe public methods such as external APIs in detail, and summarize the core for internal use.
+  unit_tests:
+    path_instructions:
+      - path: "src/main/java/**"
+        instructions: |
+          - For Controllers, write both slice tests (@WebMvcTest) and integration tests (Testcontainers + MockMvc).
+          - For Services and domain logic, write unit tests.
+          - Apply the Given-When-Then pattern.
+          - Include both success cases and failure/exception cases.
