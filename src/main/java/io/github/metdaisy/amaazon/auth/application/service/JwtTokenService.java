@@ -68,11 +68,11 @@ public class JwtTokenService {
   }
 
   private JwtLoginDto issueTokens(AuthUserDto userDto, BiConsumer<String, Instant> tokenAction) {
-    String accessToken = provider.generateAccessToken(userDto.userId(), userDto.role());
-    String refreshToken = provider.generateRefreshToken(userDto.userId());
+    String accessToken = provider.generateAccessToken(userDto.id(), userDto.role());
+    String refreshToken = provider.generateRefreshToken(userDto.id());
     String jti = provider.parseJti(refreshToken);
     Instant expiredAt = Instant.now().plusSeconds(properties.refreshTokenExpiration());
     tokenAction.accept(jti, expiredAt);
-    return new JwtLoginDto(userDto.userId(), accessToken, refreshToken);
+    return new JwtLoginDto(userDto.id(), accessToken, refreshToken);
   }
 }
