@@ -1,21 +1,13 @@
 package io.github.metdaisy.amaazon.global.security.jwt.registry;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import io.github.metdaisy.amaazon.global.security.jwt.event.BlacklistTokenCreatedEvent;
 import io.github.metdaisy.amaazon.global.security.jwt.event.BlacklistUserCreatedEvent;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
-@Component
-@ConditionalOnProperty(value = "amaazon.jwt.registry-store-type", havingValue = "caffeine")
 public class CaffeineJwtRegistry implements JwtRegistry {
 
   // token: jti
@@ -24,24 +16,12 @@ public class CaffeineJwtRegistry implements JwtRegistry {
   private final ApplicationEventPublisher eventPublisher;
 
   public CaffeineJwtRegistry(
-          @Qualifier("caffeineWorker") Executor caffeineWorker,
-          @Value("${amaazon.jwt.access-token-expiration}") long accessTokenExpiration,
-          @Value("${amaazon.jwt.refresh-token-expiration}") long refreshTokenExpiration,
-          @Value("${amaazon.cache.caffeine.capacity}") int cacheCapacity,
+          @Qualifier("tokenBlacklistCache") Cache<String, Boolean> tokenBlacklist,
+          @Qualifier("userBlacklistCache") Cache<UUID, Instant> userBlacklist,
           ApplicationEventPublisher eventPublisher) {
+    this.tokenBlacklist = tokenBlacklist;
+    this.userBlacklist = userBlacklist;
     this.eventPublisher = eventPublisher;
-
-    this.tokenBlacklist = Caffeine.newBuilder()
-            .initialCapacity(cacheCapacity)
-            .expireAfterWrite(accessTokenExpiration, TimeUnit.SECONDS)
-            .executor(caffeineWorker)
-            .build();
-
-    this.userBlacklist = Caffeine.newBuilder()
-            .initialCapacity(cacheCapacity)
-            .expireAfterWrite(refreshTokenExpiration, TimeUnit.SECONDS)
-            .executor(caffeineWorker)
-            .build();
   }
 
   @Override
