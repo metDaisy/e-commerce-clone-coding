@@ -2,20 +2,20 @@ package io.github.metdaisy.amaazon.auth.infra.security;
 
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import org.springframework.security.core.CredentialsContainer;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 @Getter
-@AllArgsConstructor
-public class FormUserDetails implements UserDetails, CredentialsContainer, AmaazonPrincipal {
+@RequiredArgsConstructor
+public class SocialUserDetails implements OAuth2User, AmaazonPrincipal {
 
   private final UUID id;
   private final String role;
-  private String password;
+  private final Map<String, Object> attributes;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -23,12 +23,7 @@ public class FormUserDetails implements UserDetails, CredentialsContainer, Amaaz
   }
 
   @Override
-  public String getUsername() {
+  public String getName() {
     return id.toString();
-  }
-
-  @Override
-  public void eraseCredentials() {
-    this.password = null;
   }
 }

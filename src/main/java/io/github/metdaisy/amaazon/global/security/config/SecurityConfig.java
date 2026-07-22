@@ -16,7 +16,6 @@ import org.springframework.security.web.authentication.logout.HttpStatusReturnin
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 
 @Configuration
-@EnableWebSecurity
 public class SecurityConfig {
 
   @Bean
