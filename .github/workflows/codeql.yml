@@ -1,0 +1,49 @@
+name: "CodeQL Advanced"
+
+on:
+  # main 브랜치로 코드가 Push 되거나(PR Merge 포함)
+  push:
+    branches: [ "main" ]
+  # main 브랜치로 Pull Request가 열릴 때 실행됩니다.
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 1. Backend (Java / Spring Boot) 분석 설정
+          # 프로젝트에 Kotlin 코드가 섞여있다면 build-mode를 'autobuild'로 변경해야 합니다.
+          - language: java-kotlin
+            build-mode: none
+            
+          # 2. Frontend (React / Vite) 분석 설정
+          - language: javascript-typescript
+            build-mode: none
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # CodeQL 분석 도구 초기화
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+
+    # CodeQL 분석 수행 및 GitHub Security 탭에 결과 업로드
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{matrix.language}}"
