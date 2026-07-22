@@ -8,15 +8,15 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 
-public class CaffeineJwtRegistry implements JwtRegistry {
+public class CaffeineBlacklistRegistry implements BlacklistRegistry {
 
   // token: jti
-  private final Cache<String, Boolean> tokenBlacklist;
+  private final Cache<String, Instant> tokenBlacklist;
   private final Cache<UUID, Instant> userBlacklist;
   private final ApplicationEventPublisher eventPublisher;
 
-  public CaffeineJwtRegistry(
-          @Qualifier("tokenBlacklistCache") Cache<String, Boolean> tokenBlacklist,
+  public CaffeineBlacklistRegistry(
+          @Qualifier("tokenBlacklistCache") Cache<String, Instant> tokenBlacklist,
           @Qualifier("userBlacklistCache") Cache<UUID, Instant> userBlacklist,
           ApplicationEventPublisher eventPublisher) {
     this.tokenBlacklist = tokenBlacklist;
@@ -26,7 +26,7 @@ public class CaffeineJwtRegistry implements JwtRegistry {
 
   @Override
   public void blacklistToken(String jti, Instant expiredAt) {
-    tokenBlacklist.put(jti, Boolean.TRUE);
+    tokenBlacklist.put(jti, expiredAt);
     eventPublisher.publishEvent(new BlacklistTokenCreatedEvent(jti, expiredAt));
   }
 

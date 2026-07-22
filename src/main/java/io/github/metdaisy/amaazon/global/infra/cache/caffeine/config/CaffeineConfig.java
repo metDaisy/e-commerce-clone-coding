@@ -1,5 +1,7 @@
 package io.github.metdaisy.amaazon.global.infra.cache.caffeine.config;
 
+import com.github.benmanes.caffeine.cache.Expiry;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -16,11 +18,11 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.metdaisy.amaazon.global.security.jwt.config.CaffeineCacheAsyncConfig;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
-import io.github.metdaisy.amaazon.global.security.jwt.registry.CaffeineJwtRegistry;
+import io.github.metdaisy.amaazon.global.security.jwt.registry.CaffeineBlacklistRegistry;
 
 @Configuration
 @ConditionalOnProperty(value = "amaazon.jwt.registry-store-type", havingValue = "caffeine")
-@Import({CaffeineJwtRegistry.class, CaffeineCacheAsyncConfig.class})
+@Import({CaffeineBlacklistRegistry.class, CaffeineCacheAsyncConfig.class})
 public class CaffeineConfig {
 
   private final Executor caffeineWorker;
@@ -49,10 +51,10 @@ public class CaffeineConfig {
   }
 
   @Bean(name = "tokenBlacklistCache")
-  public Cache<String, Boolean> tokenBlacklistCache() {
+  public Cache<String, Instant> tokenBlacklistCache() {
     return Caffeine.newBuilder()
         .initialCapacity(cacheCapacity)
-        .expireAfterWrite(properties.accessTokenExpiration(), TimeUnit.SECONDS)
+        .expireAfter(new CaffeineExpiry<String>())
         .executor(caffeineWorker)
         .build();
   }
@@ -61,8 +63,28 @@ public class CaffeineConfig {
   public Cache<UUID, Instant> userBlacklistCache() {
     return Caffeine.newBuilder()
         .initialCapacity(cacheCapacity)
-        .expireAfterWrite(properties.refreshTokenExpiration(), TimeUnit.SECONDS)
+        .expireAfter(new CaffeineExpiry<UUID>())
         .executor(caffeineWorker)
         .build();
+  }
+
+  private static class CaffeineExpiry<T> implements Expiry<T, Instant> {
+
+    @Override
+    public long expireAfterCreate(T key, Instant value, long currentTime) {
+      long ttlNanos = Duration.between(Instant.now(), value).toNanos();
+      return ttlNanos > 0 ? ttlNanos : 0;
+    }
+
+    @Override
+    public long expireAfterUpdate(T key, Instant value, long currentTime,
+            long currentDuration) {
+      return currentDuration;
+    }
+
+    @Override
+    public long expireAfterRead(T key, Instant value, long currentTime, long currentDuration) {
+      return currentDuration;
+    }
   }
 }

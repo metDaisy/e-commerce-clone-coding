@@ -14,6 +14,7 @@ import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -98,10 +99,14 @@ public class JwtTokenProvider {
   }
 
   public String parseJti(String token) {
-    JWTClaimsSet claimsSet = getOrThrow(() -> SignedJWT.parse(token).getJWTClaimsSet(),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("jwtToken", token)));
+    JWTClaimsSet claimsSet = getJwtClaimsSet(token);
     return getOrThrow(claimsSet::getJWTID, () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
             Map.of("token", token, "detailMessage", "jti 를 찾을 수 없습니다.")));
+  }
+
+  public Instant parseIssueTime(String token) {
+    JWTClaimsSet claimsSet = getJwtClaimsSet(token);
+    return Instant.ofEpochSecond(claimsSet.getIssueTime().getTime());
   }
 
   private String buildToken(String subject, String authorities, long expirationMillis) {
@@ -170,4 +175,10 @@ public class JwtTokenProvider {
             .map(SimpleGrantedAuthority::new)
             .toList();
   }
+
+  private JWTClaimsSet getJwtClaimsSet(String token) {
+    return getOrThrow(() -> SignedJWT.parse(token).getJWTClaimsSet(),
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("jwtToken", token)));
+  }
+
 }
