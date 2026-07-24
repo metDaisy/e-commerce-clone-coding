@@ -1,7 +1,8 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
-import io.github.metdaisy.amaazon.auth.application.service.JwtTokenService;
-import io.github.metdaisy.amaazon.auth.presentation.provider.JwtCookieProvider;
+import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
+import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
+import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,17 +18,17 @@ import org.springframework.web.util.WebUtils;
 @RequiredArgsConstructor
 public class JwtLogoutHandler implements LogoutHandler {
 
-  private final JwtTokenService service;
-  private final JwtCookieProvider provider;
+  private final AuthTokenService service;
+  private final AuthCookieProvider provider;
 
   @Override
   public void logout(HttpServletRequest request, HttpServletResponse response,
           Authentication authentication) {
-    Cookie cookie = WebUtils.getCookie(request, "REFRESH_TOKEN");
+    Cookie cookie = WebUtils.getCookie(request, AuthWebConstants.REFRESH_TOKEN);
     if (cookie != null) {
       service.delete(cookie.getValue());
     }
-    ResponseCookie deleteCookie = provider.createDeleteTokenCookie();
+    ResponseCookie deleteCookie = provider.createDeleteRefreshTokenCookie();
     response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
   }
 }
