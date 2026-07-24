@@ -37,12 +37,16 @@ public class JwtTokenService {
             .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
                     Map.of("refreshToken", token)));
     validateTokenEntity(tokenEntity, jti);
-    AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId());
+    AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId())
+        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
+            Map.of("userId", tokenEntity.getUserId())));
     return issueTokens(userDto, tokenEntity::reissue);
   }
 
   public JwtLoginDto create(UUID userId, String device) {
-    AuthUserDto userDto = userPort.loadUser(userId);
+    AuthUserDto userDto = userPort.loadUser(userId)
+        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
+            Map.of("userId", userId)));
     return issueTokens(userDto, (jti, expiredAt) -> {
       RefreshToken tokenEntity = RefreshToken.of(userId, device, jti, expiredAt);
       repository.save(tokenEntity);
