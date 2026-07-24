@@ -5,17 +5,29 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 @Getter
-@RequiredArgsConstructor
 public class SocialUserDetails implements OAuth2User, AmaazonPrincipal {
 
   private final UUID id;
   private final String role;
   private final Map<String, Object> attributes;
+
+  private SocialUserDetails(UUID id, String role, Map<String, Object> attributes) {
+    this.id = id;
+    this.role = role;
+    this.attributes = attributes;
+  }
+
+  public static SocialUserDetails create(UUID id, String role, Map<String, Object> attributes) {
+    return new SocialUserDetails(id, role, attributes);
+  }
+
+  public static SocialUserDetails createGuest(Map<String, Object> attributes) {
+    return new SocialUserDetails(null, "guest", attributes);
+  }
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {

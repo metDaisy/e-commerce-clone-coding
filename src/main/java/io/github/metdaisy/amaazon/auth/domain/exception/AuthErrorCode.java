@@ -13,6 +13,8 @@ public enum AuthErrorCode implements AmaazonErrorCode {
   REFRESH_TOKEN_NOT_FOUND("AUTH-003", "refreshToken DB 에서 해당 토큰을 찾을 수 없습니다.", AmaazonErrorType.NOT_FOUND),
   EMAIL_ALREADY_EXISTS("AUTH-004", "이미 가입된 이메일입니다.", AmaazonErrorType.CONFLICT),
   USER_CREDENTIAL_NOT_FOUND("AUTH-005", "유저 정보를 찾을 수 없습니다.", AmaazonErrorType.NOT_FOUND),
+  UNSUPPORTED_PROVIDER("AUTH-006", "지원하지 않는 로그인 방법입니다.", AmaazonErrorType.UNSUPPORTED),
+  USER_NOT_FOUND("AUTH-007", "유저를 찾을 수 없습니다.", AmaazonErrorType.NOT_FOUND),
   ;
 
   private final String code;
