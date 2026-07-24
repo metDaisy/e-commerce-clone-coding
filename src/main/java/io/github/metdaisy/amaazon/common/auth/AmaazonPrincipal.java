@@ -17,6 +17,7 @@ public interface AmaazonPrincipal {
 
   default Collection<? extends GrantedAuthority> getAuthorities() {
     return Arrays.stream(getRole().split(","))
+            .map(role -> "ROLE_" + role.toUpperCase())
             .map(SimpleGrantedAuthority::new)
             .toList();
   }

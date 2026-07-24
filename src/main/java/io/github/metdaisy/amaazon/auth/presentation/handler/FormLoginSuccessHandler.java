@@ -4,36 +4,34 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.service.JwtTokenService;
 import io.github.metdaisy.amaazon.auth.presentation.provider.JwtCookieProvider;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.UUID;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
-public class FormLoginSuccessHandler implements AuthenticationSuccessHandler {
+public class FormLoginSuccessHandler extends AbstractLoginSuccessHandler {
 
   private final ObjectMapper mapper;
-  private final JwtTokenService service;
-  private final JwtCookieProvider provider;
+
+  public FormLoginSuccessHandler(JwtTokenService jwtTokenService,
+          JwtCookieProvider jwtCookieProvider, ObjectMapper mapper) {
+    super(jwtTokenService, jwtCookieProvider);
+    this.mapper = mapper;
+  }
 
   @Override
-  public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-          Authentication authentication) throws IOException, ServletException {
+  protected String getDeviceId(HttpServletRequest request) {
+    return request.getHeader("X-Device-Id");
+  }
+
+  @Override
+  protected void onSuccess(HttpServletRequest request, HttpServletResponse response,
+          Authentication authentication, JwtLoginDto loginDto) throws IOException {
     response.setStatus(HttpServletResponse.SC_OK);
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-    String device = request.getHeader("X-Device-Id");
-    UUID userId = UUID.fromString(authentication.getName());
-    JwtLoginDto loginDto = service.create(userId, device);
-    response.addHeader(HttpHeaders.SET_COOKIE, provider.createTokenCookie(
-            loginDto.refreshToken()).toString());
     mapper.writeValue(response.getWriter(), loginDto);
   }
 }
