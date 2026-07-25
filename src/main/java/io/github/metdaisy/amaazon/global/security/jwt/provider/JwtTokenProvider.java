@@ -1,5 +1,22 @@
 package io.github.metdaisy.amaazon.global.security.jwt.provider;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Supplier;
+import org.springframework.modulith.NamedInterface;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -13,24 +30,7 @@ import io.github.metdaisy.amaazon.common.exception.AmaazonException;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.modulith.NamedInterface;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 @NamedInterface("jwt")
 @Slf4j
@@ -61,12 +61,12 @@ public class JwtTokenProvider {
 
   public Authentication getAuthentication(String token) {
     SignedJWT signedJWT = getOrThrow(() -> SignedJWT.parse(token),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
     JWTClaimsSet claims = getOrThrow(signedJWT::getJWTClaimsSet,
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 파싱할 수 없습니다."));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 파싱할 수 없습니다."));
     String authClaim = getOrThrow(() -> claims.getStringClaim(authoritiesKey),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
-                    "payload 에서 role 을 파싱할 수 없습니다."));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+            "payload 에서 role 을 파싱할 수 없습니다."));
 
     if (!StringUtils.hasText(authClaim)) {
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload 에서 role 을 찾을 수 없습니다.");
@@ -79,17 +79,17 @@ public class JwtTokenProvider {
 
   public void validate(String token) {
     SignedJWT signedJWT = getOrThrow(() -> SignedJWT.parse(token),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("refreshToken", token)));
 
     boolean verified = getOrThrow(() -> signedJWT.verify(verifier),
-            () -> new JwtException(JwtErrorCode.VERIFICATION_FAILED));
+        () -> new JwtException(JwtErrorCode.VERIFICATION_FAILED));
 
     if (!verified) {
       throw new JwtException(JwtErrorCode.INVALID_SIGNATURE);
     }
 
     Date expirationTime = getOrThrow(() -> signedJWT.getJWTClaimsSet().getExpirationTime(),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다."));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다."));
     if (expirationTime == null) {
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "토큰 유효기간을 찾을 수 없습니다.");
     }
@@ -101,7 +101,7 @@ public class JwtTokenProvider {
   public String parseJti(String token) {
     JWTClaimsSet claimsSet = getJwtClaimsSet(token);
     return getOrThrow(claimsSet::getJWTID, () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
-            Map.of("token", token, "detailMessage", "jti 를 찾을 수 없습니다.")));
+        Map.of("token", token, "detailMessage", "jti 를 찾을 수 없습니다.")));
   }
 
   public Instant parseIssueTime(String token) {
@@ -109,13 +109,36 @@ public class JwtTokenProvider {
     return Instant.ofEpochSecond(claimsSet.getIssueTime().getTime());
   }
 
+  public String generateGuestToken(String provider, String providerId) {
+    long now = System.currentTimeMillis();
+    long expirationMillis = getGuestTokenExpiration();
+
+    JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+            .jwtID(UUID.randomUUID().toString())
+            .claim("provider", provider)
+            .claim("providerId", providerId)
+            .issueTime(new Date(now))
+            .expirationTime(new Date(now + expirationMillis))
+            .build();
+
+    SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+    runOrThrow(() -> signedJWT.sign(signer),
+            () -> new JwtException(JwtErrorCode.SIGN_FAILED));
+    return signedJWT.serialize();
+  }
+
+  public String parseProvider(String token, String key) {
+    return getOrThrow(() -> getJwtClaimsSet(token).getClaimAsString(key),
+            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "provider 를 찾을 수 없습니다."));
+  }
+
   private String buildToken(String subject, String authorities, long expirationMillis) {
     long now = System.currentTimeMillis();
     JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-            .jwtID(UUID.randomUUID().toString())
-            .subject(subject)
-            .issueTime(new Date(now))
-            .expirationTime(new Date(now + expirationMillis));
+        .jwtID(UUID.randomUUID().toString())
+        .subject(subject)
+        .issueTime(new Date(now))
+        .expirationTime(new Date(now + expirationMillis));
 
     if (StringUtils.hasText(authorities)) {
       builder.claim(authoritiesKey, authorities);
@@ -123,12 +146,12 @@ public class JwtTokenProvider {
 
     SignedJWT signedJWT = new SignedJWT(header, builder.build());
     runOrThrow(() -> signedJWT.sign(signer),
-            () -> new JwtException(JwtErrorCode.SIGN_FAILED));
+        () -> new JwtException(JwtErrorCode.SIGN_FAILED));
     return signedJWT.serialize();
   }
 
   private <T> T getOrThrow(JwtCheckedExceptionSupplier<T> supplier,
-          Supplier<? extends AmaazonException> exceptionSupplier) {
+      Supplier<? extends AmaazonException> exceptionSupplier) {
     try {
       return supplier.get();
     } catch (Exception e) {
@@ -139,7 +162,7 @@ public class JwtTokenProvider {
   }
 
   private void runOrThrow(JwtCheckedExceptionRunnable runnable,
-          Supplier<? extends AmaazonException> exceptionSupplier) {
+      Supplier<? extends AmaazonException> exceptionSupplier) {
     try {
       runnable.run();
     } catch (Exception e) {
@@ -169,16 +192,20 @@ public class JwtTokenProvider {
     return jwtProperties.refreshTokenExpiration() * 1000;
   }
 
+  private long getGuestTokenExpiration() {
+    return jwtProperties.guestTokenExpiration();
+  }
+
   private Collection<? extends GrantedAuthority> parseAuthorities(String authClaim) {
     return Arrays.stream(authClaim.split(","))
-            .map(String::toUpperCase)
-            .map(SimpleGrantedAuthority::new)
-            .toList();
+        .map(String::toUpperCase)
+        .map(SimpleGrantedAuthority::new)
+        .toList();
   }
 
   private JWTClaimsSet getJwtClaimsSet(String token) {
     return getOrThrow(() -> SignedJWT.parse(token).getJWTClaimsSet(),
-            () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("jwtToken", token)));
+        () -> new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("jwtToken", token)));
   }
 
 }

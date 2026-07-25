@@ -8,8 +8,10 @@ import org.springframework.modulith.NamedInterface;
 public record JwtProperties(String secretKey,
                             long accessTokenExpiration,
                             long refreshTokenExpiration,
+                            long guestTokenExpiration,
                             JwtCookieProperties cookieProperties) {
 
+  @NamedInterface("jwt")
   public record JwtCookieProperties(String name, String path, String sameSite, boolean secure) {
 
   }
