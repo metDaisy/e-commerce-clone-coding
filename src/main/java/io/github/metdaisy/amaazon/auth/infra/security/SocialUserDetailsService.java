@@ -3,7 +3,6 @@ package io.github.metdaisy.amaazon.auth.infra.security;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;

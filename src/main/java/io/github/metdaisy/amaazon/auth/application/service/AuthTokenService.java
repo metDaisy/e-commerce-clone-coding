@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class JwtTokenService {
+public class AuthTokenService {
 
   private final RefreshTokenRepository repository;
   private final AuthUserPort userPort;

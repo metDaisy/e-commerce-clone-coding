@@ -1,18 +1,16 @@
 package io.github.metdaisy.amaazon.auth.domain.entity;
 
+import java.time.Instant;
+import java.util.UUID;
+import org.hibernate.annotations.Immutable;
 import io.github.metdaisy.amaazon.common.jpa.ImmutableEntity;
-import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.Immutable;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
