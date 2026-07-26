@@ -52,10 +52,11 @@ jobs:
         build-mode: manual
         queries: security-and-quality
 
-    - name: Build with Gradle
+    - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        arguments: build -x test
+
+    - name: Build with Gradle
+      run: ./gradlew build -x test
 
     # CodeQL 분석 수행 및 GitHub Security 탭에 결과 업로드
     - name: Perform CodeQL Analysis
