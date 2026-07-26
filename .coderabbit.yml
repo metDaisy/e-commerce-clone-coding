@@ -38,7 +38,7 @@ reviews:
     ---
   sequence_diagrams: false
   changed_files_summary: false
-  suggested_labels: false
+  suggested_labels: true
   suggested_reviewers: false
   poem: false
   abort_on_close: true
@@ -67,6 +67,7 @@ reviews:
     - "!.gradle/**"
     - "!**/*.class"
     - "!**/*.jar"
+    - "!amaazon-front/**"
 
 chat:
   auto_reply: true
