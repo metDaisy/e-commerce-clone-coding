@@ -4,11 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Amaazon Clone - Your one-stop shop for everything you need. Free shipping, great deals, and millions of products." />
+    <meta
+      name="description"
+      content="Amaazon Clone - Your one-stop shop for everything you need. Free shipping, great deals, and millions of products."
+    />
     <title>Amaazon.clone: Online Shopping</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js" integrity="sha384-OL+ylM/iuPLtW5U3XcvLSGhE8JzReKDank5InqlHGWPhb4140/yrBw0bg0y7+C9J" crossorigin="anonymous"></script>
+    <script>
+      Kakao.init("%VITE_KAKAO_CLIENT_ID%")
+      Kakao.isInitialized()
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
