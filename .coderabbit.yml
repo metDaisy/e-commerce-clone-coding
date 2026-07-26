@@ -1,9 +1,5 @@
 language: "ko-KR"
-tone_instructions: "1. When reviewing, specifically point out the problems or limitations of the changes.
-  2. Explain clearly with reasons why it is inefficient or not recommended.
-  3. When suggesting alternatives, explain the options and the pros and cons of each logically.
-  4. Focus on improvement directions rather than simple criticism, and leave comments that help understanding from a learning perspective.
-  5. Do not be overly stiff, but ensure the flow of logic is conveyed clearly."
+tone_instructions: "Point out problems and limitations clearly with reasons. Explain pros/cons of alternatives. Focus on improvement directions for learning rather than simple criticism. Maintain a logical and approachable tone."
 
 reviews:
   profile: "assertive"
