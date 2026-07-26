@@ -1,5 +1,27 @@
+export interface CategoryCardItem {
+  name: string;
+  emoji: string;
+}
+
+export interface CategoryCard {
+  title: string;
+  items: CategoryCardItem[];
+  link: string;
+}
+
+export interface BestSellerItem {
+  name: string;
+  emoji: string;
+  price: string;
+}
+
+export interface BestSellerCategory {
+  title: string;
+  items: BestSellerItem[];
+}
+
 // 4-column category card grid data (each card has a title, 4 items, and a link)
-export const categoryCards = [
+export const categoryCards: CategoryCard[] = [
   {
     title: "Get your game on",
     items: [
@@ -83,7 +105,7 @@ export const categoryCards = [
 ];
 
 // Second row of category cards
-export const categoryCards2 = [
+export const categoryCards2: CategoryCard[] = [
   {
     title: "Gear up to get fit",
     items: [
@@ -127,7 +149,7 @@ export const categoryCards2 = [
 ];
 
 // Third row of category cards
-export const categoryCards3 = [
+export const categoryCards3: CategoryCard[] = [
   {
     title: "Gaming merchandise",
     items: [
@@ -171,7 +193,7 @@ export const categoryCards3 = [
 ];
 
 // Horizontal scrolling "Best Sellers" sections
-export const bestSellers = [
+export const bestSellers: BestSellerCategory[] = [
   {
     title: "Best Sellers in Computers & Accessories",
     items: [
@@ -214,7 +236,7 @@ export const bestSellers = [
 ];
 
 // Fourth row - deals cards
-export const dealsCards = [
+export const dealsCards: CategoryCard[] = [
   {
     title: "Deals on top categories",
     items: [
