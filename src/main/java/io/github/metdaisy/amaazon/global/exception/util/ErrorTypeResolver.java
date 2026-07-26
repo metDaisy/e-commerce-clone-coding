@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 public class ErrorTypeResolver {
   public HttpStatus resolve(AmaazonErrorType errorType) {
     return switch (errorType) {
-      case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
+      case BAD_REQUEST, UNSUPPORTED -> HttpStatus.BAD_REQUEST;
       case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
       case NOT_FOUND -> HttpStatus.NOT_FOUND;
       case CONFLICT -> HttpStatus.CONFLICT;

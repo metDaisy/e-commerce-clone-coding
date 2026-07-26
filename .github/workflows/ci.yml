@@ -2,7 +2,12 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ "main"]
+    branches: [ "main" ]
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'build.gradle'
+      - 'settings.gradle'
 
 # Test Reporter 액션이 PR 코멘트 및 Checks 탭에 결과를 쓸 수 있도록 권한 부여
 permissions:

@@ -1,39 +1,66 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
-import io.github.metdaisy.amaazon.auth.application.service.JwtTokenService;
-import io.github.metdaisy.amaazon.auth.presentation.provider.JwtCookieProvider;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.WebUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
+import io.github.metdaisy.amaazon.auth.application.service.AuthService;
+import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
+import io.github.metdaisy.amaazon.auth.application.service.GuestTokenService;
+import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
+import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-@RequiredArgsConstructor
-public class FormLoginSuccessHandler implements AuthenticationSuccessHandler {
+public class FormLoginSuccessHandler extends AbstractLoginSuccessHandler {
 
   private final ObjectMapper mapper;
-  private final JwtTokenService service;
-  private final JwtCookieProvider provider;
+  private final GuestTokenService guestTokenService;
+  private final AuthService authService;
+
+  public FormLoginSuccessHandler(AuthTokenService authTokenService,
+      AuthCookieProvider authCookieProvider, ObjectMapper mapper,
+      GuestTokenService guestTokenService, AuthService authService) {
+    super(authTokenService, authCookieProvider);
+    this.mapper = mapper;
+    this.guestTokenService = guestTokenService;
+    this.authService = authService;
+  }
 
   @Override
-  public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-          Authentication authentication) throws IOException, ServletException {
+  protected String getDeviceId(HttpServletRequest request) {
+    return request.getHeader(AuthWebConstants.HEADER_DEVICE_ID);
+  }
+
+  @Override
+  protected void onSuccess(HttpServletRequest request, HttpServletResponse response,
+      Authentication authentication, JwtLoginDto loginDto) throws IOException {
+    createSocialCredential(request, authentication);
+    ResponseCookie guestTokenCookie = authCookieProvider.createDeleteGuestTokenCookie();
+    response.addHeader(HttpHeaders.SET_COOKIE, guestTokenCookie.toString());
     response.setStatus(HttpServletResponse.SC_OK);
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-    String device = request.getHeader("X-Device-Id");
-    UUID userId = UUID.fromString(authentication.getName());
-    JwtLoginDto loginDto = service.create(userId, device);
-    response.addHeader(HttpHeaders.SET_COOKIE, provider.createTokenCookie(
-            loginDto.refreshToken()).toString());
     mapper.writeValue(response.getWriter(), loginDto);
+  }
+
+  private void createSocialCredential(HttpServletRequest request, Authentication authentication) {
+    Cookie cookie = WebUtils.getCookie(request, AuthWebConstants.COOKIE_GUEST_TOKEN);
+    if (cookie == null) {
+      return;
+    }
+    String token = cookie.getValue();
+    guestTokenService.validate(token);
+    String provider = guestTokenService.getProvider(token);
+    String providerId = guestTokenService.getProviderId(token);
+    UUID userId = UUID.fromString(authentication.getName());
+    authService.createSocial(userId, provider, providerId);
   }
 }

@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.auth.application.handler;
 
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistTokenRepository;
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistUserRepository;
-import io.github.metdaisy.amaazon.global.security.jwt.registry.JwtRegistry;
+import io.github.metdaisy.amaazon.global.security.jwt.registry.BlacklistRegistry;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class BlacklistInitializer {
 
-  private final JwtRegistry registry;
+  private final BlacklistRegistry registry;
   private final BlacklistTokenRepository blacklistTokenRepository;
   private final BlacklistUserRepository blacklistUserRepository;
 

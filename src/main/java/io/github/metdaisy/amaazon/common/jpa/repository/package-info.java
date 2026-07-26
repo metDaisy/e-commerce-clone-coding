@@ -1,4 +1,0 @@
-@NamedInterface
-package io.github.metdaisy.amaazon.common.jpa.repository;
-
-import org.springframework.modulith.NamedInterface;

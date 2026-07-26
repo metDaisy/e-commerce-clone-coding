@@ -14,6 +14,7 @@ public enum JwtErrorCode implements AmaazonErrorCode {
   SIGN_FAILED("JWT-004", "토큰 서명에 실패했습니다.", AmaazonErrorType.INTERNAL_SERVER_ERROR),
   VERIFICATION_FAILED("JWT-005", "토큰 서명 검증 과정에서 오류가 발생했습니다.", AmaazonErrorType.INTERNAL_SERVER_ERROR),
   INVALID_SIGNATURE("JWT-006", "유효하지 않은 토큰 서명입니다.", AmaazonErrorType.UNAUTHORIZED),
+  BLACKLISTED_TOKEN("JWT-007", "로그아웃되거나 무효화된 토큰입니다.", AmaazonErrorType.UNAUTHORIZED),
   ;
   private final String code;
   private final String message;

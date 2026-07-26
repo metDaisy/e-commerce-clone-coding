@@ -14,12 +14,12 @@ CREATE TABLE users
 
 CREATE TABLE user_credentials
 (
-    id                UUID PRIMARY KEY,
-    user_id           UUID         NOT NULL,
-    email             VARCHAR(100) NOT NULL,
-    password          VARCHAR(255) NOT NULL,
-    created_at        TIMESTAMP WITH TIME ZONE,
-    updated_at        TIMESTAMP WITH TIME ZONE
+    id         UUID PRIMARY KEY,
+    user_id    UUID         NOT NULL,
+    email      VARCHAR(100) NOT NULL,
+    password   VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE,
+    updated_at TIMESTAMP WITH TIME ZONE
 );
 -- id/pw 에 대한 인증정보
 
@@ -221,11 +221,11 @@ CREATE TABLE event_publication
 
 create table refresh_tokens
 (
-    id UUID primary key,
-    user_id UUID not null,
-    device_id varchar(100) not null,
-    token varchar(36) not null,
-    pre_token varchar(36),
+    id         UUID primary key,
+    user_id    UUID                     not null,
+    device_id  varchar(100)             not null,
+    token      varchar(36)              not null,
+    pre_token  varchar(36),
     expired_at timestamp with time zone not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone
@@ -233,23 +233,34 @@ create table refresh_tokens
 
 create table blacklist_tokens
 (
-    id UUID primary key,
-    token varchar(36) not null,
+    id         UUID primary key,
+    token      varchar(36)              not null,
     expired_at timestamp with time zone not null,
     created_at timestamp with time zone
 );
 
 create table blacklist_users
 (
-    id UUID primary key,
-    user_id UUID not null,
+    id             UUID primary key,
+    user_id        UUID                     not null,
     compromised_at timestamp with time zone not null,
-    created_at timestamp with time zone
+    created_at     timestamp with time zone
+);
+
+create table social_credentials
+(
+    id          UUID primary key,
+    user_id     UUID         not null,
+    provider    varchar(20)  not null,
+    provider_id varchar(128) not null,
+    created_at  timestamp with time zone
 );
 
 -- ------------------------------------------------------------------------------
 -- 3. Unique Constraints & Indexes
 -- ------------------------------------------------------------------------------
+create unique index idx_social_credentials_provider on social_credentials (provider_id, provider);
+
 create index idx_blacklist_tokens_token on blacklist_tokens (token);
 create unique index idx_blacklist_users_user_id on blacklist_users (user_id);
 create index idx_refresh_tokens_token on refresh_tokens (token);
@@ -282,6 +293,8 @@ CREATE INDEX idx_payments_order_id ON payments (order_id);
 -- ------------------------------------------------------------------------------
 -- 4. Check Constraints
 -- ------------------------------------------------------------------------------
+alter table social_credentials
+    add constraint chk_social_credentials_provider check (provider in ('GOOGLE', 'NAVER', 'GITHUB', 'KAKAO'));
 
 ALTER TABLE users
     ADD CONSTRAINT chk_users_point_balance CHECK (point_balance >= 0);

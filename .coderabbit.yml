@@ -45,7 +45,7 @@ reviews:
       - "main"
   finishing_touches:
     docstrings:
-      enabled: true
+      enabled: false
     unit_tests:
       enabled: true
   tools:

@@ -3,7 +3,6 @@ package io.github.metdaisy.amaazon.global.security.constant;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import lombok.experimental.UtilityClass;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SecurityConstants {
@@ -20,18 +19,18 @@ public final class SecurityConstants {
 
   // Request Matchers
   public static final String[] PUBLIC_GET_PATHS = {
-          "/ws/**",
-          "/actuator/**",
-          "/swagger-ui.html",
-          "/v3/api-docs/**",
-          "/swagger-ui/**",
-          "/api.json"
+      "/ws/**",
+      "/actuator/**",
+      "/swagger-ui.html",
+      "/v3/api-docs/**",
+      "/swagger-ui/**",
+      "/api.json"
   };
 
   public static final String[] PUBLIC_POST_PATHS = {
-          LOGIN_URL,
-          LOGOUT_URL,
-          REFRESH_URL,
-          USERS_URL
+      LOGIN_URL,
+      LOGOUT_URL,
+      REFRESH_URL,
+      USERS_URL
   };
 }
