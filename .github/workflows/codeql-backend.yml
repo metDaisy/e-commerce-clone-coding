@@ -1,0 +1,44 @@
+name: "CodeQL Advanced (Backend)"
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+
+jobs:
+  analyze:
+    name: Analyze (java-kotlin)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # CodeQL 분석 도구 초기화
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: java-kotlin
+        build-mode: none
+
+    # CodeQL 분석 수행 및 GitHub Security 탭에 결과 업로드
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:java-kotlin"
