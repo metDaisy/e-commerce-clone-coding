@@ -43,12 +43,12 @@ public class FormLoginSuccessHandler extends AbstractLoginSuccessHandler {
   @Override
   protected void onSuccess(HttpServletRequest request, HttpServletResponse response,
       Authentication authentication, JwtLoginDto loginDto) throws IOException {
+    createSocialCredential(request, authentication);
     ResponseCookie guestTokenCookie = authCookieProvider.createDeleteGuestTokenCookie();
     response.addHeader(HttpHeaders.SET_COOKIE, guestTokenCookie.toString());
     response.setStatus(HttpServletResponse.SC_OK);
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     mapper.writeValue(response.getWriter(), loginDto);
-    createSocialCredential(request, authentication);
   }
 
   private void createSocialCredential(HttpServletRequest request, Authentication authentication) {
@@ -57,6 +57,7 @@ public class FormLoginSuccessHandler extends AbstractLoginSuccessHandler {
       return;
     }
     String token = cookie.getValue();
+    guestTokenService.validate(token);
     String provider = guestTokenService.getProvider(token);
     String providerId = guestTokenService.getProviderId(token);
     UUID userId = UUID.fromString(authentication.getName());

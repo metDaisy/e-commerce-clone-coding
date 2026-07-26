@@ -1,5 +1,12 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
@@ -10,14 +17,7 @@ import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.BiConsumer;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
@@ -34,18 +34,18 @@ public class AuthTokenService {
     provider.validate(token);
     String jti = provider.parseJti(token);
     RefreshToken tokenEntity = repository.findByToken(jti)
-            .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
-                    Map.of("refreshToken", token)));
+        .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
+            Map.of("refreshToken", token)));
     validateTokenEntity(tokenEntity, jti);
     AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId())
-        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
+        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
             Map.of("userId", tokenEntity.getUserId())));
     return issueTokens(userDto, tokenEntity::reissue);
   }
 
   public JwtLoginDto create(UUID userId, String device) {
     AuthUserDto userDto = userPort.loadUser(userId)
-        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
+        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
             Map.of("userId", userId)));
     return issueTokens(userDto, (jti, expiredAt) -> {
       RefreshToken tokenEntity = RefreshToken.of(userId, device, jti, expiredAt);
@@ -63,11 +63,11 @@ public class AuthTokenService {
     if (tokenEntity.isCompromised(jti)) {
       eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId, Instant.now()));
       throw new AuthException(AuthErrorCode.TOKEN_COMPROMISED,
-              Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
     }
     if (!tokenEntity.isCurrentToken(jti)) {
       throw new AuthException(AuthErrorCode.TOKEN_EXPIRED,
-              Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
     }
   }
 

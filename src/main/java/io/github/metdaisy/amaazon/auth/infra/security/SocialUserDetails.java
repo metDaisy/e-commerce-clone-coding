@@ -36,6 +36,11 @@ public class SocialUserDetails implements OAuth2User, AmaazonPrincipal {
 
   @Override
   public String getName() {
-    return id.toString();
+    if (id != null) {
+      return id.toString();
+    }
+    String provider = (String) attributes.get("provider");
+    String providerId = (String) attributes.get("providerId");
+    return "guest:" + provider + ":" + providerId;
   }
 }

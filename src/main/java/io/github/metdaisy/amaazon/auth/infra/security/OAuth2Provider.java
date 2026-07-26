@@ -12,11 +12,9 @@ public enum OAuth2Provider implements Converter<Map<String, Object>, Map<String,
     GOOGLE {
         @Override
         public Map<String, Object> convert(Map<String, Object> attributes) {
-            Map<String, Object> normalized = new HashMap<>();
+            Map<String, Object> normalized = new HashMap<>(attributes);
             normalized.put("provider", getProvider());
-            normalized.put("providerId", String.valueOf(attributes.getOrDefault("sub", ""))); // 구글의 고유 식별자
-            normalized.put("email", attributes.get("email"));
-            normalized.put("name", attributes.get("name"));
+            normalized.put("providerId", String.valueOf(attributes.getOrDefault("sub", "")));
             return normalized;
         }
     },
@@ -24,23 +22,22 @@ public enum OAuth2Provider implements Converter<Map<String, Object>, Map<String,
         @SuppressWarnings("unchecked")
         @Override
         public Map<String, Object> convert(Map<String, Object> attributes) {
-            Map<String, Object> normalized = new HashMap<>();
+            Map<String, Object> normalized = new HashMap<>(attributes);
             Map<String, Object> response =
                     (Map<String, Object>) attributes.getOrDefault("response", Collections.emptyMap());
             normalized.put("provider", getProvider());
-            normalized.put("providerId", String.valueOf(response.getOrDefault("id", ""))); // 네이버의 고유 식별자
+            normalized.put("providerId", String.valueOf(response.getOrDefault("id", "")));
             normalized.put("email", response.get("email"));
             normalized.put("name", response.getOrDefault("name", response.get("nickname")));
-
             return normalized;
         }
     },
     KAKAO {
         @Override
         public Map<String, Object> convert(Map<String, Object> attributes) {
-            Map<String, Object> normalized = new HashMap<>();
+            Map<String, Object> normalized = new HashMap<>(attributes);
             normalized.put("provider", getProvider());
-            normalized.put("providerId", String.valueOf(attributes.getOrDefault("id", ""))); // 카카오의 고유 식별자 (Long 타입)
+            normalized.put("providerId", String.valueOf(attributes.getOrDefault("id", "")));
             @SuppressWarnings("unchecked")
             Map<String, Object> kakaoAccount =
                     (Map<String, Object>) attributes.getOrDefault("kakao_account", Collections.emptyMap());
@@ -55,9 +52,9 @@ public enum OAuth2Provider implements Converter<Map<String, Object>, Map<String,
     GITHUB {
         @Override
         public Map<String, Object> convert(Map<String, Object> attributes) {
-            Map<String, Object> normalized = new HashMap<>();
+            Map<String, Object> normalized = new HashMap<>(attributes);
             normalized.put("provider", getProvider());
-            normalized.put("providerId", String.valueOf(attributes.getOrDefault("id", ""))); // 깃허브의 고유 식별자 (Integer)
+            normalized.put("providerId", String.valueOf(attributes.getOrDefault("id", "")));
             normalized.put("email", attributes.getOrDefault("email", null));
             normalized.put("name", attributes.getOrDefault("login", null));
             return normalized;
