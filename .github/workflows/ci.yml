@@ -1,13 +1,22 @@
 name: CI Pipeline
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [ "main" ]
     paths:
       - 'src/main/java/**'
       - 'src/test/java/**'
+      - 'src/main/resources/**'
       - 'build.gradle'
       - 'settings.gradle'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'gradle/**'
+      - '.github/workflows/ci.yml'
 
 # Test Reporter 액션이 PR 코멘트 및 Checks 탭에 결과를 쓸 수 있도록 권한 부여
 permissions:

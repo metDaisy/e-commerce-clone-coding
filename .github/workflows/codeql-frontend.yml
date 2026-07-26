@@ -1,5 +1,9 @@
 name: "CodeQL Advanced (Frontend)"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ "main" ]
@@ -22,17 +26,18 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
     # CodeQL 분석 도구 초기화
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
       with:
         languages: javascript-typescript
         build-mode: none
+        queries: security-and-quality
 
     # CodeQL 분석 수행 및 GitHub Security 탭에 결과 업로드
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81
       with:
         category: "/language:javascript-typescript"
