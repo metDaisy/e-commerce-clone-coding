@@ -1,18 +1,9 @@
-import { useRef } from 'react';
 import './ScrollRow.css';
+import { useScrollRow } from './ScrollRow.hooks';
+import { ScrollRowProps } from './ScrollRow.types';
 
-function ScrollRow({ section }) {
-  const scrollRef = useRef(null);
-
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      const scrollAmount = 300;
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-    }
-  };
+function ScrollRow({ section }: ScrollRowProps) {
+  const { scrollRef, scroll } = useScrollRow();
 
   return (
     <div className="scroll-row" id={`scroll-row-${section.title.replace(/\s+/g, '-').toLowerCase()}`}>

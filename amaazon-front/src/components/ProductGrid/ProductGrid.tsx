@@ -1,6 +1,7 @@
 import './ProductGrid.css';
+import { ProductGridProps } from './ProductGrid.types';
 
-function ProductGrid({ cards }) {
+function ProductGrid({ cards }: ProductGridProps) {
   return (
     <div className="product-grid" id="product-grid">
       {cards.map((card, idx) => (
