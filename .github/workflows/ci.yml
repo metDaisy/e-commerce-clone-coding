@@ -60,7 +60,7 @@ jobs:
           build/test-results/**/*.xml
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v7
       if: always()
       with:
         file: ./build/reports/jacoco/test/jacocoTestReport.xml
