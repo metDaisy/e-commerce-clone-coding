@@ -1,14 +1,14 @@
 package io.github.metdaisy.amaazon.user.application.port.in;
 
-import io.github.metdaisy.amaazon.user.application.dto.UserDto;
-import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
-import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import org.springframework.modulith.NamedInterface;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import io.github.metdaisy.amaazon.user.application.dto.UserDto;
+import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
+import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 
 @NamedInterface("user-api")
 @Component
@@ -21,5 +21,9 @@ public class UserQueryApi {
 
   public Optional<UserDto> findById(UUID userId) {
     return repository.findById(userId).map(mapper::toDto);
+  }
+
+  public boolean existsByUserId(UUID userId) {
+    return repository.existsById(userId);
   }
 }
