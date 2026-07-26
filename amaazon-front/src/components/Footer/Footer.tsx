@@ -1,31 +1,15 @@
 import './Footer.css';
+import { useFooter } from './Footer.hooks';
 
 function Footer() {
-  const footerColumns = [
-    {
-      title: "Get to Know Us",
-      links: ["Careers", "Blog", "About Amazon", "Investor Relations", "Amazon Devices", "Amazon Science"],
-    },
-    {
-      title: "Make Money with Us",
-      links: ["Sell products on Amazon", "Sell on Amazon Business", "Sell apps on Amazon", "Become an Affiliate", "Advertise Your Products", "Self-Publish with Us", "Host an Amazon Hub"],
-    },
-    {
-      title: "Amazon Payment Products",
-      links: ["Amazon Business Card", "Shop with Points", "Reload Your Balance", "Amazon Currency Converter"],
-    },
-    {
-      title: "Let Us Help You",
-      links: ["Amazon and COVID-19", "Your Account", "Your Orders", "Shipping Rates & Policies", "Returns & Replacements", "Manage Your Content", "Help"],
-    },
-  ];
+  const { footerColumns, scrollToTop } = useFooter();
 
   return (
     <footer className="footer" id="footer">
       {/* Back to Top */}
       <button
         className="footer__back-to-top"
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onClick={scrollToTop}
         id="footer-back-to-top"
       >
         Back to top

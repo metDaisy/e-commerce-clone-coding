@@ -1,16 +1,15 @@
-import { useState } from 'react';
 import './Navbar.css';
+import { useNavbar } from './Navbar.hooks';
+import { Link } from 'react-router-dom';
 
 function Navbar() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-
-  const categories = [
-    'All', 'Arts & Crafts', 'Automotive', 'Baby', 'Beauty & Personal Care',
-    'Books', 'Clothing', 'Computers', 'Electronics', 'Garden',
-    'Health', 'Home', 'Kitchen', 'Movies & TV', 'Music',
-    'Pet Supplies', 'Sports', 'Tools', 'Toys & Games', 'Video Games',
-  ];
+  const {
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
+  } = useNavbar();
 
   return (
     <nav className="navbar" id="navbar">
@@ -64,10 +63,10 @@ function Navbar() {
         </div>
 
         {/* Account */}
-        <a href="#" className="navbar__option" id="navbar-account">
+        <Link to="/signin" className="navbar__option" id="navbar-account">
           <span className="navbar__option-line1">Hello, sign in</span>
           <span className="navbar__option-line2">Account & Lists <span className="navbar__dropdown-arrow">▾</span></span>
-        </a>
+        </Link>
 
         {/* Orders */}
         <a href="#" className="navbar__option" id="navbar-orders">

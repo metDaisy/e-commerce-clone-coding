@@ -1,20 +1,8 @@
 import './SubNav.css';
+import { useSubNav } from './SubNav.hooks';
 
 function SubNav() {
-  const links = [
-    "Today's Deals",
-    "Prime Video",
-    "Gift Cards",
-    "Sell",
-    "Customer Service",
-    "Registry",
-    "Buy Again",
-    "Browsing History",
-    "Amazon Basics",
-    "Grocery & Gourmet Food",
-    "Coupons",
-    "Home Improvement",
-  ];
+  const { links } = useSubNav();
 
   return (
     <div className="subnav" id="subnav">
