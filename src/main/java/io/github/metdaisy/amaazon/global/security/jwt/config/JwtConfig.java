@@ -1,5 +1,8 @@
 package io.github.metdaisy.amaazon.global.security.jwt.config;
 
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
 import java.nio.charset.StandardCharsets;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +28,12 @@ public class JwtConfig {
   @Bean
   public JWSHeader jwsHeader() {
     return new JWSHeader(JWSAlgorithm.HS256);
+  }
+
+  @Bean
+  public JWSSigner jwsSigner() throws KeyLengthException {
+    byte[] secretBytes = jwtProperties.secretKey().getBytes(StandardCharsets.UTF_8);
+    return new MACSigner(secretBytes);
   }
 
   @Bean
