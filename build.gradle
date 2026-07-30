@@ -118,6 +118,8 @@ def jacocoExcludePatterns = [
         "**/constant/**",
         "**/logging/**",
         "**/Q*.class",
+        "**/OAuth2Provider*.class",
+        "**/*UserDetails.class",
         "**/*MapperImpl.class",
         "**/*Properties.class",
         "**/*Decorator.class",
@@ -125,7 +127,10 @@ def jacocoExcludePatterns = [
         "**/package-info.class",
         "**/JwtToken.class",
         "**/JwtRegistry.class",
+        "**/port/out/**",
         "**/common/**",
+        "**/model/ParsedToken.class",
+        "**/AuthCookieProvider.class",
 ]
 
 jacocoTestReport {
@@ -168,7 +173,7 @@ jacocoTestCoverageVerification {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = 0.00
+                minimum = 0.80
             }
         }
     }
