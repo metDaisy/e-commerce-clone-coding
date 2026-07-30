@@ -1,24 +1,22 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
-import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseCookie;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
 import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
 import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import jakarta.servlet.http.Cookie;
-import org.springframework.http.ResponseCookie;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.Authentication;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class JwtLogoutHandlerTest {

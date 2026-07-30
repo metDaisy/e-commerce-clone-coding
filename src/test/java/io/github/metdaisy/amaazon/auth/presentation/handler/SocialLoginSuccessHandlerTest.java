@@ -3,12 +3,14 @@ package io.github.metdaisy.amaazon.auth.presentation.handler;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -54,8 +56,8 @@ class SocialLoginSuccessHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
 
-    Collection authorities = List.of(new SimpleGrantedAuthority("ROLE_GUEST"));
-    given(authentication.getAuthorities()).willReturn(authorities);
+    Collection<? extends GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_GUEST"));
+    doReturn(authorities).when(authentication).getAuthorities();
 
     OAuth2User oauth2User = new DefaultOAuth2User(authorities, Map.of("provider", "google", "providerId", "123"), "provider");
     given(authentication.getPrincipal()).willReturn(oauth2User);
@@ -67,7 +69,7 @@ class SocialLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    assert response.getRedirectedUrl().equals(AuthWebConstants.GUEST_REDIRECT_URL);
+    assert Objects.equals(response.getRedirectedUrl(), AuthWebConstants.GUEST_REDIRECT_URL);
   }
 
   @Test
@@ -78,8 +80,8 @@ class SocialLoginSuccessHandlerTest {
     request.setCookies(new Cookie(AuthWebConstants.COOKIE_DEVICE_ID, "device-123"));
     MockHttpServletResponse response = new MockHttpServletResponse();
 
-    Collection authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-    given(authentication.getAuthorities()).willReturn(authorities);
+    Collection<? extends GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    doReturn(authorities).when(authentication).getAuthorities();
     
     UUID userId = UUID.randomUUID();
     given(authentication.getName()).willReturn(userId.toString());
@@ -95,7 +97,7 @@ class SocialLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    assert response.getRedirectedUrl().equals(AuthWebConstants.DEFAULT_SUCCESS_URL);
+    assert Objects.equals(response.getRedirectedUrl(), AuthWebConstants.DEFAULT_SUCCESS_URL);
   }
 
   @Test
@@ -105,8 +107,8 @@ class SocialLoginSuccessHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
 
-    Collection authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
-    given(authentication.getAuthorities()).willReturn(authorities);
+    Collection<? extends GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    doReturn(authorities).when(authentication).getAuthorities();
     given(authentication.getName()).willReturn(UUID.randomUUID().toString());
 
     // when & then
