@@ -1,21 +1,19 @@
 package io.github.metdaisy.amaazon.auth.application.scheduler;
 
-import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneId;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistTokenRepository;
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistUserRepository;
-
-import java.time.Instant;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class BlacklistCleanupSchedulerTest {
@@ -26,14 +24,21 @@ class BlacklistCleanupSchedulerTest {
   @Mock
   private BlacklistUserRepository blacklistUserRepository;
 
-  @InjectMocks
+  private Clock clock;
+
   private BlacklistScheduler blacklistScheduler;
+
+  @BeforeEach
+  void setUp() {
+    clock = Clock.fixed(Instant.parse("2026-07-30T10:00:00Z"), ZoneId.of("UTC"));
+    blacklistScheduler = new BlacklistScheduler(blacklistTokenRepository, blacklistUserRepository, clock);
+  }
 
   @Test
   @DisplayName("cleanup_success")
   void cleanup_success() {
     // given
-    Instant now = Instant.now();
+    Instant now = Instant.now(clock);
 
     // when
     blacklistScheduler.cleanupBlacklistToken();
