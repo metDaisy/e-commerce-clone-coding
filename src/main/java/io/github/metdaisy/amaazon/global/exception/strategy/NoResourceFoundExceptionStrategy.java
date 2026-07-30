@@ -20,7 +20,12 @@ public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseS
 
   @Override
   protected void logException(NoResourceFoundException exception) {
-    log.warn("존재하지 않는 리소스 요청: {}", exception.getMessage());
+    String message = sanitize(exception.getMessage());
+    log.warn("존재하지 않는 리소스 요청: {}", message);
+  }
+
+  private String sanitize(String input) {
+    return input == null ? "" : input.replaceAll("[\\r\\n]", "_");
   }
 
   @Override
@@ -38,9 +43,9 @@ public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseS
    */
   protected ResponseEntity<ApiErrorResponse> buildResponse(NoResourceFoundException exception,
       HttpServletRequest request) {
-    String userAgent = request.getHeader("User-Agent");
-    log.warn("존재하지 않는 리소스 요청: {} | User-Agent: {}",
-        exception.getMessage(), userAgent);
+    String userAgent = sanitize(request.getHeader("User-Agent"));
+    String message = sanitize(exception.getMessage());
+    log.warn("존재하지 않는 리소스 요청: {} | User-Agent: {}", message, userAgent);
     return ResponseEntity
         .status(getHttpStatus(exception))
         .body(createErrorResponse(exception));

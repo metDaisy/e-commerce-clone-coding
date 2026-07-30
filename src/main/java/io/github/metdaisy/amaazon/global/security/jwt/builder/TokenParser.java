@@ -24,7 +24,7 @@ public class TokenParser {
       SignedJWT signedJWT = SignedJWT.parse(token);
       return ParsedToken.from(signedJWT.getJWTClaimsSet());
     } catch (Exception e) {
-      log.error("JWT 토큰 파싱 실패: {}", token, e);
+      log.error("JWT 토큰 파싱 실패", e);
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("token", token));
     }
   }
