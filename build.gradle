@@ -118,6 +118,8 @@ def jacocoExcludePatterns = [
         "**/constant/**",
         "**/logging/**",
         "**/Q*.class",
+        "**/OAuth2Provider*.class",
+        "**/*UserDetails.class",
         "**/*MapperImpl.class",
         "**/*Properties.class",
         "**/*Decorator.class",

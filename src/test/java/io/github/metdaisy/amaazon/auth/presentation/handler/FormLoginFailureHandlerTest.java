@@ -1,11 +1,13 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.willThrow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.OutputStream;
+import java.io.IOException;
+import java.io.Writer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +33,8 @@ class FormLoginFailureHandlerTest {
     // given
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
-    AuthenticationException exception = new AuthenticationException("test") {};
+    AuthenticationException exception = new AuthenticationException("test") {
+    };
 
     // when
     formLoginFailureHandler.onAuthenticationFailure(request, response, exception);
@@ -49,13 +52,15 @@ class FormLoginFailureHandlerTest {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
     AuthenticationException exception = new AuthenticationException("test") {};
-    willThrow(new java.io.IOException("serialize error"))
-            .given(objectMapper).writeValue(any(OutputStream.class), any());
+    willThrow(new IOException("serialize error"))
+            .given(objectMapper).writeValue(any(Writer.class), any());
 
-    // when
-    formLoginFailureHandler.onAuthenticationFailure(request, response, exception);
+    // when & then
+    assertThatThrownBy(() ->
+            formLoginFailureHandler.onAuthenticationFailure(request, response, exception))
+            .isInstanceOf(IOException.class)
+            .hasMessage("serialize error");
 
-    // then
     assertThat(response.getStatus()).isEqualTo(401);
     assertThat(response.getContentType()).isEqualTo("application/json");
   }
