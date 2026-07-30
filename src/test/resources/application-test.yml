@@ -23,6 +23,11 @@ amaazon:
     refresh-token-expiration: 86400000
     guest-token-expiration: 600000
     secret-key: test-secret-key-test-secret-key-test-secret-key-test-secret-key
+    cookie:
+      name: REFRESH_TOKEN
+      path: /
+      same-site: LAX
+      secure: false
 
 logging:
   level:

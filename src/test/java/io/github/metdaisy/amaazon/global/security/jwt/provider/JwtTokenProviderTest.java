@@ -2,8 +2,11 @@ package io.github.metdaisy.amaazon.global.security.jwt.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+
+import io.github.metdaisy.amaazon.global.security.jwt.builder.SignedTokenFactory;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
@@ -34,7 +37,7 @@ class JwtTokenProviderTest {
   private TokenBuilderFactory tokenBuilderFactory;
 
   @Mock
-  private io.github.metdaisy.amaazon.global.security.jwt.builder.SignedTokenFactory signedTokenFactory;
+  private SignedTokenFactory signedTokenFactory;
 
   @Mock
   private TokenValidator tokenValidator;
@@ -153,7 +156,7 @@ class JwtTokenProviderTest {
     String token = signedJWT.serialize();
 
     willThrow(new JwtException(JwtErrorCode.TOKEN_EXPIRED))
-        .given(tokenValidator).validateExpiration(org.mockito.ArgumentMatchers.any());
+        .given(tokenValidator).validateExpiration(any());
 
     assertThatThrownBy(() -> jwtTokenProvider.getAuthentication(token))
         .isInstanceOf(JwtException.class)
