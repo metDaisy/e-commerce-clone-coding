@@ -22,9 +22,7 @@ public class JwtTokenProvider {
 
   private final TokenBuilderFactory tokenBuilderFactory;
   private final SignedTokenFactory signedTokenFactory;
-  private final TokenParser tokenParser;
   private final TokenValidator tokenValidator;
-  private final AuthenticationBuilder authenticationBuilder;
   private final JWSVerifier verifier;
 
   public String generateAccessToken(Object subject, Object authorities) {
@@ -39,9 +37,9 @@ public class JwtTokenProvider {
 
   public Authentication getAuthentication(String token) {
     tokenValidator.validateSignature(token, verifier);
-    ParsedToken parsedToken = tokenParser.parse(token);
+    ParsedToken parsedToken = TokenParser.parse(token);
     tokenValidator.validateExpiration(parsedToken);
-    return authenticationBuilder.buildAuthentication(parsedToken, token);
+    return AuthenticationBuilder.buildAuthentication(parsedToken, token);
   }
 
   public void validate(String token) {
@@ -49,13 +47,13 @@ public class JwtTokenProvider {
   }
 
   public String parseJti(String token) {
-    ParsedToken parsedToken = tokenParser.parse(token);
-    return tokenParser.parseJti(parsedToken);
+    ParsedToken parsedToken = TokenParser.parse(token);
+    return TokenParser.parseJti(parsedToken);
   }
 
   public Instant parseIssueTime(String token) {
-    ParsedToken parsedToken = tokenParser.parse(token);
-    return tokenParser.parseIssueTime(parsedToken);
+    ParsedToken parsedToken = TokenParser.parse(token);
+    return TokenParser.parseIssueTime(parsedToken);
   }
 
   public String generateGuestToken(String provider, String providerId) {
@@ -64,7 +62,7 @@ public class JwtTokenProvider {
   }
 
   public String parseProvider(String token, String key) {
-    ParsedToken parsedToken = tokenParser.parse(token);
-    return tokenParser.parseClaim(parsedToken, key);
+    ParsedToken parsedToken = TokenParser.parse(token);
+    return TokenParser.parseClaim(parsedToken, key);
   }
 }

@@ -9,15 +9,15 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.stereotype.Component;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
+import lombok.experimental.UtilityClass;
 
 /**
  * ParsedToken을 Spring Security의 Authentication 객체로 변환하는 빌더입니다. JWT 클레임과 Spring Security 인프라를 분리합니다.
  */
-@Component
+@UtilityClass
 public class AuthenticationBuilder {
 
   /**

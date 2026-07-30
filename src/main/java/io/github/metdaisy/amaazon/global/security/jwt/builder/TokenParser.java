@@ -2,18 +2,18 @@ package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
 import java.time.Instant;
 import java.util.Map;
-import org.springframework.stereotype.Component;
 import com.nimbusds.jwt.SignedJWT;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * JWT 토큰을 파싱하여 ParsedToken으로 변환하는 파서입니다. SignedJWT 파싱 오버헤드를 줄이기 위해 한 번 파싱한 결과를 ParsedToken으로 캐싱합니다.
  */
 @Slf4j
-@Component
+@UtilityClass
 public class TokenParser {
 
   /**
