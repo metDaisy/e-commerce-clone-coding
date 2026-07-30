@@ -46,13 +46,16 @@ public class TokenParser {
     if (token.issueTime() == null) {
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "IssuedAt을 찾을 수 없습니다.");
     }
-    return Instant.ofEpochSecond(token.issueTime().getTime());
+    return token.issueTime().toInstant();
   }
 
   /**
    * 토큰에서 지정된 키의 클레임 값을 추출합니다.
    */
   public String parseClaim(ParsedToken token, String key) {
+    if (token.otherClaims() == null) {
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, key + " 클레임을 찾을 수 없습니다.");
+    }
     Object claim = token.otherClaims().get(key);
     if (claim == null) {
       throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, key + " 클레임을 찾을 수 없습니다.");
