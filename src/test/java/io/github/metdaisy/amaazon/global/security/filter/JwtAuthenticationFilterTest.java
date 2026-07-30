@@ -142,40 +142,7 @@ class JwtAuthenticationFilterTest {
   }
 
   private Authentication createMockAuthentication() {
-    UUID userId = UUID.randomUUID();
-    return new Authentication() {
-      @Override
-      public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
-      }
-
-      @Override
-      public Object getCredentials() {
-        return "token";
-      }
-
-      @Override
-      public Object getDetails() {
-        return null;
-      }
-
-      @Override
-      public Object getPrincipal() {
-        return userId.toString();
-      }
-
-      @Override
-      public boolean isAuthenticated() {
-        return true;
-      }
-
-      @Override
-      public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {}
-
-      @Override
-      public String getName() {
-        return userId.toString();
-      }
-    };
+    return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+        UUID.randomUUID().toString(), "token", Collections.emptyList());
   }
 }

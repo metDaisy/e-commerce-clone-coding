@@ -35,6 +35,8 @@ build/
 
 # Package Files #
 *.jar
+hs_err_pid*
+replay_pid*
 *.war
 *.nar
 *.ear

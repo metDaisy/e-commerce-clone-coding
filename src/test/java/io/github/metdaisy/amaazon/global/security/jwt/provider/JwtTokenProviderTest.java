@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 
 import io.github.metdaisy.amaazon.global.security.jwt.builder.SignedTokenFactory;
 import java.nio.charset.StandardCharsets;
@@ -161,6 +163,18 @@ class JwtTokenProviderTest {
     assertThatThrownBy(() -> jwtTokenProvider.getAuthentication(token))
         .isInstanceOf(JwtException.class)
         .hasFieldOrPropertyWithValue("code", JwtErrorCode.TOKEN_EXPIRED.getCode());
+  }
+
+  @DisplayName("토큰 검증 - 성공: 유효한 토큰일 경우 예외가 발생하지 않는다")
+  @Test
+  void validate_success() {
+    String validToken = "valid.token.format";
+
+    willDoNothing().given(tokenValidator).validate(validToken, verifier);
+
+    jwtTokenProvider.validate(validToken);
+
+    verify(tokenValidator).validate(validToken, verifier);
   }
 
   @DisplayName("토큰 검증 - 실패: 유효하지 않은 토큰일 경우 JwtException 이 발생한다")

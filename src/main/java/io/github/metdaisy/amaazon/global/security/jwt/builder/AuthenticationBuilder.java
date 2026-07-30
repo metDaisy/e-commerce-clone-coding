@@ -1,18 +1,18 @@
 package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
+import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
+import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
 import java.util.Arrays;
 import java.util.Collection;
-import org.flywaydb.core.internal.util.StringUtils;
+import lombok.experimental.UtilityClass;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
-import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
-import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
-import lombok.experimental.UtilityClass;
+import org.springframework.util.StringUtils;
 
 /**
  * ParsedToken을 Spring Security의 Authentication 객체로 변환하는 빌더입니다. JWT 클레임과 Spring Security 인프라를 분리합니다.
