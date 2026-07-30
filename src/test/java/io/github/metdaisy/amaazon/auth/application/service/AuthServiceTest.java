@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -54,7 +54,8 @@ class AuthServiceTest {
     UUID userId = UUID.randomUUID();
     given(repository.existsByEmail("test@test.com")).willReturn(true);
 
-    assertThrows(AuthException.class, () -> authService.create(userId, "test@test.com", "password"));
+    assertThatThrownBy(() -> authService.create(userId, "test@test.com", "password"))
+        .isInstanceOf(AuthException.class);
     verify(repository, never()).save(any(UserCredential.class));
   }
 
@@ -75,7 +76,8 @@ class AuthServiceTest {
     UUID userId = UUID.randomUUID();
     given(userPort.existsUser(userId)).willReturn(true);
 
-    assertThrows(AuthException.class, () -> authService.createSocial(userId, "google", "123"));
+    assertThatThrownBy(() -> authService.createSocial(userId, "google", "123"))
+        .isInstanceOf(AuthException.class);
     verify(socialRepository, never()).save(any(SocialCredential.class));
   }
 }

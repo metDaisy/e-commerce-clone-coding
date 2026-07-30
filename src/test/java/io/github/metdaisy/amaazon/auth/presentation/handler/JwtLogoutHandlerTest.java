@@ -48,6 +48,7 @@ class JwtLogoutHandlerTest {
     // then
     verify(authTokenService).delete("test-refresh-token");
     verify(authCookieProvider).createDeleteRefreshTokenCookie();
+    org.assertj.core.api.Assertions.assertThat(response.getHeader(org.springframework.http.HttpHeaders.SET_COOKIE)).isNotNull();
   }
 
   @Test
@@ -67,5 +68,6 @@ class JwtLogoutHandlerTest {
     // then
     verify(authTokenService, never()).delete(anyString());
     verify(authCookieProvider).createDeleteRefreshTokenCookie();
+    org.assertj.core.api.Assertions.assertThat(response.getHeader(org.springframework.http.HttpHeaders.SET_COOKIE)).isNotNull();
   }
 }

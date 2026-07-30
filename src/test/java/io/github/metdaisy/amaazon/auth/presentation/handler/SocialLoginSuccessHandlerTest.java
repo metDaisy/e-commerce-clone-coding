@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import java.util.Collection;
@@ -65,7 +65,7 @@ class SocialLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    assert Objects.equals(response.getRedirectedUrl(), AuthWebConstants.GUEST_REDIRECT_URL);
+    org.assertj.core.api.Assertions.assertThat(response.getRedirectedUrl()).isEqualTo(AuthWebConstants.GUEST_REDIRECT_URL);
   }
 
   @Test
@@ -93,7 +93,7 @@ class SocialLoginSuccessHandlerTest {
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    assert Objects.equals(response.getRedirectedUrl(), AuthWebConstants.DEFAULT_SUCCESS_URL);
+    org.assertj.core.api.Assertions.assertThat(response.getRedirectedUrl()).isEqualTo(AuthWebConstants.DEFAULT_SUCCESS_URL);
   }
 
   @Test
@@ -108,6 +108,7 @@ class SocialLoginSuccessHandlerTest {
     given(authentication.getName()).willReturn(UUID.randomUUID().toString());
 
     // when & then
-    assertThrows(AuthException.class, () -> handler.onAuthenticationSuccess(request, response, authentication));
+    assertThatThrownBy(() -> handler.onAuthenticationSuccess(request, response, authentication))
+        .isInstanceOf(AuthException.class);
   }
 }

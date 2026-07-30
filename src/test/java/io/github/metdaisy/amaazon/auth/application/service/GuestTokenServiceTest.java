@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -26,7 +26,7 @@ class GuestTokenServiceTest {
   void create() {
     given(jwtTokenProvider.generateGuestToken("google", "123")).willReturn("guest-token");
     String result = guestTokenService.create("google", "123");
-    assertEquals("guest-token", result);
+    assertThat(result).isEqualTo("guest-token");
   }
 
   @Test
@@ -34,7 +34,7 @@ class GuestTokenServiceTest {
   void getProvider() {
     given(jwtTokenProvider.parseProvider("guest-token", "provider")).willReturn("google");
     String result = guestTokenService.getProvider("guest-token");
-    assertEquals("google", result);
+    assertThat(result).isEqualTo("google");
   }
 
   @Test
@@ -42,7 +42,7 @@ class GuestTokenServiceTest {
   void getProviderId() {
     given(jwtTokenProvider.parseProvider("guest-token", "providerId")).willReturn("123");
     String result = guestTokenService.getProviderId("guest-token");
-    assertEquals("123", result);
+    assertThat(result).isEqualTo("123");
   }
 
   @Test

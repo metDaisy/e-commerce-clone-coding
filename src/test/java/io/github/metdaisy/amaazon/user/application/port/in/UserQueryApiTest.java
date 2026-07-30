@@ -1,7 +1,6 @@
 package io.github.metdaisy.amaazon.user.application.port.in;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
 import java.util.Optional;
@@ -41,8 +40,8 @@ class UserQueryApiTest {
 
     Optional<UserDto> result = userQueryApi.findById(userId);
 
-    assertTrue(result.isPresent());
-    assertEquals(userId, result.get().id());
+    assertThat(result).isPresent();
+    assertThat(result.get().id()).isEqualTo(userId);
   }
 
   @Test
@@ -52,6 +51,6 @@ class UserQueryApiTest {
     given(repository.existsById(userId)).willReturn(true);
 
     boolean exists = userQueryApi.existsByUserId(userId);
-    assertTrue(exists);
+    assertThat(exists).isTrue();
   }
 }

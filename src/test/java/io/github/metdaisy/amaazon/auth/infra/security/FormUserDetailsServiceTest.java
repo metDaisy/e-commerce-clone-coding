@@ -1,9 +1,8 @@
 package io.github.metdaisy.amaazon.auth.infra.security;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
-
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -37,14 +36,16 @@ class FormUserDetailsServiceTest {
     UUID userId = UUID.randomUUID();
     UserCredential credential = UserCredential.of(userId, "test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
-    
+
     AuthUserDto userDto = new AuthUserDto(userId, "USER");
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
 
     UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");
-    
-    assertEquals(userId.toString(), result.getUsername());
-    assertEquals("password", result.getPassword());
+
+    assertThat(result.getUsername()).isEqualTo(userId.toString());
+    assertThat(result.getPassword()).isEqualTo("password");
+    assertThat(result.getAuthorities())
+        .anyMatch(a -> a.getAuthority().equals("ROLE_USER") || a.getAuthority().equals("USER"));
   }
 
   @Test
@@ -52,7 +53,8 @@ class FormUserDetailsServiceTest {
   void loadUserByUsername_emailNotFound() {
     given(repository.findByEmail("test@test.com")).willReturn(Optional.empty());
 
-    assertThrows(AuthException.class, () -> formUserDetailsService.loadUserByUsername("test@test.com"));
+    assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
+        .isInstanceOf(AuthException.class);
   }
 
   @Test
@@ -63,6 +65,7 @@ class FormUserDetailsServiceTest {
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
     given(userPort.loadUser(userId)).willReturn(Optional.empty());
 
-    assertThrows(AuthException.class, () -> formUserDetailsService.loadUserByUsername("test@test.com"));
+    assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
+        .isInstanceOf(AuthException.class);
   }
 }
