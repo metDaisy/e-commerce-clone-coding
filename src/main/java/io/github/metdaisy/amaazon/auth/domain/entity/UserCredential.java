@@ -45,9 +45,11 @@ public class UserCredential extends MutableEntity {
             .build();
   }
 
-  public void updatePassword(String password, Consumer<String> validator) {
-    if (shouldUpdate(this.password, password, validator)) {
-      this.password = password;
-    }
+  public void updatePassword(String password) {
+    updateIfChanged(this.password, password, value -> this.password = value);
+  }
+
+  public void updateEmail(String email) {
+    updateIfChanged(this.email, email, value -> this.email = value);
   }
 }
