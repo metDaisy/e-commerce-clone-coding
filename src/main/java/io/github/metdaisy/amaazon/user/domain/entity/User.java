@@ -43,36 +43,42 @@ public class User extends MutableEntity {
   @Column(name = "point_balance", nullable = false)
   private int pointBalance;
 
+  @Size(max = 100)
+  @Column(name = "address", length = 100)
+  private String address;
+
   @Builder(access = AccessLevel.PRIVATE)
-  private User(String name, String phoneNumber, UserRole role, int pointBalance) {
+  private User(String name, String phoneNumber, UserRole role, int pointBalance, String address) {
     this.name = name;
     this.phoneNumber = phoneNumber;
     this.role = role;
     this.pointBalance = pointBalance;
+    this.address = address;
   }
 
-  public static User createUser(String name, String phoneNumber) {
+  public static User createUser(String name, String phoneNumber, String address) {
     return User.builder()
-            .name(name)
-            .phoneNumber(phoneNumber)
-            .role(UserRole.USER)
-            .pointBalance(0)
-            .build();
+        .name(name)
+        .phoneNumber(phoneNumber)
+        .role(UserRole.USER)
+        .pointBalance(0)
+        .address(address)
+        .build();
   }
 
-  public void updateName(String name, Consumer<String> validator) {
-    if (shouldUpdate(this.name, name, validator)) {
-      this.name = name;
-    }
+  public void updateName(String name) {
+    updateIfChanged(this.name, name, value -> this.name = value);
   }
 
-  public void updatePhoneNumber(String phoneNumber, Consumer<String> validator) {
-    if (shouldUpdate(this.phoneNumber, phoneNumber, validator)) {
-      this.phoneNumber = phoneNumber;
-    }
+  public void updatePhoneNumber(String phoneNumber) {
+    updateIfChanged(this.phoneNumber, phoneNumber, value -> this.phoneNumber = value);
   }
 
   public void updateRole(UserRole role) {
     updateIfChanged(this.role, role, value -> this.role = value);
+  }
+
+  public void updateAddress(String address) {
+    updateIfChanged(this.address, address, value -> this.address = value);
   }
 }

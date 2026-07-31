@@ -8,6 +8,7 @@ CREATE TABLE users
     phone_number  VARCHAR(11),
     role          VARCHAR(20) NOT NULL,
     point_balance INTEGER     NOT NULL DEFAULT 0,
+    address       varchar(100),
     created_at    TIMESTAMP WITH TIME ZONE,
     updated_at    TIMESTAMP WITH TIME ZONE
 );
@@ -266,6 +267,9 @@ create unique index idx_blacklist_users_user_id on blacklist_users (user_id);
 create index idx_refresh_tokens_token on refresh_tokens (token);
 
 CREATE UNIQUE INDEX idx_user_credentials_user_id ON user_credentials (user_id);
+create unique index idx_user_credentials_email on user_credentials (email);
+
+create unique index idx_users_phone_number on users (phone_number);
 
 ALTER TABLE tags
     ADD CONSTRAINT uq_tags_name UNIQUE (name);
