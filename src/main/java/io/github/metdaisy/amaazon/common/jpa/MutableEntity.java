@@ -19,14 +19,6 @@ public abstract class MutableEntity extends ImmutableEntity {
   @LastModifiedDate
   private Instant updatedAt;
 
-  protected <T> boolean shouldUpdate(T oldValue, T newValue, Consumer<T> validator) {
-    if (newValue == null || Objects.equals(oldValue, newValue)) {
-      return false;
-    }
-    validator.accept(newValue);
-    return true;
-  }
-
   protected <T> void updateIfChanged(T oldValue, T newValue, Consumer<T> action) {
     if (newValue == null || Objects.equals(oldValue, newValue)) {
       return;
