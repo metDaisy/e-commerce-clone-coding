@@ -277,7 +277,6 @@ ALTER TABLE tags
 CREATE UNIQUE INDEX idx_wishlists_user_product ON wishlists (user_id, product_id);
 
 CREATE UNIQUE INDEX idx_users_name ON users (name);
-CREATE UNIQUE INDEX idx_users_phone_number ON users (phone_number);
 
 CREATE UNIQUE INDEX idx_user_coupons_user_coupon ON user_coupons (user_id, coupon_id);
 
