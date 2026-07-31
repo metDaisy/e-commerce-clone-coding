@@ -2,7 +2,7 @@ language: "ko-KR"
 tone_instructions: "Point out problems and limitations clearly with reasons. Explain pros/cons of alternatives. Focus on improvement directions for learning rather than simple criticism. Maintain a logical and approachable tone."
 
 reviews:
-  profile: "assertive"
+  profile: "chill"
   request_changes_workflow: false
   high_level_summary: true
   high_level_summary_instructions: |
