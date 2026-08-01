@@ -6,7 +6,7 @@ import io.github.metdaisy.amaazon.user.domain.entity.User;
 
 public interface UserRepository extends DomainRepository<User> {
 
-  int countByPhoneNumber(String phoneNumber);
+  boolean existsByPhoneNumber(String phoneNumber);
 
   boolean existsById(UUID userId);
 }

@@ -9,7 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.util.function.Consumer;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,7 +48,9 @@ public class User extends MutableEntity {
   private String address;
 
   @Builder(access = AccessLevel.PRIVATE)
-  private User(String name, String phoneNumber, UserRole role, int pointBalance, String address) {
+  private User(UUID id, String name, String phoneNumber, UserRole role, int pointBalance,
+      String address) {
+    super(id);
     this.name = name;
     this.phoneNumber = phoneNumber;
     this.role = role;
@@ -56,8 +58,9 @@ public class User extends MutableEntity {
     this.address = address;
   }
 
-  public static User createUser(String name, String phoneNumber, String address) {
+  public static User createUser(UUID id, String name, String phoneNumber, String address) {
     return User.builder()
+        .id(id)
         .name(name)
         .phoneNumber(phoneNumber)
         .role(UserRole.USER)
