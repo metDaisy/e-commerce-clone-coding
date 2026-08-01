@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.auth.infra.security;
 
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -26,9 +27,10 @@ public class FormUserDetailsService implements UserDetailsService {
     UserCredential credential = repository.findByEmail(email)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
             Map.of("email", email)));
-    AuthUserDto userDto = userPort.loadUser(credential.getUserId())
+    UUID userId = credential.getId();
+    AuthUserDto userDto = userPort.loadUser(userId)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("userId", credential.getUserId())));
+            Map.of("userId", userId)));
     return new FormUserDetails(userDto.id(), userDto.role(), credential.getPassword());
   }
 }
