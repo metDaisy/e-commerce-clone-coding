@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,6 +19,10 @@ public abstract class MutableEntity extends ImmutableEntity {
   @Column
   @LastModifiedDate
   private Instant updatedAt;
+
+  protected MutableEntity(UUID id) {
+    super(id);
+  }
 
   protected <T> void updateIfChanged(T oldValue, T newValue, Consumer<T> action) {
     if (newValue == null || Objects.equals(oldValue, newValue)) {

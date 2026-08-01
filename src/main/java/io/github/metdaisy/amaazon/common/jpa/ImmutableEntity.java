@@ -29,6 +29,10 @@ public abstract class ImmutableEntity implements Persistable<UUID> {
     this.id = UUID.randomUUID();
   }
 
+  protected ImmutableEntity(UUID id) {
+    this.id = id;
+  }
+
   @Override
   public boolean isNew() {
     return createdAt == null;
