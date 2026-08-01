@@ -4,7 +4,9 @@ import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 import java.lang.annotation.*;
+import org.springframework.modulith.NamedInterface;
 
+@NamedInterface("password")
 @Documented
 @Constraint(validatedBy = PasswordValidator.class)
 @Target({ElementType.FIELD, ElementType.PARAMETER})
