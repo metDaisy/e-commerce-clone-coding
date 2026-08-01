@@ -51,7 +51,7 @@ public class AuthController {
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @RequestBody @Valid PasswordValidationRequest request) {
     service.verifyPassword(principal.getId(), request.password());
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
   @PostMapping("/update")
@@ -59,12 +59,12 @@ public class AuthController {
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @RequestBody @Valid UserCredentialUpdateRequest request) {
     service.update(principal.getId(), request);
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 
   @PostMapping("/signup")
   public ResponseEntity<Void> signup(@RequestBody @Valid SignUpRequest request) {
     service.create(request);
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
   }
 }
