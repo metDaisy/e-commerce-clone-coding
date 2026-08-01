@@ -3,6 +3,8 @@ package io.github.metdaisy.amaazon.user.application.validator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 
+import io.github.metdaisy.amaazon.auth.application.validator.PasswordValidator;
+import io.github.metdaisy.amaazon.auth.application.validator.ValidPassword;
 import jakarta.validation.ConstraintValidatorContext;
 import java.lang.reflect.Field;
 import org.junit.jupiter.api.BeforeEach;

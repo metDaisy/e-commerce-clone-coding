@@ -35,7 +35,7 @@ class UserQueryApiTest {
   @DisplayName("사용자 조회 성공: 사용자와 DTO 매핑 결과를 반환한다")
   void findById() {
     UUID userId = UUID.randomUUID();
-    User user = User.createUser("tester", "01012345678", "Seoul");
+    User user = User.createUser(UUID.randomUUID(), "tester", "01012345678", "Seoul");
     UserDto userDto = new UserDto(userId, "USER");
     
     given(repository.findById(userId)).willReturn(Optional.of(user));
