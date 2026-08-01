@@ -3,6 +3,7 @@ package io.github.metdaisy.amaazon.auth.domain.entity;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -17,6 +18,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "user_credentials")
+@AttributeOverride(name = "id", column = @Column(name = "user_id"))
 public class UserCredential extends MutableEntity {
 
   @Size(max = 255)

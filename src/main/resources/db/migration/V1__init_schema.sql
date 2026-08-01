@@ -15,8 +15,7 @@ CREATE TABLE users
 
 CREATE TABLE user_credentials
 (
-    id         UUID PRIMARY KEY,
-    user_id    UUID         NOT NULL,
+    userId         UUID PRIMARY KEY,
     email      VARCHAR(100) NOT NULL,
     password   VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE,
@@ -266,7 +265,6 @@ create index idx_blacklist_tokens_token on blacklist_tokens (token);
 create unique index idx_blacklist_users_user_id on blacklist_users (user_id);
 create index idx_refresh_tokens_token on refresh_tokens (token);
 
-CREATE UNIQUE INDEX idx_user_credentials_user_id ON user_credentials (user_id);
 create unique index idx_user_credentials_email on user_credentials (email);
 
 create unique index idx_users_phone_number on users (phone_number);
