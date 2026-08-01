@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.user.application.validator;
+package io.github.metdaisy.amaazon.auth.application.validator;
 
 import java.util.regex.Pattern;
 import org.flywaydb.core.internal.util.StringUtils;

@@ -1,12 +1,5 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
@@ -17,10 +10,17 @@ import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.BiConsumer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class AuthTokenService {
 
@@ -30,6 +30,7 @@ public class AuthTokenService {
   private final JwtProperties properties;
   private final ApplicationEventPublisher eventPublisher;
 
+  @Transactional
   public JwtLoginDto reissue(String token) {
     provider.validate(token);
     String jti = provider.parseJti(token);
@@ -43,6 +44,7 @@ public class AuthTokenService {
     return issueTokens(userDto, tokenEntity::reissue);
   }
 
+  @Transactional
   public JwtLoginDto create(UUID userId, String device) {
     AuthUserDto userDto = userPort.loadUser(userId)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
@@ -53,6 +55,7 @@ public class AuthTokenService {
     });
   }
 
+  @Transactional
   public void delete(String token) {
     String jti = provider.parseJti(token);
     repository.deleteByTokenDirectly(jti);

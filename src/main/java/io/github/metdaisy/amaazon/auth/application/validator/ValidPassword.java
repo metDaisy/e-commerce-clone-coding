@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.user.application.validator;
+package io.github.metdaisy.amaazon.auth.application.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
