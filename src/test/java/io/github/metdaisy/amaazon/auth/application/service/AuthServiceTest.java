@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
+import io.github.metdaisy.amaazon.auth.application.dto.request.UserCredentialUpdateRequest;
 import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
@@ -39,6 +40,8 @@ class AuthServiceTest {
   private PasswordEncoder passwordEncoder;
   @Mock
   private AuthUserPort userPort;
+  @Mock
+  private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private AuthService authService;
@@ -48,34 +51,31 @@ class AuthServiceTest {
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    given(repository.countByEmail("test@example.com")).willReturn(0);
+    given(repository.existsByEmail("test@example.com")).willReturn(false);
     given(passwordEncoder.encode("Password1!")).willReturn("encoded-password");
 
     // when
-    authService.create(userId, "test@example.com", "Password1!");
+    authService.create(new io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest("tester", "test@example.com", "Password1!", "01012345678", "Seoul"));
 
     // then
     ArgumentCaptor<UserCredential> captor = ArgumentCaptor.forClass(UserCredential.class);
     verify(repository).save(captor.capture());
     assertThat(captor.getValue())
-        .extracting(UserCredential::getUserId, UserCredential::getEmail,
-            UserCredential::getPassword)
-        .containsExactly(userId, "test@example.com", "encoded-password");
+        .extracting(UserCredential::getEmail, UserCredential::getPassword)
+        .containsExactly("test@example.com", "encoded-password");
   }
 
-  @ParameterizedTest(name = "[{index}] 중복 개수={0}")
-  @ValueSource(ints = {1, 2})
-  @DisplayName("일반 인증 생성 실패: 중복 이메일이면 예외를 던진다")
-  void create_failure_whenEmailAlreadyExists(int duplicateCount) {
+  @Test
+  @DisplayName("일반 인증 생성 실패: 이미 가입된 이메일이면 예외를 던진다")
+  void create_failure_whenEmailAlreadyExists() {
     // given
-    UUID userId = UUID.randomUUID();
-    given(repository.countByEmail("test@example.com")).willReturn(duplicateCount);
+    given(repository.existsByEmail("test@example.com")).willReturn(true);
 
     // when & then
-    assertThatThrownBy(() -> authService.create(userId, "test@example.com", "Password1!"))
+    assertThatThrownBy(() -> authService.create(new io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest("tester", "test@example.com", "password", "01012345678", "Seoul")))
         .isInstanceOf(AuthException.class)
         .hasFieldOrPropertyWithValue("code", AuthErrorCode.EMAIL_ALREADY_EXISTS.getCode());
-    verify(repository, never()).save(any(UserCredential.class));
+    verify(repository, never()).save(any());
   }
 
   @Test
@@ -83,7 +83,7 @@ class AuthServiceTest {
   void createSocial_success() {
     // given
     UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(false);
+    given(userPort.existsUser(userId)).willReturn(true);
 
     // when
     authService.createSocial(userId, "google", "provider-id");
@@ -97,7 +97,7 @@ class AuthServiceTest {
   void createSocial_failure_whenUserDoesNotExist() {
     // given
     UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(true);
+    given(userPort.existsUser(userId)).willReturn(false);
 
     // when & then
     assertThatThrownBy(() -> authService.createSocial(userId, "google", "provider-id"))
@@ -111,13 +111,13 @@ class AuthServiceTest {
   void update_success() {
     // given
     UUID userId = UUID.randomUUID();
-    UserCredential credential = UserCredential.of(userId, "old@example.com", "old-password");
-    given(repository.findByUserId(userId)).willReturn(Optional.of(credential));
-    given(repository.countByEmail("new@example.com")).willReturn(0);
+    UserCredential credential = UserCredential.of("old@example.com", "old-password");
+    given(repository.findById(userId)).willReturn(Optional.of(credential));
+    given(repository.existsByEmail("new@example.com")).willReturn(false);
     given(passwordEncoder.encode("NewPassword1!")).willReturn("new-encoded-password");
 
     // when
-    authService.update(userId, "new@example.com", "NewPassword1!");
+    authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!"));
 
     // then
     assertThat(credential)
@@ -130,27 +130,25 @@ class AuthServiceTest {
   void update_failure_whenCredentialDoesNotExist() {
     // given
     UUID userId = UUID.randomUUID();
-    given(repository.findByUserId(userId)).willReturn(Optional.empty());
+    given(repository.findById(userId)).willReturn(Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> authService.update(userId, "new@example.com", "Password1!"))
+    assertThatThrownBy(() -> authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!")))
         .isInstanceOf(AuthException.class)
         .hasFieldOrPropertyWithValue("code", AuthErrorCode.USER_CREDENTIAL_NOT_FOUND.getCode());
     verify(passwordEncoder, never()).encode(any());
   }
 
-  @ParameterizedTest(name = "[{index}] 중복 개수={0}")
-  @ValueSource(ints = {1, 2})
+  @ParameterizedTest(name = "[{index}] 존재하는 이메일")
+  @ValueSource(booleans = {true})
   @DisplayName("일반 인증 수정 실패: 중복 이메일이면 예외를 던진다")
-  void update_failure_whenEmailAlreadyExists(int duplicateCount) {
+  void update_failure_whenEmailAlreadyExists(boolean duplicate) {
     // given
     UUID userId = UUID.randomUUID();
-    UserCredential credential = UserCredential.of(userId, "old@example.com", "old-password");
-    given(repository.findByUserId(userId)).willReturn(Optional.of(credential));
-    given(repository.countByEmail("new@example.com")).willReturn(duplicateCount);
+    given(repository.existsByEmail("new@example.com")).willReturn(duplicate);
 
     // when & then
-    assertThatThrownBy(() -> authService.update(userId, "new@example.com", "Password1!"))
+    assertThatThrownBy(() -> authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!")))
         .isInstanceOf(AuthException.class)
         .hasFieldOrPropertyWithValue("code", AuthErrorCode.EMAIL_ALREADY_EXISTS.getCode());
     verify(passwordEncoder, never()).encode(any());

@@ -33,10 +33,9 @@ class FormUserDetailsServiceTest {
   @Test
   @DisplayName("loadUserByUsername success")
   void loadUserByUsername() {
-    UUID userId = UUID.randomUUID();
-    UserCredential credential = UserCredential.of(userId, "test@test.com", "password");
+    UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
-
+    UUID userId = credential.getId();
     AuthUserDto userDto = new AuthUserDto(userId, "USER");
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
 
@@ -60,10 +59,9 @@ class FormUserDetailsServiceTest {
   @Test
   @DisplayName("loadUserByUsername fails when user not found")
   void loadUserByUsername_userNotFound() {
-    UUID userId = UUID.randomUUID();
-    UserCredential credential = UserCredential.of(userId, "test@test.com", "password");
+    UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
-    given(userPort.loadUser(userId)).willReturn(Optional.empty());
+    given(userPort.loadUser(credential.getId())).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
         .isInstanceOf(AuthException.class);
