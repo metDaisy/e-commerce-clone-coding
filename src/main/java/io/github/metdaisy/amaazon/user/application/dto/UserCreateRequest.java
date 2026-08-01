@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.user.application.dto;
 
-import io.github.metdaisy.amaazon.user.application.validator.ValidPassword;
+import io.github.metdaisy.amaazon.auth.application.validator.ValidPassword;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
