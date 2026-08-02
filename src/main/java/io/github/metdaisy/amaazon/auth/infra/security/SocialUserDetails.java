@@ -14,19 +14,22 @@ public class SocialUserDetails implements OAuth2User, AmaazonPrincipal {
   private final UUID id;
   private final String role;
   private final Map<String, Object> attributes;
+  private final boolean isEnabled;
 
-  private SocialUserDetails(UUID id, String role, Map<String, Object> attributes) {
+  private SocialUserDetails(UUID id, String role, Map<String, Object> attributes,
+      boolean isEnabled) {
     this.id = id;
     this.role = role;
     this.attributes = attributes;
+    this.isEnabled = isEnabled;
   }
 
-  public static SocialUserDetails create(UUID id, String role, Map<String, Object> attributes) {
-    return new SocialUserDetails(id, role, attributes);
+  public static SocialUserDetails create(UUID id, String role, Map<String, Object> attributes, boolean isEnabled) {
+    return new SocialUserDetails(id, role, attributes, isEnabled);
   }
 
   public static SocialUserDetails createGuest(Map<String, Object> attributes) {
-    return new SocialUserDetails(null, "guest", attributes);
+    return new SocialUserDetails(null, "guest", attributes, true);
   }
 
   @Override

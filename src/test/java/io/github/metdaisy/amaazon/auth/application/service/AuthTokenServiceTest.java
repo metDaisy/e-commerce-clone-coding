@@ -58,7 +58,7 @@ class AuthTokenServiceTest {
     String token = "valid-refresh-token";
     String jti = "test-jti";
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER");
+    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
     JwtLoginDto loginDto = new JwtLoginDto(userId, "new-access-token", "new-refresh-token");
 
     RefreshToken refreshToken = RefreshToken.of(userId, "device-1", jti, Instant.now().plusSeconds(3600));
@@ -100,7 +100,7 @@ class AuthTokenServiceTest {
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER");
+    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
     given(provider.generateAccessToken(userId, "USER")).willReturn("access-token");
     given(provider.generateRefreshToken(userId)).willReturn("refresh-token");
@@ -130,3 +130,4 @@ class AuthTokenServiceTest {
     verify(repository).deleteByTokenDirectly("jti");
   }
 }
+

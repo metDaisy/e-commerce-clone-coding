@@ -4,6 +4,6 @@ import java.util.UUID;
 import org.springframework.modulith.NamedInterface;
 
 @NamedInterface("user-api")
-public record UserDto(UUID id, String role) {
+public record UserDto(UUID id, String role, boolean isEnabled) {
 
 }

@@ -15,7 +15,7 @@ public final class SecurityConstants {
   public static final String LOGIN_URL = WebConstants.SERVLET_PREFIX + "/auth/login";
   public static final String LOGOUT_URL = WebConstants.SERVLET_PREFIX + "/auth/logout";
   public static final String REFRESH_URL = WebConstants.SERVLET_PREFIX + "/auth/refresh";
-  public static final String USERS_URL = WebConstants.SERVLET_PREFIX + "/users";
+  public static final String SIGNUP_URL = WebConstants.SERVLET_PREFIX + "/auth/signup";
 
   // Request Matchers
   public static final String[] PUBLIC_GET_PATHS = {
@@ -31,6 +31,6 @@ public final class SecurityConstants {
       LOGIN_URL,
       LOGOUT_URL,
       REFRESH_URL,
-      USERS_URL
+      SIGNUP_URL
   };
 }

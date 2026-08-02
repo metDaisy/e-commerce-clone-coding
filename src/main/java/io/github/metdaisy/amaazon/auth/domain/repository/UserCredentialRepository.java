@@ -9,4 +9,5 @@ public interface UserCredentialRepository extends DomainRepository<UserCredentia
   boolean existsByEmail(String email);
 
   Optional<UserCredential> findByEmail(String email);
+
 }

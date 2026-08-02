@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,6 +19,7 @@ import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("사용자 조회 API 테스트")
 class UserQueryApiTest {
 
   @Mock
@@ -29,12 +32,12 @@ class UserQueryApiTest {
   private UserQueryApi userQueryApi;
 
   @Test
-  @DisplayName("findById")
+  @DisplayName("사용자 조회 성공: 사용자와 DTO 매핑 결과를 반환한다")
   void findById() {
     UUID userId = UUID.randomUUID();
-    User user = User.createUser("tester", "01012345678");
-    UserDto userDto = new UserDto(userId, "USER");
-    
+    User user = User.createUser(UUID.randomUUID(), "tester", "01012345678", "Seoul");
+    UserDto userDto = new UserDto(userId, "USER", true);
+
     given(repository.findById(userId)).willReturn(Optional.of(user));
     given(mapper.toDto(user)).willReturn(userDto);
 
@@ -45,12 +48,25 @@ class UserQueryApiTest {
   }
 
   @Test
-  @DisplayName("existsByUserId")
-  void existsByUserId() {
+  @DisplayName("사용자 조회 실패: 사용자가 없으면 빈 Optional을 반환한다")
+  void findById_failure_whenUserDoesNotExist() {
     UUID userId = UUID.randomUUID();
-    given(repository.existsById(userId)).willReturn(true);
+    given(repository.findById(userId)).willReturn(Optional.empty());
+
+    Optional<UserDto> result = userQueryApi.findById(userId);
+
+    assertThat(result).isEmpty();
+  }
+
+  @ParameterizedTest(name = "[{index}] 저장소 조회 결과={0}")
+  @ValueSource(booleans = {true, false})
+  @DisplayName("사용자 존재 여부 조회: 저장소 결과를 그대로 반환한다")
+  void existsByUserId(boolean expected) {
+    UUID userId = UUID.randomUUID();
+    given(repository.existsById(userId)).willReturn(expected);
 
     boolean exists = userQueryApi.existsByUserId(userId);
-    assertThat(exists).isTrue();
+    assertThat(exists).isEqualTo(expected);
   }
 }
+

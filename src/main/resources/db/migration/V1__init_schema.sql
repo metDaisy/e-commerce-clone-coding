@@ -1,6 +1,10 @@
 DROP SCHEMA IF EXISTS public CASCADE;
 CREATE SCHEMA public;
 
+-- ============================================================================
+-- TABLES
+-- ============================================================================
+
 CREATE TABLE users
 (
     id            UUID PRIMARY KEY,
@@ -8,14 +12,15 @@ CREATE TABLE users
     phone_number  VARCHAR(11),
     role          VARCHAR(20) NOT NULL,
     point_balance INTEGER     NOT NULL DEFAULT 0,
+    address       varchar(100),
+    is_enabled    boolean     not null default true,
     created_at    TIMESTAMP WITH TIME ZONE,
     updated_at    TIMESTAMP WITH TIME ZONE
 );
 
 CREATE TABLE user_credentials
 (
-    id         UUID PRIMARY KEY,
-    user_id    UUID         NOT NULL,
+    userId     UUID PRIMARY KEY,
     email      VARCHAR(100) NOT NULL,
     password   VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE,
@@ -219,7 +224,7 @@ CREATE TABLE event_publication
     status                 VARCHAR(255)
 );
 
-create table refresh_tokens
+CREATE TABLE refresh_tokens
 (
     id         UUID primary key,
     user_id    UUID                     not null,
@@ -231,7 +236,7 @@ create table refresh_tokens
     updated_at timestamp with time zone
 );
 
-create table blacklist_tokens
+CREATE TABLE blacklist_tokens
 (
     id         UUID primary key,
     token      varchar(36)              not null,
@@ -239,7 +244,7 @@ create table blacklist_tokens
     created_at timestamp with time zone
 );
 
-create table blacklist_users
+CREATE TABLE blacklist_users
 (
     id             UUID primary key,
     user_id        UUID                     not null,
@@ -247,7 +252,7 @@ create table blacklist_users
     created_at     timestamp with time zone
 );
 
-create table social_credentials
+CREATE TABLE social_credentials
 (
     id          UUID primary key,
     user_id     UUID         not null,
@@ -256,77 +261,109 @@ create table social_credentials
     created_at  timestamp with time zone
 );
 
--- ------------------------------------------------------------------------------
--- 3. Unique Constraints & Indexes
--- ------------------------------------------------------------------------------
-create unique index idx_social_credentials_provider on social_credentials (provider_id, provider);
+-- ============================================================================
+-- CONSTRAINTS
+-- ============================================================================
 
-create index idx_blacklist_tokens_token on blacklist_tokens (token);
-create unique index idx_blacklist_users_user_id on blacklist_users (user_id);
-create index idx_refresh_tokens_token on refresh_tokens (token);
+-- social_credentials
+ALTER TABLE social_credentials
+    ADD CONSTRAINT chk_social_credentials_provider CHECK (provider in ('GOOGLE', 'NAVER', 'GITHUB', 'KAKAO'));
 
-CREATE UNIQUE INDEX idx_user_credentials_user_id ON user_credentials (user_id);
-
-ALTER TABLE tags
-    ADD CONSTRAINT uq_tags_name UNIQUE (name);
-
-CREATE UNIQUE INDEX idx_wishlists_user_product ON wishlists (user_id, product_id);
-
-CREATE UNIQUE INDEX idx_users_name ON users (name);
-CREATE UNIQUE INDEX idx_users_phone_number ON users (phone_number);
-
-CREATE UNIQUE INDEX idx_user_coupons_user_coupon ON user_coupons (user_id, coupon_id);
-
-CREATE UNIQUE INDEX idx_cart_items_unique ON cart_items (cart_id, product_id);
-
-ALTER TABLE deliveries
-    ADD CONSTRAINT uq_deliveries_order_id UNIQUE (order_id);
-
-CREATE INDEX idx_products_category_id ON products (category_id);
-CREATE INDEX idx_reviews_product_id ON reviews (product_id);
-CREATE UNIQUE INDEX idx_reviews_user_product ON reviews (user_id, product_id);
-CREATE INDEX idx_orders_user_id ON orders (user_id);
-CREATE INDEX idx_order_items_order_id ON order_items (order_id);
-CREATE INDEX idx_payments_order_id ON payments (order_id);
-
-
--- ------------------------------------------------------------------------------
--- 4. Check Constraints
--- ------------------------------------------------------------------------------
-alter table social_credentials
-    add constraint chk_social_credentials_provider check (provider in ('GOOGLE', 'NAVER', 'GITHUB', 'KAKAO'));
-
+-- users
 ALTER TABLE users
     ADD CONSTRAINT chk_users_point_balance CHECK (point_balance >= 0);
 
 ALTER TABLE users
     ADD CONSTRAINT chk_users_role CHECK (role IN ('USER', 'ADMIN', 'PRODUCT_MANAGER'));
 
+-- products
 ALTER TABLE products
     ADD CONSTRAINT chk_products_status CHECK (status IN ('ON_SALE', 'SOLD_OUT', 'RESTOCK_SCHEDULED'));
 
+-- reviews
 ALTER TABLE reviews
     ADD CONSTRAINT chk_reviews_rating CHECK (rating >= 1 AND rating <= 5);
 
+-- coupons
 ALTER TABLE coupons
     ADD CONSTRAINT chk_coupons_discount_type CHECK (discount_type IN ('PERCENTAGE', 'FIXED_AMOUNT'));
 
+ALTER TABLE tags
+    ADD CONSTRAINT uq_tags_name UNIQUE (name);
+
+-- cart_items
 ALTER TABLE cart_items
     ADD CONSTRAINT chk_cart_items_quantity CHECK (quantity > 0);
 
+-- orders
 ALTER TABLE orders
     ADD CONSTRAINT chk_orders_status CHECK (status IN
                                             ('PENDING', 'PAID', 'PREPARING', 'SHIPPED', 'DELIVERED',
                                              'CANCELED'));
 
+-- order_items
 ALTER TABLE order_items
     ADD CONSTRAINT chk_order_items_quantity CHECK (quantity > 0);
 
+-- deliveries
 ALTER TABLE deliveries
     ADD CONSTRAINT chk_deliveries_status CHECK (status IN ('PREPARING', 'SHIPPED', 'DELIVERED'));
 
+-- delivery order unique
+ALTER TABLE deliveries
+    ADD CONSTRAINT uq_deliveries_order_id UNIQUE (order_id);
+
+-- payment_methods
 ALTER TABLE payment_methods
     ADD CONSTRAINT chk_payment_methods_type CHECK (method_type IN ('CARD', 'KAKAOPAY', 'NAVERPAY', 'TRANSFER'));
 
+-- payments
 ALTER TABLE payments
     ADD CONSTRAINT chk_payments_status CHECK (status IN ('COMPLETED', 'FAILED', 'REFUNDED'));
+
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+
+-- social_credentials
+CREATE UNIQUE INDEX idx_social_credentials_provider ON social_credentials (provider_id, provider);
+
+-- blacklist_tokens
+CREATE INDEX idx_blacklist_tokens_token ON blacklist_tokens (token);
+
+-- blacklist_users
+CREATE UNIQUE INDEX idx_blacklist_users_user_id ON blacklist_users (user_id);
+
+-- refresh_tokens
+CREATE INDEX idx_refresh_tokens_token ON refresh_tokens (token);
+
+-- user_credentials
+CREATE UNIQUE INDEX idx_user_credentials_email ON user_credentials (email);
+
+-- users
+CREATE UNIQUE INDEX idx_users_phone_number ON users (phone_number) WHERE is_enabled = true;
+
+-- wishlists
+CREATE UNIQUE INDEX idx_wishlists_user_product ON wishlists (user_id, product_id);
+
+-- user_coupons
+CREATE UNIQUE INDEX idx_user_coupons_user_coupon ON user_coupons (user_id, coupon_id);
+
+-- cart_items
+CREATE UNIQUE INDEX idx_cart_items_unique ON cart_items (cart_id, product_id);
+
+-- products
+CREATE INDEX idx_products_category_id ON products (category_id);
+
+-- reviews
+CREATE INDEX idx_reviews_product_id ON reviews (product_id);
+CREATE UNIQUE INDEX idx_reviews_user_product ON reviews (user_id, product_id);
+
+-- orders
+CREATE INDEX idx_orders_user_id ON orders (user_id);
+
+-- order_items
+CREATE INDEX idx_order_items_order_id ON order_items (order_id);
+
+-- payments
+CREATE INDEX idx_payments_order_id ON payments (order_id);

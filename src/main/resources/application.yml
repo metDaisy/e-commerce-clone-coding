@@ -30,5 +30,5 @@ logging:
       clean-history-on-start: true
       max-history: 30
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %clr(%-5level) [traceId: %.-8X{traceId}] [%logger{0}] - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [traceId: %X{traceId}] [%logger{0}] - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %clr(%-5level) [traceId: %.-8X{traceId}] [requestId: %.-8X{requestId}] [%X{requestMethod}] %X{requestUri} [%logger{0}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [traceId: %X{traceId}] [requestId: %X{requestId}] [%X{requestMethod}] %X{requestUri} [%logger{0}] - %msg%n"

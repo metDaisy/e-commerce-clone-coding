@@ -1,13 +1,14 @@
 package io.github.metdaisy.amaazon.auth.domain.entity;
 
+import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
+import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.util.UUID;
-import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,11 +18,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "user_credentials")
+@AttributeOverride(name = "id", column = @Column(name = "user_id"))
 public class UserCredential extends MutableEntity {
-
-  @NotNull
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
 
   @Size(max = 255)
   @NotNull
@@ -34,20 +32,29 @@ public class UserCredential extends MutableEntity {
   private String password;
 
   @Builder(access = AccessLevel.PRIVATE)
-  private UserCredential(UUID userId, String email, String password) {
-    this.userId = userId;
+  private UserCredential(String email, String password) {
     this.email = email;
     this.password = password;
   }
 
-  public static UserCredential of(UUID userId, String email, String password) {
-    return UserCredential.builder().userId(userId).email(email).password(password)
-            .build();
+  public static UserCredential of(String email, String password) {
+    return UserCredential.builder()
+        .email(email)
+        .password(password)
+        .build();
   }
 
-  public void updatePassword(String password, Consumer<String> validator) {
-    if (shouldUpdate(this.password, password, validator)) {
-      this.password = password;
+  public void updatePassword(String password) {
+    updateIfChanged(this.password, password, value -> this.password = value);
+  }
+
+  public void updateEmail(String email) {
+    updateIfChanged(this.email, email, value -> this.email = value);
+  }
+
+  public void matchPassword(String password) {
+    if (!this.password.equals(password)) {
+      throw new AuthException(AuthErrorCode.INCORRECT_PASSWORD);
     }
   }
 }

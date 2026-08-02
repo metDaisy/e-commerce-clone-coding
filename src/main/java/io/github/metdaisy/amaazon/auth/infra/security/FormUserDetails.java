@@ -16,6 +16,7 @@ public class FormUserDetails implements UserDetails, CredentialsContainer, Amaaz
   private final UUID id;
   private final String role;
   private String password;
+  private final boolean isEnabled;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
