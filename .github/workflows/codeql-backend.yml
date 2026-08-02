@@ -46,7 +46,7 @@ jobs:
 
     # CodeQL 분석 도구 초기화
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: java-kotlin
         build-mode: manual
@@ -60,6 +60,6 @@ jobs:
 
     # CodeQL 분석 수행 및 GitHub Security 탭에 결과 업로드
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:java-kotlin"
