@@ -36,8 +36,8 @@ class UserQueryApiTest {
   void findById() {
     UUID userId = UUID.randomUUID();
     User user = User.createUser(UUID.randomUUID(), "tester", "01012345678", "Seoul");
-    UserDto userDto = new UserDto(userId, "USER");
-    
+    UserDto userDto = new UserDto(userId, "USER", true);
+
     given(repository.findById(userId)).willReturn(Optional.of(user));
     given(mapper.toDto(user)).willReturn(userDto);
 
@@ -69,3 +69,4 @@ class UserQueryApiTest {
     assertThat(exists).isEqualTo(expected);
   }
 }
+

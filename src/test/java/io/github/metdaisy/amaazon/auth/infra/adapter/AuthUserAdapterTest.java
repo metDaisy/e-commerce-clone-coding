@@ -28,7 +28,7 @@ class AuthUserAdapterTest {
   void loadUser_success() {
     // given
     UUID userId = UUID.randomUUID();
-    UserDto userDto = new UserDto(userId, "USER");
+    UserDto userDto = new UserDto(userId, "USER", true);
     given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
 
     // when
@@ -38,6 +38,7 @@ class AuthUserAdapterTest {
     assertThat(result).isPresent();
     assertThat(result.get().id()).isEqualTo(userId);
     assertThat(result.get().role()).isEqualTo("USER");
+    assertThat(result.get().isEnabled()).isTrue();
   }
 
   @Test
@@ -54,3 +55,4 @@ class AuthUserAdapterTest {
     assertThat(result).isEmpty();
   }
 }
+
