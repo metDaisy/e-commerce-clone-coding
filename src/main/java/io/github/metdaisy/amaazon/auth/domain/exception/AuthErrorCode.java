@@ -17,6 +17,7 @@ public enum AuthErrorCode implements AmaazonErrorCode {
   USER_NOT_FOUND("AUTH-007", "유저를 찾을 수 없습니다.", AmaazonErrorType.NOT_FOUND),
   DEVICE_ID_NOT_FOUND("AUTH-008", "deviceId 를 찾을 수 없습니다.", AmaazonErrorType.NOT_FOUND),
   INCORRECT_PASSWORD("AUTH-009", "비밀번호가 일치하지 않습니다.", AmaazonErrorType.BAD_REQUEST),
+  ACCOUNT_DEACTIVATED("AUTH-010", "유저를 찾을 수 없습니다.", AmaazonErrorType.UNAUTHORIZED),
   ;
 
   private final String code;

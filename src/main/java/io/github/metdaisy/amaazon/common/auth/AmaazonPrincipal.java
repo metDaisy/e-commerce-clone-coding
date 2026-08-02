@@ -14,6 +14,8 @@ public interface AmaazonPrincipal {
 
   String getRole();
 
+  boolean isEnabled();
+
   default Collection<? extends GrantedAuthority> getAuthorities() {
     return Arrays.stream(getRole().split(","))
         .map(role -> "ROLE_" + role.toUpperCase())
