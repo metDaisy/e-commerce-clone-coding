@@ -13,7 +13,7 @@ public class MissingServletRequestParameterExceptionStrategy
     extends AbstractExceptionResponseStrategy<MissingServletRequestParameterException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 

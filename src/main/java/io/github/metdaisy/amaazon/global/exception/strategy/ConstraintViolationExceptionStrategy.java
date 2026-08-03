@@ -15,12 +15,12 @@ public class ConstraintViolationExceptionStrategy
     extends AbstractExceptionResponseStrategy<ConstraintViolationException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(ConstraintViolationException exception) {
+  protected void logExceptionMessage(ConstraintViolationException exception) {
     String detailedErrorLog = exception.getConstraintViolations().stream()
         .map(v -> String.format("경로 [%s] - 입력값: [%s], 원인: [%s]",
             v.getPropertyPath(),

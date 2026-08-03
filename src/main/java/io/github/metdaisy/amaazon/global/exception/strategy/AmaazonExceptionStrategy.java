@@ -11,7 +11,7 @@ import io.github.metdaisy.amaazon.global.exception.util.ErrorTypeResolver;
 public class AmaazonExceptionStrategy extends AbstractExceptionResponseStrategy<AmaazonException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 

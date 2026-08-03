@@ -13,12 +13,12 @@ public class HttpMessageNotReadableExceptionStrategy
     extends AbstractExceptionResponseStrategy<HttpMessageNotReadableException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(HttpMessageNotReadableException exception) {
+  protected void logExceptionMessage(HttpMessageNotReadableException exception) {
     log.warn("요청 본문을 읽을 수 없음 (HttpMessageNotReadableException) -> {}", exception.getMessage());
   }
 

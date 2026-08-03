@@ -13,7 +13,7 @@ public class MethodArgumentTypeMismatchExceptionStrategy
     extends AbstractExceptionResponseStrategy<MethodArgumentTypeMismatchException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 

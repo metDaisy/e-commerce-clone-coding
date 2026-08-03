@@ -13,12 +13,12 @@ public class DataIntegrityViolationExceptionStrategy
     extends AbstractExceptionResponseStrategy<DataIntegrityViolationException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(DataIntegrityViolationException exception) {
+  protected void logExceptionMessage(DataIntegrityViolationException exception) {
     log.warn("데이터 무결성 제약조건 위반: {}", exception.getMessage());
   }
 

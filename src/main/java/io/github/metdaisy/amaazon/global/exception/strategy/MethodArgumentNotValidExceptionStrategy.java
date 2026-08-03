@@ -14,12 +14,12 @@ public class MethodArgumentNotValidExceptionStrategy
     extends AbstractExceptionResponseStrategy<MethodArgumentNotValidException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(MethodArgumentNotValidException exception) {
+  protected void logExceptionMessage(MethodArgumentNotValidException exception) {
     String detailedErrorLog = exception.getBindingResult().getFieldErrors().stream()
         .map(error -> String.format("필드 [%s] - 입력값: [%s], 원인: [%s]",
             error.getField(),

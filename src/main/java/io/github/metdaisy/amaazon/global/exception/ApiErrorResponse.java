@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -108,5 +109,9 @@ public record ApiErrorResponse(String exceptionType, String message, Object deta
             "이미 존재하거나 사용할 수 없는 데이터입니다.",
             null
     );
+  }
+
+  public static ApiErrorResponse from(DisabledException ex) {
+    return new ApiErrorResponse("NOT_FOUND", "계정을 찾을 수 없습니다.", null);
   }
 }

@@ -12,12 +12,12 @@ import lombok.extern.slf4j.Slf4j;
 public class TaskRejectedExceptionStrategy extends AbstractExceptionResponseStrategy<TaskRejectedException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(TaskRejectedException exception) {
+  protected void logExceptionMessage(TaskRejectedException exception) {
     log.warn("배치 작업 큐 포화로 요청 거부: {}", exception.getMessage());
   }
 

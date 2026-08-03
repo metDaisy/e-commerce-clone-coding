@@ -10,12 +10,12 @@ import lombok.extern.slf4j.Slf4j;
 public class ExceptionStrategy extends AbstractExceptionResponseStrategy<Exception> {
 
   @Override
-  public boolean logExceptionMessage() {
+  public boolean hasExceptionMessage() {
     return false;
   }
 
   @Override
-  public void logException(Exception exception) {
+  public void logExceptionMessage(Exception exception) {
     log.error("Unexpected exception", exception);
   }
 

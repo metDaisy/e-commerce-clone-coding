@@ -59,8 +59,15 @@ public class ExceptionStrategyFactory {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Exception> ExceptionResponseStrategy<T> getStrategy(Class<T> exceptionClass) {
-    return (ExceptionResponseStrategy<T>) strategyMap.getOrDefault(exceptionClass, strategyMap.get(Exception.class));
+  public <T extends Exception> ExceptionResponseStrategy<T> getStrategy(Class<? extends Exception> exceptionClass) {
+    Class<?> currentClass = exceptionClass;
+    while (currentClass != null && currentClass != Throwable.class) {
+      if (strategyMap.containsKey(currentClass)) {
+        return (ExceptionResponseStrategy<T>) strategyMap.get(currentClass);
+      }
+      currentClass = currentClass.getSuperclass();
+    }
+    return (ExceptionResponseStrategy<T>) strategyMap.get(Exception.class);
   }
 
   /**

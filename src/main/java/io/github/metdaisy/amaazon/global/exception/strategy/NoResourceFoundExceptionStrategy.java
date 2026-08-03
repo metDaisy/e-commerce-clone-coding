@@ -14,12 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseStrategy<NoResourceFoundException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(NoResourceFoundException exception) {
+  protected void logExceptionMessage(NoResourceFoundException exception) {
     String message = sanitize(exception.getMessage());
     log.warn("존재하지 않는 리소스 요청: {}", message);
   }

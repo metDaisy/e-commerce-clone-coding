@@ -9,20 +9,21 @@ import lombok.extern.slf4j.Slf4j;
  * 예외 응답 전략의 추상 기반 클래스
  */
 @Slf4j
-public abstract class AbstractExceptionResponseStrategy<T extends Exception> implements ExceptionResponseStrategy<T> {
+public abstract class AbstractExceptionResponseStrategy<T extends Exception>
+    implements ExceptionResponseStrategy<T> {
 
   /**
    * 예외 메시지를 반환하는지 여부
    */
-  protected abstract boolean logExceptionMessage();
+  protected abstract boolean hasExceptionMessage();
 
   /**
    * API 응답 오류 객체를 생성합니다.
    */
   protected abstract ApiErrorResponse createErrorResponse(T exception);
 
-  protected void logException(T exception) {
-    if (logExceptionMessage()) {
+  protected void logExceptionMessage(T exception) {
+    if (hasExceptionMessage()) {
       log.warn(exception.toString());
     }
   }
@@ -36,7 +37,7 @@ public abstract class AbstractExceptionResponseStrategy<T extends Exception> imp
    */
   @Override
   public ResponseEntity<ApiErrorResponse> buildResponse(T exception) {
-    logException(exception);
+    logExceptionMessage(exception);
     return ResponseEntity
         .status(getHttpStatus(exception))
         .body(createErrorResponse(exception));
