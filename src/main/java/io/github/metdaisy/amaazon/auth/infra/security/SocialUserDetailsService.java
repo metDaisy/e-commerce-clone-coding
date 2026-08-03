@@ -1,9 +1,6 @@
 package io.github.metdaisy.amaazon.auth.infra.security;
 
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
 import java.util.Map;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
@@ -33,14 +30,9 @@ public class SocialUserDetailsService extends DefaultOAuth2UserService {
     String providerId = (String) attributes.get("providerId");
     return repository.findByProviderIdAndProvider(providerId, provider)
         .flatMap(credential -> userPort.loadUser(credential.getUserId()))
-        .map(dto -> createUserDetails(dto, attributes))
+        .map(userDto -> SocialUserDetails.create(userDto.id(), userDto.role(), attributes,
+            userDto.isEnabled()))
         .orElse(SocialUserDetails.createGuest(attributes));
   }
 
-  private SocialUserDetails createUserDetails(AuthUserDto dto, Map<String, Object> attributes) {
-    if (!dto.isEnabled()) {
-      throw new AuthException(AuthErrorCode.ACCOUNT_DEACTIVATED, Map.of("userId", dto.id()));
-    }
-    return SocialUserDetails.create(dto.id(), dto.role(), attributes, true);
-  }
 }

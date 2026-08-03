@@ -24,7 +24,8 @@ public class SocialUserDetails implements OAuth2User, AmaazonPrincipal {
     this.isEnabled = isEnabled;
   }
 
-  public static SocialUserDetails create(UUID id, String role, Map<String, Object> attributes, boolean isEnabled) {
+  public static SocialUserDetails create(UUID id, String role, Map<String, Object> attributes,
+      boolean isEnabled) {
     return new SocialUserDetails(id, role, attributes, isEnabled);
   }
 
