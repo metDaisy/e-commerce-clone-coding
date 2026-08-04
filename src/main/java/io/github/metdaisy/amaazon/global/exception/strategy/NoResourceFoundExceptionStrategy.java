@@ -3,7 +3,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,8 +29,8 @@ public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseS
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(NoResourceFoundException exception) {
-    return new ApiErrorResponse("NOT_FOUND", "요청하신 리소스를 찾을 수 없습니다.", null);
+  protected ExceptionResponse createErrorResponse(NoResourceFoundException exception) {
+    return new ExceptionResponse("NOT_FOUND", "요청하신 리소스를 찾을 수 없습니다.", null);
   }
 
   @Override
@@ -41,7 +41,7 @@ public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseS
   /**
    * HttpServletRequest를 사용하여 응답을 생성합니다. User-Agent 헤더를 로그에 포함합니다.
    */
-  protected ResponseEntity<ApiErrorResponse> buildResponse(NoResourceFoundException exception,
+  protected ResponseEntity<ExceptionResponse> buildResponse(NoResourceFoundException exception,
       HttpServletRequest request) {
     String userAgent = sanitize(request.getHeader("User-Agent"));
     String message = sanitize(exception.getMessage());

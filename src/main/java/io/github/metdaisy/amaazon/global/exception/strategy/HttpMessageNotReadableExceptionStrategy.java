@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -23,8 +23,8 @@ public class HttpMessageNotReadableExceptionStrategy
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(HttpMessageNotReadableException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(HttpMessageNotReadableException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,7 +20,7 @@ public abstract class AbstractExceptionResponseStrategy<T extends Exception>
   /**
    * API 응답 오류 객체를 생성합니다.
    */
-  protected abstract ApiErrorResponse createErrorResponse(T exception);
+  protected abstract ExceptionResponse createErrorResponse(T exception);
 
   protected void logExceptionMessage(T exception) {
     if (hasExceptionMessage()) {
@@ -36,7 +36,7 @@ public abstract class AbstractExceptionResponseStrategy<T extends Exception>
    * 전체 응답 엔티티를 생성합니다.
    */
   @Override
-  public ResponseEntity<ApiErrorResponse> buildResponse(T exception) {
+  public ResponseEntity<ExceptionResponse> buildResponse(T exception) {
     logExceptionMessage(exception);
     return ResponseEntity
         .status(getHttpStatus(exception))

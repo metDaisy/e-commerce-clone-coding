@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -23,8 +23,8 @@ public class DataIntegrityViolationExceptionStrategy
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(DataIntegrityViolationException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(DataIntegrityViolationException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

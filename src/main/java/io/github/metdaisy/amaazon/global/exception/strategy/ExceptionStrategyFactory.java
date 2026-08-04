@@ -3,7 +3,6 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.GenericTypeResolver;
@@ -11,7 +10,7 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
@@ -73,7 +72,7 @@ public class ExceptionStrategyFactory {
   /**
    * HttpServletRequest를 사용하여 NoResourceFoundException 응답을 생성합니다.
    */
-  public ResponseEntity<ApiErrorResponse> buildNoResourceFoundResponse(
+  public ResponseEntity<ExceptionResponse> buildNoResourceFoundResponse(
       NoResourceFoundException exception,
       HttpServletRequest request) {
     return ((NoResourceFoundExceptionStrategy) strategyMap.get(NoResourceFoundException.class))

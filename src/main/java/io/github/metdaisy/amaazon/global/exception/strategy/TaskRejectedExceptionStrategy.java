@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,8 +22,8 @@ public class TaskRejectedExceptionStrategy extends AbstractExceptionResponseStra
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(TaskRejectedException exception) {
-    return new ApiErrorResponse("SERVICE_UNAVAILABLE",
+  protected ExceptionResponse createErrorResponse(TaskRejectedException exception) {
+    return new ExceptionResponse("SERVICE_UNAVAILABLE",
         "현재 수집 작업이 많아 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.", null);
   }
 

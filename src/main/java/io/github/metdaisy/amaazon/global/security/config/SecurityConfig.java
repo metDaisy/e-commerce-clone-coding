@@ -1,5 +1,9 @@
 package io.github.metdaisy.amaazon.global.security.config;
 
+import io.github.metdaisy.amaazon.global.security.constant.SecurityConstants;
+import io.github.metdaisy.amaazon.global.security.filter.JwtAuthenticationFilter;
+import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
+import io.github.metdaisy.amaazon.global.security.jwt.registry.BlacklistRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,16 +12,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-import io.github.metdaisy.amaazon.global.security.constant.SecurityConstants;
-import io.github.metdaisy.amaazon.global.security.filter.JwtAuthenticationFilter;
-import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
-import io.github.metdaisy.amaazon.global.security.jwt.registry.BlacklistRegistry;
 
 @Configuration
 public class SecurityConfig {
@@ -27,7 +29,9 @@ public class SecurityConfig {
       @Qualifier("formLoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler,
       AuthenticationFailureHandler loginFailureHandler,
       LogoutHandler logoutHandler,
-      JwtAuthenticationFilter jwtAuthenticationFilter)
+      JwtAuthenticationFilter jwtAuthenticationFilter,
+      AuthenticationEntryPoint authenticationEntryPoint,
+      AccessDeniedHandler accessDeniedHandler)
       throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(session -> session
@@ -42,6 +46,9 @@ public class SecurityConfig {
             .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(
                 HttpStatus.OK))
             .permitAll())
+        .exceptionHandling(exception -> exception
+            .authenticationEntryPoint(authenticationEntryPoint)
+            .accessDeniedHandler(accessDeniedHandler))
         .httpBasic(AbstractHttpConfigurer::disable)
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.GET, SecurityConstants.PUBLIC_GET_PATHS)

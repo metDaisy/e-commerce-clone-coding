@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import io.github.metdaisy.amaazon.global.exception.util.ViolationExceptionUtils;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -37,8 +37,8 @@ public class ConstraintViolationExceptionStrategy
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(ConstraintViolationException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(ConstraintViolationException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

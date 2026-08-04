@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import java.io.IOException;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,7 +22,7 @@ public class IOExceptionStrategy extends AbstractExceptionResponseStrategy<IOExc
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(
+  protected ExceptionResponse createErrorResponse(
       IOException exception) {
     // IOException은 응답을 반환하지 않음
     return null;

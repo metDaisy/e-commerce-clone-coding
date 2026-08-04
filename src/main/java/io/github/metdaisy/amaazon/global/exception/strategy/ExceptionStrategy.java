@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.global.exception.strategy;
 
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,8 +20,8 @@ public class ExceptionStrategy extends AbstractExceptionResponseStrategy<Excepti
   }
 
   @Override
-  public ApiErrorResponse createErrorResponse(Exception exception) {
-    return new ApiErrorResponse("INTERNAL_SERVER_ERROR",
+  public ExceptionResponse createErrorResponse(Exception exception) {
+    return new ExceptionResponse("INTERNAL_SERVER_ERROR",
         "서버 내부 에러가 발생했습니다.", null);
   }
 
