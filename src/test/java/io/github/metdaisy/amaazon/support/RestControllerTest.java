@@ -22,6 +22,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import org.springframework.test.context.ActiveProfiles;
+
+@ActiveProfiles("test")
 @Import({ApiExceptionHandler.class, SecurityExceptionHandler.class, ExceptionStrategyFactory.class,
     WebMvcConfig.class})
 public abstract class RestControllerTest {

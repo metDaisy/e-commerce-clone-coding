@@ -14,7 +14,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 
 import java.time.Instant;
@@ -43,7 +43,7 @@ class AuthTokenServiceTest {
   private JwtTokenProvider provider;
 
   @Mock
-  private JwtProperties properties;
+  private JwtTokenExpiration properties;
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
@@ -70,7 +70,7 @@ class AuthTokenServiceTest {
     given(provider.generateAccessToken(userId, "USER")).willReturn("new-access-token");
     given(provider.generateRefreshToken(userId)).willReturn("new-refresh-token");
     given(provider.parseJti("new-refresh-token")).willReturn("new-jti");
-    given(properties.refreshTokenExpiration()).willReturn(3600L);
+    given(properties.refreshExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
 
     // when
     JwtLoginDto result = authTokenService.reissue(token);
@@ -105,7 +105,7 @@ class AuthTokenServiceTest {
     given(provider.generateAccessToken(userId, "USER")).willReturn("access-token");
     given(provider.generateRefreshToken(userId)).willReturn("refresh-token");
     given(provider.parseJti("refresh-token")).willReturn("jti");
-    given(properties.refreshTokenExpiration()).willReturn(3600L);
+    given(properties.refreshExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
 
     // when
     JwtLoginDto result = authTokenService.create(userId, "device-1");

@@ -21,7 +21,7 @@ public class BlacklistScheduler {
   private final BlacklistUserRepository blacklistUserRepository;
   private final Clock clock;
 
-  @Value("${amaazon.jwt.refresh.expiration}")
+  @Value("${amaazon.jwt.refresh-expiration}")
   private Duration refreshTokenExpiration;
 
   @Scheduled(cron = "0 0 * * * ?")

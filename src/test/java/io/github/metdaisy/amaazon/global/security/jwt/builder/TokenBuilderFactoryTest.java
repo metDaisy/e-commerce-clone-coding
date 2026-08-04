@@ -9,13 +9,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.nimbusds.jwt.JWTClaimsSet;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 
 @ExtendWith(MockitoExtension.class)
 class TokenBuilderFactoryTest {
 
   @Mock
-  private JwtProperties jwtProperties;
+  private JwtTokenExpiration jwtTokenExpiration;
 
   @InjectMocks
   private TokenBuilderFactory tokenBuilderFactory;
@@ -26,8 +26,8 @@ class TokenBuilderFactoryTest {
     // given
     String subject = "user123";
     String authorities = "ROLE_USER,ROLE_ADMIN";
-    long accessTokenExpiration = 3600L;
-    given(jwtProperties.accessTokenExpiration()).willReturn(accessTokenExpiration);
+    java.time.Duration accessTokenExpiration = java.time.Duration.ofSeconds(3600);
+    given(jwtTokenExpiration.accessExpiration()).willReturn(accessTokenExpiration);
 
     // when
     JWTClaimsSet claimsSet = tokenBuilderFactory.buildAccessTokenClaims(subject, authorities);
@@ -40,7 +40,7 @@ class TokenBuilderFactoryTest {
     assertThat(claimsSet.getExpirationTime()).isNotNull();
     assertThat(claimsSet.getExpirationTime()).isAfter(claimsSet.getIssueTime());
 
-    long expectedExpirationMs = accessTokenExpiration * 1000;
+    long expectedExpirationMs = accessTokenExpiration.toMillis();
     long actualExpirationDiff = claimsSet.getExpirationTime().getTime() - claimsSet.getIssueTime().getTime();
     assertThat(actualExpirationDiff).isEqualTo(expectedExpirationMs);
 
@@ -53,7 +53,7 @@ class TokenBuilderFactoryTest {
     // given
     String subject = "guest";
     String authorities = "";
-    given(jwtProperties.accessTokenExpiration()).willReturn(3600L);
+    given(jwtTokenExpiration.accessExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
 
     // when
     JWTClaimsSet claimsSet = tokenBuilderFactory.buildAccessTokenClaims(subject, authorities);
@@ -67,8 +67,8 @@ class TokenBuilderFactoryTest {
   void buildRefreshTokenClaims_success() {
     // given
     String subject = "user456";
-    long refreshTokenExpiration = 7200L;
-    given(jwtProperties.refreshTokenExpiration()).willReturn(refreshTokenExpiration);
+    java.time.Duration refreshTokenExpiration = java.time.Duration.ofSeconds(7200);
+    given(jwtTokenExpiration.refreshExpiration()).willReturn(refreshTokenExpiration);
 
     // when
     JWTClaimsSet claimsSet = tokenBuilderFactory.buildRefreshTokenClaims(subject);
@@ -81,7 +81,7 @@ class TokenBuilderFactoryTest {
     assertThat(claimsSet.getExpirationTime()).isNotNull();
     assertThat(claimsSet.getExpirationTime()).isAfter(claimsSet.getIssueTime());
 
-    long expectedExpirationMs = refreshTokenExpiration * 1000;
+    long expectedExpirationMs = refreshTokenExpiration.toMillis();
     long actualExpirationDiff = claimsSet.getExpirationTime().getTime() - claimsSet.getIssueTime().getTime();
     assertThat(actualExpirationDiff).isEqualTo(expectedExpirationMs);
   }
@@ -92,8 +92,8 @@ class TokenBuilderFactoryTest {
     // given
     String provider = "google";
     String providerId = "google_12345";
-    long guestTokenExpiration = 1800L;
-    given(jwtProperties.guestTokenExpiration()).willReturn(guestTokenExpiration);
+    java.time.Duration guestTokenExpiration = java.time.Duration.ofSeconds(1800);
+    given(jwtTokenExpiration.guestExpiration()).willReturn(guestTokenExpiration);
 
     // when
     JWTClaimsSet claimsSet = tokenBuilderFactory.buildGuestTokenClaims(provider, providerId);
@@ -108,6 +108,6 @@ class TokenBuilderFactoryTest {
     assertThat(claimsSet.getExpirationTime()).isAfter(claimsSet.getIssueTime());
 
     long actualExpirationDiff = claimsSet.getExpirationTime().getTime() - claimsSet.getIssueTime().getTime();
-    assertThat(actualExpirationDiff).isEqualTo(guestTokenExpiration);
+    assertThat(actualExpirationDiff).isEqualTo(guestTokenExpiration.toMillis());
   }
 }

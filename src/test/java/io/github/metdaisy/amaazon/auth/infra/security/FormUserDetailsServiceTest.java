@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
+import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
+import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
+import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
+import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
+import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,13 +18,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
-import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
-import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
 
 @ExtendWith(MockitoExtension.class)
 class FormUserDetailsServiceTest {
@@ -72,7 +69,7 @@ class FormUserDetailsServiceTest {
   }
 
   @Test
-  @DisplayName("loadUserByUsername fails when account is deactivated")
+  @DisplayName("loadUserByUsername returns disabled user when account is deactivated")
   void loadUserByUsername_accountDeactivated() {
     UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
@@ -81,10 +78,10 @@ class FormUserDetailsServiceTest {
     AuthUserDto userDto = new AuthUserDto(userId, "USER", false);
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
 
-    assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
-        .isInstanceOf(AuthException.class)
-        .extracting("code")
-        .isEqualTo(AuthErrorCode.ACCOUNT_DEACTIVATED.getCode());
+    UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");
+
+    assertThat(result.getUsername()).isEqualTo(userId.toString());
+    assertThat(result.isEnabled()).isFalse();
   }
 }
 

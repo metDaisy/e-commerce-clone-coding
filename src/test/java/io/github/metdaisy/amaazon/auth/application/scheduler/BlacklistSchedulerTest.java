@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +36,7 @@ class BlacklistSchedulerTest {
 
   @BeforeEach
   void setUp() {
-    ReflectionTestUtils.setField(scheduler, "refreshTokenExpiration", 3600L);
+    ReflectionTestUtils.setField(scheduler, "refreshTokenExpiration", Duration.ofSeconds(3600));
   }
 
   @Test

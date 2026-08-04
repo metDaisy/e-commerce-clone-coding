@@ -14,8 +14,8 @@ amaazon:
     secret-key: ${JWT_SECRET_KEY}
     access-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION}
     guest-expiration: ${JWT_GUEST_TOKEN_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
     refresh:
-      expiration: ${JWT_REFRESH_TOKEN_EXPIRATION}
       cookie:
         name: REFRESH_TOKEN
         path: /
