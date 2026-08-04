@@ -1,7 +1,8 @@
 package io.github.metdaisy.amaazon.auth.presentation.provider;
 
 import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtCookieProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -10,60 +11,56 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AuthCookieProvider {
 
-  private final JwtProperties properties;
+  private final JwtTokenExpiration jwtTokenExpiration;
+  private final JwtCookieProperties jwtCookieProperties;
 
   public ResponseCookie createRefreshTokenCookie(String token) {
-    JwtProperties.JwtCookieProperties cookieProps = properties.cookieProperties();
-    return ResponseCookie.from(cookieProps.name(), token)
-            .path(cookieProps.path())
-            .maxAge(properties.refreshTokenExpiration())
+    return ResponseCookie.from(jwtCookieProperties.name(), token)
+            .path(jwtCookieProperties.path())
+            .maxAge(jwtTokenExpiration.refreshExpiration())
             .httpOnly(true)
-            .secure(cookieProps.secure())
-            .sameSite(cookieProps.sameSite())
+            .secure(jwtCookieProperties.secure())
+            .sameSite(jwtCookieProperties.sameSite())
             .build();
   }
 
   public ResponseCookie createDeleteRefreshTokenCookie() {
-    JwtProperties.JwtCookieProperties cookieProps = properties.cookieProperties();
-    return ResponseCookie.from(cookieProps.name(), null)
-            .path(cookieProps.path())
+    return ResponseCookie.from(jwtCookieProperties.name(), null)
+            .path(jwtCookieProperties.path())
             .maxAge(0)
             .httpOnly(true)
-            .secure(cookieProps.secure())
-            .sameSite(cookieProps.sameSite())
+            .secure(jwtCookieProperties.secure())
+            .sameSite(jwtCookieProperties.sameSite())
             .build();
   }
 
   public ResponseCookie createGuestTokenCookie(String token) {
-    JwtProperties.JwtCookieProperties cookieProps = properties.cookieProperties();
     return ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, token)
-            .path(cookieProps.path())
-            .maxAge(properties.guestTokenExpiration() / 1000)
+            .path(jwtCookieProperties.path())
+            .maxAge(jwtTokenExpiration.guestExpiration())
             .httpOnly(true)
-            .secure(cookieProps.secure())
-            .sameSite(cookieProps.sameSite())
+            .secure(jwtCookieProperties.secure())
+            .sameSite(jwtCookieProperties.sameSite())
             .build();
   }
 
   public ResponseCookie createDeleteGuestTokenCookie() {
-    JwtProperties.JwtCookieProperties cookieProps = properties.cookieProperties();
     return ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, null)
-            .path(cookieProps.path())
+            .path(jwtCookieProperties.path())
             .maxAge(0)
             .httpOnly(true)
-            .secure(cookieProps.secure())
-            .sameSite(cookieProps.sameSite())
+            .secure(jwtCookieProperties.secure())
+            .sameSite(jwtCookieProperties.sameSite())
             .build();
   }
 
   public ResponseCookie createDeleteDeviceIdCookie() {
-    JwtProperties.JwtCookieProperties cookieProps = properties.cookieProperties();
     return ResponseCookie.from(AuthWebConstants.COOKIE_DEVICE_ID, null)
-            .path(cookieProps.path())
+            .path(jwtCookieProperties.path())
             .maxAge(0)
             .httpOnly(true)
-            .secure(cookieProps.secure())
-            .sameSite(cookieProps.sameSite())
+            .secure(jwtCookieProperties.secure())
+            .sameSite(jwtCookieProperties.sameSite())
             .build();
   }
 }

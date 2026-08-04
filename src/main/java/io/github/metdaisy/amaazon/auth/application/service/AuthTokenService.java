@@ -8,7 +8,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 import java.time.Instant;
 import java.util.Map;
@@ -27,7 +27,7 @@ public class AuthTokenService {
   private final RefreshTokenRepository repository;
   private final AuthUserPort userPort;
   private final JwtTokenProvider provider;
-  private final JwtProperties properties;
+  private final JwtTokenExpiration jwtTokenExpiration;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -78,7 +78,7 @@ public class AuthTokenService {
     String accessToken = provider.generateAccessToken(userDto.id(), userDto.role());
     String refreshToken = provider.generateRefreshToken(userDto.id());
     String jti = provider.parseJti(refreshToken);
-    Instant expiredAt = Instant.now().plusSeconds(properties.refreshTokenExpiration());
+    Instant expiredAt = Instant.now().plus(jwtTokenExpiration.refreshExpiration());
     tokenAction.accept(jti, expiredAt);
     return new JwtLoginDto(userDto.id(), accessToken, refreshToken);
   }

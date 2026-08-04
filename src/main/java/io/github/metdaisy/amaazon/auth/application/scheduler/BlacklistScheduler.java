@@ -4,7 +4,7 @@ import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistTokenRepositor
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistUserRepository;
 import java.time.Instant;
 import java.time.Clock;
-import java.time.temporal.ChronoUnit;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,8 +21,8 @@ public class BlacklistScheduler {
   private final BlacklistUserRepository blacklistUserRepository;
   private final Clock clock;
 
-  @Value("${amaazon.jwt.refresh-token-expiration}")
-  private long refreshTokenExpiration;
+  @Value("${amaazon.jwt.refresh.expiration}")
+  private Duration refreshTokenExpiration;
 
   @Scheduled(cron = "0 0 * * * ?")
   @Transactional
@@ -43,7 +43,7 @@ public class BlacklistScheduler {
     Instant now = Instant.now(clock);
     log.info("Starting blacklist user cleanup scheduler at {}", now);
     try {
-      Instant compromisedThreshold = now.minus(refreshTokenExpiration, ChronoUnit.SECONDS);
+      Instant compromisedThreshold = now.minus(refreshTokenExpiration);
       blacklistUserRepository.deleteByCompromisedAtLessThanEqual(compromisedThreshold);
       log.info("Blacklist user cleanup completed successfully.");
     } catch (Exception e) {
