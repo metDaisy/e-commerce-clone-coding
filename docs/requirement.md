@@ -75,7 +75,7 @@
   - 블랙리스트에 등록된 토큰 사용 시 `BLACKLISTED_TOKEN` (401)
 
 #### 2-4. 다중 인증 수단 관리
-- `users` : `user_credentials` = 1:N 관계
+- `users` : `user_credentials` = 1:0..1 관계
 - `users` : `social_credentials` = 1:N 관계
 - 하나의 계정에 로컬 + 다수의 소셜 로그인 수단을 동시에 연결 가능
 - 소셜 계정 연결 해제 API 제공 (단, 마지막 인증 수단은 해제 불가)

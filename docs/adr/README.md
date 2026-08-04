@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정을 배경과 함께 보존한다. 현재 구조 설명은 `../architecture.md`, 구현 상태는 `../current-state.md`, 고민 과정은 `../dev_dairy.md`의 책임이다.
+ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정을 배경과 함께 보존한다. 현재 구조 설명은 `../architecture.md`, 구현 상태는 `../current-state.md`, 고민 과정은 `../dev-dairy.md`의 책임이다.
 
 ## ADR을 작성할 때
 

@@ -5,7 +5,7 @@
 - Amazon.com 클론 이커머스 시스템이다.
 - 백엔드는 Java 17, Spring Boot 3.5.16, Spring Modulith, PostgreSQL, Flyway 기반 모듈러 모놀리스다.
 - 프론트엔드는 `amaazon-front/`의 React, TypeScript, Vite 애플리케이션이다.
-- 전체 목표와 비즈니스 규칙은 `docs/requirement.md`, 구현 순서는 `docs/implmentation_plan.md`를 기준으로 한다.
+- 전체 목표와 비즈니스 규칙은 `docs/requirement.md`, 구현 순서는 `docs/implementation-plan.md`를 기준으로 한다.
 - 문서 진입점은 `docs/index.md`, 현재 구현 스냅샷은 `docs/current-state.md`다.
 - 작업별 개인 스킬 목록은 `docs/skills/index.md`다. 작업과 일치하는 스킬만 선택해 해당 `SKILL.md` 전문을 읽는다.
 - 새로운 대화가 시작되면 `caveman` skill 을 자동으로 적용한다.
@@ -15,7 +15,7 @@
 1. 현재 동작은 코드, 테스트, Flyway 마이그레이션을 우선한다.
 2. 목표 동작은 `docs/requirement.md`를 우선한다.
 3. `docs/current-state.md`는 기록된 Git SHA 시점의 스냅샷이므로 현재 HEAD와 다르면 코드를 다시 확인한다.
-4. `docs/implmentation_plan.md`의 일정과 단계는 목표 순서이며 완료 증거가 아니다.
+4. `docs/implementation-plan.md`의 일정과 단계는 목표 순서이며 완료 증거가 아니다.
 5. 문서와 코드가 충돌하면 추측으로 통일하지 말고 차이를 보고하고 어느 쪽을 변경할지 확인한다.
 
 ## Context-efficient discovery
@@ -49,7 +49,7 @@
 
 - 구조나 모듈 seam이 바뀌면 `docs/architecture.md`를 갱신한다.
 - 도메인 용어 또는 상태 의미가 바뀌면 `docs/domain-glossary.md`를 갱신한다.
-- 의미 있는 기능 커밋이나 구현 단계가 달라지면 Continue의 `/update-current-state` Prompt로 `docs/current-state.md`의 날짜와 Git SHA를 함께 갱신한다. 미커밋 변경은 완료 상태로 기록하지 않는다.
+- 의미 있는 기능 커밋이나 구현 단계가 달라지면 Continue의 `/update` Prompt로 `docs/current-state.md`의 날짜와 Git SHA를 함께 갱신한다. 미커밋 변경은 완료 상태로 기록하지 않는다.
 - 되돌리기 어렵고 여러 모듈에 영향을 주는 결정은 `docs/adr/`에 ADR로 기록한다.
-- `docs/dev_dairy.md`는 사용자가 작성하는 개발 일지다. 사용자의 명시적 요청 없이 수정, 요약, 재배열하지 않는다.
+- `docs/dev-dairy.md`는 사용자가 작성하는 개발 일지다. 사용자의 명시적 요청 없이 수정, 요약, 재배열하지 않는다.
 - 코드에서 자동으로 알 수 있는 클래스·메서드 목록을 문서에 복제하지 않는다.
