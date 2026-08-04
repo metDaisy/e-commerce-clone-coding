@@ -4,7 +4,7 @@
 
 하나의 Spring Boot 배포 단위 안에서 도메인별 변경과 검증을 지역화하는 모듈러 모놀리스를 구축한다. 모듈은 작은 공개 인터페이스 뒤에 비즈니스 규칙과 저장 세부사항을 숨기고, 향후 MSA 전환 시 모듈 seam을 서비스 seam으로 발전시킬 수 있어야 한다.
 
-이 문서는 `docs/requirement.md`와 `docs/implmentation_plan.md`의 목표 구조와 장기간 유지할 구조 원칙을 설명한다. 브랜치, Git SHA, 구현 완료 범위처럼 자주 바뀌는 정보는 `docs/current-state.md`에서 관리한다.
+이 문서는 `docs/requirement.md`와 `docs/implementation-plan.md`의 목표 구조와 장기간 유지할 구조 원칙을 설명한다. 브랜치, Git SHA, 구현 완료 범위처럼 자주 바뀌는 정보는 `docs/current-state.md`에서 관리한다.
 
 구조, 모듈 seam, 허용 의존성이 바뀔 때만 이 문서를 갱신한다. 선택 이유는 이 문서에 누적하지 않고 ADR에 기록한다.
 
@@ -136,9 +136,21 @@ sequenceDiagram
 - 외부 결제·스토리지: 도메인 인터페이스 뒤의 adapter로 격리한다.
 - 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다.
 
+## 예외 처리
+
+- MVC 요청에서 발생한 예외는 `ApiExceptionHandler`와 `SecurityExceptionHandler`가 받아 `ExceptionStrategyFactory`에서 가장 구체적인 예외 전략을 찾는다.
+- 각 전략은 로그 정책, HTTP 상태와 `ExceptionResponse` 응답 본문을 결정한다. 도메인 예외는 `AmaazonErrorCode`의 코드·메시지·오류 유형을 사용한다.
+- Spring Security 필터 체인의 인증 실패는 `AuthenticationExceptionEntryPoint`가 `HandlerExceptionResolver`에 위임하여 같은 응답 흐름으로 전달한다. 접근 거부처럼 필터 체인에서 직접 처리하는 경우에도 외부 응답 형식이 달라지지 않도록 경계 테스트로 확인한다.
+- 예외 원문, 토큰, 비밀번호와 내부 구현 정보는 클라이언트 응답에 노출하지 않는다.
+
 ## 검증
 
 - Spring Modulith 구조 검증으로 허용하지 않은 의존성을 탐지한다.
 - 모듈 테스트는 공개 인터페이스와 이벤트를 테스트 표면으로 사용한다.
 - 저장소·외부 연동은 adapter별 통합 테스트를 둔다.
+- `build.gradle`의 `jacocoExcludePatterns`는 JaCoCo 리포트와 80% 커버리지 검증에서 제외할 클래스라서 테스트 작성하지 않아도 된다.
+- 커버리지 대상인 application service, controller, 직접 작성한 adapter처럼 분기·상태 변경·외부 입출력을 다루는 클래스는 단위 테스트 또는 통합 테스트를 작성한다.
+- `domain`, `config`, `exception`, `outbox`처럼 제외된 경로라도 비즈니스 불변식, 보안 판단, 재시도·멱등성 또는 변환 로직이 있으면 해당 동작을 테스트한다.
+- DTO·이벤트 payload·상수·예외 타입·port 인터페이스·설정 properties·생성 코드처럼 상태와 분기가 없는 선언형 클래스는 직접 테스트하지 않는다.
+- 단순 예외 전략은 클래스별 단위 테스트를 만들지 않는다. 대신 controller, `ApiExceptionHandler`, Security entry point와 access denied 경계에서 HTTP 상태와 `ExceptionResponse` 계약을 검증한다.
 - 모든 Gradle 검증은 `gradle-mcp`로만 실행한다.
