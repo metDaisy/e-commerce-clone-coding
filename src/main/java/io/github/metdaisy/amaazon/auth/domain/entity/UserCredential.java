@@ -9,6 +9,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Duration;
+import java.time.Instant;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -31,16 +33,24 @@ public class UserCredential extends MutableEntity {
   @Column(name = "password", nullable = false)
   private String password;
 
+  @Column(name = "violation_count", nullable = false)
+  private int violationCount;
+
+  @Column(name = "until_locked")
+  private Instant untilLocked;
+
   @Builder(access = AccessLevel.PRIVATE)
-  private UserCredential(String email, String password) {
+  private UserCredential(String email, String password, int violationCount) {
     this.email = email;
     this.password = password;
+    this.violationCount = violationCount;
   }
 
   public static UserCredential of(String email, String password) {
     return UserCredential.builder()
         .email(email)
         .password(password)
+        .violationCount(0)
         .build();
   }
 
@@ -55,6 +65,32 @@ public class UserCredential extends MutableEntity {
   public void matchPassword(String password) {
     if (!this.password.equals(password)) {
       throw new AuthException(AuthErrorCode.INCORRECT_PASSWORD);
+    }
+  }
+
+  public boolean isLocked(int maxAttempt, Instant now) {
+    if (untilLocked == null) {
+      return false;
+    }
+    return violationCount >= maxAttempt && untilLocked.isAfter(now);
+  }
+
+  public void increaseViolationCount(int maxAttempt, Duration lockedDuration) {
+    Instant now = Instant.now();
+    if (isLocked(maxAttempt, now)) {
+      return;
+    }
+    resetViolationOrNot(now);
+    violationCount++;
+    if (violationCount >= maxAttempt) {
+      untilLocked = now.plus(lockedDuration);
+    }
+  }
+
+  public void resetViolationOrNot(Instant now) {
+    if (untilLocked != null && untilLocked.isBefore(now)) {
+      violationCount = 0;
+      untilLocked = null;
     }
   }
 }
