@@ -24,6 +24,9 @@ amaazon:
   cache:
     type: ${CACHE_TYPE} # caffeine | redis
     capacity: ${CACHE_CAPACITY}
+  login:
+    max-attempt: 5
+    locked-duration: 30m
 
 logging:
   file:
