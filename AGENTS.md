@@ -2,13 +2,6 @@
 
 ## User directives
 
-### Communication
-
-- At the start of every new conversation, read and apply the complete `caveman` skill before doing any task work.
-- Apply `caveman` to every user-visible message: acknowledgements, progress and tool/search updates, non-blocking questions, explanations, warnings, summaries, and final answers.
-- Keep internal reasoning concise and in English; write concise but complete Korean to the user. Compress wording, never substance: retain required reasoning, constraints, tradeoffs, failure cases, and verification details.
-- Never paste entire source files, large code blocks, or raw tool output into chat. Show only the minimum needed for understanding or verification.
-
 ### Token-efficient tool use
 
 - Prefer MCP tools, purpose-built connectors, repository skills, and targeted code search over broad reads, repeated searches, or reproducing content in chat.

@@ -75,3 +75,28 @@ Continue Console에서 각 chunk가 별도의 `Tool call`처럼 표시되었지�
 따라서 반복 호출로 보였던 일부 로그는 Continue Console의 streaming 표시였고, 현재 local agent가 MCP 도구를 native 방식으로 정상 호출·실행하는 것을 확인했다.
 
 </details>
+
+<details>
+
+<summary><h2>2026-08-05</h2></summary>
+
+`AuthenticationFailureHandler`가 다룰 수 있는 `AuthenticationException` 들은 인증 과정(`AuthenticationProvider`, `UserDetailsService`) 에서 발생하는 예외들이다.  
+`BadCredentialsException`: 비밀번호 불일치. spring security 기본 설정(`hideUserNotFoundExceptions = true`)에 의해 `UsernameNotFoundException`이 발생하면 `BadCredentialsException`으로 다시 생성된다.  
+`DisabledException`, `LockedException`, `AccountExpiredException`, `CredentialsExpiredException`, `AuthenticationServiceException`, `SessionAuthenticationException`  
+
+`UserDetailsService`의 `loadUserByUsername` 에는 `UsernameNotFoundException`이 던져지도록 되어 있다.  
+만약 `AuthenticationException` 을 상속하지 않은 custom exception 을 던진다면 `InternalAuthenticationServiceException` 으로 wrapping 된다.  
+`UsernameNotFoundException` 을 던진다면 `BadCredentialsException` 이 발생하여 email 찾을 수 없음 혹은 비밀번호 불일치를 구분할 수 없다.  
+비밀번호 불일치 횟수를 기록해야 하므로 이를 구분해야 한다.  
+`AuthenticationException` 을 상속한 custom exception 을 던지도록 수정할 예정이다.  
+`AuthenticationEntryPoint` 는 인증이 필요한 리소스에 미인증 상태로 접근할 때 발생하는 예외를 다룬다.  
+
+비밀번호 불일치 및 계정 잠금 정책  
+실패 횟수를 기록한다. `maxAttempt`에 도달하면 `lockedDuration` 동안 잠금 상태가 된다.  
+잠금 상태에선 실패 횟수, 잠금 기간 변화가 없다. 또한 로그인 시도 자체가 차단된다.  
+로그인 성공해도 실패 횟수는 유지된다. 다중 접속을 허용하기 때문이다.  
+잠금 기간이 끝나면 리셋이 된다.  
+현재 외부 인프라(redis) 도입은 아직 고려하지 않고 있다.  
+따라서 in-memory cache + jpa 로 구현할 예정이다.  
+
+</details>
