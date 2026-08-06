@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -16,14 +16,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TokenBuilderFactory {
 
-  private final JwtProperties jwtProperties;
+  private final JwtTokenExpiration jwtTokenExpiration;
 
   /**
    * Access Token용 클레임셋을 생성합니다.
    */
   public JWTClaimsSet buildAccessTokenClaims(String subject, String authorities) {
     long now = System.currentTimeMillis();
-    long expirationMillis = jwtProperties.accessTokenExpiration() * 1000;
+    long expirationMillis = jwtTokenExpiration.accessExpiration().toMillis();
 
     JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
         .jwtID(UUID.randomUUID().toString())
@@ -43,7 +43,7 @@ public class TokenBuilderFactory {
    */
   public JWTClaimsSet buildRefreshTokenClaims(String subject) {
     long now = System.currentTimeMillis();
-    long expirationMillis = jwtProperties.refreshTokenExpiration() * 1000;
+    long expirationMillis = jwtTokenExpiration.refreshExpiration().toMillis();
 
     return new JWTClaimsSet.Builder()
         .jwtID(UUID.randomUUID().toString())
@@ -58,7 +58,7 @@ public class TokenBuilderFactory {
    */
   public JWTClaimsSet buildGuestTokenClaims(String provider, String providerId) {
     long now = System.currentTimeMillis();
-    long expirationMillis = jwtProperties.guestTokenExpiration();
+    long expirationMillis = jwtTokenExpiration.guestExpiration().toMillis();
 
     return new JWTClaimsSet.Builder()
         .jwtID(UUID.randomUUID().toString())

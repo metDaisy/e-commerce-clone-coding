@@ -1,22 +1,25 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+
+import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
+import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
+import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
-import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
-import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
-import jakarta.servlet.http.Cookie;
 
 @ExtendWith(MockitoExtension.class)
 class JwtLogoutHandlerTest {
@@ -41,6 +44,8 @@ class JwtLogoutHandlerTest {
 
     given(authCookieProvider.createDeleteRefreshTokenCookie())
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "").build());
+    given(authCookieProvider.createDeleteGuestTokenCookie())
+        .willReturn(ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, "").build());
 
     // when
     jwtLogoutHandler.logout(request, response, null);
@@ -48,7 +53,8 @@ class JwtLogoutHandlerTest {
     // then
     verify(authTokenService).delete("test-refresh-token");
     verify(authCookieProvider).createDeleteRefreshTokenCookie();
-    org.assertj.core.api.Assertions.assertThat(response.getHeader(org.springframework.http.HttpHeaders.SET_COOKIE)).isNotNull();
+    verify(authCookieProvider).createDeleteGuestTokenCookie();
+    assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).isNotNull();
   }
 
   @Test
@@ -61,6 +67,8 @@ class JwtLogoutHandlerTest {
 
     given(authCookieProvider.createDeleteRefreshTokenCookie())
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "").build());
+    given(authCookieProvider.createDeleteGuestTokenCookie())
+        .willReturn(ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, "").build());
 
     // when
     jwtLogoutHandler.logout(request, response, null);
@@ -68,6 +76,7 @@ class JwtLogoutHandlerTest {
     // then
     verify(authTokenService, never()).delete(anyString());
     verify(authCookieProvider).createDeleteRefreshTokenCookie();
-    org.assertj.core.api.Assertions.assertThat(response.getHeader(org.springframework.http.HttpHeaders.SET_COOKIE)).isNotNull();
+    verify(authCookieProvider).createDeleteGuestTokenCookie();
+    assertThat(response.getHeader(HttpHeaders.SET_COOKIE)).isNotNull();
   }
 }

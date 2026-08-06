@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import io.github.metdaisy.amaazon.global.exception.util.ViolationExceptionUtils;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,12 +15,12 @@ public class ConstraintViolationExceptionStrategy
     extends AbstractExceptionResponseStrategy<ConstraintViolationException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(ConstraintViolationException exception) {
+  protected void logExceptionMessage(ConstraintViolationException exception) {
     String detailedErrorLog = exception.getConstraintViolations().stream()
         .map(v -> String.format("경로 [%s] - 입력값: [%s], 원인: [%s]",
             v.getPropertyPath(),
@@ -37,8 +37,8 @@ public class ConstraintViolationExceptionStrategy
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(ConstraintViolationException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(ConstraintViolationException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

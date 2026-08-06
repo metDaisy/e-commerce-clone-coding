@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.http.HttpStatus;
 import io.github.metdaisy.amaazon.common.exception.AmaazonException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import io.github.metdaisy.amaazon.global.exception.util.ErrorTypeResolver;
 
 /**
@@ -11,13 +11,13 @@ import io.github.metdaisy.amaazon.global.exception.util.ErrorTypeResolver;
 public class AmaazonExceptionStrategy extends AbstractExceptionResponseStrategy<AmaazonException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(AmaazonException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(AmaazonException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

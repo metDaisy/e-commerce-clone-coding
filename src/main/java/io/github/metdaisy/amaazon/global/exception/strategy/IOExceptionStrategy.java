@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import java.io.IOException;
 import org.springframework.http.HttpStatus;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -12,17 +12,17 @@ import lombok.extern.slf4j.Slf4j;
 public class IOExceptionStrategy extends AbstractExceptionResponseStrategy<IOException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return false;
   }
 
   @Override
-  protected void logException(IOException exception) {
+  protected void logExceptionMessage(IOException exception) {
     log.debug("클라이언트 연결 종료로 응답 전송 실패: {}", exception.getMessage());
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(
+  protected ExceptionResponse createErrorResponse(
       IOException exception) {
     // IOException은 응답을 반환하지 않음
     return null;

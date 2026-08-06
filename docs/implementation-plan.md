@@ -1,4 +1,9 @@
 # [Goal Description]
+
+> 문서 성격: 목표 구현 순서와 마일스톤을 설명하는 **계획 문서**다. 일정에 포함됐다는
+> 사실은 구현 완료를 의미하지 않는다. 실제 상태는 [current-state.md](current-state.md),
+> 비즈니스 규칙은 [requirement.md](requirement.md)를 확인한다.
+
 Amazon 클론 이커머스 백엔드 시스템 구축.
 단일 Spring Boot 애플리케이션 안에서 도메인 간 결합도를 낮춘 **모듈러 모놀리스(Modular Monolith)** 아키텍처를 채택하며, 향후 MSA 전환을 대비해 **Outbox 패턴과 Saga 패턴(보상 트랜잭션)**을 스프링 내부 이벤트 메커니즘으로 모의 구현합니다.
 

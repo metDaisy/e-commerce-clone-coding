@@ -1,13 +1,15 @@
 package io.github.metdaisy.amaazon.auth.infra.security;
 
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
+import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -19,24 +21,22 @@ public class FormUserDetailsService implements UserDetailsService {
 
   private final AuthUserPort userPort;
   private final UserCredentialRepository repository;
+  @Value("${amaazon.login.max-attempt}")
+  private int maxAttempt;
 
   @Override
   @Transactional(readOnly = true)
   public UserDetails loadUserByUsername(String email) {
     UserCredential credential = repository.findByEmail(email)
-        .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
-            Map.of("email", email)));
+        .orElseThrow(() -> new UserCredentialAuthenticationException(email));
     return userPort.loadUser(credential.getId())
-        .map(a -> createUserDetails(a, credential))
+        .map(userDto -> new FormUserDetails(userDto.id(),
+            userDto.role(),
+            credential.getPassword(),
+            userDto.isEnabled(),
+            credential.isLocked(maxAttempt, Instant.now())))
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
             Map.of("email", email)));
   }
 
-  private FormUserDetails createUserDetails(AuthUserDto userDto, UserCredential credential) {
-    if (!userDto.isEnabled()) {
-      throw new AuthException(AuthErrorCode.ACCOUNT_DEACTIVATED,
-          Map.of("email", credential.getEmail()));
-    }
-    return new FormUserDetails(userDto.id(), userDto.role(), credential.getPassword(), true);
-  }
 }

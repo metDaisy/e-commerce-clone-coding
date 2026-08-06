@@ -6,7 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
-import io.github.metdaisy.amaazon.global.exception.GlobalExceptionHandler;
+import io.github.metdaisy.amaazon.global.exception.ApiExceptionHandler;
+import io.github.metdaisy.amaazon.global.exception.SecurityExceptionHandler;
 import io.github.metdaisy.amaazon.global.exception.strategy.ExceptionStrategyFactory;
 import io.github.metdaisy.amaazon.global.web.config.WebMvcConfig;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
@@ -21,7 +22,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-@Import({GlobalExceptionHandler.class, ExceptionStrategyFactory.class, WebMvcConfig.class})
+import org.springframework.test.context.ActiveProfiles;
+
+@ActiveProfiles("test")
+@Import({ApiExceptionHandler.class, SecurityExceptionHandler.class, ExceptionStrategyFactory.class,
+    WebMvcConfig.class})
 public abstract class RestControllerTest {
 
   protected static final String API_PREFIX = WebConstants.SERVLET_PREFIX;

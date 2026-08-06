@@ -8,7 +8,7 @@
 
 ---
 
-[구현 계획](./docs/implmentation_plan.md)
+[구현 계획](./docs/implementation-plan.md)
 
 ---
 

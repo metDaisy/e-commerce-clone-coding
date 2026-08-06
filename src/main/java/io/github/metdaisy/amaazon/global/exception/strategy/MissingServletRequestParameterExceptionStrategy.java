@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MissingServletRequestParameterException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -13,13 +13,13 @@ public class MissingServletRequestParameterExceptionStrategy
     extends AbstractExceptionResponseStrategy<MissingServletRequestParameterException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(MissingServletRequestParameterException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(MissingServletRequestParameterException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

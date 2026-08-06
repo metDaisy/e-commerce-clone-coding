@@ -17,6 +17,7 @@ public class FormUserDetails implements UserDetails, CredentialsContainer, Amaaz
   private final String role;
   private String password;
   private final boolean isEnabled;
+  private final boolean isLocked;
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -31,5 +32,10 @@ public class FormUserDetails implements UserDetails, CredentialsContainer, Amaaz
   @Override
   public void eraseCredentials() {
     this.password = null;
+  }
+
+  @Override
+  public boolean isAccountNonLocked() {
+    return !isLocked;
   }
 }

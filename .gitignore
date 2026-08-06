@@ -9,8 +9,8 @@
 # env
 .env
 
-# storage
-.storage/
+# codebase-memory
+.codebase-memory
 
 # gradle
 .gradle/

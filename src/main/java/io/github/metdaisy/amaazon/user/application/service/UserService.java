@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.user.application.service;
 
-import io.github.metdaisy.amaazon.auth.domain.event.SignUpTask;
+import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
@@ -21,7 +21,7 @@ public class UserService {
   private final UserRepository repository;
 
   @Transactional
-  public void create(SignUpTask task) {
+  public void create(FormSignUpTask task) {
     validatePhoneNumber(task.phoneNumber());
     User user = User.createUser(task.id(), task.name(), task.phoneNumber(), task.address());
     repository.save(user);

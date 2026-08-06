@@ -3,7 +3,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import io.github.metdaisy.amaazon.global.exception.ApiErrorResponse;
+import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -14,12 +14,12 @@ public class MethodArgumentNotValidExceptionStrategy
     extends AbstractExceptionResponseStrategy<MethodArgumentNotValidException> {
 
   @Override
-  protected boolean logExceptionMessage() {
+  protected boolean hasExceptionMessage() {
     return true;
   }
 
   @Override
-  protected void logException(MethodArgumentNotValidException exception) {
+  protected void logExceptionMessage(MethodArgumentNotValidException exception) {
     String detailedErrorLog = exception.getBindingResult().getFieldErrors().stream()
         .map(error -> String.format("필드 [%s] - 입력값: [%s], 원인: [%s]",
             error.getField(),
@@ -30,8 +30,8 @@ public class MethodArgumentNotValidExceptionStrategy
   }
 
   @Override
-  protected ApiErrorResponse createErrorResponse(MethodArgumentNotValidException exception) {
-    return ApiErrorResponse.from(exception);
+  protected ExceptionResponse createErrorResponse(MethodArgumentNotValidException exception) {
+    return ExceptionResponse.from(exception);
   }
 
   @Override

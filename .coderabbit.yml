@@ -64,6 +64,8 @@ reviews:
     - "!**/*.class"
     - "!**/*.jar"
     - "!amaazon-front/**"
+    - "!AGENTS.md"
+    - "!docs/**"
 
 chat:
   auto_reply: true

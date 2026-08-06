@@ -1,5 +1,9 @@
 # E-Commerce Domain Requirements (기능 명세서)
 
+> 문서 성격: P1~P6의 **목표 비즈니스 규칙**을 정의한다. 현재 구현 여부는
+> [current-state.md](current-state.md), 전체 문서 지도는 [index.md](index.md)를 확인한다.
+> 코드·DB와 충돌하는 규칙은 임의로 맞추지 않고 결정 후 함께 갱신한다.
+
 본 문서는 **Amazon.com 클론 코딩** 프로젝트의 각 도메인(P1~P6)에서 구현해야 할 구체적인 비즈니스 룰, 제약 조건, API 요구사항, 유효성 검증 규칙 및 엣지 케이스를 정의합니다.
 
 > **참고**: 본 프로젝트는 Spring Modulith 기반 모듈러 모놀리스 아키텍처를 채택하며, 도메인 간 통신은 Spring Application Event를 통해 이루어집니다. 다른 모듈의 Bean을 직접 주입받는 것은 금지합니다.
@@ -71,7 +75,7 @@
   - 블랙리스트에 등록된 토큰 사용 시 `BLACKLISTED_TOKEN` (401)
 
 #### 2-4. 다중 인증 수단 관리
-- `users` : `user_credentials` = 1:N 관계
+- `users` : `user_credentials` = 1:0..1 관계
 - `users` : `social_credentials` = 1:N 관계
 - 하나의 계정에 로컬 + 다수의 소셜 로그인 수단을 동시에 연결 가능
 - 소셜 계정 연결 해제 API 제공 (단, 마지막 인증 수단은 해제 불가)

@@ -5,7 +5,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,23 +16,23 @@ import org.springframework.context.annotation.Import;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.metdaisy.amaazon.global.security.jwt.config.CaffeineCacheAsyncConfig;
-import io.github.metdaisy.amaazon.global.security.jwt.config.JwtProperties;
+import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.registry.CaffeineBlacklistRegistry;
 
 @Configuration
-@ConditionalOnProperty(value = "amaazon.jwt.registry-store-type", havingValue = "caffeine")
+@ConditionalOnProperty(value = "amaazon.cache.type", havingValue = "caffeine")
 @Import({CaffeineBlacklistRegistry.class, CaffeineCacheAsyncConfig.class})
 public class CaffeineConfig {
 
   private final Executor caffeineWorker;
-  private final JwtProperties properties;
+  private final JwtTokenExpiration jwtTokenExpiration;
   private final int cacheCapacity;
 
   public CaffeineConfig(
-      JwtProperties properties,
-      @Value("${amaazon.cache.caffeine.capacity}") int cacheCapacity,
+      JwtTokenExpiration jwtTokenExpiration,
+      @Value("${amaazon.cache.capacity}") int cacheCapacity,
       @Qualifier("caffeineWorker") Executor caffeineWorker) {
-    this.properties = properties;
+    this.jwtTokenExpiration = jwtTokenExpiration;
     this.cacheCapacity = cacheCapacity;
     this.caffeineWorker = caffeineWorker;
   }
@@ -44,7 +43,7 @@ public class CaffeineConfig {
     manager.setCaffeine(Caffeine.newBuilder()
         .initialCapacity(cacheCapacity)
         .maximumSize(cacheCapacity)
-        .expireAfterWrite(properties.accessTokenExpiration(), TimeUnit.SECONDS)
+        .expireAfterWrite(jwtTokenExpiration.accessExpiration())
         .executor(caffeineWorker)
         .recordStats());
     return manager;

@@ -11,18 +11,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-public record ApiErrorResponse(String exceptionType, String message, Object details) {
+public record ExceptionResponse(String exceptionType, String message, Object details) {
 
-  public static ApiErrorResponse from(AmaazonException ex) {
-    return new ApiErrorResponse(ex.getCode(), ex.getMessage(), null);
+  public static ExceptionResponse from(AmaazonException ex) {
+    return new ExceptionResponse(ex.getCode(), ex.getMessage(), null);
   }
 
-  public static ApiErrorResponse from(MethodArgumentNotValidException ex) {
+  public static ExceptionResponse from(MethodArgumentNotValidException ex) {
     Map<String, List<String>> details = ex.getBindingResult().getFieldErrors().stream()
             .collect(Collectors.groupingBy(
                     FieldError::getField,
@@ -32,10 +35,10 @@ public record ApiErrorResponse(String exceptionType, String message, Object deta
                             Collectors.toList()
                     )
             ));
-    return new ApiErrorResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
+    return new ExceptionResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
   }
 
-  public static ApiErrorResponse from(ConstraintViolationException ex) {
+  public static ExceptionResponse from(ConstraintViolationException ex) {
     boolean isFromController = ViolationExceptionUtils.isFromController(ex);
     if (isFromController) {
       Map<String, List<String>> details = ex.getConstraintViolations().stream()
@@ -46,13 +49,13 @@ public record ApiErrorResponse(String exceptionType, String message, Object deta
                       },
                       Collectors.mapping(ConstraintViolation::getMessage, Collectors.toList())
               ));
-      return new ApiErrorResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
+      return new ExceptionResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
     }
-    return new ApiErrorResponse("INTERNAL_SERVER_ERROR",
+    return new ExceptionResponse("INTERNAL_SERVER_ERROR",
             "서버 내부 데이터 처리 중 오류가 발생했습니다.", null);
   }
 
-  public static ApiErrorResponse from(HttpMessageNotReadableException ex) {
+  public static ExceptionResponse from(HttpMessageNotReadableException ex) {
     if (ex.getCause() instanceof InvalidFormatException invalidFormatException) {
       List<JsonMappingException.Reference> path = invalidFormatException.getPath();
 
@@ -69,7 +72,7 @@ public record ApiErrorResponse(String exceptionType, String message, Object deta
 
       Object invalidValue = invalidFormatException.getValue();
 
-      return new ApiErrorResponse(
+      return new ExceptionResponse(
               "INVALID_INPUT",
               "잘못된 입력값입니다.",
               Map.of(
@@ -79,34 +82,46 @@ public record ApiErrorResponse(String exceptionType, String message, Object deta
       );
     }
 
-    return new ApiErrorResponse(
+    return new ExceptionResponse(
             "INVALID_INPUT",
             "요청 본문을 읽을 수 없습니다.",
             null
     );
   }
 
-  public static ApiErrorResponse from(MissingServletRequestParameterException ex) {
+  public static ExceptionResponse from(MissingServletRequestParameterException ex) {
     Map<String, List<String>> details = Map.of(
             ex.getParameterName(),
             List.of("필수 파라미터 '" + ex.getParameterName() + "'이(가) 누락되었습니다.")
     );
-    return new ApiErrorResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
+    return new ExceptionResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
   }
 
-  public static ApiErrorResponse from(MethodArgumentTypeMismatchException ex) {
+  public static ExceptionResponse from(MethodArgumentTypeMismatchException ex) {
     Map<String, List<String>> details = Map.of(
             ex.getName(),
             List.of("허용되지 않는 값입니다: " + ex.getValue())
     );
-    return new ApiErrorResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
+    return new ExceptionResponse("INVALID_INPUT", "잘못된 입력값입니다.", details);
   }
 
-  public static ApiErrorResponse from(DataIntegrityViolationException ex) {
-    return new ApiErrorResponse(
+  public static ExceptionResponse from(DataIntegrityViolationException ex) {
+    return new ExceptionResponse(
             "CONFLICT",
             "이미 존재하거나 사용할 수 없는 데이터입니다.",
             null
     );
+  }
+
+  public static ExceptionResponse from(DisabledException ex) {
+    return new ExceptionResponse("NOT_FOUND", "계정을 찾을 수 없습니다.", null);
+  }
+
+  public static ExceptionResponse from(AuthenticationException ex) {
+    return new ExceptionResponse("UNAUTHORIZED", "인증이 실패하였습니다.", null);
+  }
+
+  public static ExceptionResponse from(AccessDeniedException ex) {
+    return new ExceptionResponse("FORBIDDEN", "권한이 없습니다.", null);
   }
 }

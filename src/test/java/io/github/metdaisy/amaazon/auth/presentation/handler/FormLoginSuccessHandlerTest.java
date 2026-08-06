@@ -1,45 +1,45 @@
 package io.github.metdaisy.amaazon.auth.presentation.handler;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
+import io.github.metdaisy.amaazon.auth.application.event.FormLoginSuccessEvent;
+import io.github.metdaisy.amaazon.auth.application.event.SocialSignUpTask;
+import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
+import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
+import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
+import jakarta.servlet.http.Cookie;
 import java.io.PrintWriter;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
-import io.github.metdaisy.amaazon.auth.application.service.AuthService;
-import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
-import io.github.metdaisy.amaazon.auth.application.service.GuestTokenService;
-import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
-import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
-import jakarta.servlet.http.Cookie;
 
 @ExtendWith(MockitoExtension.class)
 class FormLoginSuccessHandlerTest {
 
   @Mock
-  private AuthTokenService authTokenService;
+  private AuthTokenService tokenService;
   @Mock
-  private AuthCookieProvider authCookieProvider;
+  private AuthCookieProvider cookieProvider;
   @Mock
   private ObjectMapper mapper;
   @Mock
-  private GuestTokenService guestTokenService;
-  @Mock
-  private AuthService authService;
+  private ApplicationEventPublisher eventPublisher;
   @Mock
   private Authentication authentication;
 
@@ -58,18 +58,18 @@ class FormLoginSuccessHandlerTest {
     given(authentication.getName()).willReturn(userId.toString());
 
     JwtLoginDto loginDto = new JwtLoginDto(userId, "access", "refresh");
-    given(authTokenService.create(userId, "device-123")).willReturn(loginDto);
-    given(authCookieProvider.createRefreshTokenCookie("refresh"))
+    given(tokenService.create(userId, "device-123")).willReturn(loginDto);
+    given(cookieProvider.createRefreshTokenCookie("refresh"))
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "refresh").build());
-    given(authCookieProvider.createDeleteGuestTokenCookie())
+    given(cookieProvider.createDeleteGuestTokenCookie())
         .willReturn(ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, "").build());
 
     // when
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    verify(guestTokenService, never()).validate(anyString());
-    verify(authService, never()).createSocial(any(UUID.class), anyString(), anyString());
+    verify(eventPublisher, never()).publishEvent(any(SocialSignUpTask.class));
+    verify(eventPublisher).publishEvent(any(FormLoginSuccessEvent.class));
     verify(mapper).writeValue(any(PrintWriter.class), any(JwtLoginDto.class));
   }
 
@@ -86,20 +86,20 @@ class FormLoginSuccessHandlerTest {
     given(authentication.getName()).willReturn(userId.toString());
 
     JwtLoginDto loginDto = new JwtLoginDto(userId, "access", "refresh");
-    given(authTokenService.create(userId, "device-123")).willReturn(loginDto);
-    given(authCookieProvider.createRefreshTokenCookie("refresh"))
+    given(tokenService.create(userId, "device-123")).willReturn(loginDto);
+    given(cookieProvider.createRefreshTokenCookie("refresh"))
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "refresh").build());
-    given(authCookieProvider.createDeleteGuestTokenCookie())
+    given(cookieProvider.createDeleteGuestTokenCookie())
         .willReturn(ResponseCookie.from(AuthWebConstants.COOKIE_GUEST_TOKEN, "").build());
-
-    given(guestTokenService.getProvider("guest-token")).willReturn("google");
-    given(guestTokenService.getProviderId("guest-token")).willReturn("google-id");
 
     // when
     handler.onAuthenticationSuccess(request, response, authentication);
 
     // then
-    verify(guestTokenService).validate("guest-token");
-    verify(authService).createSocial(userId, "google", "google-id");
+    ArgumentCaptor<SocialSignUpTask> captor = ArgumentCaptor.forClass(SocialSignUpTask.class);
+    verify(eventPublisher).publishEvent(any(FormLoginSuccessEvent.class));
+    verify(eventPublisher).publishEvent(captor.capture());
+    assertThat(captor.getValue().userId()).isEqualTo(userId);
+    assertThat(captor.getValue().guestToken()).isEqualTo("guest-token");
   }
 }

@@ -20,9 +20,11 @@ CREATE TABLE users
 
 CREATE TABLE user_credentials
 (
-    userId     UUID PRIMARY KEY,
+    user_id     UUID PRIMARY KEY,
     email      VARCHAR(100) NOT NULL,
     password   VARCHAR(255) NOT NULL,
+    violation_count integer not null,
+    until_locked timestamp with time zone,
     created_at TIMESTAMP WITH TIME ZONE,
     updated_at TIMESTAMP WITH TIME ZONE
 );

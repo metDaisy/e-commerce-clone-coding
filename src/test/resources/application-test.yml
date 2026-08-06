@@ -11,6 +11,10 @@ spring:
         order_updates: true
         default_batch_fetch_size: 500
     open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
   sql:
     init:
       mode: always
@@ -18,16 +22,22 @@ spring:
 
 amaazon:
   jwt:
-    registry-store-type: caffeine
-    access-token-expiration: 3600000
-    refresh-token-expiration: 86400000
-    guest-token-expiration: 600000
     secret-key: test-secret-key-test-secret-key-test-secret-key-test-secret-key
-    cookie:
-      name: REFRESH_TOKEN
-      path: /
-      same-site: LAX
-      secure: false
+    access-expiration: 30m
+    guest-expiration: 10m
+    refresh-expiration: 7d
+    refresh:
+      cookie:
+        name: REFRESH_TOKEN
+        path: /
+        same-site: Lax
+        secure: false
+  cache:
+    type: caffeine
+    capacity: 5000
+  login:
+    max-attempt: 5
+    locked-duration: 30m
 
 logging:
   level:

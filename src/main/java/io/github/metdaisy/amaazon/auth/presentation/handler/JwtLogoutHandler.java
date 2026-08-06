@@ -28,6 +28,8 @@ public class JwtLogoutHandler implements LogoutHandler {
     if (cookie != null) {
       service.delete(cookie.getValue());
     }
+    ResponseCookie deleteGuestCookie = provider.createDeleteGuestTokenCookie();
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteGuestCookie.toString());
     ResponseCookie deleteCookie = provider.createDeleteRefreshTokenCookie();
     response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
   }
