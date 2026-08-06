@@ -8,6 +8,7 @@ import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
+import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,7 +55,7 @@ class FormUserDetailsServiceTest {
     given(repository.findByEmail("test@test.com")).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
-        .isInstanceOf(AuthException.class);
+        .isInstanceOf(UserCredentialAuthenticationException.class);
   }
 
   @Test

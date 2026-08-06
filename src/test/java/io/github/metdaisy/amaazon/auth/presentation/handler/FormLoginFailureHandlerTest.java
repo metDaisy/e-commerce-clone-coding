@@ -42,7 +42,7 @@ class FormLoginFailureHandlerTest {
     // then
     assertThat(response.getStatus()).isEqualTo(401);
     assertThat(response.getContentType()).isEqualTo("application/json");
-    assertThat(response.getContentAsString()).contains("login failed");
+    assertThat(response.getContentAsString()).contains("로그인 실패하였습니다.");
   }
 
   @Test
@@ -51,15 +51,16 @@ class FormLoginFailureHandlerTest {
     // given
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
-    AuthenticationException exception = new AuthenticationException("test") {};
+    AuthenticationException exception = new AuthenticationException("test") {
+    };
     willThrow(new IOException("serialize error"))
-            .given(objectMapper).writeValue(any(Writer.class), any());
+        .given(objectMapper).writeValue(any(Writer.class), any());
 
     // when & then
     assertThatThrownBy(() ->
-            formLoginFailureHandler.onAuthenticationFailure(request, response, exception))
-            .isInstanceOf(IOException.class)
-            .hasMessage("serialize error");
+        formLoginFailureHandler.onAuthenticationFailure(request, response, exception))
+        .isInstanceOf(IOException.class)
+        .hasMessage("serialize error");
 
     assertThat(response.getStatus()).isEqualTo(401);
     assertThat(response.getContentType()).isEqualTo("application/json");
