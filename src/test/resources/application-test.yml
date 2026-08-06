@@ -11,6 +11,10 @@ spring:
         order_updates: true
         default_batch_fetch_size: 500
     open-in-view: false
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 100MB
   sql:
     init:
       mode: always
@@ -31,6 +35,9 @@ amaazon:
   cache:
     type: caffeine
     capacity: 5000
+  login:
+    max-attempt: 5
+    locked-duration: 30m
 
 logging:
   level:
