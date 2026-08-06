@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
+import io.github.metdaisy.amaazon.auth.application.event.FormLoginSuccessEvent;
 import io.github.metdaisy.amaazon.auth.application.event.SocialSignUpTask;
 import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
 import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
@@ -68,6 +69,7 @@ class FormLoginSuccessHandlerTest {
 
     // then
     verify(eventPublisher, never()).publishEvent(any(SocialSignUpTask.class));
+    verify(eventPublisher).publishEvent(any(FormLoginSuccessEvent.class));
     verify(mapper).writeValue(any(PrintWriter.class), any(JwtLoginDto.class));
   }
 
@@ -95,6 +97,7 @@ class FormLoginSuccessHandlerTest {
 
     // then
     ArgumentCaptor<SocialSignUpTask> captor = ArgumentCaptor.forClass(SocialSignUpTask.class);
+    verify(eventPublisher).publishEvent(any(FormLoginSuccessEvent.class));
     verify(eventPublisher).publishEvent(captor.capture());
     assertThat(captor.getValue().userId()).isEqualTo(userId);
     assertThat(captor.getValue().guestToken()).isEqualTo("guest-token");

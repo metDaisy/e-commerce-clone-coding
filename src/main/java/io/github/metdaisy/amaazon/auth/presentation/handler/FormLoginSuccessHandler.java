@@ -41,6 +41,7 @@ public class FormLoginSuccessHandler implements AuthenticationSuccessHandler {
     String deviceId = request.getHeader(AuthWebConstants.HEADER_DEVICE_ID);
     UUID userId = UUID.fromString(authentication.getName());
     JwtLoginDto loginDto = tokenService.create(userId, deviceId);
+    publishLoginSuccessEvent(userId);
     publishSocialSignUpTask(request, userId);
 
     response.addHeader(HttpHeaders.SET_COOKIE,

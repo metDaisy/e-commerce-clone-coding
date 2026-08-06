@@ -82,4 +82,16 @@ class AuthServiceTest {
     verify(userCredentialService).update(userId, "new@example.com", "NewPassword1!");
     verify(eventPublisher).publishEvent(any(JwtTokenCompromisedEvent.class));
   }
+  @Test
+  @DisplayName("비밀번호 검증 성공: UserCredentialService를 호출한다")
+  void verifyPassword_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    // when
+    authService.verifyPassword(userId, "Password1!");
+
+    // then
+    verify(userCredentialService).verifyPassword(userId, "Password1!");
+  }
 }

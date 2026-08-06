@@ -126,4 +126,13 @@ class UserCredentialServiceTest {
 
     verify(credential).resetViolationOrNot(any());
   }
+  @Test
+  @DisplayName("resetViolationOrNot - 실패: 유저 없음")
+  void resetViolationOrNot_failure_not_found() {
+    UUID id = UUID.randomUUID();
+    given(repository.findByIdForUpdate(id)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> userCredentialService.resetViolationOrNot(id))
+        .isInstanceOf(UserCredentialAuthenticationException.class);
+  }
 }
