@@ -62,7 +62,7 @@ public class UserCredential extends MutableEntity {
     updateIfChanged(this.email, email, value -> this.email = value);
   }
 
-  public void matchPassword(String password) {
+  public void validatePassword(String password) {
     if (!this.password.equals(password)) {
       throw new AuthException(AuthErrorCode.INCORRECT_PASSWORD);
     }

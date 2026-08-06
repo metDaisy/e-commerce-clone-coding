@@ -7,6 +7,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,8 @@ public class JwtLogoutHandler implements LogoutHandler {
     if (cookie != null) {
       service.delete(cookie.getValue());
     }
+    ResponseCookie deleteGuestCookie = provider.createDeleteGuestTokenCookie();
+    response.addHeader(HttpHeaders.SET_COOKIE, deleteGuestCookie.toString());
     ResponseCookie deleteCookie = provider.createDeleteRefreshTokenCookie();
     response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
   }
