@@ -1,156 +1,85 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
+import io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest;
 import io.github.metdaisy.amaazon.auth.application.dto.request.UserCredentialUpdateRequest;
-import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
+import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
+import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
-import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
-import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("인증 서비스 테스트")
 class AuthServiceTest {
 
   @Mock
-  private UserCredentialRepository repository;
+  private UserCredentialService userCredentialService;
   @Mock
-  private SocialCredentialRepository socialRepository;
+  private SocialCredentialService socialCredentialService;
   @Mock
-  private PasswordEncoder passwordEncoder;
-  @Mock
-  private AuthUserPort userPort;
-  @Mock
-  private org.springframework.context.ApplicationEventPublisher eventPublisher;
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private AuthService authService;
 
   @Test
-  @DisplayName("일반 인증 생성 성공: 비밀번호를 암호화해 자격 증명을 저장한다")
+  @DisplayName("일반 인증 생성 성공: UserCredentialService를 호출하고 이벤트를 발행한다")
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    given(repository.existsByEmail("test@example.com")).willReturn(false);
-    given(passwordEncoder.encode("Password1!")).willReturn("encoded-password");
+    UserCredential credential = mock(UserCredential.class);
+    given(credential.getId()).willReturn(userId);
+    given(userCredentialService.create("test@example.com", "Password1!")).willReturn(credential);
 
     // when
-    authService.create(new io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest("tester", "test@example.com", "Password1!", "01012345678", "Seoul"));
+    authService.create(new SignUpRequest("tester", "test@example.com", "Password1!", "01012345678", "Seoul"));
 
     // then
-    ArgumentCaptor<UserCredential> captor = ArgumentCaptor.forClass(UserCredential.class);
-    verify(repository).save(captor.capture());
-    assertThat(captor.getValue())
-        .extracting(UserCredential::getEmail, UserCredential::getPassword)
-        .containsExactly("test@example.com", "encoded-password");
+    ArgumentCaptor<FormSignUpTask> captor = ArgumentCaptor.forClass(FormSignUpTask.class);
+    verify(eventPublisher).publishEvent(captor.capture());
+    assertThat(captor.getValue().id()).isEqualTo(userId);
+    assertThat(captor.getValue().name()).isEqualTo("tester");
+    assertThat(captor.getValue().phoneNumber()).isEqualTo("01012345678");
+    assertThat(captor.getValue().address()).isEqualTo("Seoul");
   }
 
   @Test
-  @DisplayName("일반 인증 생성 실패: 이미 가입된 이메일이면 예외를 던진다")
-  void create_failure_whenEmailAlreadyExists() {
-    // given
-    given(repository.existsByEmail("test@example.com")).willReturn(true);
-
-    // when & then
-    assertThatThrownBy(() -> authService.create(new io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest("tester", "test@example.com", "password", "01012345678", "Seoul")))
-        .isInstanceOf(AuthException.class)
-        .hasFieldOrPropertyWithValue("code", AuthErrorCode.EMAIL_ALREADY_EXISTS.getCode());
-    verify(repository, never()).save(any());
-  }
-
-  @Test
-  @DisplayName("소셜 인증 생성 성공: 연결 가능한 사용자면 자격 증명을 저장한다")
+  @DisplayName("소셜 인증 생성 성공: SocialCredentialService를 호출한다")
   void createSocial_success() {
     // given
     UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(true);
 
     // when
     authService.createSocial(userId, "google", "provider-id");
 
     // then
-    verify(socialRepository).save(any(SocialCredential.class));
+    verify(socialCredentialService).create(userId, "google", "provider-id");
   }
 
   @Test
-  @DisplayName("소셜 인증 생성 실패: 연결할 사용자를 찾지 못하면 예외를 던진다")
-  void createSocial_failure_whenUserDoesNotExist() {
-    // given
-    UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(false);
-
-    // when & then
-    assertThatThrownBy(() -> authService.createSocial(userId, "google", "provider-id"))
-        .isInstanceOf(AuthException.class)
-        .hasFieldOrPropertyWithValue("code", AuthErrorCode.USER_NOT_FOUND.getCode());
-    verify(socialRepository, never()).save(any(SocialCredential.class));
-  }
-
-  @Test
-  @DisplayName("일반 인증 수정 성공: 이메일과 암호화된 비밀번호를 변경한다")
+  @DisplayName("일반 인증 수정 성공: UserCredentialService를 호출하고 이벤트를 발행한다")
   void update_success() {
     // given
     UUID userId = UUID.randomUUID();
-    UserCredential credential = UserCredential.of("old@example.com", "old-password");
-    given(repository.findById(userId)).willReturn(Optional.of(credential));
-    given(repository.existsByEmail("new@example.com")).willReturn(false);
-    given(passwordEncoder.encode("NewPassword1!")).willReturn("new-encoded-password");
 
     // when
     authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!"));
 
     // then
-    assertThat(credential)
-        .extracting(UserCredential::getEmail, UserCredential::getPassword)
-        .containsExactly("new@example.com", "new-encoded-password");
-  }
-
-  @Test
-  @DisplayName("일반 인증 수정 실패: 자격 증명을 찾지 못하면 예외를 던진다")
-  void update_failure_whenCredentialDoesNotExist() {
-    // given
-    UUID userId = UUID.randomUUID();
-    given(repository.findById(userId)).willReturn(Optional.empty());
-
-    // when & then
-    assertThatThrownBy(() -> authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!")))
-        .isInstanceOf(AuthException.class)
-        .hasFieldOrPropertyWithValue("code", AuthErrorCode.USER_CREDENTIAL_NOT_FOUND.getCode());
-    verify(passwordEncoder, never()).encode(any());
-  }
-
-  @ParameterizedTest(name = "[{index}] 존재하는 이메일")
-  @ValueSource(booleans = {true})
-  @DisplayName("일반 인증 수정 실패: 중복 이메일이면 예외를 던진다")
-  void update_failure_whenEmailAlreadyExists(boolean duplicate) {
-    // given
-    UUID userId = UUID.randomUUID();
-    given(repository.existsByEmail("new@example.com")).willReturn(duplicate);
-
-    // when & then
-    assertThatThrownBy(() -> authService.update(userId, new UserCredentialUpdateRequest("new@example.com", "NewPassword1!")))
-        .isInstanceOf(AuthException.class)
-        .hasFieldOrPropertyWithValue("code", AuthErrorCode.EMAIL_ALREADY_EXISTS.getCode());
-    verify(passwordEncoder, never()).encode(any());
+    verify(userCredentialService).update(userId, "new@example.com", "NewPassword1!");
+    verify(eventPublisher).publishEvent(any(JwtTokenCompromisedEvent.class));
   }
 }

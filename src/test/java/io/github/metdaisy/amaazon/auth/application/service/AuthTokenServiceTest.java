@@ -1,5 +1,6 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +71,7 @@ class AuthTokenServiceTest {
     given(provider.generateAccessToken(userId, "USER")).willReturn("new-access-token");
     given(provider.generateRefreshToken(userId)).willReturn("new-refresh-token");
     given(provider.parseJti("new-refresh-token")).willReturn("new-jti");
-    given(properties.refreshExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
+    given(properties.refreshExpiration()).willReturn(Duration.ofSeconds(3600));
 
     // when
     JwtLoginDto result = authTokenService.reissue(token);
@@ -105,7 +106,7 @@ class AuthTokenServiceTest {
     given(provider.generateAccessToken(userId, "USER")).willReturn("access-token");
     given(provider.generateRefreshToken(userId)).willReturn("refresh-token");
     given(provider.parseJti("refresh-token")).willReturn("jti");
-    given(properties.refreshExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
+    given(properties.refreshExpiration()).willReturn(Duration.ofSeconds(3600));
 
     // when
     JwtLoginDto result = authTokenService.create(userId, "device-1");
