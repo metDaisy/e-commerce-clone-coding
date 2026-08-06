@@ -45,7 +45,7 @@ public class UserCredentialService {
   public void verifyPassword(UUID id, String password) {
     UserCredential credential = repository.findById(id).orElseThrow(
         () -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND, Map.of("userId", id)));
-    credential.validatePassword(passwordEncoder.encode(password));
+    credential.validatePassword(encoded -> passwordEncoder.matches(password, encoded));
   }
 
   @Transactional

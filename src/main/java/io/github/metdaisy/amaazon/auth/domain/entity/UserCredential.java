@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.function.Predicate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -62,8 +63,8 @@ public class UserCredential extends MutableEntity {
     updateIfChanged(this.email, email, value -> this.email = value);
   }
 
-  public void validatePassword(String password) {
-    if (!this.password.equals(password)) {
+  public void validatePassword(Predicate<String> validator) {
+    if (!validator.test(password)) {
       throw new AuthException(AuthErrorCode.INCORRECT_PASSWORD);
     }
   }

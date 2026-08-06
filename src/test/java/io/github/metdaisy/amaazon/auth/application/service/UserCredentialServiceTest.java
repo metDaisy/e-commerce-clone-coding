@@ -87,7 +87,7 @@ class UserCredentialServiceTest {
     UUID id = UUID.randomUUID();
     UserCredential credential = UserCredential.of("test@example.com", "encoded-password");
     given(repository.findById(id)).willReturn(Optional.of(credential));
-    given(passwordEncoder.encode("password")).willReturn("encoded-password");
+    given(passwordEncoder.matches("password", "encoded-password")).willReturn(true);
 
     userCredentialService.verifyPassword(id, "password");
   }
