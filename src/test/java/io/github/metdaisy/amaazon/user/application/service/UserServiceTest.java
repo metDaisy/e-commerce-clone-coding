@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import io.github.metdaisy.amaazon.auth.domain.event.SignUpTask;
+import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
@@ -21,7 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -42,7 +41,7 @@ class UserServiceTest {
   @DisplayName("사용자 생성 성공: 신규 전화번호로 사용자를 저장한다")
   void create_success() {
     // given
-    SignUpTask task = createTask("01012345678");
+    FormSignUpTask task = createTask("01012345678");
     User savedUser = User.createUser(task.id(), task.name(), task.phoneNumber(), task.address());
     given(userRepository.existsByPhoneNumber(task.phoneNumber())).willReturn(false);
     given(userRepository.save(any(User.class))).willReturn(savedUser);
@@ -60,7 +59,7 @@ class UserServiceTest {
   @DisplayName("사용자 생성 성공: 전화번호가 없으면 중복 조회를 생략한다")
   void create_success_whenPhoneNumberHasNoText(String phoneNumber) {
     // given
-    SignUpTask task = createTask(phoneNumber);
+    FormSignUpTask task = createTask(phoneNumber);
     User savedUser = User.createUser(task.id(), task.name(), phoneNumber, task.address());
     given(userRepository.save(any(User.class))).willReturn(savedUser);
 
@@ -76,7 +75,7 @@ class UserServiceTest {
   @DisplayName("사용자 생성 실패: 중복 전화번호면 예외를 던진다")
   void create_failure_whenPhoneNumberAlreadyExists(boolean duplicateCount) {
     // given
-    SignUpTask task = createTask("01012345678");
+    FormSignUpTask task = createTask("01012345678");
     given(userRepository.existsByPhoneNumber(task.phoneNumber())).willReturn(duplicateCount);
 
     // when & then
@@ -138,7 +137,7 @@ class UserServiceTest {
         .hasFieldOrPropertyWithValue("code", UserErrorCode.PHONE_ALREADY_EXISTS.getCode());
   }
 
-  private SignUpTask createTask(String phoneNumber) {
-    return new SignUpTask(UUID.randomUUID(), "홍길동", phoneNumber, "서울시 강남구");
+  private FormSignUpTask createTask(String phoneNumber) {
+    return new FormSignUpTask(UUID.randomUUID(), "홍길동", phoneNumber, "서울시 강남구");
   }
 }

@@ -2,8 +2,9 @@ package io.github.metdaisy.amaazon.user.application.handler;
 
 import static org.mockito.Mockito.verify;
 
-import io.github.metdaisy.amaazon.auth.domain.event.SignUpTask;
+import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +26,7 @@ class UserEventHandlerTest {
   @DisplayName("handle: SignUpTask 발생 시 UserService.create 를 호출한다")
   void handle() {
     // given
-    SignUpTask task = new SignUpTask(java.util.UUID.randomUUID(), "tester", "01012345678", "Seoul");
+    FormSignUpTask task = new FormSignUpTask(UUID.randomUUID(), "tester", "01012345678", "Seoul");
 
     // when
     userEventHandler.handle(task);
