@@ -36,7 +36,7 @@ public class AuthService {
 
   @Transactional
   public void update(UUID userId, UserCredentialUpdateRequest request) {
-    userCredentialService.update(userId, request.email(), request.email());
+    userCredentialService.update(userId, request.email(), request.password());
     eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId, Instant.now()));
   }
 
