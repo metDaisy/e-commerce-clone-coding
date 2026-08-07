@@ -24,6 +24,7 @@ This document is a catalog of personal local skills installed in `$AGENT_SKILLS`
 | `agent-browser` | When website navigation, form input, browser automation, screenshots, or web application QA is required. | `$AGENT_SKILLS/agent-browser/SKILL.md` |
 | `semble` | When locating code implementations by meaning or behavior using semantic search. | `$AGENT_SKILLS/semble/SKILL.md` |
 | `codebase-memory` | When verifying relationships for symbols, tracing paths, or understanding the knowledge graph of the codebase. | `$AGENT_SKILLS/codebase-memory/SKILL.md` |
+| `find-skills` | When searching for an installable skill for a task that has no suitable local skill. | `$AGENT_SKILLS/find-skills/SKILL.md` |
 
 ## Maintenance
 
