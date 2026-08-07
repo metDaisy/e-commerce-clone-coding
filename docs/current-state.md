@@ -6,9 +6,9 @@
 
 ## 스냅샷
 
-- 확인일: 2026-08-06
+- 확인일: 2026-08-08
 - Git 브랜치: `product/issue17`
-- 기준 Git SHA: `b26bd01c9e1b94e189a9d762548af69f6087f77e`
+- 기준 Git SHA: `c78ecca212cb1407cde52b2d37899fa1c58f341f`
 - 코드 지식 그래프: 기준 SHA와 일치
 - 검증 범위: 요구사항, 구현 계획, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 코드 존재와 구조에 대한 상태이며 전체 테스트 통과 선언이 아니다.
@@ -20,7 +20,7 @@
 | 단계 | 상태 | 확인된 범위 |
 |---|---|---|
 | P1 User & Auth | 진행 중 | 회원가입, 프로필 조회·수정, 로컬·소셜 인증 기반, JWT, 토큰 블랙리스트, 계정 비활성화 기반, **계정 잠금, 로그인 시도 횟수 관리** |
-| P2 Catalog & Inventory | 미구현 | Flyway 테이블과 프론트 mock 상품 UI만 존재; 백엔드 도메인 모듈 없음 |
+| P2 Catalog & Inventory | 구현 시작 | Flyway 테이블 존재, `product` 모듈 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`) 추가; 서비스/리포지토리/API 미구현 |
 | P3 Cart | 미구현 | Flyway 테이블만 존재 |
 | P4 Coupon | 미구현 | Flyway 테이블만 존재 |
 | P5 Order & Payment | 미구현 | Flyway 테이블만 존재 |
@@ -30,7 +30,8 @@
 
 ### 구현된 모듈
 
-- `auth`: 로컬·소셜 Credential, 회원가입 진입점, 비밀번호 정책, Form/OAuth2 로그인 지원 클래스, Access·Refresh·Guest JWT, 로그아웃과 사용자·토큰 블랙리스트, 로그인 정책(`LoginPolicyProperties`), 계정 잠금 로직(`UserCredential`의 `violationCount`/`untilLocked`), 로그인 실패/성공/로그아웃 이벤트(`IncorrectPasswordEvent`, `FormLoginSuccessEvent`, `JwtLogoutSuccessEvent`) 및 핸들러(`UserCredentialEventHandler`), **서비스 분리(`UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 위임)**, **FormLoginSuccessHandler에서 로그인 성공 이벤트 발행 및 게스트 → 회원 전환 이벤트(`SocialSignUpTask`) 발행**.
+- `product`: 상품 도메인 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`), 모듈 seam(`allowedDependencies: common::*`).
+- `auth`: 로컬·소셜 Credential, 회원가입 진입점, 비밀번호 정책, Form/OAuth2 로그인 지원 클래스, Access·Refresh·Guest JWT, 로그아웃과 사용자·토큰 블랙리스트, 로그인 정책(`LoginPolicyProperties`), 계정 잠금 로직(`UserCredential`의 `violationCount`/`untilLocked`), 로그인 실패/성공/로그아웃 이벤트(`IncorrectPasswordEvent`, `FormLoginSuccessEvent`, `JwtLogoutSuccessEvent`) 및 핸들러(`UserCredentialEventHandler`), **서비스 분리(`UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 위임)**, **FormLoginSuccessHandler에서 로그인 성공 이벤트 발행 및 게스트 → 회원 전환 이벤트(`SocialSignUpTask`) 발행**. 로그인을 성공 후 게스트 쿠키를 가진 사용자를 회원으로 전환하는 로직이 추가되었다.
 - `user`: 사용자 프로필, 역할, 활성 상태, 프로필 조회·수정, 회원가입 프로필 생성(`FormSignUpTask`, `SocialSignUpTask` 이벤트 수신).
 - `common`: 공통 인증 주체, 예외, JPA 저장소, MapStruct 설정.
 - `global`: Spring 설정, 보안 필터와 JWT, 캐시, 공통 예외 응답 전략, 웹 설정, Outbox 기반.
@@ -61,6 +62,8 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 
 **로그인 성공 핸들러**: `FormLoginSuccessHandler`가 JWT 발급 후 `FormLoginSuccessEvent`를 발행하고, 게스트 쿠키가 있으면 `SocialSignUpTask` 이벤트를 발행하여 게스트 → 회원 전환을 처리한다.
 
+**Hibernate 2nd Level Cache**: Caffeine 기반 2차 캐시 설정이 추가되었다. `application.yml`에 JCache RegionFactory 활성화, `application.conf`에 `Category`(500개, 12시간), `Tag`(1000개, 6시간) 캐시 정책 정의. `Category`, `Tag` 엔티티에 `@Immutable`과 `@Cache(region=..., usage=READ_ONLY)` 적용.
+
 개발 일지에서 제시한 "평문 비밀번호를 auth에 국한"하는 방향은 반영됐다. 다만 사용자 프로필 생성은 작은 동기 인터페이스 호출이 아니라 명령 성격의 `FormSignUpTask` 이벤트를 사용한다. 이 방식의 실패·트랜잭션 의미를 ADR로 확정할 필요가 있다.
 
 ### 아직 확인되지 않은 P1 요구사항
@@ -80,7 +83,10 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 - Flyway `V1__init_schema.sql`에 `users`, 인증 테이블뿐 아니라 상품, 장바구니, 쿠폰, 주문, 결제, 배송 등 P1~P6 목표 테이블이 정의되어 있다.
 - `event_publication`은 Spring Modulith 이벤트 발행 저장 기반이다.
 - `user_credentials` 테이블에 `violation_count`, `until_locked` 컬럼이 추가되었다.
-- 계정 잠금 기능이 구현되었으며, 로그인 성공 시 `UserCredentialService.resetViolationOrNot`이 호출되어 잠금 해제 시간을 경과하면 위반 카운트가 초기화된다.
+- `products` 테이블에 `categories` 외래 키 제약(`fk_products_categories_id`)이 추가되었다.
+- `product_tags` 테이블에 `id`, `created_at` 컬럼이 추가되고 `products`, `tags` 외래 키 제약(`fk_product_tags_product_id`, `fk_product_tags_tag_id`)이 추가되었다. 삭제 시 CASCADE.
+- `categories` 테이블에 `name` UNIQUE 제약(`uq_categories_name`)이 추가되었다.
+- `Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus` 엔티티가 `product` 모듈에 추가되었다. `Category`, `Tag`는 읽기 전용(`@Immutable`)으로 2차 캐시 대상이다.
 - DB 테이블 존재는 해당 도메인 로직, 상태 머신, 동시성 제어, API 구현 완료를 의미하지 않는다.
 - 이후 스키마 변경은 V1을 수정하기보다 새 마이그레이션을 추가하는 것이 기본이다.
 
@@ -104,7 +110,7 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 1. 요구사항은 도메인 간 직접 Bean 주입을 금지하고 이벤트 통신을 요구하지만 현재 `auth`는 `user::user-api` 동기 Named Interface도 사용한다. 허용할 조회 seam의 기준을 ADR로 정해야 한다.
 2. `auth`와 `user`가 서로의 Named Interface를 허용한다. 신규 기능은 현재 순환 의존을 확대하지 않아야 한다.
 3. `FormSignUpTask`/`SocialSignUpTask`는 도메인 사실보다 명령에 가깝다. 이벤트로 유지할지 동기 프로필 생성 인터페이스로 바꿀지 결정해야 한다.
-4. Product, Delivery, Payment의 목표 상태값과 V1 DB CHECK 제약조건이 다르다. P2/P5 구현 전 정렬해야 한다.
+4. `Product`, `Delivery`, `Payment`의 목표 상태값과 V1 DB CHECK 제약조건이 다르다. P2/P5 구현 전 정렬해야 한다. → P2 `Product` 엔티티 추가 시 `ProductStatus` Enum(`ON_SALE`, `SOLD_OUT`, `RESTOCK_SCHEDULED`) 정의 완료, V1 CHECK 제약(`chk_products_status`)과 일치 확인됨.
 5. 요구사항의 UserCredential 1:N과 현재 설계·구현의 0..1 관계가 다르다.
 6. 구현 계획은 Spring Boot 3.5.15를 적었지만 현재 빌드는 3.5.16이다. 현재 빌드 파일을 실행 기준으로 사용한다.
 7. 구현 계획은 PostgreSQL 16, README 배지는 PostgreSQL 17을 가리킨다. 지원 버전을 확정해야 한다.
