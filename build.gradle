@@ -1,4 +1,4 @@
-import java.awt.Desktop
+import java.awt.*
 
 plugins {
     id 'java'
@@ -68,6 +68,11 @@ dependencies {
     // spring cache
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation "com.github.ben-manes.caffeine:caffeine"
+
+    // Hibernate 2nd Level Cache & JCache
+    implementation 'org.hibernate.orm:hibernate-jcache'
+    implementation 'javax.cache:cache-api:1.1.1'
+    implementation 'com.github.ben-manes.caffeine:jcache'
 
     // === 8. Database Driver (런타임용, 테스트용 포함) ===
     runtimeOnly 'org.postgresql:postgresql' // PostgreSQL JDBC 드라이버

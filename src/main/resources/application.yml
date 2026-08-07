@@ -1,6 +1,16 @@
 spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE}
+  jpa:
+    properties:
+      hibernate:
+        cache:
+          use_second_level_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+        javax:
+          cache:
+            missing_cache_strategy: fail
   flyway:
     enabled: false
     baseline-on-migrate: false

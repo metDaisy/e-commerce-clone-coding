@@ -20,13 +20,13 @@ CREATE TABLE users
 
 CREATE TABLE user_credentials
 (
-    user_id     UUID PRIMARY KEY,
-    email      VARCHAR(100) NOT NULL,
-    password   VARCHAR(255) NOT NULL,
-    violation_count integer not null,
-    until_locked timestamp with time zone,
-    created_at TIMESTAMP WITH TIME ZONE,
-    updated_at TIMESTAMP WITH TIME ZONE
+    user_id         UUID PRIMARY KEY,
+    email           VARCHAR(100) NOT NULL,
+    password        VARCHAR(255) NOT NULL,
+    violation_count integer      not null,
+    until_locked    timestamp with time zone,
+    created_at      TIMESTAMP WITH TIME ZONE,
+    updated_at      TIMESTAMP WITH TIME ZONE
 );
 -- id/pw 에 대한 인증정보
 
@@ -94,8 +94,10 @@ CREATE TABLE tags
 
 CREATE TABLE product_tags
 (
+    id         UUID primary key,
     product_id UUID NOT NULL,
-    tag_id     UUID NOT NULL
+    tag_id     UUID NOT NULL,
+    created_at timestamp with time zone
 );
 
 CREATE TABLE reviews
@@ -281,6 +283,14 @@ ALTER TABLE users
 -- products
 ALTER TABLE products
     ADD CONSTRAINT chk_products_status CHECK (status IN ('ON_SALE', 'SOLD_OUT', 'RESTOCK_SCHEDULED'));
+alter table products
+    add constraint fk_products_categories_id foreign key (category_id) REFERENCES categories (id);
+
+-- product_tags
+alter table product_tags
+    add constraint fk_product_tags_product_id foreign key (product_id) references products (id) on DELETE cascade;
+alter table product_tags
+    add constraint fk_product_tags_tag_id foreign key (tag_id) references tags (id) on delete cascade;
 
 -- reviews
 ALTER TABLE reviews
@@ -322,6 +332,10 @@ ALTER TABLE payment_methods
 -- payments
 ALTER TABLE payments
     ADD CONSTRAINT chk_payments_status CHECK (status IN ('COMPLETED', 'FAILED', 'REFUNDED'));
+
+-- categories
+alter table categories
+    add constraint uq_categories_name unique (name);
 
 -- ============================================================================
 -- INDEXES
