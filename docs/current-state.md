@@ -8,7 +8,7 @@
 
 - 확인일: 2026-08-08
 - Git 브랜치: `product/issue17`
-- 기준 Git SHA: `c78ecca212cb1407cde52b2d37899fa1c58f341f`
+- 기준 Git SHA: `6d0c1c21eb296bc057265d0e94c667372d7bfd88`
 - 코드 지식 그래프: 기준 SHA와 일치
 - 검증 범위: 요구사항, 구현 계획, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 코드 존재와 구조에 대한 상태이며 전체 테스트 통과 선언이 아니다.
@@ -20,7 +20,7 @@
 | 단계 | 상태 | 확인된 범위 |
 |---|---|---|
 | P1 User & Auth | 진행 중 | 회원가입, 프로필 조회·수정, 로컬·소셜 인증 기반, JWT, 토큰 블랙리스트, 계정 비활성화 기반, **계정 잠금, 로그인 시도 횟수 관리** |
-| P2 Catalog & Inventory | 구현 시작 | Flyway 테이블 존재, `product` 모듈 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`) 추가; 서비스/리포지토리/API 미구현 |
+| P2 Catalog & Inventory | 상품 생성·조회 구현 | Flyway 테이블 존재, `product` 모듈 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`) 및 리포지토리, 서비스(`ProductService`, `TagService`), 컨트롤러(`ProductController`) 구현; 태그 자동 생성 로직 포함 |
 | P3 Cart | 미구현 | Flyway 테이블만 존재 |
 | P4 Coupon | 미구현 | Flyway 테이블만 존재 |
 | P5 Order & Payment | 미구현 | Flyway 테이블만 존재 |
@@ -30,7 +30,7 @@
 
 ### 구현된 모듈
 
-- `product`: 상품 도메인 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`), 모듈 seam(`allowedDependencies: common::*`).
+- `product`: 상품 도메인 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`), 리포지토리(`ProductRepository`, `CategoryRepository`, `TagRepository`), 서비스(`ProductService`, `TagService`), 컨트롤러(`ProductController`). 모듈 seam(`allowedDependencies: common::*`). `TagService`는 기존 태그 조회 후 미등록 태그 자동 생성 로직 포함.
 - `auth`: 로컬·소셜 Credential, 회원가입 진입점, 비밀번호 정책, Form/OAuth2 로그인 지원 클래스, Access·Refresh·Guest JWT, 로그아웃과 사용자·토큰 블랙리스트, 로그인 정책(`LoginPolicyProperties`), 계정 잠금 로직(`UserCredential`의 `violationCount`/`untilLocked`), 로그인 실패/성공/로그아웃 이벤트(`IncorrectPasswordEvent`, `FormLoginSuccessEvent`, `JwtLogoutSuccessEvent`) 및 핸들러(`UserCredentialEventHandler`), **서비스 분리(`UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 위임)**, **FormLoginSuccessHandler에서 로그인 성공 이벤트 발행 및 게스트 → 회원 전환 이벤트(`SocialSignUpTask`) 발행**. 로그인을 성공 후 게스트 쿠키를 가진 사용자를 회원으로 전환하는 로직이 추가되었다.
 - `user`: 사용자 프로필, 역할, 활성 상태, 프로필 조회·수정, 회원가입 프로필 생성(`FormSignUpTask`, `SocialSignUpTask` 이벤트 수신).
 - `common`: 공통 인증 주체, 예외, JPA 저장소, MapStruct 설정.
@@ -44,6 +44,8 @@
 - `POST /auth/update`
 - `GET /users/me`
 - `POST /users/update`
+- `POST /product` (관리가 필요함, `PRODUCT_MANAGER` 역할)
+- `GET /product/{id}`
 
 Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler와 filter로 구성되어 컨트롤러 라우트 목록에 모두 나타나지 않는다.
 
