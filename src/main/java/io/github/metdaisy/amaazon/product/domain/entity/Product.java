@@ -24,11 +24,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.SQLDelete;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "products")
+@SQLDelete(sql = "UPDATE products SET is_deleted = true, updated_at = now() WHERE id = ?")
 public class Product extends MutableEntity {
 
   @NotNull

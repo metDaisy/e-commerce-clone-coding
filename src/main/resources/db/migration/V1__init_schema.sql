@@ -81,6 +81,7 @@ CREATE TABLE products
     stock_quantity INTEGER      NOT NULL DEFAULT 0,
     view_count     INTEGER      NOT NULL DEFAULT 0,
     is_time_sale   BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_deleted     boolean      not null default false,
     created_at     TIMESTAMP WITH TIME ZONE,
     updated_at     TIMESTAMP WITH TIME ZONE
 );
