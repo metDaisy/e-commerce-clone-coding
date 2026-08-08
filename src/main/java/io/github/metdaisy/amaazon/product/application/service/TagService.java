@@ -19,7 +19,7 @@ public class TagService {
 
   @Transactional
   public List<Tag> findAndCreate(List<String> names) {
-    List<Tag> tags = new ArrayList<>(repository.findAllByName(names));
+    List<Tag> tags = new ArrayList<>(repository.findByNameIn(names));
     Set<String> tagNames = tags.stream().map(Tag::getName).collect(Collectors.toSet());
     Set<String> noNames = new HashSet<>(names);
     noNames.removeAll(tagNames);

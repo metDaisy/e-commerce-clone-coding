@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface TagRepository extends DomainRepository<Tag> {
 
-  List<Tag> findAllByName(List<String> names);
+  List<Tag> findByNameIn(List<String> names);
 }
