@@ -50,7 +50,8 @@ public class Product extends MutableEntity {
   @Column(name = "name", nullable = false)
   private String name;
 
-  @Column(name = "description", length = Integer.MAX_VALUE)
+  @NotNull
+  @Column(name = "description", length = Integer.MAX_VALUE, nullable = false)
   private String description;
 
   @NotNull

@@ -72,7 +72,7 @@ CREATE TABLE products
     category_id    UUID         NOT NULL,
     manager_id     UUID         not null,
     name           VARCHAR(255) NOT NULL,
-    description    TEXT,
+    description    TEXT         not null,
     price          INTEGER      NOT NULL,
     sale_price     INTEGER,
     sale_start_at  TIMESTAMP WITH TIME ZONE,
