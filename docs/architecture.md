@@ -146,13 +146,8 @@ sequenceDiagram
 - Spring Security 필터 체인의 인증 실패는 `AuthenticationExceptionEntryPoint`가 `HandlerExceptionResolver`에 위임하여 같은 응답 흐름으로 전달한다. 접근 거부처럼 필터 체인에서 직접 처리하는 경우에도 외부 응답 형식이 달라지지 않도록 경계 테스트로 확인한다.
 - 예외 원문, 토큰, 비밀번호와 내부 구현 정보는 클라이언트 응답에 노출하지 않는다.
 
-## 검증
+## 검증 경계
 
 - Spring Modulith 구조 검증으로 허용하지 않은 의존성을 탐지한다.
-- 모듈 테스트는 공개 인터페이스와 이벤트를 테스트 표면으로 사용한다.
-- 저장소·외부 연동은 adapter별 통합 테스트를 둔다.
-- `build.gradle`의 `jacocoExcludePatterns`는 JaCoCo 리포트와 80% 커버리지 검증에서 제외할 클래스라서 테스트 작성하지 않아도 된다.
-- 커버리지 대상인 application service, controller, 직접 작성한 adapter처럼 분기·상태 변경·외부 입출력을 다루는 클래스는 단위 테스트 또는 통합 테스트를 작성한다.
-- `domain`, `config`, `exception`, `outbox`처럼 제외된 경로라도 비즈니스 불변식, 보안 판단, 재시도·멱등성 또는 변환 로직이 있으면 해당 동작을 테스트한다.
-- DTO·이벤트 payload·상수·예외 타입·port 인터페이스·설정 properties·생성 코드처럼 상태와 분기가 없는 선언형 클래스는 직접 테스트하지 않는다.
-- 단순 예외 전략은 클래스별 단위 테스트를 만들지 않는다. 대신 controller, `ApiExceptionHandler`, Security entry point와 access denied 경계에서 HTTP 상태와 `ExceptionResponse` 계약을 검증한다.
+- 모듈 테스트는 공개 인터페이스·이벤트를, 저장소·외부 연동은 adapter 통합 테스트를 표면으로 사용한다.
+- 상세한 테스트 선택과 Given-When-Then 규칙은 [testing-guide.md](testing-guide.md)를 따른다.
