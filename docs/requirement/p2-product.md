@@ -28,21 +28,21 @@ CatalogProduct (상품군/전시 상품)
 | Offer | 49,900원, ACTIVE | 해당 Variant의 판매 가격과 판매 조건 |
 | Inventory | 100개 | 해당 Offer의 구매 가능 수량 |
 
-- 상품 등록자는 `PRODUCT_MANAGER` 또는 `ADMIN`이다.
+- 상품 등록자는 판매자 역할인 `PRODUCT_MANAGER` 또는 플랫폼 운영 역할인 `ADMIN`이다.
 - 요구사항에서는 단일 플랫폼 판매자, 기본 Variant 1개, 기본 Offer 1개만 생성한다.
+- 판매자 신청·승인과 판매자 Offer 관리는 P8에서 정의한다. `PRODUCT_MANAGER`는 자신의 상품·Offer·재고를 관리하고, `ADMIN`은 플랫폼 운영 목적으로 동일 기능을 수행할 수 있다.
 - `productId`, `variantId`, `offerId`는 서로 다른 서버 생성 UUID다.
+- `products.manager_id`는 상품을 등록·관리한 `users.id`다. `PRODUCT_MANAGER`는 자신이 등록한 상품만 수정·보관할 수 있고, `ADMIN`은 모든 상품을 관리할 수 있다.
 - `sku`는 구매 단위의 고유 식별자다.
 - `asin`, `gtin`, `upc`, `ean`, `isbn`은 외부 식별자로 선택 저장하며 내부 PK로 사용하지 않는다.
-- `sellerId`는 요구사항의 필수 입력이 아니다. 값이 없으면 플랫폼 기본 Offer로 생성한다.
+- 상품 등록 요청에는 `sellerId`를 받지 않는다. `PRODUCT_MANAGER`가 등록하면 인증된 `SellerProfile`을 Offer 소유자로 사용하고, `ADMIN`이 등록하면 플랫폼 기본 Offer로 생성한다.
+- `offers.seller_id`는 Offer를 소유한 `seller_profiles.id`이며, `ADMIN`이 생성한 플랫폼 기본 Offer는 `NULL`이다.
 
 ## 2. API 목록
 
 | Method | URI | 권한 | 설명 |
 |---|---|---|---|
 | GET | `/api/v1/categories` | 공개 | 카테고리 트리 조회 |
-| POST | `/api/v1/categories` | ADMIN | 카테고리 생성 |
-| PATCH | `/api/v1/categories/{categoryId}` | ADMIN | 카테고리 수정 |
-| DELETE | `/api/v1/categories/{categoryId}` | ADMIN | 카테고리 삭제 |
 | GET | `/api/v1/products` | 공개 | 상품 목록·검색 |
 | POST | `/api/v1/products` | PRODUCT_MANAGER, ADMIN | 상품 등록 |
 | GET | `/api/v1/products/{productId}` | 공개 | 상품 상세 |
@@ -59,7 +59,9 @@ CatalogProduct (상품군/전시 상품)
 ### 3-1. 카테고리
 
 - `parent_id` 자기참조 FK로 계층을 관리한다.
-- 현재 구현 범위는 최대 3단계이며 루트는 `parent_id = NULL`이다.
+- `depth`는 루트를 1로 하는 계층 깊이이며, 자식은 부모 `depth + 1`로 저장한다.
+- 현재 구현 범위는 최대 3단계이며 루트는 `parent_id = NULL`, `depth = 1`이다.
+- `depth`는 `1~3`만 허용하고, 카테고리 생성·이동 시 부모와의 깊이 관계를 같은 트랜잭션에서 검증한다.
 - `GET /api/v1/categories`는 전체 트리를 다음 형태로 반환한다.
 
 ```json
@@ -146,7 +148,7 @@ CatalogProduct (상품군/전시 상품)
 
 선택 입력:
 
-- `brand`, `tags`, `attributes`, `weight`, `dimensions`, `sellerId`
+- `brand`, `tags`, `attributes`, `weight`, `dimensions`
 
 등록 요청의 `variant`는 상품의 선택 옵션이 아니라 실제 구매 단위를 표현한다. 그러므로 `variant.sku`와 `variant.displayName`은 필수이며, 옵션이 없는 상품도 다음처럼 입력한다.
 
@@ -165,7 +167,7 @@ CatalogProduct (상품군/전시 상품)
 2. SKU가 중복되지 않았는지 확인한다.
 3. 가격은 0 이상, 재고는 0 이상이어야 한다.
 4. 상품·Variant·Offer·가격·재고를 하나의 트랜잭션으로 생성한다.
-5. `sellerId`가 없으면 플랫폼 기본 Offer를 생성한다.
+5. `PRODUCT_MANAGER`가 등록한 상품에는 해당 `SellerProfile`의 Offer를 생성하고, `ADMIN`이 등록한 상품에는 플랫폼 기본 Offer를 생성한다.
 6. 재고가 0이면 구매 가능 상태를 `OUT_OF_STOCK`으로 계산한다.
 
 성공 응답 `201`:
@@ -183,6 +185,13 @@ CatalogProduct (상품군/전시 상품)
   "createdAt": "2026-08-09T12:00:00Z"
 }
 ```
+
+#### 심화 사항
+
+- 다중 Variant와 variation theme을 지원한다.
+- Variant별 이미지·가격·재고를 지원한다.
+- 다중 판매자 Offer, 상품 상태, 출고자, 배송 조건, 반품 정책을 지원한다.
+- 대표 Offer 선택과 Buy Box를 지원한다.
 
 ### 3-3. 상품 수정·보관
 
@@ -253,6 +262,10 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 - 품절 상품은 `availability=IN_STOCK`일 때 제외한다.
 - 요구사항에서는 LIKE 검색을 허용하되, 검색 결과의 응답 구조는 전문 검색 엔진으로 교체해도 유지한다.
 
+#### 심화 사항
+
+- 카테고리별 동적 Facet, 자동완성, 오타 보정, 전문 검색을 지원한다.
+
 ### 3-5. 상품 상세
 
 `GET /api/v1/products/{productId}`
@@ -297,6 +310,10 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 - API는 기본 가격, 적용 가격, 할인율을 구분한다.
 - 가격 변경 권한은 `PRODUCT_MANAGER`, `ADMIN`이다.
 
+#### 심화 사항
+
+- 쿠폰, 회원 가격, 수량 할인, 복수 프로모션과 가격 이력을 지원한다.
+
 ### 3-7. 재고
 
 `POST /api/v1/offers/{offerId}/inventory-adjustments`
@@ -327,6 +344,10 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 - 동시성 제어로 수량이 음수가 되지 않도록 한다.
 - 사용자 응답에는 정확한 수량 대신 `IN_STOCK`, `OUT_OF_STOCK`를 반환한다.
 - 고객 상품 페이지의 실시간 WebSocket은 요구사항에 포함하지 않는다.
+
+#### 심화 사항
+
+- 재고 예약, 예약 만료, 안전재고, 다중 창고, 백오더를 지원한다.
 
 ### 3-8. 리뷰
 
@@ -369,6 +390,10 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 - 사용자당 하나의 CatalogProduct에 하나의 리뷰만 허용한다.
 - 평점은 1~5 정수, 본문은 최대 2000자, 이미지는 최대 5장이다.
 
+#### 심화 사항
+
+- Variant별 리뷰, 인증 구매, 고객 이미지·동영상, 도움됨 투표와 리뷰 검수를 지원한다.
+
 ## 4. 예외
 
 | HTTP | 코드 | 발생 조건 |
@@ -389,14 +414,3 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 409 | `INSUFFICIENT_STOCK` | 주문 수량이 재고보다 많음 |
 | 409 | `REVIEW_ALREADY_EXISTS` | 이미 리뷰 작성 |
 | 409 | `PRODUCT_ARCHIVED` | 보관 상품 변경 시도 |
-
-## 5. 심화사항
-
-- 다중 Variant와 variation theme을 지원한다.
-- Variant별 이미지·가격·재고를 지원한다.
-- 다중 판매자 Offer, 상품 상태, 출고자, 배송 조건, 반품 정책을 지원한다.
-- 대표 Offer 선택과 Buy Box를 지원한다.
-- 카테고리별 동적 Facet, 자동완성, 오타 보정, 전문 검색을 지원한다.
-- 쿠폰, 회원 가격, 수량 할인, 복수 프로모션과 가격 이력을 지원한다.
-- 재고 예약, 예약 만료, 안전재고, 다중 창고, 백오더를 지원한다.
-- Variant별 리뷰, 인증 구매, 고객 이미지·동영상, 도움됨 투표와 리뷰 검수를 지원한다.

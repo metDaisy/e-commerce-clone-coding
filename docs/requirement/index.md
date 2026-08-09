@@ -14,6 +14,8 @@
 | P4 Coupon | [p4-coupon.md](p4-coupon.md) |
 | P5 Order, Payment, Delivery | [p5-order-payment-delivery.md](p5-order-payment-delivery.md) |
 | P6 Outbox & Saga | [p6-infrastructure.md](p6-infrastructure.md) |
+| P7 Admin & Operations | [p7-admin.md](p7-admin.md) |
+| P8 Seller & Marketplace | [p8-seller.md](p8-seller.md) |
 
 현재 구현 여부는 [current-state.md](../current-state.md)를 확인한다. 구현 순서는 각 작업 요청과 현재 상태를 기준으로 결정한다.
 
