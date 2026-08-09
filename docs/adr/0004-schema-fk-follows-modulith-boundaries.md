@@ -10,7 +10,7 @@
 
 이 프로젝트는 하나의 PostgreSQL 스키마를 사용하는 Spring Modulith 구조다. 데이터베이스가 모든 도메인 간 UUID에 외래 키를 만들면 모듈 간 결합이 생기고, 이벤트 기반 협력과 독립적인 도메인 변경을 어렵게 만든다.
 
-반면 같은 도메인의 엔티티 관계는 데이터 무결성을 위해 DB 외래 키가 필요하다. 기존 `V1__init_schema.sql`은 현재 구현과 Spring Modulith 기반 테이블을 제공하므로 기존 migration을 삭제하거나 수정할 수 없다.
+반면 같은 도메인의 엔티티 관계는 데이터 무결성을 위해 DB 외래 키가 필요하다. 기본 요구사항 스키마는 `V1__init_schema.sql`에서 관리한다.
 
 ## Decision Drivers
 
@@ -35,8 +35,8 @@ Option B를 선택한다.
 
 - 같은 도메인 내부 엔티티에는 FK를 생성한다. 예: `product_tags → products/tags`, `cart_items → carts`, `order_items → orders`, `saga_steps → saga_instances`.
 - 다른 도메인의 ID는 UUID 컬럼으로 저장하되 FK를 생성하지 않는다. 예: 인증수단의 `user_id`, 리뷰의 `product_id`, 결제·배송의 `order_id`.
-- `V1__init_schema.sql`은 유지한다.
-- `V2__align_requirement_schema.sql`에 요구사항 기준 컬럼·P2 구매 모델·내부 FK를 추가한다.
+- `V1__init_schema.sql`에 요구사항 기준 컬럼·구매 모델·내부 FK를 정의한다.
+- 심화사항은 이후 버전의 별도 Flyway migration으로 추가한다.
 - 소셜 회원가입은 `users`와 `social_credentials`를 생성하고, 로컬 이메일·비밀번호용 `user_credentials`는 생성하지 않는다.
 
 ## Consequences
@@ -61,7 +61,6 @@ Option B를 선택한다.
 
 ## Evidence
 
-- [V2 요구사항 스키마 migration](../../src/main/resources/db/migration/V2__align_requirement_schema.sql)
+- [V1 요구사항 스키마 migration](../../src/main/resources/db/migration/V1__init_schema.sql)
 - [아키텍처 문서](../architecture.md)
 - [요구사항 인덱스](../requirement/index.md)
-
