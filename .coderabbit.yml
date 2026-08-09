@@ -58,14 +58,8 @@ reviews:
     sqlfluff:
       enabled: true
   path_filters:
-    - "!build/**"
-    - "!target/**"
-    - "!.gradle/**"
-    - "!**/*.class"
-    - "!**/*.jar"
-    - "!amaazon-front/**"
-    - "!AGENTS.md"
-    - "!docs/**"
+    - "src/main/java/**"
+    - "src/test/java/**"
 
 chat:
   auto_reply: true
