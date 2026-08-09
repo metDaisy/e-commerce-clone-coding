@@ -3,275 +3,420 @@
 [![CI Pipeline](https://github.com/metDaisy/e-commerce-clone-coding/actions/workflows/ci.yml/badge.svg)](https://github.com/metDaisy/e-commerce-clone-coding/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/metDaisy/e-commerce-clone-coding/graph/badge.svg?token=qUz12GJ8C4)](https://codecov.io/gh/metDaisy/e-commerce-clone-coding)
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://adoptium.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.15-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 
----
+요구사항과 구현 문서는 [문서 인덱스](./docs/index.md)에서 확인할 수 있습니다. 기본 데이터베이스 스키마는 [`V1__init_schema.sql`](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되어 있습니다.
 
-[구현 계획](./docs/implementation-plan.md)
+## 기본 스키마
 
----
+심화사항을 제외한 P1~P8 요구사항의 테이블을 영역별로 나누었습니다. 모든 식별자는 UUID입니다. 모듈 간 식별자에는 DB FK를 만들지 않고 애플리케이션 계약으로 검증합니다.
 
 <details>
-<summary> 데이터베이스 다이어그램 (Mermaid)</summary>
+<summary>P1 User & Auth</summary>
 
 ```mermaid
 erDiagram
-    %% =======================
-    %% 1. User & Auth Module
-    %% =======================
     users {
-        bigint id PK
-        varchar name "이름"
-        varchar phone_number "휴대전화번호"
-        varchar role "권한 (USER, ADMIN, PRODUCT_MANAGER)"
-        int point_balance "보유 포인트 (화폐 대체)"
-        timestamp created_at
-        timestamp updated_at
+        UUID id PK
+        VARCHAR name
+        VARCHAR phone_number
+        VARCHAR role
+        INTEGER point_balance
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
     }
-
     user_credentials {
-        bigint id PK
-        bigint user_id FK "users.id"
-        varchar login_type "로그인 방식 (LOCAL, OAUTH)"
-        varchar login_id "이메일 또는 OAuth 식별자"
-        varchar password "암호화된 비밀번호"
-        varchar provider "google, kakao 등"
-        timestamp created_at
-        timestamp updated_at
+        UUID user_id PK
+        VARCHAR email UK
+        VARCHAR password
+        INTEGER violation_count
+        TIMESTAMPTZ until_locked
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
     }
-
+    social_credentials {
+        UUID id PK
+        UUID user_id
+        VARCHAR provider
+        VARCHAR provider_id
+        TIMESTAMPTZ created_at
+    }
     addresses {
-        bigint id PK
-        bigint user_id FK "users.id"
-        varchar zip_code "우편번호"
-        varchar address_line "상세 주소"
-        boolean is_default "기본 배송지"
-        timestamp created_at
-        timestamp updated_at
+        UUID id PK
+        UUID user_id
+        VARCHAR recipient_name
+        VARCHAR recipient_phone
+        VARCHAR postal_code
+        VARCHAR address_line
+        BOOLEAN is_primary
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
     }
-
     point_histories {
-        bigint id PK
-        bigint user_id FK "users.id"
-        int amount "변동 금액 (+/-)"
-        varchar description "사유 (예: 상품 구매 사용, 이벤트 적립)"
-        timestamp created_at
-        timestamp updated_at
+        UUID id PK
+        UUID user_id
+        INTEGER amount
+        VARCHAR description
+        TIMESTAMPTZ created_at
     }
-
-    %% =======================
-    %% 2. Common/Media Module
-    %% =======================
-    images {
-        bigint id PK
-        varchar target_type "대상 도메인 (PRODUCT, REVIEW)"
-        bigint target_id "도메인 PK"
-        varchar image_url "이미지 URL"
-        int sort_order "노출 순서"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% =======================
-    %% 3. Catalog & Inventory Module
-    %% =======================
-    categories {
-        bigint id PK
-        bigint parent_id FK "상위 카테고리"
-        varchar name "카테고리명"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    products {
-        bigint id PK
-        bigint category_id FK "categories.id"
-        bigint manager_id FK "users.id (상품 관리자)"
-        varchar name "상품명"
-        text description "상품 설명"
-        int price "정상가"
-        int sale_price "세일가 (할인 시)"
-        timestamp sale_start_at "세일 시작일"
-        timestamp sale_end_at "세일 종료일"
-        varchar status "상태 (ON_SALE, SOLD_OUT, RESTOCK_SCHEDULED)"
-        int stock_quantity "현재 재고"
-        int view_count "상품 조회수"
-        boolean is_time_sale "타임세일 여부"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    tags {
-        bigint id PK
-        varchar name "태그명"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    product_tags {
-        bigint product_id FK
-        bigint tag_id FK
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    reviews {
-        bigint id PK
-        bigint product_id FK "products.id"
-        bigint user_id FK "users.id"
-        int rating "평점 (1~5)"
-        text content "리뷰 내용"
-        timestamp created_at
-        timestamp updated_at
-    }
-
     wishlists {
-        bigint id PK
-        bigint user_id FK "users.id"
-        bigint product_id FK "products.id"
-        timestamp created_at "찜한 일시"
-        timestamp updated_at
+        UUID id PK
+        UUID user_id
+        UUID product_id
+        TIMESTAMPTZ created_at
+    }
+    refresh_tokens {
+        UUID id PK
+        UUID user_id
+        VARCHAR device_id
+        VARCHAR token
+        VARCHAR pre_token
+        TIMESTAMPTZ expired_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    blacklist_tokens {
+        UUID id PK
+        VARCHAR token
+        TIMESTAMPTZ expired_at
+        TIMESTAMPTZ created_at
+    }
+    blacklist_users {
+        UUID id PK
+        UUID user_id
+        TIMESTAMPTZ compromised_at
+        TIMESTAMPTZ created_at
     }
 
-    %% =======================
-    %% 4. Coupon Module
-    %% =======================
-    coupons {
-        bigint id PK
-        varchar name "쿠폰명"
-        varchar discount_type "PERCENTAGE, FIXED_AMOUNT"
-        int discount_value "할인 값"
-        timestamp valid_from "사용 시작일"
-        timestamp valid_until "사용 기한"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    user_coupons {
-        bigint id PK
-        bigint user_id FK "users.id"
-        bigint coupon_id FK "coupons.id"
-        boolean is_used "사용 여부"
-        timestamp used_at "실제 사용 일시"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% =======================
-    %% 5. Cart Module
-    %% =======================
-    carts {
-        bigint id PK
-        bigint user_id FK "users.id"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    cart_items {
-        bigint id PK
-        bigint cart_id FK "carts.id"
-        bigint product_id FK "products.id"
-        int quantity "담은 수량"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% =======================
-    %% 6. Order & Delivery Module
-    %% =======================
-    orders {
-        bigint id PK
-        bigint user_id FK "users.id"
-        bigint address_id "addresses.id"
-        bigint used_user_coupon_id "user_coupons.id (사용 쿠폰)"
-        int used_point_amount "사용한 포인트 금액"
-        varchar status "PENDING, PAID, PREPARING, SHIPPED, DELIVERED, CANCELED"
-        int original_amount "할인 전 총액"
-        int discount_amount "쿠폰 할인액"
-        int final_amount "최종 결제 금액 (포인트/쿠폰 제외 실 결제액)"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    order_items {
-        bigint id PK
-        bigint order_id FK "orders.id"
-        bigint product_id "products.id"
-        int quantity "수량"
-        int price "주문 당시 단가 (할인가 적용 여부 포함)"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    deliveries {
-        bigint id PK
-        bigint order_id FK "orders.id"
-        varchar status "PREPARING, SHIPPED, DELIVERED"
-        varchar tracking_number "운송장 번호"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% =======================
-    %% 7. Payment Module
-    %% =======================
-    payment_methods {
-        bigint id PK
-        bigint user_id "users.id"
-        varchar method_type "CARD, KAKAOPAY 등"
-        varchar provider "제공사"
-        varchar masked_number "마스킹된 번호"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    payments {
-        bigint id PK
-        bigint order_id "orders.id"
-        bigint payment_method_id FK "payment_methods.id"
-        varchar status "COMPLETED, FAILED, REFUNDED"
-        int amount "결제 금액 (PG사 요청 금액)"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% =======================
-    %% 8. Outbox (Transaction)
-    %% =======================
-    outbox {
-        bigint id PK
-        varchar aggregate_type "예: Order"
-        bigint aggregate_id "예: order_id"
-        varchar event_type "예: OrderCreatedEvent"
-        text payload "이벤트 데이터 (JSON)"
-        varchar status "PENDING, PUBLISHED"
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    %% Relationships Definition
-    users ||--|{ user_credentials : "authenticates via"
-    users ||--|{ addresses : "has"
-    users ||--o{ point_histories : "earns/spends"
-    users ||--o{ wishlists : "likes"
-    products ||--o{ wishlists : "liked by"
-    users ||--o{ products : "manages (Manager)"
-    users ||--o{ orders : "places"
-    users ||--o{ user_coupons : "owns"
-    coupons ||--o{ user_coupons : "issued as"
-    categories ||--o{ categories : "parent-child"
-    categories ||--|{ products : "contains"
-    products ||--o{ product_tags : "has"
-    tags ||--o{ product_tags : "assigned to"
-    products ||--o{ reviews : "receives"
-    users ||--o| carts : "owns"
-    carts ||--o{ cart_items : "contains"
-    products ||--o{ cart_items : "added as"
-    orders ||--|{ order_items : "has"
-    orders ||--o| deliveries : "requires"
-    user_coupons ||--o| orders : "applied to"
-    users ||--o{ payment_methods : "registers"
-    payment_methods ||--o{ payments : "used for"
+    users ||--o| user_credentials : local_login
+    users ||--o{ social_credentials : social_login
+    users ||--o{ addresses : owns
+    users ||--o{ point_histories : records
+    users ||--o{ wishlists : likes
 ```
 </details>
+
+<details>
+<summary>P2 Catalog & Inventory</summary>
+
+```mermaid
+erDiagram
+    categories {
+        UUID id PK
+        UUID parent_id FK
+        VARCHAR name
+        INTEGER depth "root=1, maximum=3"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    products {
+        UUID id PK
+        UUID category_id FK
+        UUID manager_id
+        VARCHAR name
+        TEXT description
+        VARCHAR brand
+        JSONB attributes
+        VARCHAR publication_status
+        TIMESTAMPTZ archived_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    product_variants {
+        UUID id PK
+        UUID product_id FK
+        VARCHAR sku UK
+        VARCHAR display_name
+        NUMERIC weight
+        JSONB dimensions
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    offers {
+        UUID id PK
+        UUID variant_id FK
+        UUID seller_id
+        NUMERIC base_price_amount
+        NUMERIC discount_price_amount
+        CHAR currency
+        TIMESTAMPTZ discount_start_at
+        TIMESTAMPTZ discount_end_at
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    inventories {
+        UUID id PK
+        UUID offer_id FK
+        INTEGER quantity
+        TIMESTAMPTZ updated_at
+    }
+    images {
+        UUID id PK
+        VARCHAR entity_type
+        UUID entity_id
+        VARCHAR media_type
+        VARCHAR image_url
+        BOOLEAN is_primary
+        INTEGER sort_order
+        TIMESTAMPTZ created_at
+    }
+    tags {
+        UUID id PK
+        VARCHAR name UK
+        TIMESTAMPTZ created_at
+    }
+    product_tags {
+        UUID id PK
+        UUID product_id FK
+        UUID tag_id FK
+        TIMESTAMPTZ created_at
+    }
+    reviews {
+        UUID id PK
+        UUID product_id
+        UUID user_id
+        INTEGER rating
+        VARCHAR content
+        TIMESTAMPTZ created_at
+    }
+
+    categories o|--o{ categories : parent_of
+    categories ||--o{ products : contains
+    products ||--o{ product_variants : has
+    product_variants ||--o{ offers : has
+    offers ||--|| inventories : stocks
+    products ||--o{ product_tags : tagged
+    tags ||--o{ product_tags : assigned
+```
+</details>
+
+<details>
+<summary>P3 Cart</summary>
+
+```mermaid
+erDiagram
+    carts {
+        UUID id PK
+        UUID user_id
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    cart_items {
+        UUID id PK
+        UUID cart_id FK
+        UUID offer_id
+        INTEGER quantity
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    carts ||--o{ cart_items : contains
+```
+</details>
+
+<details>
+<summary>P4 Coupon</summary>
+
+```mermaid
+erDiagram
+    coupons {
+        UUID id PK
+        VARCHAR name
+        VARCHAR discount_type
+        NUMERIC discount_value
+        NUMERIC max_discount_amount
+        NUMERIC minimum_order_amount
+        UUID applicable_category_id
+        INTEGER total_quantity
+        INTEGER issued_quantity
+        VARCHAR status
+        TIMESTAMPTZ valid_from
+        TIMESTAMPTZ valid_until
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    user_coupons {
+        UUID id PK
+        UUID user_id
+        UUID coupon_id FK
+        VARCHAR status
+        TIMESTAMPTZ used_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    coupons ||--o{ user_coupons : issued
+```
+</details>
+
+<details>
+<summary>P5 Order, Payment & Delivery</summary>
+
+```mermaid
+erDiagram
+    orders {
+        UUID id PK
+        VARCHAR order_number UK
+        UUID user_id
+        UUID address_id
+        UUID used_user_coupon_id
+        NUMERIC used_point_amount
+        VARCHAR status
+        NUMERIC subtotal_amount
+        NUMERIC discount_amount
+        NUMERIC shipping_fee
+        NUMERIC paid_amount
+        CHAR currency
+        VARCHAR shipping_recipient_name
+        VARCHAR shipping_recipient_phone
+        VARCHAR shipping_postal_code
+        VARCHAR shipping_address_line
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    order_items {
+        UUID id PK
+        UUID order_id FK
+        UUID product_id
+        UUID variant_id
+        UUID offer_id
+        VARCHAR sku
+        VARCHAR product_name
+        INTEGER quantity
+        NUMERIC unit_price
+        NUMERIC subtotal
+        CHAR currency
+        TIMESTAMPTZ created_at
+    }
+    payment_methods {
+        UUID id PK
+        UUID user_id
+        VARCHAR method_type
+        VARCHAR provider
+        VARCHAR masked_number
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    payments {
+        UUID id PK
+        UUID order_id FK
+        UUID payment_method_id FK
+        VARCHAR transaction_id UK
+        VARCHAR status
+        NUMERIC amount
+        CHAR currency
+        TIMESTAMPTZ paid_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    deliveries {
+        UUID id PK
+        UUID order_id FK
+        VARCHAR status
+        VARCHAR tracking_number
+        TIMESTAMPTZ delivery_status_updated_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    orders ||--o{ order_items : contains
+    orders ||--o{ payments : pays
+    payment_methods ||--o{ payments : used_for
+    orders ||--o| deliveries : ships
+```
+</details>
+
+<details>
+<summary>P6 Outbox & Saga</summary>
+
+```mermaid
+erDiagram
+    outbox_events {
+        UUID id PK
+        VARCHAR aggregate_type
+        UUID aggregate_id
+        VARCHAR event_type
+        JSONB payload
+        VARCHAR status
+        INTEGER retry_count
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ published_at
+        TEXT last_error
+    }
+    event_consumptions {
+        UUID id PK
+        UUID event_id FK
+        VARCHAR consumer
+        VARCHAR status
+        TIMESTAMPTZ processed_at
+        TIMESTAMPTZ created_at
+    }
+    saga_instances {
+        UUID id PK
+        UUID order_id
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    saga_steps {
+        UUID id PK
+        UUID saga_id FK
+        VARCHAR name
+        VARCHAR status
+        INTEGER retry_count
+        TIMESTAMPTZ completed_at
+        TEXT last_error
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+    event_publication {
+        UUID id PK
+        INTEGER completion_attempts
+        TIMESTAMPTZ completion_date
+        VARCHAR event_type
+        TIMESTAMPTZ last_resubmission_date
+        VARCHAR listener_id
+        TIMESTAMPTZ publication_date
+        TEXT serialized_event
+        VARCHAR status
+    }
+
+    outbox_events ||--o{ event_consumptions : consumed_by
+    saga_instances ||--o{ saga_steps : contains
+```
+</details>
+
+<details>
+<summary>P7 Admin & Operations</summary>
+
+P7은 별도 업무 데이터를 소유하지 않습니다. P2~P6의 공개 application interface를 통해 관리자 전용 기능과 운영·재처리를 제공합니다.
+</details>
+
+<details>
+<summary>P8 Seller & Marketplace</summary>
+
+```mermaid
+erDiagram
+    seller_profiles {
+        UUID id PK
+        UUID user_id
+        VARCHAR display_name
+        VARCHAR business_name
+        VARCHAR business_registration_hash
+        VARCHAR contact_email
+        VARCHAR contact_phone
+        VARCHAR status
+        UUID reviewed_by
+        TIMESTAMPTZ reviewed_at
+        VARCHAR review_reason
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+```
+</details>
+`products.manager_id`는 상품을 등록·관리한 `users.id`를 가리키는 모듈 간 논리 참조입니다. `offers.seller_id`는 Offer를 소유한 P8의 `seller_profiles.id`를 가리키며, 플랫폼 기본 Offer에서는 `NULL`입니다. 두 값 모두 모듈 간 논리 참조이므로 DB FK는 생성하지 않습니다.

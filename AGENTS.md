@@ -11,13 +11,13 @@
 ## Project
 
 - Backend: Java 17, Spring Boot, Spring Modulith, PostgreSQL, Flyway; frontend: React/TypeScript/Vite under `amaazon-front/`.
-- Target business rules are in `docs/requirement/index.md` and P1-P6; implementation order is tracked by the P1-P6 issue tree.
+- Target business rules are in `docs/requirement/index.md` and P1-P8; implementation order is tracked by the P1-P8 issue tree.
 - Use `docs/index.md` as the documentation map and `docs/current-state.md` as the implementation snapshot. Select relevant skills from `docs/skills/index.md` only when needed.
 
 ## Sources of truth
 
 1. Current behavior: code, tests, and Flyway migrations.
-2. Target behavior: `docs/requirement/index.md` and its P1-P6 documents.
+2. Target behavior: `docs/requirement/index.md` and its P1-P8 documents.
 3. Treat `current-state.md` as current only when its SHA matches HEAD; issue status describes intent, not completion. Report conflicts instead of guessing.
 
 ## Discovery
