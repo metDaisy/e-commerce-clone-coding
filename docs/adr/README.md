@@ -21,12 +21,11 @@ ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정�
 
 ## 인덱스
 
-아직 등록된 ADR이 없다.
-
-첫 후보:
-
-- 회원가입에서 `SignUpTask` 이벤트를 유지할지 동기 프로필 생성 인터페이스 seam으로 교체할지
-- 도메인 간 동기 Named Interface 조회를 어느 조건에서 허용할지
-- 요구사항과 V1 스키마의 Product·Delivery·Payment 상태값 중 무엇을 기준으로 삼을지
+| 번호 | 제목 | 상태 | 문서 |
+|---|---|---|---|
+| ADR-0001 | 요구사항을 공통 인덱스와 도메인 문서로 분리 | Accepted | [0001-split-requirements-by-domain.md](0001-split-requirements-by-domain.md) |
+| ADR-0002 | P2 상품군·Variant·Offer·재고 책임 분리 | Accepted | [0002-separate-p2-product-concepts.md](0002-separate-p2-product-concepts.md) |
+| ADR-0003 | OAuth provider는 프로젝트 정의 enum으로 관리 | Accepted | [0003-project-defined-oauth-provider.md](0003-project-defined-oauth-provider.md) |
+| ADR-0004 | 스키마 외래 키는 Modulith 도메인 경계를 따른다 | Accepted | [0004-schema-fk-follows-modulith-boundaries.md](0004-schema-fk-follows-modulith-boundaries.md) |
 
 ADR이 추가되면 번호, 제목, 상태, 대체 관계를 이 목록에 기록한다.
