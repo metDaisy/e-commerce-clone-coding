@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -127,7 +129,7 @@ class TokenParserTest {
   void parseClaim_success() throws Exception {
     // given
     String jti = UUID.randomUUID().toString();
-    java.util.Map<String, Object> otherClaims = new java.util.HashMap<>();
+    Map<String, Object> otherClaims = new HashMap<>();
     otherClaims.put("provider", "google");
     ParsedToken parsedToken = new ParsedToken(jti, "subject", new Date(System.currentTimeMillis() / 1000 * 1000),
         new Date(System.currentTimeMillis() / 1000 * 1000), "role", otherClaims);

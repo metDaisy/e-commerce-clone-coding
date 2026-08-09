@@ -71,11 +71,11 @@ class SocialUserDetailsServiceTest {
     SocialCredential credential = mock(SocialCredential.class);
     given(credential.getUserId()).willReturn(userId);
 
-    org.mockito.Mockito.lenient().when(repository.findByProviderIdAndProvider(any(), any()))
-        .thenReturn(Optional.of(credential));
+    given(repository.findByProviderIdAndProvider(any(), any()))
+        .willReturn(Optional.of(credential));
 
     AuthUserDto userDto = new AuthUserDto(userId, "ROLE_USER", true);
-    org.mockito.Mockito.lenient().when(userPort.loadUser(any())).thenReturn(Optional.of(userDto));
+    given(userPort.loadUser(any())).willReturn(Optional.of(userDto));
 
     // when
     OAuth2User result = service.loadUser(request);

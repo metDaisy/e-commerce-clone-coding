@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.auth.infra.repository;
 
 import io.github.metdaisy.amaazon.auth.domain.entity.BlacklistUser;
 import io.github.metdaisy.amaazon.auth.domain.repository.BlacklistUserRepository;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -13,5 +14,5 @@ public interface BlacklistUserJpaRepository extends JpaRepository<BlacklistUser,
 
   @Modifying
   @Query("DELETE FROM BlacklistUser u WHERE u.compromisedAt <= :compromisedAt")
-  void deleteByCompromisedAtLessThanEqual(@Param("compromisedAt") java.time.Instant compromisedAt);
+  void deleteByCompromisedAtLessThanEqual(@Param("compromisedAt") Instant compromisedAt);
 }

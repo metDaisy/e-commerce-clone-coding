@@ -1,0 +1,20 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'io.github.metdaisy.amaazon.build'
+version = '0.0.1-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    compileOnly 'com.puppycrawl.tools:checkstyle:10.21.4'
+}

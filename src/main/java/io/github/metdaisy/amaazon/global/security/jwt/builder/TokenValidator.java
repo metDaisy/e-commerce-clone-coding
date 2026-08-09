@@ -8,6 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
+import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -69,11 +70,11 @@ public class TokenValidator {
 
   private void verifyExpiration(SignedJWT signedJWT) {
     try {
-      java.util.Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+      Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
       if (expirationTime == null) {
         throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다.");
       }
-      if (expirationTime.before(new java.util.Date())) {
+      if (expirationTime.before(new Date())) {
         throw new JwtException(JwtErrorCode.TOKEN_EXPIRED);
       }
     } catch (JwtException e) {

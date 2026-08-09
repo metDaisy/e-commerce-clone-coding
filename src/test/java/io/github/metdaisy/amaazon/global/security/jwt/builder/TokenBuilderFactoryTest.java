@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +27,7 @@ class TokenBuilderFactoryTest {
     // given
     String subject = "user123";
     String authorities = "ROLE_USER,ROLE_ADMIN";
-    java.time.Duration accessTokenExpiration = java.time.Duration.ofSeconds(3600);
+    Duration accessTokenExpiration = Duration.ofSeconds(3600);
     given(jwtTokenExpiration.accessExpiration()).willReturn(accessTokenExpiration);
 
     // when
@@ -53,7 +54,7 @@ class TokenBuilderFactoryTest {
     // given
     String subject = "guest";
     String authorities = "";
-    given(jwtTokenExpiration.accessExpiration()).willReturn(java.time.Duration.ofSeconds(3600));
+    given(jwtTokenExpiration.accessExpiration()).willReturn(Duration.ofSeconds(3600));
 
     // when
     JWTClaimsSet claimsSet = tokenBuilderFactory.buildAccessTokenClaims(subject, authorities);
@@ -67,7 +68,7 @@ class TokenBuilderFactoryTest {
   void buildRefreshTokenClaims_success() {
     // given
     String subject = "user456";
-    java.time.Duration refreshTokenExpiration = java.time.Duration.ofSeconds(7200);
+    Duration refreshTokenExpiration = Duration.ofSeconds(7200);
     given(jwtTokenExpiration.refreshExpiration()).willReturn(refreshTokenExpiration);
 
     // when
@@ -92,7 +93,7 @@ class TokenBuilderFactoryTest {
     // given
     String provider = "google";
     String providerId = "google_12345";
-    java.time.Duration guestTokenExpiration = java.time.Duration.ofSeconds(1800);
+    Duration guestTokenExpiration = Duration.ofSeconds(1800);
     given(jwtTokenExpiration.guestExpiration()).willReturn(guestTokenExpiration);
 
     // when

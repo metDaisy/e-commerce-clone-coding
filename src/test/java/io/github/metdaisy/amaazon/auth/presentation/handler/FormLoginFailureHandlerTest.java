@@ -19,6 +19,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 
@@ -70,7 +71,7 @@ class FormLoginFailureHandlerTest {
     assertThat(response.getContentType()).isEqualTo("application/json");
   }
   @Mock
-  private org.springframework.context.ApplicationEventPublisher eventPublisher;
+  private ApplicationEventPublisher eventPublisher;
 
   @Test
   @DisplayName("onAuthenticationFailure_badCredentials")

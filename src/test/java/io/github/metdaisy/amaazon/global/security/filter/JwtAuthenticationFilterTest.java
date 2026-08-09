@@ -21,6 +21,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
@@ -140,7 +141,7 @@ class JwtAuthenticationFilterTest {
   }
 
   private Authentication createMockAuthentication() {
-    return new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+    return new UsernamePasswordAuthenticationToken(
         UUID.randomUUID().toString(), "token", Collections.emptyList());
   }
 }

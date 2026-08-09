@@ -1,1 +1,4 @@
 rootProject.name = "amaazon";
+
+include ':checkstyle-rules'
+project(':checkstyle-rules').projectDir = file('config/checkstyle-rules')
