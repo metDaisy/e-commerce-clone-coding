@@ -156,4 +156,3 @@ sequenceDiagram
 - `domain`, `config`, `exception`, `outbox`처럼 제외된 경로라도 비즈니스 불변식, 보안 판단, 재시도·멱등성 또는 변환 로직이 있으면 해당 동작을 테스트한다.
 - DTO·이벤트 payload·상수·예외 타입·port 인터페이스·설정 properties·생성 코드처럼 상태와 분기가 없는 선언형 클래스는 직접 테스트하지 않는다.
 - 단순 예외 전략은 클래스별 단위 테스트를 만들지 않는다. 대신 controller, `ApiExceptionHandler`, Security entry point와 access denied 경계에서 HTTP 상태와 `ExceptionResponse` 계약을 검증한다.
-- 모든 Gradle 검증은 `gradle-mcp`로만 실행한다.

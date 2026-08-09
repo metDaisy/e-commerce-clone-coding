@@ -14,18 +14,6 @@
 | 사용자 고민·작업 맥락 확인 | [dev-dairy.md](dev-dairy.md)의 관련 날짜              | 확정된 결과는 ADR과 현재 상태에서 재확인 |
 | 작업별 로컬 스킬 선택 | [skills/index.md](skills/index.md)               | 선택한 로컬 `SKILL.md`만 전문 읽기 |
 
-## 문서 역할
-
-- [requirement/index.md](requirement/index.md): 공통 API 계약과 P1~P6 요구사항 문서의 인덱스를 정의한다.
-- [requirement/p1-user-auth.md](requirement/p1-user-auth.md) ~ [requirement/p6-infrastructure.md](requirement/p6-infrastructure.md): 각 도메인의 URI, 요청·응답, 예외, 상태 전이, 요구사항과 심화사항을 정의한다.
-- [architecture.md](architecture.md): 목표 아키텍처와 현재 코드의 모듈·seam·통신 방식을 구분해 설명한다.
-- [domain-glossary.md](domain-glossary.md): 동일한 용어를 일관된 의미로 사용하기 위한 정의집이다.
-- [current-state.md](current-state.md): 특정 Git SHA에서 확인한 구현 범위, 미구현 범위, 충돌 사항을 기록하는 파생 스냅샷이다.
-- [adr/README.md](adr/README.md): 중요한 아키텍처 결정의 배경, 선택, 대안, 결과를 기록하는 규칙과 목록이다.
-- [testing-guide.md](testing-guide.md): Java 단위·슬라이스·통합 테스트 작성 규칙과 Given-When-Then, MockMvc, BDDMockito 사용법을 정의한다.
-- [dev-dairy.md](dev-dairy.md): 사용자가 직접 작성하는 시간순 개발 일지다. 에이전트가 자동으로 정리하거나 수정하지 않는다.
-- [skills/index.md](skills/index.md): `C:\Users\leee\.agents\skills`의 로컬 스킬 카탈로그다. 스킬 본문을 문서에 복제하지 않는다.
-
 ## 신뢰도와 최신성
 
 1. 현재 동작은 코드, 테스트, Flyway 마이그레이션이 기준이다.

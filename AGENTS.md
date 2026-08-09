@@ -21,7 +21,6 @@
 - Treat `docs/requirement/index.md` and its linked P1-P6 documents as the source for overall goals and business rules. The implementation sequence is tracked by the P1-P6 GitHub issue tree.
 - Documentation entry point: `docs/index.md`; current implementation snapshot: `docs/current-state.md`.
 - Task-specific personal skills are indexed in `docs/skills/index.md`. Select only skills relevant to the task and read each selected `SKILL.md` in full.
-- Custom Checkstyle rules are implemented in `build-tools/checkstyle-rules`; the Checkstyle configuration is `config/checkstyle/checkstyle.xml`.
 
 ## Sources of truth
 
@@ -34,15 +33,8 @@
 ## Context-efficient discovery
 
 - The codebase-memory project name is `e-commerce-clone-coding`.
-- Use Semble first when locating an implementation by meaning or behavior:
-  - For code, use Semble MCP `search`, then go directly to the returned file and line.
-  - For documentation and configuration, use the CLI with `--content docs` and `--content config`, respectively. Search code and documentation separately by purpose.
-  - Use Semble MCP `find_related` only to find implementations similar to a known location; similarity does not prove a call relationship.
-- Verify relationships for Semble-discovered symbols with codebase-memory:
-  - Use `search_graph` for the exact symbol, `trace_path` for call/data flow and impact analysis, and `get_code_snippet` only for the final target.
-  - Use `get_architecture` only when a high-level view is necessary.
-  - Before indexing, compare `index_status` with HEAD, inspect impact using `detect_changes`, and run `index_repository` only when required.
-- Use `rg` only when every occurrence of an exact string, error message, or configuration value is required.
+- Prefer Semble and codebase-memory MCP for code discovery and relationship checks; use targeted snippets only after locating the relevant symbol.
+- Use Semble's `docs` or `config` content scope for documentation and configuration. Use `rg` for exact strings or non-code files.
 - Never run equivalent searches in both Semble and codebase-memory: Semble discovers candidates; codebase-memory verifies structure.
 - Never pre-read the entire repository or large files. First narrow the relevant module, interface, and call path.
 
@@ -60,9 +52,8 @@
 ## Verification
 
 - All Gradle work must follow the mandatory `gradle-mcp` rule above.
-- For Checkstyle changes or Java source changes, run `checkstyleMain` and `checkstyleTest` through Gradle MCP.
 - For backend changes, run the nearest unit tests first. For module-seam changes, also run Spring Modulith structure verification and relevant integration tests.
-- When full backend verification is needed, run `test` and, when appropriate, `jacocoTestCoverageVerification` through Gradle MCP.
+- For full backend verification, run `check` through Gradle MCP; it includes Checkstyle. Run `jacocoTestCoverageVerification` when appropriate.
 - For frontend changes, run `npm run lint` and `npm run build` from `amaazon-front/`.
 - Documentation-only changes may skip Gradle builds, but verify links, paths, Git SHAs, and factual consistency with the code.
 

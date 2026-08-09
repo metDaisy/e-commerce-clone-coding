@@ -11,3 +11,12 @@ VITE_KAKAO_CLIENT_ID=
 ```
 
 </details>
+
+## 개발 검증
+
+이 디렉터리에서 실행한다.
+
+```shell
+npm run lint
+npm run build
+```
