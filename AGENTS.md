@@ -18,16 +18,17 @@
 - Amazon.com clone e-commerce system.
 - Backend: Java 17, Spring Boot 3.5.16, Spring Modulith, PostgreSQL, and Flyway in a modular monolith.
 - Frontend: React, TypeScript, and Vite application under `amaazon-front/`.
-- Treat `docs/requirement.md` as the source for overall goals and business rules, and `docs/implementation-plan.md` as the implementation sequence.
+- Treat `docs/requirement/index.md` and its linked P1-P6 documents as the source for overall goals and business rules. The implementation sequence is tracked by the P1-P6 GitHub issue tree.
 - Documentation entry point: `docs/index.md`; current implementation snapshot: `docs/current-state.md`.
 - Task-specific personal skills are indexed in `docs/skills/index.md`. Select only skills relevant to the task and read each selected `SKILL.md` in full.
+- Custom Checkstyle rules are implemented in `build-tools/checkstyle-rules`; the Checkstyle configuration is `config/checkstyle/checkstyle.xml`.
 
 ## Sources of truth
 
 1. For current behavior, prefer code, tests, and Flyway migrations.
-2. For target behavior, prefer `docs/requirement.md`.
+2. For target behavior, prefer `docs/requirement/index.md` and the linked domain requirement documents.
 3. `docs/current-state.md` is a snapshot at its recorded Git SHA. If that SHA differs from HEAD, recheck the code.
-4. Schedules and stages in `docs/implementation-plan.md` describe the intended order, not proof of completion.
+4. GitHub issue status and the P1-P6 issue tree describe intended work, not proof of completion.
 5. If documentation conflicts with code, report the difference and ask which side to change; never reconcile it by assumption.
 
 ## Context-efficient discovery
@@ -47,7 +48,7 @@
 
 ## Architecture rules
 
-- Backend top-level modules are `auth`, `user`, `common`, and `global`; add future domains as separate top-level packages.
+- Backend top-level modules are `auth`, `user`, `product`, `common`, and `global`; add future domains as separate top-level packages.
 - Keep `presentation`, `application`, `domain`, and `infra` responsibilities separate within each domain module.
 - Never reference another module's internal implementation packages. Use only published `@NamedInterface`s or events, and honor `package-info.java` `allowedDependencies`.
 - Spring Application Events are the default inter-module communication mechanism. When synchronous lookup is essential, use a small public interface seam without creating a new cyclic dependency.
@@ -59,6 +60,7 @@
 ## Verification
 
 - All Gradle work must follow the mandatory `gradle-mcp` rule above.
+- For Checkstyle changes or Java source changes, run `checkstyleMain` and `checkstyleTest` through Gradle MCP.
 - For backend changes, run the nearest unit tests first. For module-seam changes, also run Spring Modulith structure verification and relevant integration tests.
 - When full backend verification is needed, run `test` and, when appropriate, `jacocoTestCoverageVerification` through Gradle MCP.
 - For frontend changes, run `npm run lint` and `npm run build` from `amaazon-front/`.
