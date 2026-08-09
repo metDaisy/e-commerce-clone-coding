@@ -1,7 +1,7 @@
 # 현재 구현 상태
 
 > 관리 방식: 커밋된 코드에서 다시 만들 수 있는 파생 스냅샷이다. 의미 있는 기능 커밋,
-> 모듈·라우트·스키마 변경 후 Continue의 `/update-current-state` Prompt로 갱신한다.
+> 모듈·라우트·스키마 변경 후 Continue의 `/update` Prompt로 갱신한다.
 > 작업 트리가 깨끗하지 않으면 자동 갱신하지 않는다. 사람의 고민과 작업 과정은 `dev-dairy.md`, 결정 이유는 `adr/`에 보존한다.
 
 ## 스냅샷
@@ -10,7 +10,7 @@
 - Git 브랜치: `product/issue17`
 - 기준 Git SHA: `6d0c1c21eb296bc057265d0e94c667372d7bfd88`
 - 코드 지식 그래프: 기준 SHA와 일치
-- 검증 범위: 요구사항, 구현 계획, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
+- 검증 범위: 요구사항, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 코드 존재와 구조에 대한 상태이며 전체 테스트 통과 선언이 아니다.
 
 현재 HEAD가 기준 SHA와 다르면 이 문서를 그대로 신뢰하지 말고 변경 영향을 먼저 확인한다.
@@ -114,12 +114,10 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 3. `FormSignUpTask`/`SocialSignUpTask`는 도메인 사실보다 명령에 가깝다. 이벤트로 유지할지 동기 프로필 생성 인터페이스로 바꿀지 결정해야 한다.
 4. `Product`, `Delivery`, `Payment`의 목표 상태값과 V1 DB CHECK 제약조건이 다르다. P2/P5 구현 전 정렬해야 한다. → P2 `Product` 엔티티 추가 시 `ProductStatus` Enum(`ON_SALE`, `SOLD_OUT`, `RESTOCK_SCHEDULED`) 정의 완료, V1 CHECK 제약(`chk_products_status`)과 일치 확인됨.
 5. 요구사항의 UserCredential 1:N과 현재 설계·구현의 0..1 관계가 다르다.
-6. 구현 계획은 Spring Boot 3.5.15를 적었지만 현재 빌드는 3.5.16이다. 현재 빌드 파일을 실행 기준으로 사용한다.
-7. 구현 계획은 PostgreSQL 16, README 배지는 PostgreSQL 17을 가리킨다. 지원 버전을 확정해야 한다.
 
 ## 다음 진행 순서
 
-구현 계획을 따르되 다음 순서로 불확실성을 먼저 제거한다.
+다음 순서로 불확실성을 먼저 제거한다.
 
 1. 회원가입 seam과 이벤트 의미를 결정하고 첫 ADR로 기록한다.
 2. P1의 누락 기능과 요구사항 대비 테스트 범위를 확정한다.

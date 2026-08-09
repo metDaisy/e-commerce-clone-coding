@@ -4,7 +4,7 @@
 
 하나의 Spring Boot 배포 단위 안에서 도메인별 변경과 검증을 지역화하는 모듈러 모놀리스를 구축한다. 모듈은 작은 공개 인터페이스 뒤에 비즈니스 규칙과 저장 세부사항을 숨기고, 향후 MSA 전환 시 모듈 seam을 서비스 seam으로 발전시킬 수 있어야 한다.
 
-이 문서는 `docs/requirement.md`와 `docs/implementation-plan.md`의 목표 구조와 장기간 유지할 구조 원칙을 설명한다. 브랜치, Git SHA, 구현 완료 범위처럼 자주 바뀌는 정보는 `docs/current-state.md`에서 관리한다.
+이 문서는 `docs/requirement/index.md`의 목표 구조와 장기간 유지할 구조 원칙을 설명한다. 브랜치, Git SHA, 구현 완료 범위처럼 자주 바뀌는 정보는 `docs/current-state.md`에서 관리한다.
 
 구조, 모듈 seam, 허용 의존성이 바뀔 때만 이 문서를 갱신한다. 선택 이유는 이 문서에 누적하지 않고 ADR에 기록한다.
 
@@ -110,7 +110,7 @@ sequenceDiagram
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
 | P1 | `user`, `auth` | 프로필, 인증수단, 권한, 주소, 포인트, 관심상품 |
-| P2 | `catalog`, `inventory`, `review` | 카테고리, 상품, 이미지, 검색, 타임세일, 재고, 리뷰 |
+| P2 | `catalog`, `inventory`, `review` | 카테고리, CatalogProduct·Variant·Offer, 이미지, 검색, 가격 정책, 재고, 리뷰 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
 | P5 | `order`, `payment`, `delivery` | 금액 산출, 상태 머신, 결제와 환불, 배송 추적 |
@@ -121,9 +121,12 @@ sequenceDiagram
 ## 데이터와 트랜잭션
 
 - 모든 모듈은 현재 하나의 PostgreSQL 스키마를 공유한다.
-- `V1__init_schema.sql`에는 P1~P6 목표 테이블이 미리 정의되어 있지만 테이블 존재는 도메인 구현 완료를 의미하지 않는다.
+- `V1__init_schema.sql`은 현재 구현과 Spring Modulith 기반 테이블을 제공하고, `V2__align_requirement_schema.sql`은 요구사항 기준 컬럼·P2 구매 모델·같은 도메인 내부 FK를 보완한다. 테이블 존재는 도메인 구현 완료를 의미하지 않는다.
 - 스키마 변경은 새 Flyway 마이그레이션으로 적용한다.
 - 모듈 내부 원자성은 로컬 DB 트랜잭션으로 보장한다.
+- 도메인 간 식별자는 애플리케이션 이벤트 또는 공개 port로 검증하며 DB 외래 키를 만들지 않는다. 외래 키는 같은 도메인 내부 엔티티 관계에만 추가한다.
+- P2의 목표 모델은 전시 상품군인 `CatalogProduct`, 구매 단위인 `ProductVariant`, 판매 조건·가격인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. 초기 요구사항에서는 기본 Variant와 기본 Offer를 각각 하나만 생성한다.
+- 초기 요구사항에는 별도 Seller 모듈이 없으므로 `Offer.sellerId`는 선택값이며, 값이 없으면 플랫폼 기본 Offer로 처리한다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.
 
