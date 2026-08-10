@@ -34,7 +34,7 @@
 ### URI 규칙
 
 - 외부 API 기본 경로는 `/api/v1`이다.
-- 리소스는 복수 명사로 표현한다. 예: `/api/v1/products`, `/api/v1/orders`.
+- 리소스는 복수 명사로 표현한다. 예: `/api/v1/catalog-products`, `/api/v1/orders`.
 - 단일 리소스는 `/{resourceId}`를 사용한다.
 - 상태 변경은 하위 동작 명사를 사용한다. 예: `/orders/{orderId}/cancel`.
 - 관리자 전용 API는 `/api/v1/admin` 아래에 둔다.
@@ -141,7 +141,7 @@
 | 401 | 인증 정보 없음·위조·만료 | `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN` |
 | 402 | 결제 승인이 거절됨 | `PAYMENT_DECLINED` |
 | 403 | 인증은 됐지만 권한 없음 | `ACCESS_DENIED` |
-| 404 | 요청 리소스 없음 | `PRODUCT_NOT_FOUND` |
+| 404 | 요청 리소스 없음 | `CATALOG_PRODUCT_NOT_FOUND` |
 | 409 | 중복·현재 상태와 충돌 | `SKU_ALREADY_EXISTS`, `OUT_OF_STOCK` |
 | 423 | 계정 또는 리소스 잠금 | `ACCOUNT_LOCKED` |
 | 429 | 요청 제한 초과 | `RATE_LIMIT_EXCEEDED` |

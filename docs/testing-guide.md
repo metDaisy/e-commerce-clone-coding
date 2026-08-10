@@ -164,7 +164,7 @@ void create_shouldPassRequestBodyValuesToService() throws Exception {
       "Alice", "alice@example.com", "010-1234-5678", "Seoul", "Password1!");
 
   // when
-  mockMvc.perform(post("/api/v1/users")
+  mockMvc.perform(post("/api/v1/auth/signup")
           .contentType(MediaType.APPLICATION_JSON)
           .content(objectMapper.writeValueAsString(expected)))
       .andExpect(status().isCreated());
@@ -201,10 +201,11 @@ For validation errors, assert the field and error code. For service failures, st
 
 ```java
 // given
+UUID userId = UUID.randomUUID();
 given(userService.find(userId)).willThrow(new UserException(UserErrorCode.USER_NOT_FOUND));
 
 // when / then
-mockMvc.perform(get("/api/v1/users/{userId}", userId))
+mockMvc.perform(get("/api/v1/me"))
     .andExpect(status().isNotFound())
     .andExpect(jsonPath("$.error.code").value("USER_NOT_FOUND"));
 ```

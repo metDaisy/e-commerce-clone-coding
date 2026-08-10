@@ -21,7 +21,7 @@
 - 상품을 처음 추가하면 장바구니를 자동 생성한다.
 - 단일 상품 수량은 1~10개다.
 - 장바구니 전체 상품 종류는 최대 50개다.
-- 동일 Variant·Offer를 다시 추가하면 기존 수량에 합산한다.
+- 동일 ProductVariant·Offer를 다시 추가하면 기존 수량에 합산한다.
 - 수량을 0으로 변경하면 항목을 삭제한다.
 - 모든 조회·변경 API는 장바구니 소유자를 검증한다.
 
@@ -48,7 +48,7 @@
 {
   "cartItemId": "uuid",
   "offerId": "uuid",
-  "productId": "uuid",
+  "catalogProductId": "uuid",
   "quantity": 2,
   "unitPrice": { "amount": 49900.00, "currency": "KRW" },
   "subtotal": { "amount": 99800.00, "currency": "KRW" }
@@ -68,7 +68,7 @@
   "items": [
     {
       "cartItemId": "uuid",
-      "productId": "uuid",
+      "catalogProductId": "uuid",
       "variantId": "uuid",
       "offerId": "uuid",
       "name": "무선 헤드폰",

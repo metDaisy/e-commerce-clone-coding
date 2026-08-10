@@ -64,7 +64,7 @@ erDiagram
     wishlists {
         UUID id PK
         UUID user_id
-        UUID product_id
+        UUID catalog_product_id
         TIMESTAMPTZ created_at
     }
     refresh_tokens {
@@ -111,7 +111,7 @@ erDiagram
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
-    products {
+    catalog_products {
         UUID id PK
         UUID category_id FK
         UUID manager_id
@@ -131,7 +131,7 @@ erDiagram
     }
     product_variants {
         UUID id PK
-        UUID product_id FK
+        UUID catalog_product_id FK
         VARCHAR sku UK
         VARCHAR display_name
         NUMERIC weight
@@ -173,15 +173,15 @@ erDiagram
         VARCHAR name UK
         TIMESTAMPTZ created_at
     }
-    product_tags {
+    catalog_product_tags {
         UUID id PK
-        UUID product_id FK
+        UUID catalog_product_id FK
         UUID tag_id FK
         TIMESTAMPTZ created_at
     }
     reviews {
         UUID id PK
-        UUID product_id
+        UUID catalog_product_id
         UUID user_id
         INTEGER rating
         VARCHAR content
@@ -189,12 +189,12 @@ erDiagram
     }
 
     categories o|--o{ categories : parent_of
-    categories ||--o{ products : contains
-    products ||--o{ product_variants : has
+    categories ||--o{ catalog_products : contains
+    catalog_products ||--o{ product_variants : has
     product_variants ||--o{ offers : has
     offers ||--|| inventories : stocks
-    products ||--o{ product_tags : tagged
-    tags ||--o{ product_tags : assigned
+    catalog_products ||--o{ catalog_product_tags : tagged
+    tags ||--o{ catalog_product_tags : assigned
 ```
 </details>
 
@@ -286,11 +286,11 @@ erDiagram
     order_items {
         UUID id PK
         UUID order_id FK
-        UUID product_id
+        UUID catalog_product_id
         UUID variant_id
         UUID offer_id
         VARCHAR sku
-        VARCHAR product_name
+        VARCHAR catalog_product_name
         INTEGER quantity
         NUMERIC unit_price
         NUMERIC subtotal
@@ -424,4 +424,4 @@ erDiagram
 
 ```
 </details>
-`products.manager_id`는 상품을 등록·관리한 `users.id`를 가리키는 모듈 간 논리 참조입니다. `offers.seller_id`는 Offer를 소유한 P8의 `seller_profiles.id`를 가리키며, 플랫폼 기본 Offer에서는 `NULL`입니다. 두 값 모두 모듈 간 논리 참조이므로 DB FK는 생성하지 않습니다.
+`catalog_products.manager_id`는 상품을 등록·관리한 `users.id`를 가리키는 모듈 간 논리 참조입니다. `offers.seller_id`는 Offer를 소유한 P8의 `seller_profiles.id`를 가리키며, 플랫폼 기본 Offer에서는 `NULL`입니다. 두 값 모두 모듈 간 논리 참조이므로 DB FK는 생성하지 않습니다.

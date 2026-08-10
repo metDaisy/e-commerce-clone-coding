@@ -111,7 +111,7 @@ sequenceDiagram
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
 | P1 | `user`, `auth` | 프로필, 인증수단, 권한, 주소, 포인트, 관심상품 |
-| P2 | `catalog`, `inventory`, `review` | 카테고리, CatalogProduct·Variant·Offer, 이미지, 검색, 가격 정책, 재고, 리뷰 |
+| P2 | `catalog`, `inventory`, `review` | 카테고리, CatalogProduct·ProductVariant·Offer, 이미지, 검색, 가격 정책, 재고, 리뷰 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
 | P5 | `order`, `payment`, `delivery` | 금액 산출, 상태 머신, 결제와 환불, 배송 추적 |
@@ -128,9 +128,9 @@ sequenceDiagram
 - 스키마 변경은 새 Flyway 마이그레이션으로 적용한다.
 - 모듈 내부 원자성은 로컬 DB 트랜잭션으로 보장한다.
 - 도메인 간 식별자는 애플리케이션 이벤트 또는 공개 port로 검증하며 DB 외래 키를 만들지 않는다. 외래 키는 같은 도메인 내부 엔티티 관계에만 추가한다.
-- P2의 목표 모델은 전시 상품군인 `CatalogProduct`, 구매 단위인 `ProductVariant`, 판매 조건·가격인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. 초기 요구사항에서는 기본 Variant와 기본 Offer를 각각 하나만 생성한다.
+- P2의 목표 모델은 전시 상품군인 `CatalogProduct`, 구매 단위인 `ProductVariant`, 판매 조건·가격인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. 초기 요구사항에서는 기본 ProductVariant와 기본 Offer를 각각 하나만 생성한다.
 - P7은 P2~P6 테이블의 소유 모듈이 아니다. 관리자 전용 API는 각 모듈의 공개 application interface를 호출하고, 관리자 권한·운영 진입점만 담당한다.
-- P8은 P2의 CatalogProduct·Variant를 소유하지 않는다. 판매자는 SellerProfile을 통해 자신의 Offer와 재고를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
+- P8은 P2의 CatalogProduct·ProductVariant를 소유하지 않는다. 판매자는 SellerProfile을 통해 자신의 Offer와 재고를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
 - 초기 요구사항에는 별도 Seller 모듈이 없으므로 `Offer.sellerId`는 선택값이며, 값이 없으면 플랫폼 기본 Offer로 처리한다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.

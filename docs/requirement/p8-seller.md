@@ -12,7 +12,7 @@
 - `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. 역할명은 구매자 기능을 배제하는 의미가 아니다.
 - `ADMIN`은 플랫폼 전체 운영과 판매자 신청을 담당하며 판매자 API를 사용하지 않는다.
 
-카탈로그 상품·Variant는 P2가 소유한다. 판매자는 기존 Variant에 자신의 Offer를 등록하고 가격·판매 상태·재고를 관리한다.
+CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 ProductVariant에 자신의 Offer를 등록하고 가격·판매 상태·재고를 관리한다.
 
 ## 2. API 목록
 
@@ -22,7 +22,7 @@
 | GET | `/api/v1/seller/profile` | `PRODUCT_MANAGER` + `ACTIVE` | 내 판매자 프로필 조회 |
 | PATCH | `/api/v1/seller/profile` | `PRODUCT_MANAGER` + `ACTIVE` | 내 판매자 프로필 수정 |
 | GET | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer 목록 |
-| POST | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | Variant Offer 등록 |
+| POST | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | ProductVariant Offer 등록 |
 | PATCH | `/api/v1/seller/offers/{offerId}` | `PRODUCT_MANAGER` + `ACTIVE` | Offer 판매 상태·비활성화 |
 | POST | `/api/v1/seller/offers/{offerId}/inventory-adjustments` | `PRODUCT_MANAGER` + `ACTIVE` | 재고 조정 |
 | GET | `/api/v1/seller/orders` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer가 포함된 주문 목록 |
@@ -86,13 +86,13 @@
 }
 ```
 
-- `PRODUCT_MANAGER`이면서 `SellerProfile.status = ACTIVE`인 판매자만 존재하는 Variant에 Offer를 등록한다.
+- `PRODUCT_MANAGER`이면서 `SellerProfile.status = ACTIVE`인 판매자만 존재하는 ProductVariant에 Offer를 등록한다.
 - `sellerId`는 요청 본문으로 받지 않고 인증된 SellerProfile에서 결정한다.
 - 판매자는 자신의 Offer만 조회·수정·비활성화할 수 있다.
 - 판매자 Offer 가격은 P2의 `PATCH /api/v1/offers/{offerId}/price`를 사용한다.
 - 판매자 Offer의 판매 상태·비활성화는 `PATCH /api/v1/seller/offers/{offerId}`에서 처리한다.
-- 기본 요구사항에서는 하나의 SellerProfile이 같은 Variant에 Offer를 하나만 등록한다.
-- 상품명·설명·카테고리·SKU는 P2의 CatalogProduct·Variant가 소유한다.
+- 기본 요구사항에서는 하나의 SellerProfile이 같은 ProductVariant에 Offer를 하나만 등록한다.
+- 상품명·설명·카테고리·SKU는 P2의 CatalogProduct·ProductVariant가 소유한다.
 
 ### 3-4. 판매자 재고
 
@@ -115,8 +115,8 @@
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `SELLER_APPROVAL_REQUIRED` | 판매자 승인 전 API 호출 |
 | 403 | `SELLER_RESOURCE_ACCESS_DENIED` | 다른 판매자의 Offer·주문 접근 |
-| 404 | `VARIANT_NOT_FOUND` | Variant 없음 |
+| 404 | `VARIANT_NOT_FOUND` | ProductVariant 없음 |
 | 404 | `OFFER_NOT_FOUND` | Offer 없음 |
 | 409 | `SELLER_APPLICATION_ALREADY_EXISTS` | 중복 신청 |
-| 409 | `SELLER_OFFER_ALREADY_EXISTS` | 같은 Variant에 Offer 중복 등록 |
+| 409 | `SELLER_OFFER_ALREADY_EXISTS` | 같은 ProductVariant에 Offer 중복 등록 |
 | 409 | `SELLER_SUSPENDED` | 정지된 판매자 사용 |

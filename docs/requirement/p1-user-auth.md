@@ -8,10 +8,10 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 
 - 비밀번호·토큰·OAuth 비밀값은 로그와 이벤트 payload에 평문으로 남기지 않는다.
 - 사용자의 리소스는 기본적으로 본인만 조회·변경할 수 있다.
-- `ADMIN`은 전체 리소스를 관리할 수 있고, `PRODUCT_MANAGER`는 상품·재고 업무를 수행한다.
+- `ADMIN`은 전체 리소스를 관리할 수 있고, `PRODUCT_MANAGER`는 판매자로서 자신의 CatalogProduct·Offer·Inventory를 관리한다.
 - `USER`는 구매자 역할이다. 판매 기능은 P8의 `SellerProfile`을 통해 별도로 활성화한다.
 - 한 사용자는 구매자이면서 판매자일 수 있으며, 판매자 인증 정보는 `SellerProfile`로 관리한다.
-- `PRODUCT_MANAGER`는 판매자가 아니라 플랫폼 상품·재고를 관리하는 운영 역할이다.
+- `PRODUCT_MANAGER`는 판매자 역할이며, 플랫폼 전체 운영은 `ADMIN`이 담당한다.
 
 ## 2. API 목록
 
@@ -34,8 +34,8 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 | POST | `/api/v1/me/addresses/{addressId}/default` | 로그인 | 기본 배송지 지정 |
 | GET | `/api/v1/me/points` | 로그인 | 포인트 잔액·원장 조회 |
 | GET | `/api/v1/me/wishlists` | 로그인 | 관심 상품 조회 |
-| PUT | `/api/v1/me/wishlists/{productId}` | 로그인 | 관심 상품 추가 |
-| DELETE | `/api/v1/me/wishlists/{productId}` | 로그인 | 관심 상품 삭제 |
+| PUT | `/api/v1/me/wishlists/{catalogProductId}` | 로그인 | 관심 상품 추가 |
+| DELETE | `/api/v1/me/wishlists/{catalogProductId}` | 로그인 | 관심 상품 삭제 |
 
 ## 3. 요구사항
 
@@ -174,7 +174,7 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 
 - `PUT`은 관심 상품을 추가하고 이미 존재하면 성공으로 처리한다.
 - `DELETE`는 존재하지 않아도 성공으로 처리한다.
-- `(user_id, product_id)`는 UNIQUE다.
+- `(user_id, catalog_product_id)`는 UNIQUE다.
 - 조회 응답에는 상품명, 현재 가격, 썸네일, 구매 가능 상태를 포함한다.
 
 #### 심화 사항

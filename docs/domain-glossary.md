@@ -54,23 +54,30 @@
 
 | Domain concept | Database table |
 |---|---|
-| CatalogProduct | `products` |
+| CatalogProduct | `catalog_products` |
 | ProductVariant | `product_variants` |
 | Offer | `offers` |
 | Inventory | `inventories` |
+
+다음 개념은 별도 테이블이 없는 것이 정상이다.
+
+- `Point`는 `users.point_balance`에 저장되는 사용자 잔액이다.
+- `Access Token`과 `Guest Token`은 JWT로 발급하며 DB에 저장하지 않는다. `Refresh Token`은 `refresh_tokens`에 저장한다.
+- `SignUpTask`는 사용자 프로필 생성 요청 메시지이며 영속 엔티티가 아니다.
+- `구매 가능 상태`는 `offers.status`와 `inventories.quantity`로 계산한다.
 
 | 용어 | 의미 |
 |---|---|
 | Category | 최대 3단계까지 부모를 가질 수 있는 상품 분류 |
 | CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
-| ProductVariant | CatalogProduct 아래에서 고객이 실제로 선택하고 주문하는 하나의 옵션 조합이자 SKU 단위. 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 Variant다. 옵션이 없는 상품도 `기본 옵션` Variant 1개를 가지며, 요구사항에서는 다중 Variant 대신 기본 Variant 1개만 생성한다. |
+| ProductVariant | CatalogProduct 아래에서 고객이 실제로 선택하고 주문하는 하나의 옵션 조합이자 SKU 단위. 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. 옵션이 없는 상품도 `기본 옵션` ProductVariant 1개를 가지며, 요구사항에서는 다중 ProductVariant 대신 기본 ProductVariant 1개만 생성한다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
-| Offer | 특정 Variant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
+| Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
 | Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
 | 구매 가능 상태 | Inventory 수량을 바탕으로 계산한 `IN_STOCK`, `OUT_OF_STOCK` 등의 표시 상태. `SOLD_OUT`을 상품의 영구 상태로 저장하지 않는다. |
 | 기간성 할인 | Offer에 연결된 기본 가격과 시작·종료 시각이 있는 할인 가격. 심화사항에서는 쿠폰·회원가·복수 프로모션으로 확장한다. |
 | 적용가격 | 현재 시각과 적용 가능한 가격 정책을 기준으로 계산한 고객 표시 가격 |
-| Image/Media | 상품·Variant·Review에 연결되는 이미지와 미디어 메타데이터. 표시 순서와 URL을 관리한다. |
+| Image/Media | 상품·ProductVariant·Review에 연결되는 이미지와 미디어 메타데이터. 표시 순서와 URL을 관리한다. |
 | Review | 구매와 배송 완료가 확인된 사용자가 상품당 하나 작성할 수 있는 평점·텍스트·이미지 평가 |
 
 ## 구매와 혜택
@@ -78,7 +85,7 @@
 | 용어 | 의미 |
 |---|---|
 | Cart | 사용자당 하나인 활성 장바구니 |
-| Cart Item | Cart에 담긴 Product와 수량. 동일 상품은 중복 행 대신 수량을 합친다. |
+| Cart Item | Cart에 담긴 Offer와 수량. 동일 Offer는 중복 행 대신 수량을 합친다. |
 | Coupon | 할인 타입, 값, 기간, 최소 주문액, 발급 한도를 정의하는 쿠폰 원본 |
 | User Coupon | 특정 User에게 발급된 Coupon 인스턴스. `AVAILABLE`, `USED`, `EXPIRED` 생명주기를 가진다. |
 | 정률 할인 | 상품 금액의 일정 비율을 할인하되 최대 할인 한도를 적용하는 방식 |
@@ -89,7 +96,7 @@
 | 용어 | 의미 |
 |---|---|
 | Order | 결제 대상 품목, 가격·할인·포인트 계산 결과, 주소 스냅샷과 상태를 보존하는 구매 기록 |
-| Order Item | 주문 시점 Product 이름, 단가, 수량을 보존하는 항목. 이후 상품 변경과 분리된다. |
+| Order Item | 주문 시점 CatalogProduct 이름, 단가, 수량을 보존하는 항목. 이후 상품 변경과 분리된다. |
 | 상품 총액 | 각 Order Item의 적용가격과 수량을 곱한 값의 합 |
 | 최종 결제 금액 | 상품 총액에서 쿠폰 할인액과 포인트 사용액을 차감한 값. 0보다 작을 수 없다. |
 | Payment Method | 카드, 간편결제, 계좌이체 같은 결제 전략의 종류 |
@@ -104,14 +111,12 @@
 - User Coupon: `AVAILABLE → USED` 또는 `AVAILABLE → EXPIRED`; 주문 취소 시 기간이 남아 있으면 `USED → AVAILABLE`.
 - Payment: 승인 성공, 실패, 환불을 구분하며 환불은 성공 결제에만 적용한다.
 
-## 현재 확인이 필요한 용어 충돌
+## 상태 및 관계 기준
 
-`V1__init_schema.sql`에는 심화사항을 제외한 P1~P8 요구사항의 테이블과 제약조건이 정의되어 있다. 기존 코드 상태값과 요구사항 상태값을 통합할 때는 코드·DB 제약조건·요구사항을 함께 정렬하고 ADR이 필요한지 판단한다.
-
-| 대상 | 요구사항 | 현재 V1 스키마 |
-|---|---|---|
-| Product 상태 | `ACTIVE`, `INACTIVE`, `SOLD_OUT` | `ON_SALE`, `SOLD_OUT`, `RESTOCK_SCHEDULED` |
-| Delivery 상태 | `PREPARING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED` | `PREPARING`, `SHIPPED`, `DELIVERED` |
-| Payment Method | `CREDIT_CARD`, `KAKAO_PAY`, `BANK_TRANSFER` | `CARD`, `KAKAOPAY`, `NAVERPAY`, `TRANSFER` |
-| Payment 상태 | `SUCCESS`, `FAILED`, `REFUNDED` | `COMPLETED`, `FAILED`, `REFUNDED` |
-| 로컬 Credential 관계 | 요구사항은 User와 1:N | 현재 설계 메모와 구현은 User당 0..1 |
+- `CatalogProduct.publicationStatus`는 `ACTIVE`, `ARCHIVED`를 사용한다.
+- `Offer.status`는 `ACTIVE`, `INACTIVE`를 사용한다.
+- `Inventory`의 구매 가능 상태는 수량을 기준으로 `IN_STOCK` 또는 `OUT_OF_STOCK`으로 계산한다.
+- `Delivery.status`는 `PREPARING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED`를 사용한다.
+- `PaymentMethod.methodType`는 `CREDIT_CARD`, `KAKAO_PAY`, `BANK_TRANSFER`를 사용한다.
+- `Payment.status`는 `SUCCESS`, `FAILED`, `REFUNDED`를 사용한다.
+- `UserCredential`은 User에 선택적으로 연결되며, 소셜 회원가입만으로는 생성하지 않는다.

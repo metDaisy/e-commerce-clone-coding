@@ -85,9 +85,9 @@
   "items": [
     {
       "orderItemId": "uuid",
-      "productId": "uuid",
+      "catalogProductId": "uuid",
       "sku": "HEADPHONE-BLK-001",
-      "productName": "무선 헤드폰",
+      "catalogProductName": "무선 헤드폰",
       "quantity": 2,
       "unitPrice": { "amount": 49900.00, "currency": "KRW" },
       "subtotal": { "amount": 99800.00, "currency": "KRW" }
