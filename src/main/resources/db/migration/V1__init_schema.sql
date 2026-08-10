@@ -79,7 +79,7 @@ CREATE TABLE wishlists
 (
     id         UUID PRIMARY KEY,
     user_id    UUID NOT NULL,
-    product_id UUID NOT NULL,
+    catalog_product_id UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
@@ -128,8 +128,8 @@ CREATE TABLE categories
     CONSTRAINT chk_categories_depth CHECK (depth BETWEEN 1 AND 3)
 );
 
--- products는 CatalogProduct 집합을 나타낸다.
-CREATE TABLE products
+-- catalog_products는 CatalogProduct 집합을 나타낸다.
+CREATE TABLE catalog_products
 (
     id                 UUID PRIMARY KEY,
     category_id        UUID         NOT NULL,
@@ -147,44 +147,44 @@ CREATE TABLE products
     archived_at        TIMESTAMP WITH TIME ZONE,
     created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at         TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_products_category
+    CONSTRAINT fk_catalog_products_category
         FOREIGN KEY (category_id) REFERENCES categories (id),
-    CONSTRAINT chk_products_publication_status
+    CONSTRAINT chk_catalog_products_publication_status
         CHECK (publication_status IN ('ACTIVE', 'ARCHIVED')),
-    CONSTRAINT chk_products_archive_consistency
+    CONSTRAINT chk_catalog_products_archive_consistency
         CHECK ((publication_status = 'ACTIVE' AND archived_at IS NULL) OR
                (publication_status = 'ARCHIVED' AND archived_at IS NOT NULL))
 );
 
-COMMENT ON TABLE products IS
+COMMENT ON TABLE catalog_products IS
     '공통 카탈로그 정보를 소유하는 CatalogProduct 집합. 판매자별 판매 조건은 offers가 소유한다.';
 
-COMMENT ON COLUMN products.manager_id IS
+COMMENT ON COLUMN catalog_products.manager_id IS
     '카탈로그 상품을 등록·관리한 users.id를 논리적으로 참조한다. PRODUCT_MANAGER는 자신의 상품을 관리하고 ADMIN은 모든 상품을 관리할 수 있다.';
 
-COMMENT ON COLUMN products.asin IS
+COMMENT ON COLUMN catalog_products.asin IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
-COMMENT ON COLUMN products.gtin IS
+COMMENT ON COLUMN catalog_products.gtin IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
-COMMENT ON COLUMN products.upc IS
+COMMENT ON COLUMN catalog_products.upc IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
-COMMENT ON COLUMN products.ean IS
+COMMENT ON COLUMN catalog_products.ean IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
-COMMENT ON COLUMN products.isbn IS
+COMMENT ON COLUMN catalog_products.isbn IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 
 CREATE TABLE product_variants
 (
     id           UUID PRIMARY KEY,
-    product_id   UUID         NOT NULL,
+    catalog_product_id   UUID         NOT NULL,
     sku          VARCHAR(100) NOT NULL,
     display_name VARCHAR(255) NOT NULL,
     weight       NUMERIC(10, 3),
     dimensions   JSONB,
     created_at   TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at   TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_product_variants_product
-        FOREIGN KEY (product_id) REFERENCES products (id)
+    CONSTRAINT fk_product_variants_catalog_product
+        FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id)
 );
 
 COMMENT ON TABLE product_variants IS
@@ -257,26 +257,28 @@ CREATE TABLE tags
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
-CREATE TABLE product_tags
+CREATE TABLE catalog_product_tags
 (
     id         UUID PRIMARY KEY,
-    product_id UUID NOT NULL,
+    catalog_product_id UUID NOT NULL,
     tag_id     UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_product_tags_product
-        FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
-    CONSTRAINT fk_product_tags_tag
+    CONSTRAINT fk_catalog_product_tags_catalog_product
+        FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id) ON DELETE CASCADE,
+    CONSTRAINT fk_catalog_product_tags_tag
         FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
 );
 
 CREATE TABLE reviews
 (
     id         UUID PRIMARY KEY,
-    product_id UUID         NOT NULL,
+    catalog_product_id UUID         NOT NULL,
     user_id    UUID         NOT NULL,
     rating     INTEGER      NOT NULL,
     content    VARCHAR(2000),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    CONSTRAINT fk_reviews_catalog_product
+        FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id) ON DELETE CASCADE,
     CONSTRAINT chk_reviews_rating CHECK (rating BETWEEN 1 AND 5)
 );
 
@@ -391,11 +393,11 @@ CREATE TABLE order_items
 (
     id             UUID PRIMARY KEY,
     order_id       UUID           NOT NULL,
-    product_id     UUID           NOT NULL,
+    catalog_product_id     UUID           NOT NULL,
     variant_id     UUID           NOT NULL,
     offer_id       UUID           NOT NULL,
     sku            VARCHAR(100)   NOT NULL,
-    product_name   VARCHAR(255)   NOT NULL,
+    catalog_product_name   VARCHAR(255)   NOT NULL,
     quantity       INTEGER        NOT NULL,
     unit_price     NUMERIC(19, 2) NOT NULL,
     subtotal       NUMERIC(19, 2) NOT NULL,
@@ -575,30 +577,31 @@ CREATE INDEX idx_blacklist_tokens_token ON blacklist_tokens (token);
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens (token);
 CREATE UNIQUE INDEX uq_categories_name ON categories (name);
 CREATE INDEX idx_categories_parent_depth ON categories (parent_id, depth);
-CREATE INDEX idx_products_category_status
-    ON products (category_id, publication_status);
-CREATE INDEX idx_products_manager_status
-    ON products (manager_id, publication_status);
-CREATE UNIQUE INDEX uq_products_asin
-    ON products (asin) WHERE asin IS NOT NULL;
-CREATE UNIQUE INDEX uq_products_gtin
-    ON products (gtin) WHERE gtin IS NOT NULL;
-CREATE UNIQUE INDEX uq_products_upc
-    ON products (upc) WHERE upc IS NOT NULL;
-CREATE UNIQUE INDEX uq_products_ean
-    ON products (ean) WHERE ean IS NOT NULL;
-CREATE UNIQUE INDEX uq_products_isbn
-    ON products (isbn) WHERE isbn IS NOT NULL;
+CREATE INDEX idx_catalog_products_category_status
+    ON catalog_products (category_id, publication_status);
+CREATE INDEX idx_catalog_products_manager_status
+    ON catalog_products (manager_id, publication_status);
+CREATE UNIQUE INDEX uq_catalog_products_asin
+    ON catalog_products (asin) WHERE asin IS NOT NULL;
+CREATE UNIQUE INDEX uq_catalog_products_gtin
+    ON catalog_products (gtin) WHERE gtin IS NOT NULL;
+CREATE UNIQUE INDEX uq_catalog_products_upc
+    ON catalog_products (upc) WHERE upc IS NOT NULL;
+CREATE UNIQUE INDEX uq_catalog_products_ean
+    ON catalog_products (ean) WHERE ean IS NOT NULL;
+CREATE UNIQUE INDEX uq_catalog_products_isbn
+    ON catalog_products (isbn) WHERE isbn IS NOT NULL;
 CREATE UNIQUE INDEX uq_product_variants_sku ON product_variants (sku);
-CREATE INDEX idx_product_variants_product_id ON product_variants (product_id);
+CREATE INDEX idx_product_variants_catalog_product_id ON product_variants (catalog_product_id);
 CREATE INDEX idx_offers_variant_id ON offers (variant_id);
 CREATE INDEX idx_images_entity ON images (entity_type, entity_id, sort_order);
 CREATE UNIQUE INDEX uq_tags_name ON tags (name);
-CREATE UNIQUE INDEX uq_product_tags_product_tag ON product_tags (product_id, tag_id);
-CREATE INDEX idx_reviews_product_created
-    ON reviews (product_id, created_at DESC, id DESC);
-CREATE UNIQUE INDEX uq_reviews_user_product ON reviews (user_id, product_id);
-CREATE UNIQUE INDEX uq_wishlists_user_product ON wishlists (user_id, product_id);
+CREATE UNIQUE INDEX uq_catalog_product_tags_catalog_product_tag
+    ON catalog_product_tags (catalog_product_id, tag_id);
+CREATE INDEX idx_reviews_catalog_product_created
+    ON reviews (catalog_product_id, created_at DESC, id DESC);
+CREATE UNIQUE INDEX uq_reviews_user_catalog_product ON reviews (user_id, catalog_product_id);
+CREATE UNIQUE INDEX uq_wishlists_user_catalog_product ON wishlists (user_id, catalog_product_id);
 CREATE UNIQUE INDEX uq_carts_one_active_per_user
     ON carts (user_id) WHERE status = 'ACTIVE';
 CREATE UNIQUE INDEX uq_cart_items_cart_offer ON cart_items (cart_id, offer_id);
