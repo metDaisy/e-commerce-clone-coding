@@ -56,6 +56,8 @@
 }
 ```
 
+일반 단건 응답은 위 envelope를 사용한다. 페이지·커서 기반 목록 조회의 성공 응답은 `success`와 `error`를 생략하고 목록 데이터와 페이지네이션 필드만 반환한다.
+
 - 생성 성공은 `201 Created`, 조회·수정·삭제 성공은 기본 `200 OK`를 사용한다.
 - 본문이 없는 성공은 `204 No Content`를 사용할 수 있다.
 - 도메인 문서의 응답 예시는 `data` 내부 값이다.
@@ -67,20 +69,12 @@
 
 ```json
 {
-  "success": true,
-  "data": {
-    "items": [],
-    "page": 0,
-    "size": 20,
-    "totalElements": 0,
-    "totalPages": 0,
-    "hasNext": false
-  },
-  "error": null,
-  "meta": {
-    "requestId": "uuid",
-    "timestamp": "2026-08-09T12:00:00Z"
-  }
+  "data": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "hasNext": false
 }
 ```
 
@@ -99,13 +93,23 @@
 - 정렬은 반드시 고유한 보조 키를 포함하여 동일한 항목이 중복되거나 누락되지 않도록 한다.
 - 커서 조회 응답에는 `totalElements`, `totalPages`를 포함하지 않고 `nextCursor`, `hasNext`를 포함한다.
 
+커서 조회의 성공 응답은 다음 형식을 사용한다.
+
 ```json
 {
-  "items": [],
-  "nextCursor": "opaque-cursor",
-  "hasNext": true
+  "data": [],
+  "hasNext": true,
+  "nextCursor": "opaque-cursor"
 }
 ```
+
+- `data`는 조회 결과 배열이다.
+- `hasNext`가 `false`이면 `nextCursor`는 `null`이다.
+- `nextCursor`는 클라이언트가 해석하지 않는 opaque 값이다. `idAfter`를 별도로 반환하지 않는다.
+- 서버는 정렬 기준·방향, 마지막 항목의 모든 정렬값, 필터 조건 식별값을 cursor payload에 포함한다.
+- cursor payload는 Base64URL로 인코딩하고 서버 비밀키로 서명한다. Base64URL은 인코딩일 뿐 암호화가 아니므로 서명 검증에 실패한 cursor는 `400 INVALID_CURSOR`로 거부한다.
+- 요청의 정렬·필터 조건이 cursor 생성 시점과 다르면 `400 INVALID_CURSOR`를 반환한다.
+- 첫 조회에서는 `cursor`를 생략하고, 다음 조회부터 응답의 `nextCursor`를 그대로 전달한다.
 
 ### 예외 응답
 

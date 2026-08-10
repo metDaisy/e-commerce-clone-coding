@@ -151,7 +151,7 @@ CatalogProduct: GIGABYTE AMD R9700
 - `categoryId`는 삭제되지 않은 기존 카테고리여야 한다. 카테고리 생성·수정·삭제는 P7의 `ADMIN` API에서 수행한다.
 - `name`과 `description`은 공백만으로 구성할 수 없다.
 - `tags`는 중복 없이 저장한다. `attributes`는 JSON object이며 서버가 허용하지 않은 구조는 거부한다.
-- `asin`, `gtin`, `upc`, `ean`, `isbn`은 선택 입력이며 각각 CatalogProduct 간 중복될 수 없다. 내부 PK로 사용하지 않는다.
+- `asin`, `gtin`, `upc`, `ean`, `isbn`은 선택 입력이며 각각 CatalogProduct 간 중복될 수 없다. 내부 PK로 사용하지 않으며, CatalogProduct 등록 후 수정할 수 없다.
 
 처리 규칙:
 
@@ -298,6 +298,8 @@ POST /api/v1/product-variants/{variantId}/media
   "updatedAt": "2026-08-09T12:05:00Z"
 }
 ```
+
+`asin`, `gtin`, `upc`, `ean`, `isbn`은 CatalogProduct 등록 후 수정할 수 없다. 이 값들은 외부 상품 식별자이므로 `PATCH /api/v1/catalog-products/{catalogProductId}` 요청으로 전달하면 `400 VALIDATION_ERROR`를 반환한다.
 
 ### 3-4. CatalogProduct 목록·검색
 
@@ -541,6 +543,7 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 400 | `INVALID_MEDIA` | 이미지 형식·URL·정렬 순서가 잘못됨 |
 | 400 | `DUPLICATE_PRIMARY_MEDIA` | 대표 이미지가 없거나 2개 이상임 |
 | 400 | `INVALID_DISCOUNT_PERIOD` | 할인 기간 오류 |
+| 400 | `PRODUCT_CODE_ERROR` | 상품 식별자(`asin`, `gtin`, `upc`, `ean`, `isbn`) 검증 오류 |
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `ACCESS_DENIED` | CatalogProduct 또는 Offer 관리 권한 부족 |
 | 403 | `SELLER_APPROVAL_REQUIRED` | 활성 Seller 없는 PRODUCT_MANAGER의 CatalogProduct 등록 |
