@@ -137,6 +137,11 @@ CREATE TABLE products
     name               VARCHAR(255) NOT NULL,
     description        TEXT         NOT NULL,
     brand              VARCHAR(255),
+    asin               VARCHAR(50),
+    gtin               VARCHAR(50),
+    upc                VARCHAR(50),
+    ean                VARCHAR(50),
+    isbn               VARCHAR(50),
     attributes         JSONB,
     publication_status VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
     archived_at        TIMESTAMP WITH TIME ZONE,
@@ -145,11 +150,25 @@ CREATE TABLE products
     CONSTRAINT fk_products_category
         FOREIGN KEY (category_id) REFERENCES categories (id),
     CONSTRAINT chk_products_publication_status
-        CHECK (publication_status IN ('ACTIVE', 'ARCHIVED'))
+        CHECK (publication_status IN ('ACTIVE', 'ARCHIVED')),
+    CONSTRAINT chk_products_archive_consistency
+        CHECK ((publication_status = 'ACTIVE' AND archived_at IS NULL) OR
+               (publication_status = 'ARCHIVED' AND archived_at IS NOT NULL))
 );
 
 COMMENT ON COLUMN products.manager_id IS
     'Logical users.id of the user who registered/manages the catalog product; PRODUCT_MANAGER owns its products and ADMIN can manage all products.';
+
+COMMENT ON COLUMN products.asin IS
+    'Optional external product identifier; not used as the primary key.';
+COMMENT ON COLUMN products.gtin IS
+    'Optional external product identifier; not used as the primary key.';
+COMMENT ON COLUMN products.upc IS
+    'Optional external product identifier; not used as the primary key.';
+COMMENT ON COLUMN products.ean IS
+    'Optional external product identifier; not used as the primary key.';
+COMMENT ON COLUMN products.isbn IS
+    'Optional external product identifier; not used as the primary key.';
 
 CREATE TABLE product_variants
 (
@@ -544,6 +563,20 @@ CREATE INDEX idx_blacklist_tokens_token ON blacklist_tokens (token);
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens (token);
 CREATE UNIQUE INDEX uq_categories_name ON categories (name);
 CREATE INDEX idx_categories_parent_depth ON categories (parent_id, depth);
+CREATE INDEX idx_products_category_status
+    ON products (category_id, publication_status);
+CREATE INDEX idx_products_manager_status
+    ON products (manager_id, publication_status);
+CREATE UNIQUE INDEX uq_products_asin
+    ON products (asin) WHERE asin IS NOT NULL;
+CREATE UNIQUE INDEX uq_products_gtin
+    ON products (gtin) WHERE gtin IS NOT NULL;
+CREATE UNIQUE INDEX uq_products_upc
+    ON products (upc) WHERE upc IS NOT NULL;
+CREATE UNIQUE INDEX uq_products_ean
+    ON products (ean) WHERE ean IS NOT NULL;
+CREATE UNIQUE INDEX uq_products_isbn
+    ON products (isbn) WHERE isbn IS NOT NULL;
 CREATE UNIQUE INDEX uq_product_variants_sku ON product_variants (sku);
 CREATE INDEX idx_product_variants_product_id ON product_variants (product_id);
 CREATE INDEX idx_offers_variant_id ON offers (variant_id);
