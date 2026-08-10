@@ -1,11 +1,11 @@
--- P1-P8 basic requirement schema.
+-- P1-P8 기본 요구사항 스키마.
 --
--- All identifiers use UUID. Cross-domain identifiers are intentionally kept
--- without database foreign keys; only relationships within the same domain
--- are enforced here (see docs/adr/0004-schema-fk-follows-modulith-boundaries.md).
+-- 모든 식별자는 UUID를 사용한다. 도메인 간 식별자는 의도적으로 데이터베이스 외래 키를
+-- 생성하지 않으며, 동일 도메인 내부 관계만 외래 키로 보장한다.
+-- 자세한 내용은 docs/adr/0004-schema-fk-follows-modulith-boundaries.md를 참고한다.
 
 -- ============================================================================
--- P1: User & Auth
+-- P1: 사용자·인증
 -- ============================================================================
 
 CREATE TABLE users
@@ -23,7 +23,7 @@ CREATE TABLE users
 );
 
 COMMENT ON COLUMN users.role IS
-    'USER: buyer by default, PRODUCT_MANAGER: seller, ADMIN: platform operator. PRODUCT_MANAGER can also use buyer APIs.';
+    'USER: 기본 구매자, PRODUCT_MANAGER: 판매자, ADMIN: 플랫폼 운영자. PRODUCT_MANAGER도 구매자 API를 사용할 수 있다.';
 
 CREATE TABLE user_credentials
 (
@@ -37,7 +37,7 @@ CREATE TABLE user_credentials
 );
 
 COMMENT ON TABLE user_credentials IS
-    'Local email/password credentials only. Social signup does not create a row.';
+    '이메일·비밀번호 기반의 로컬 인증 정보만 저장한다. 소셜 회원가입 시에는 행을 생성하지 않는다.';
 
 CREATE TABLE social_credentials
 (
@@ -51,7 +51,7 @@ CREATE TABLE social_credentials
 );
 
 COMMENT ON TABLE social_credentials IS
-    'OAuth identity. The provider enum is defined by this application, not by Amazon.com.';
+    'OAuth 소셜 인증 정보. provider 열거값은 Amazon.com이 아니라 이 애플리케이션이 임의로 정의한다.';
 
 CREATE TABLE addresses
 (
@@ -112,7 +112,7 @@ CREATE TABLE blacklist_users
 );
 
 -- ============================================================================
--- P2: Catalog, Inventory & Review
+-- P2: 카탈로그·재고·리뷰
 -- ============================================================================
 
 CREATE TABLE categories
@@ -128,7 +128,7 @@ CREATE TABLE categories
     CONSTRAINT chk_categories_depth CHECK (depth BETWEEN 1 AND 3)
 );
 
--- products represents the CatalogProduct aggregate.
+-- products는 CatalogProduct 집합을 나타낸다.
 CREATE TABLE products
 (
     id                 UUID PRIMARY KEY,
@@ -156,19 +156,22 @@ CREATE TABLE products
                (publication_status = 'ARCHIVED' AND archived_at IS NOT NULL))
 );
 
+COMMENT ON TABLE products IS
+    '공통 카탈로그 정보를 소유하는 CatalogProduct 집합. 판매자별 판매 조건은 offers가 소유한다.';
+
 COMMENT ON COLUMN products.manager_id IS
-    'Logical users.id of the user who registered/manages the catalog product; PRODUCT_MANAGER owns its products and ADMIN can manage all products.';
+    '카탈로그 상품을 등록·관리한 users.id를 논리적으로 참조한다. PRODUCT_MANAGER는 자신의 상품을 관리하고 ADMIN은 모든 상품을 관리할 수 있다.';
 
 COMMENT ON COLUMN products.asin IS
-    'Optional external product identifier; not used as the primary key.';
+    '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 COMMENT ON COLUMN products.gtin IS
-    'Optional external product identifier; not used as the primary key.';
+    '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 COMMENT ON COLUMN products.upc IS
-    'Optional external product identifier; not used as the primary key.';
+    '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 COMMENT ON COLUMN products.ean IS
-    'Optional external product identifier; not used as the primary key.';
+    '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 COMMENT ON COLUMN products.isbn IS
-    'Optional external product identifier; not used as the primary key.';
+    '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
 
 CREATE TABLE product_variants
 (
@@ -183,6 +186,9 @@ CREATE TABLE product_variants
     CONSTRAINT fk_product_variants_product
         FOREIGN KEY (product_id) REFERENCES products (id)
 );
+
+COMMENT ON TABLE product_variants IS
+    'CatalogProduct 아래에서 실제 구매 가능한 SKU를 나타내는 ProductVariant.';
 
 CREATE TABLE offers
 (
@@ -209,8 +215,11 @@ CREATE TABLE offers
     CONSTRAINT chk_offers_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
 );
 
+COMMENT ON TABLE offers IS
+    'ProductVariant에 대한 판매자별 판매 조건을 나타내는 Offer.';
+
 COMMENT ON COLUMN offers.seller_id IS
-    'Logical seller_profiles.id of the Offer owner. NULL means the platform default Offer created by ADMIN.';
+    'Offer 소유자인 seller_profiles.id를 논리적으로 참조한다. NULL이면 ADMIN이 생성한 플랫폼 기본 Offer다.';
 
 CREATE TABLE inventories
 (
@@ -223,6 +232,9 @@ CREATE TABLE inventories
     CONSTRAINT fk_inventories_offer
         FOREIGN KEY (offer_id) REFERENCES offers (id)
 );
+
+COMMENT ON TABLE inventories IS
+    'Offer의 구매 가능 수량을 저장하는 Inventory.';
 
 CREATE TABLE images
 (
@@ -269,7 +281,7 @@ CREATE TABLE reviews
 );
 
 -- ============================================================================
--- P3: Cart
+-- P3: 장바구니
 -- ============================================================================
 
 CREATE TABLE carts
@@ -296,7 +308,7 @@ CREATE TABLE cart_items
 );
 
 -- ============================================================================
--- P4: Coupon
+-- P4: 쿠폰
 -- ============================================================================
 
 CREATE TABLE coupons
@@ -346,7 +358,7 @@ CREATE TABLE user_coupons
 );
 
 -- ============================================================================
--- P5: Order, Payment & Delivery
+-- P5: 주문·결제·배송
 -- ============================================================================
 
 CREATE TABLE orders
@@ -447,7 +459,7 @@ CREATE TABLE deliveries
 );
 
 -- ============================================================================
--- P6: Outbox, Idempotent Consumption & Saga
+-- P6: 아웃박스·멱등 소비·사가
 -- ============================================================================
 
 CREATE TABLE outbox_events
@@ -504,7 +516,7 @@ CREATE TABLE saga_steps
     CONSTRAINT chk_saga_steps_retry_count CHECK (retry_count >= 0)
 );
 
--- Spring Modulith's event publication registry.
+-- Spring Modulith 이벤트 발행 레지스트리.
 CREATE TABLE event_publication
 (
     id                     UUID PRIMARY KEY,
@@ -519,7 +531,7 @@ CREATE TABLE event_publication
 );
 
 -- ============================================================================
--- P8: Seller
+-- P8: 판매자
 -- ============================================================================
 
 CREATE TABLE seller_profiles
@@ -542,10 +554,10 @@ CREATE TABLE seller_profiles
 );
 
 COMMENT ON TABLE seller_profiles IS
-    'Seller application and approval profile. Seller APIs require both role PRODUCT_MANAGER and status ACTIVE.';
+    '판매자 신청·승인 프로필. 판매자 API는 PRODUCT_MANAGER 역할과 ACTIVE 상태를 모두 요구한다.';
 
 -- ============================================================================
--- Indexes and uniqueness rules
+-- 인덱스 및 유일성 규칙
 -- ============================================================================
 
 CREATE UNIQUE INDEX uq_user_credentials_email ON user_credentials (email);
