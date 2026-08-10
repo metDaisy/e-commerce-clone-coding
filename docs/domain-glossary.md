@@ -70,7 +70,7 @@
 |---|---|
 | Category | 최대 3단계까지 부모를 가질 수 있는 상품 분류 |
 | CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 공통 메타데이터와 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
-| ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
+| ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 하나의 ProductVariant는 정확히 하나의 CatalogProduct에만 속하며, 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
 | Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
 | Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
@@ -80,7 +80,20 @@
 | Image/Media | 상품·ProductVariant·Review에 연결되는 이미지와 미디어 메타데이터. 표시 순서와 URL을 관리한다. |
 | Review | 구매와 배송 완료가 확인된 사용자가 ProductVariant당 하나 작성할 수 있는 평점·텍스트·이미지 평가 |
 
-`CatalogProduct`와 `ProductVariant`는 `1 : N` 관계다. 하나의 CatalogProduct가 여러 ProductVariant를 가지며, CatalogProduct는 공통 상품 메타데이터를 제공하고 ProductVariant는 실제 판매·구매 단위를 표현한다. 판매자는 ProductVariant에 `Offer`를 등록해 가격·판매 상태·판매 조건을 관리하고, 재고는 Offer 단위로 관리한다.
+`CatalogProduct`와 `ProductVariant`는 `1 : N` 관계다. 하나의 CatalogProduct가 여러 ProductVariant를 가지며, 각 ProductVariant는 하나의 CatalogProduct에만 속한다. 따라서 `(catalogProductId, variantId)` 조합은 유일하고, `variantId`가 전역 PK이므로 별도의 복합 식별자를 만들지 않는다. 판매자는 ProductVariant에 `Offer`를 등록해 가격·판매 상태·판매 조건을 관리하고, 재고는 Offer 단위로 관리한다.
+
+예를 들어 `GIGABYTE AMD R9700`을 등록하면 다음과 같이 표현한다.
+
+```text
+CatalogProduct: GIGABYTE AMD R9700
+├─ ProductVariant: White / SKU-GIGA-R9700-W
+│  ├─ Offer: 판매자 A / 500,000원 / Inventory 10개
+│  └─ Offer: 판매자 B / 510,000원 / Inventory 4개
+└─ ProductVariant: Black / SKU-GIGA-R9700-B
+   └─ Offer: 판매자 A / 505,000원 / Inventory 7개
+```
+
+이 예시에서 상품명·브랜드는 CatalogProduct의 공통 메타데이터이고, 색상과 SKU는 ProductVariant가 표현한다. 판매자·가격·판매 상태·재고는 각각 Offer와 Inventory가 표현한다.
 
 ## 구매와 혜택
 
