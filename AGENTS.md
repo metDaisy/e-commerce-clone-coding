@@ -43,6 +43,6 @@
 ## Documentation maintenance
 
 - Update architecture/glossary when their facts change; record hard-to-reverse cross-module decisions in `docs/adr/`.
-- After meaningful changes, use Continue's `/update` prompt to update `current-state.md` date and SHA. Never record uncommitted work as complete.
+- After meaningful changes, update `current-state.md` date and implementation snapshot SHA. Never record uncommitted work as complete.
 - `docs/dev-dairy.md` is the user's development journal. Never edit, summarize, or reorder it without an explicit request.
 - Never duplicate code-derived class or method inventories in documentation.
