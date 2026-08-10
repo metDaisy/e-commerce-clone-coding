@@ -29,7 +29,7 @@ CREATE TABLE user_credentials
 (
     user_id         UUID PRIMARY KEY,
     email           VARCHAR(255) NOT NULL,
-    password        VARCHAR(255) NOT NULL,
+    password_hash   VARCHAR(255) NOT NULL,
     violation_count INTEGER      NOT NULL DEFAULT 0,
     until_locked    TIMESTAMP WITH TIME ZONE,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -370,7 +370,7 @@ CREATE TABLE orders
     user_id                 UUID             NOT NULL,
     address_id              UUID             NOT NULL,
     used_user_coupon_id     UUID,
-    used_point_amount       NUMERIC(19, 2)   NOT NULL DEFAULT 0,
+    used_point_amount       INTEGER          NOT NULL DEFAULT 0,
     status                  VARCHAR(20)      NOT NULL DEFAULT 'PENDING',
     subtotal_amount         NUMERIC(19, 2)   NOT NULL,
     discount_amount         NUMERIC(19, 2)   NOT NULL DEFAULT 0,
@@ -594,7 +594,15 @@ CREATE UNIQUE INDEX uq_catalog_products_isbn
 CREATE UNIQUE INDEX uq_product_variants_sku ON product_variants (sku);
 CREATE INDEX idx_product_variants_catalog_product_id ON product_variants (catalog_product_id);
 CREATE INDEX idx_offers_variant_id ON offers (variant_id);
+CREATE UNIQUE INDEX uq_offers_seller_variant
+    ON offers (seller_id, variant_id)
+    WHERE seller_id IS NOT NULL;
 CREATE INDEX idx_images_entity ON images (entity_type, entity_id, sort_order);
+CREATE UNIQUE INDEX uq_images_one_primary_per_entity
+    ON images (entity_type, entity_id)
+    WHERE is_primary = TRUE;
+CREATE UNIQUE INDEX uq_images_entity_sort_order
+    ON images (entity_type, entity_id, sort_order);
 CREATE UNIQUE INDEX uq_tags_name ON tags (name);
 CREATE UNIQUE INDEX uq_catalog_product_tags_catalog_product_tag
     ON catalog_product_tags (catalog_product_id, tag_id);
