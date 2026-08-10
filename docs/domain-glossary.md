@@ -49,6 +49,16 @@
 
 ## 상품과 전시
 
+문서의 도메인 용어와 기준 SQL 테이블은 다음처럼 대응한다. Java entity 이름은 이 매핑을
+기준으로 이후 구현한다.
+
+| Domain concept | Database table |
+|---|---|
+| CatalogProduct | `products` |
+| ProductVariant | `product_variants` |
+| Offer | `offers` |
+| Inventory | `inventories` |
+
 | 용어 | 의미 |
 |---|---|
 | Category | 최대 3단계까지 부모를 가질 수 있는 상품 분류 |
