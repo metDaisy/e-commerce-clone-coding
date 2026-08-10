@@ -6,422 +6,70 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.16-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://www.postgresql.org/)
 
-요구사항과 구현 문서는 [문서 인덱스](./docs/index.md)에서 확인할 수 있습니다. 기본 데이터베이스 스키마는 [`V1__init_schema.sql`](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되어 있습니다.
+## 프로젝트 소개
 
-## 기본 스키마
+Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 클론 코딩 프로젝트입니다.
 
-심화사항을 제외한 P1~P8 요구사항의 테이블을 영역별로 나누었습니다. 모든 식별자는 UUID입니다. 모듈 간 식별자에는 DB FK를 만들지 않고 애플리케이션 계약으로 검증합니다.
+실제 서비스의 용어와 흐름을 참고하되, 구현 난이도를 관리하기 위해 기본 요구사항과 심화사항을 분리합니다. 현재 목표는 기본 요구사항을 먼저 구현하고, 이후 구조를 크게 바꾸지 않고 심화사항으로 확장하는 것입니다.
 
-<details>
-<summary>P1 User & Auth</summary>
+주요 도메인은 다음과 같습니다.
 
-```mermaid
-erDiagram
-    users {
-        UUID id PK
-        VARCHAR name
-        VARCHAR phone_number
-        VARCHAR role
-        INTEGER point_balance
-        BOOLEAN is_active
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    user_credentials {
-        UUID user_id PK
-        VARCHAR email UK
-        VARCHAR password
-        INTEGER violation_count
-        TIMESTAMPTZ until_locked
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    social_credentials {
-        UUID id PK
-        UUID user_id
-        VARCHAR provider
-        VARCHAR provider_id
-        TIMESTAMPTZ created_at
-    }
-    addresses {
-        UUID id PK
-        UUID user_id
-        VARCHAR recipient_name
-        VARCHAR recipient_phone
-        VARCHAR postal_code
-        VARCHAR address_line
-        BOOLEAN is_primary
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    point_histories {
-        UUID id PK
-        UUID user_id
-        INTEGER amount
-        VARCHAR description
-        TIMESTAMPTZ created_at
-    }
-    wishlists {
-        UUID id PK
-        UUID user_id
-        UUID catalog_product_id
-        TIMESTAMPTZ created_at
-    }
-    refresh_tokens {
-        UUID id PK
-        UUID user_id
-        VARCHAR device_id
-        VARCHAR token
-        VARCHAR pre_token
-        TIMESTAMPTZ expired_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    blacklist_tokens {
-        UUID id PK
-        VARCHAR token
-        TIMESTAMPTZ expired_at
-        TIMESTAMPTZ created_at
-    }
-    blacklist_users {
-        UUID id PK
-        UUID user_id
-        TIMESTAMPTZ compromised_at
-        TIMESTAMPTZ created_at
-    }
+- 회원가입·로그인·소셜 인증 및 사용자 프로필
+- CatalogProduct, ProductVariant, Offer, Inventory 기반 상품·재고 관리
+- 장바구니·쿠폰·주문·결제·배송
+- Outbox·Saga 기반 이벤트 처리
+- 관리자 운영 기능 및 판매자 마켓플레이스 기능
 
-    users ||--o| user_credentials : local_login
-    users ||--o{ social_credentials : social_login
-    users ||--o{ addresses : owns
-    users ||--o{ point_histories : records
-    users ||--o{ wishlists : likes
+구매자와 판매자는 별도 로그인 계정이 아닙니다. 하나의 `User`가 구매자 역할을 가지면서 `SellerProfile`을 통해 판매자로 활성화될 수 있습니다. 플랫폼 운영 권한은 `ADMIN` 역할로 구분합니다.
+
+## 기술 스택
+
+- Backend: Java 17, Spring Boot, Spring Modulith
+- Database: PostgreSQL, Flyway
+- Frontend: React, TypeScript, Vite
+- Test: JUnit 5, Spring Boot Test, Testcontainers
+- Quality: Checkstyle, JaCoCo, CodeQL, CodeRabbit
+
+## 프로젝트 구조
+
+```text
+src/main/java/io/github/metdaisy/amaazon/
+├── auth/       # 로컬·소셜 인증
+├── user/       # 사용자·프로필·주소·포인트
+├── product/    # CatalogProduct 중심 상품 기능
+├── common/     # 공통 타입·예외·영속화 기반
+└── global/     # 보안·웹·애플리케이션 설정
+
+amaazon-front/ # React/TypeScript/Vite 프론트엔드
+docs/          # 요구사항·아키텍처·ADR·개발 가이드
 ```
-</details>
 
-<details>
-<summary>P2 Catalog & Inventory</summary>
+백엔드는 Spring Modulith 기반 모듈러 모놀리스 구조를 사용합니다. 모듈 내부는 `presentation → application → domain ← infra` 방향을 유지하고, 모듈 간 결합은 공개 인터페이스나 이벤트를 통해 제한합니다.
 
-```mermaid
-erDiagram
-    categories {
-        UUID id PK
-        UUID parent_id FK
-        VARCHAR name
-        INTEGER depth "root=1, maximum=3"
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    catalog_products {
-        UUID id PK
-        UUID category_id FK
-        UUID manager_id
-        VARCHAR name
-        TEXT description
-        VARCHAR brand
-        VARCHAR asin
-        VARCHAR gtin
-        VARCHAR upc
-        VARCHAR ean
-        VARCHAR isbn
-        JSONB attributes
-        VARCHAR publication_status
-        TIMESTAMPTZ archived_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    product_variants {
-        UUID id PK
-        UUID catalog_product_id FK
-        VARCHAR sku UK
-        VARCHAR display_name
-        NUMERIC weight
-        JSONB dimensions
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    offers {
-        UUID id PK
-        UUID variant_id FK
-        UUID seller_id
-        NUMERIC base_price_amount
-        NUMERIC discount_price_amount
-        CHAR currency
-        TIMESTAMPTZ discount_start_at
-        TIMESTAMPTZ discount_end_at
-        VARCHAR status
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    inventories {
-        UUID id PK
-        UUID offer_id FK
-        INTEGER quantity
-        TIMESTAMPTZ updated_at
-    }
-    images {
-        UUID id PK
-        VARCHAR entity_type
-        UUID entity_id
-        VARCHAR media_type
-        VARCHAR image_url
-        BOOLEAN is_primary
-        INTEGER sort_order
-        TIMESTAMPTZ created_at
-    }
-    tags {
-        UUID id PK
-        VARCHAR name UK
-        TIMESTAMPTZ created_at
-    }
-    catalog_product_tags {
-        UUID id PK
-        UUID catalog_product_id FK
-        UUID tag_id FK
-        TIMESTAMPTZ created_at
-    }
-    reviews {
-        UUID id PK
-        UUID catalog_product_id
-        UUID user_id
-        INTEGER rating
-        VARCHAR content
-        TIMESTAMPTZ created_at
-    }
+## 문서
 
-    categories o|--o{ categories : parent_of
-    categories ||--o{ catalog_products : contains
-    catalog_products ||--o{ product_variants : has
-    product_variants ||--o{ offers : has
-    offers ||--|| inventories : stocks
-    catalog_products ||--o{ catalog_product_tags : tagged
-    tags ||--o{ catalog_product_tags : assigned
-```
-</details>
+문서는 [docs/index.md](./docs/index.md)에서 목적별로 탐색할 수 있습니다.
 
-<details>
-<summary>P3 Cart</summary>
+| 문서 | 설명 |
+|---|---|
+| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P8 도메인 요구사항 |
+| [Domain ERD](./docs/domain-erd.md) | SQL과 독립적인 도메인 객체·업무 관계 |
+| [Architecture](./docs/architecture.md) | 모듈 경계와 의존성 규칙 |
+| [Domain Glossary](./docs/domain-glossary.md) | 도메인 용어와 상태값 기준 |
+| [ADR](./docs/adr/) | 주요 설계 결정과 선택 이유 |
+| [Testing Guide](./docs/testing-guide.md) | 단위·슬라이스·통합 테스트 작성 규칙 |
+| [Current State](./docs/current-state.md) | 특정 Git SHA 기준 구현 상태 스냅샷 |
+| [Skills Index](./docs/skills/index.md) | 작업별 에이전트 스킬 선택 가이드 |
+| [Frontend README](./amaazon-front/README.md) | 프론트엔드 실행·검증 방법 |
 
-```mermaid
-erDiagram
-    carts {
-        UUID id PK
-        UUID user_id
-        VARCHAR status
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    cart_items {
-        UUID id PK
-        UUID cart_id FK
-        UUID offer_id
-        INTEGER quantity
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
+## 데이터베이스
 
-    carts ||--o{ cart_items : contains
-```
-</details>
+기본 PostgreSQL 스키마는 [V1__init_schema.sql](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되어 있습니다.
 
-<details>
-<summary>P4 Coupon</summary>
+- SQL 스키마는 테이블·컬럼·제약 조건·외래 키를 설명합니다.
+- Domain ERD는 도메인 객체와 업무 관계를 설명하며 SQL 테이블과 일대일 대응하지 않을 수 있습니다.
+- 모듈 간 식별자는 애플리케이션 계약으로 검증하고, 모듈 경계를 넘는 DB 외래 키는 만들지 않습니다.
 
-```mermaid
-erDiagram
-    coupons {
-        UUID id PK
-        VARCHAR name
-        VARCHAR discount_type
-        NUMERIC discount_value
-        NUMERIC max_discount_amount
-        NUMERIC minimum_order_amount
-        UUID applicable_category_id
-        INTEGER total_quantity
-        INTEGER issued_quantity
-        VARCHAR status
-        TIMESTAMPTZ valid_from
-        TIMESTAMPTZ valid_until
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    user_coupons {
-        UUID id PK
-        UUID user_id
-        UUID coupon_id FK
-        VARCHAR status
-        TIMESTAMPTZ used_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
+## 구현 기준
 
-    coupons ||--o{ user_coupons : issued
-```
-</details>
-
-<details>
-<summary>P5 Order, Payment & Delivery</summary>
-
-```mermaid
-erDiagram
-    orders {
-        UUID id PK
-        VARCHAR order_number UK
-        UUID user_id
-        UUID address_id
-        UUID used_user_coupon_id
-        NUMERIC used_point_amount
-        VARCHAR status
-        NUMERIC subtotal_amount
-        NUMERIC discount_amount
-        NUMERIC shipping_fee
-        NUMERIC paid_amount
-        CHAR currency
-        VARCHAR shipping_recipient_name
-        VARCHAR shipping_recipient_phone
-        VARCHAR shipping_postal_code
-        VARCHAR shipping_address_line
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    order_items {
-        UUID id PK
-        UUID order_id FK
-        UUID catalog_product_id
-        UUID variant_id
-        UUID offer_id
-        VARCHAR sku
-        VARCHAR catalog_product_name
-        INTEGER quantity
-        NUMERIC unit_price
-        NUMERIC subtotal
-        CHAR currency
-        TIMESTAMPTZ created_at
-    }
-    payment_methods {
-        UUID id PK
-        UUID user_id
-        VARCHAR method_type
-        VARCHAR provider
-        VARCHAR masked_number
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    payments {
-        UUID id PK
-        UUID order_id FK
-        UUID payment_method_id FK
-        VARCHAR transaction_id UK
-        VARCHAR status
-        NUMERIC amount
-        CHAR currency
-        TIMESTAMPTZ paid_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    deliveries {
-        UUID id PK
-        UUID order_id FK
-        VARCHAR status
-        VARCHAR tracking_number
-        TIMESTAMPTZ delivery_status_updated_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    orders ||--o{ order_items : contains
-    orders ||--o{ payments : pays
-    payment_methods ||--o{ payments : used_for
-    orders ||--o| deliveries : ships
-```
-</details>
-
-<details>
-<summary>P6 Outbox & Saga</summary>
-
-```mermaid
-erDiagram
-    outbox_events {
-        UUID id PK
-        VARCHAR aggregate_type
-        UUID aggregate_id
-        VARCHAR event_type
-        JSONB payload
-        VARCHAR status
-        INTEGER retry_count
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ published_at
-        TEXT last_error
-    }
-    event_consumptions {
-        UUID id PK
-        UUID event_id FK
-        VARCHAR consumer
-        VARCHAR status
-        TIMESTAMPTZ processed_at
-        TIMESTAMPTZ created_at
-    }
-    saga_instances {
-        UUID id PK
-        UUID order_id
-        VARCHAR status
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    saga_steps {
-        UUID id PK
-        UUID saga_id FK
-        VARCHAR name
-        VARCHAR status
-        INTEGER retry_count
-        TIMESTAMPTZ completed_at
-        TEXT last_error
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-    event_publication {
-        UUID id PK
-        INTEGER completion_attempts
-        TIMESTAMPTZ completion_date
-        VARCHAR event_type
-        TIMESTAMPTZ last_resubmission_date
-        VARCHAR listener_id
-        TIMESTAMPTZ publication_date
-        TEXT serialized_event
-        VARCHAR status
-    }
-
-    outbox_events ||--o{ event_consumptions : consumed_by
-    saga_instances ||--o{ saga_steps : contains
-```
-</details>
-
-<details>
-<summary>P7 Admin & Operations</summary>
-
-P7은 별도 업무 데이터를 소유하지 않습니다. P2~P6의 공개 application interface를 통해 관리자 전용 기능과 운영·재처리를 제공합니다.
-</details>
-
-<details>
-<summary>P8 Seller & Marketplace</summary>
-
-```mermaid
-erDiagram
-    seller_profiles {
-        UUID id PK
-        UUID user_id
-        VARCHAR display_name
-        VARCHAR business_name
-        VARCHAR business_registration_hash
-        VARCHAR contact_email
-        VARCHAR contact_phone
-        VARCHAR status
-        UUID reviewed_by
-        TIMESTAMPTZ reviewed_at
-        VARCHAR review_reason
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-```
-</details>
-`catalog_products.manager_id`는 상품을 등록·관리한 `users.id`를 가리키는 모듈 간 논리 참조입니다. `offers.seller_id`는 Offer를 소유한 P8의 `seller_profiles.id`를 가리키며, 플랫폼 기본 Offer에서는 `NULL`입니다. 두 값 모두 모듈 간 논리 참조이므로 DB FK는 생성하지 않습니다.
+현재 동작은 코드·테스트·Flyway 마이그레이션을 기준으로 판단합니다. 구현 목표와 API 계약은 [요구사항 문서](./docs/requirement/index.md)를 기준으로 하며, 두 문서가 다르면 차이를 확인한 뒤 수정합니다.
