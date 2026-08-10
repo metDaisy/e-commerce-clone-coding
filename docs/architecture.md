@@ -22,9 +22,11 @@ flowchart LR
         Web
         Auth[auth]
         User[user]
+        Catalog[catalog]
+        Seller[seller]
         Common[common]
         Global[global]
-        Future[목표: catalog / inventory / cart / coupon / order / payment / delivery]
+        Future[목표: cart / coupon / order / payment / delivery / admin]
     end
 ```
 
@@ -39,6 +41,8 @@ flowchart LR
 src/main/java/io/github/metdaisy/amaazon/
   auth/       인증 수단, 로그인, JWT 연계
   user/       사용자 프로필과 역할
+  catalog/    카탈로그 상품과 카테고리
+  seller/     판매자 조회와 판매자 검증 seam
   common/     모듈 공통 타입과 기반 인터페이스
   global/     보안·웹·캐시·예외·Outbox 기반 설정
 src/main/resources/
@@ -69,13 +73,16 @@ docs/             요구사항, 설계, 상태 문서
 |---|---|---|
 | `common` | 공통 인증 주체, 저장소·매퍼·예외 기반 타입 | 없음 |
 | `global` | Spring 설정, 공통 보안/JWT, 캐시, 웹 필터, Outbox 기반 | `common::*` |
-| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::event`, `user::user-api`, `global::jwt`, `global::blacklist` |
+| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::user-api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
 | `user` | 프로필, 역할, 활성 상태 | `common::*`, `auth::signup`, `auth::password` |
+| `catalog` | CatalogProduct와 카테고리·태그, 상품 생성 검증 | `common::*`, `seller::api` |
+| `seller` | Seller와 판매자 조회 | `common::*` |
 
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
 - `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
-- 역할은 `USER`(기본 구매자), `PRODUCT_MANAGER`(판매자), `ADMIN`(플랫폼 운영자)으로 구분한다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있으며, 판매자 API는 활성 `Seller`을 추가로 요구한다.
+- `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
+- 역할은 `USER`(기본 구매자), `PRODUCT_MANAGER`(판매자 업무 담당자), `ADMIN`(플랫폼 운영자)으로 구분한다. `PRODUCT_MANAGER`도 구매자 기능을 사용할 수 있으며, 카탈로그 상품 생성은 활성 `Seller` 검증을 추가로 요구한다.
 - `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
 - `auth::password`: 회원가입 요청의 비밀번호 검증 규칙.
 - `global::jwt`: JWT 설정과 생성·검증 기능.
@@ -111,27 +118,26 @@ sequenceDiagram
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
 | P1 | `user`, `auth` | 프로필, 인증수단, 권한, 주소, 포인트, 관심상품 |
-| P2 | `catalog`, `inventory`, `review` | 카테고리, CatalogProduct·ProductVariant, 이미지, 검색, 가격·재고 규칙, 리뷰 |
+| P2 | `catalog`, `inventory`, `review` | 카테고리, CatalogProduct·ProductVariant·Offer, 이미지, 검색, 가격 정책, 재고, 리뷰 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
 | P5 | `order`, `payment`, `delivery` | 금액 산출, 상태 머신, 결제와 환불, 배송 추적 |
 | P6 | `outbox`와 Saga 참여 모듈 | 이벤트 유실 방지, 재시도, 멱등 소비, 보상 트랜잭션 |
 | P7 | 관리자·운영 진입점 | 관리자 전용 API, 권한 변경, 운영·재처리 기능 |
-| P8 | `seller` | 판매자 온보딩, Seller, Offer 관리·재고 조정·판매자 주문 조회 |
+| P8 | `seller` | 판매자 온보딩, Seller, Offer·재고·판매자 주문 조회 |
 
-모듈 이름과 분리 수준은 구현 전 ADR로 확정한다. 요구사항의 P 번호가 반드시 하나의 코드 모듈을 뜻하지는 않는다.
+위 표는 목표 분리 단위다. 현재 구현 모듈과 일치하지 않는 목표 모듈은 구현 시 ADR로 분리 수준과 공개 seam을 확정한다. 요구사항의 P 번호가 반드시 하나의 코드 모듈을 뜻하지는 않는다.
 
 ## 데이터와 트랜잭션
 
 - 모든 모듈은 현재 하나의 PostgreSQL 스키마를 공유한다.
-- `V1__init_schema.sql`은 심화사항을 제외한 P1~P8 요구사항과 Spring Modulith 기반 테이블을 제공한다. 테이블 존재는 도메인 구현 완료를 의미하지 않는다.
+- `V1__init_schema.sql`은 P1~P8 대상 테이블과 Spring Modulith 기반 테이블을 제공한다. 테이블 존재는 도메인 구현 완료를 의미하지 않는다.
 - 스키마 변경은 새 Flyway 마이그레이션으로 적용한다.
 - 모듈 내부 원자성은 로컬 DB 트랜잭션으로 보장한다.
 - 도메인 간 식별자는 애플리케이션 이벤트 또는 공개 port로 검증하며 DB 외래 키를 만들지 않는다. 외래 키는 같은 도메인 내부 엔티티 관계에만 추가한다.
-- P2의 목표 모델은 전시 상품군인 `CatalogProduct`, 구매 단위인 `ProductVariant`, 판매자별 판매 조건·가격인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. CatalogProduct 등록은 Variant·Offer를 만들지 않으며, 하나의 CatalogProduct는 여러 ProductVariant를, 하나의 ProductVariant는 판매자별 여러 Offer를 가질 수 있다. P2는 공개 조회와 가격·재고 규칙을 정의하고 P8은 Seller를 인증 주체로 Offer 등록·상태 관리와 재고 조정 진입점을 제공한다.
+- P2의 목표 모델은 상품 메타데이터인 `CatalogProduct`, 실제 판매 단위인 `ProductVariant`, 판매자별 가격·판매 조건인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. `CatalogProduct`가 여러 `ProductVariant`를 가질 수 있고, 하나의 `ProductVariant`에 판매자별 `Offer`가 연결된다.
 - P7은 P2~P6 테이블의 소유 모듈이 아니다. 관리자 전용 API는 각 모듈의 공개 application interface를 호출하고, 관리자 권한·운영 진입점만 담당한다.
 - P8은 P2의 CatalogProduct·ProductVariant를 소유하지 않는다. 판매자는 Seller을 통해 자신의 Offer와 재고를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
-- `Offer.sellerId`는 선택값이며, 값이 없으면 플랫폼 기본 Offer로 처리한다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.
 

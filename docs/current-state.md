@@ -1,129 +1,90 @@
 # 현재 구현 상태
 
-> 관리 방식: 커밋된 코드에서 다시 만들 수 있는 파생 스냅샷이다. 의미 있는 기능 커밋,
-> 모듈·라우트·스키마 변경 후 Continue의 `/update` Prompt로 갱신한다.
-> 작업 트리가 깨끗하지 않으면 자동 갱신하지 않는다. 사람의 고민과 작업 과정은 `dev-dairy.md`, 결정 이유는 `adr/`에 보존한다.
+> 커밋된 코드에서 재현할 수 있는 파생 스냅샷이다. 구현 상태는 코드·테스트·설정·Flyway를 기준으로 판단하며, 요구사항 문서는 목표 범위를 확인하는 용도로만 사용한다.
 
 ## 스냅샷
 
 - 확인일: 2026-08-11
 - Git 브랜치: `p2-product/issue18`
-- 기준 Git SHA: `28cc60523b2b23cd859925c39ab549f266d014e9`
-- 코드 지식 그래프: 기준 SHA와 일치 (detect_changes 확인됨)
-- 검증 범위: 요구사항, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
-- 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 코드 존재와 구조에 대한 상태이며 전체 테스트 통과 선언이 아니다.
-
-현재 HEAD가 기준 SHA와 다르면 이 문서를 그대로 신뢰하지 말고 변경 영향을 먼저 확인한다.
+- 구현 기준 Git SHA: `de199195a9011f01343ca729f3fa26f484db1c32`
+- 기준 상태: 구현 기준 SHA 이후의 uncommitted 구현 변경은 포함하지 않았다.
+- 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 정적 코드·설정·마이그레이션 확인 결과이며 테스트 통과를 의미하지 않는다.
 
 ## 전체 진행 요약
 
-| 단계 | 상태 | 확인된 범위 |
+| 단계 | 상태 | 근거와 범위 |
 |---|---|---|
-| P1 User & Auth | 진행 중 | 회원가입, 프로필 조회·수정, 로컬·소셜 인증 기반, JWT, 토큰 블랙리스트, 계정 비활성화 기반, **계정 잠금, 로그인 시도 횟수 관리** |
-| P2 Catalog & Inventory | 카탈로그 상품 생성·조회 구현 | Flyway 테이블 존재, `catalog` 모듈 엔티티(`CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`, `ProductPublicationStatus`) 및 리포지토리, 서비스(`CatalogProductService`, `CategoryService`, `TagService`), 컨트롤러(`CatalogProductController`, `CategoryController`) 구현; 판매자 검증(`ActiveSeller`, `ProductManager`) 포함. `product` 모듈은 삭제됨. |
-| P3 Cart | 미구현 | Flyway 테이블만 존재 |
-| P4 Coupon | 미구현 | Flyway 테이블만 존재 |
-| P5 Order & Payment | 미구현 | Flyway 테이블만 존재 |
-| P6 Outbox & Saga | 기반만 존재 | Spring Modulith event publication 테이블, Outbox 설정·스케줄러 골격; 주문 Saga 없음 |
+| P1 User & Auth | 부분 구현 | `auth`·`user` 모듈의 회원가입, Credential, 로컬·소셜 인증 지원, JWT, 로그아웃/블랙리스트, 사용자 프로필 API와 관련 테스트가 존재한다. 주소록·포인트·관심상품·인증수단 전체 관리 등 요구사항 전체는 구현되지 않았다. |
+| P2 Catalog & Inventory | 부분 구현 | 카탈로그 상품 생성과 카테고리 목록 조회가 구현되어 있다. 상품 목록·상세 조회, Variant·Offer·Inventory 구현과 관련 테스트는 확인되지 않았다. |
+| P3 Cart | 스키마만 존재 | 장바구니 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
+| P4 Coupon | 스키마만 존재 | 쿠폰 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
+| P5 Order & Payment | 스키마만 존재 | 주문·결제·배송 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
+| P6 Infrastructure | 기반 부분 구현 | Spring Modulith 이벤트 발행, Outbox 설정·스케줄러와 관련 테이블이 존재한다. 실제 주문 Saga와 보상 흐름은 확인되지 않았다. |
+| P7 Admin & Operations | 미구현 | 전용 관리자 모듈·관리 API·운영 기능은 확인되지 않았다. |
+| P8 Seller & Marketplace | 부분 구현 | `Seller` 엔티티·저장소·조회 API와 카탈로그 생성 시 판매자/상품 관리자 검증이 존재한다. 판매자 등록·관리 화면/API와 Offer 기반 판매 흐름은 확인되지 않았다. |
 
-## 백엔드 현황
+## 백엔드 구조
 
-### 구현된 모듈
+현재 소스 모듈은 `auth`, `user`, `catalog`, `seller`, `common`, `global`이다. `offer` 디렉터리는 존재하지만 구현 파일은 확인되지 않았다.
 
-- `catalog`: 상품 도메인 엔티티(`CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`, `ProductPublicationStatus`), 리포지토리(`CatalogProductRepository`, `CategoryRepository`, `TagRepository`), 서비스(`CatalogProductService`, `CategoryService`, `TagService`), 컨트롤러(`CatalogProductController`, `CategoryController`). 판매자 활성 검증(`ActiveSeller`, `ProductManager`). 모듈 seam(`allowedDependencies: common::*`, `seller::*`).
-- `seller`: 판매자 엔티티(`Seller`, `SellerStatus`), 리포지토리(`SellerRepository`), 포트(`SellerQueryApi`), 어댑터(`CatalogSellerAdapter`).
-- `auth`: 로컬·소셜 Credential, 회원가입 진입점, 비밀번호 정책, Form/OAuth2 로그인 지원 클래스, Access·Refresh·Guest JWT, 로그아웃과 사용자·토큰 블랙리스트, 로그인 정책(`LoginPolicyProperties`), 계정 잠금 로직(`UserCredential`의 `violationCount`/`untilLocked`), 로그인 실패/성공/로그아웃 이벤트(`IncorrectPasswordEvent`, `FormLoginSuccessEvent`, `JwtLogoutSuccessEvent`) 및 핸들러(`UserCredentialEventHandler`), **서비스 분리(`UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 위임)**, **FormLoginSuccessHandler에서 로그인 성공 이벤트 발행 및 게스트 → 회원 전환 이벤트(`SocialSignUpTask`) 발행**. 로그인을 성공 후 게스트 쿠키를 가진 사용자를 회원으로 전환하는 로직이 추가되었다.
-- `user`: 사용자 프로필, 역할, 활성 상태, 프로필 조회·수정, 회원가입 프로필 생성(`FormSignUpTask`, `SocialSignUpTask` 이벤트 수신).
-- `common`: 공통 인증 주체, 예외, JPA 저장소, MapStruct 설정.
-- `global`: Spring 설정, 보안 필터와 JWT, 캐시, 공통 예외 응답 전략, 웹 설정, Outbox 기반.
+- `auth`: 로컬·소셜 Credential, 회원가입, 비밀번호 검증·변경, Access/Refresh/Guest JWT, 로그아웃·토큰/사용자 블랙리스트, 로그인 실패 누적·잠금, 인증 이벤트와 보안 핸들러
+- `user`: 사용자 프로필·역할, 회원가입 이벤트 수신, 프로필 조회·수정
+- `catalog`: `CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`와 저장소·서비스, 카탈로그 상품 생성 및 판매자 검증
+- `seller`: `Seller`, `SellerStatus`, 저장소, `SellerQueryApi`, 카탈로그 모듈용 어댑터
+- `common`: 공통 인증 주체·예외·DTO·JPA 저장소·MapStruct 설정
+- `global`: Spring 설정, 보안 필터·JWT, 예외 응답, 캐시, Outbox 설정·스케줄러
 
-### 확인된 HTTP 진입점
+Spring Modulith `package-info.java`의 `allowedDependencies`와 Named Interface로 모듈 경계를 관리한다.
 
-- `POST /auth/signup`
-- `POST /auth/refresh`
-- `POST /auth/password/verify`
-- `POST /auth/update`
-- `GET /users/me`
-- `POST /users/update`
-- `GET /catalog/products` (목록·검색)
-- `GET /catalog/products/{id}`
-- `POST /catalog/products` (판매자 검증 필요)
-- `GET /catalog/categories`
+## 확인된 HTTP 진입점
 
-Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler와 filter로 구성되어 컨트롤러 라우트 목록에 모두 나타나지 않는다.
+현재 Controller 선언 기준이며 별도 `/api/v1` context path는 확인되지 않았다.
 
-### 현재 회원가입 구조
+| Method | Path | 상태 |
+|---|---|---|
+| POST | `/auth/signup` | 구현 |
+| POST | `/auth/refresh` | 구현 |
+| POST | `/auth/password/verify` | 구현 |
+| POST | `/auth/update` | 구현 |
+| GET | `/users/me` | 구현 |
+| POST | `/users/update` | 구현 |
+| POST | `/catalog-products` | 구현·`PRODUCT_MANAGER`/`ADMIN` 및 활성 판매자 검증 |
+| GET | `/categories` | 구현 |
 
-1. `AuthController`가 `SignUpRequest`를 받는다.
-2. `auth`의 Bean Validation이 이메일·비밀번호 형식을 검사한다.
-3. `AuthService`가 이메일 중복을 확인하고 비밀번호를 해시하여 `UserCredential`을 만든다.
-4. 평문 비밀번호를 제외한 `FormSignUpTask` (또는 `SocialSignUpTask`) 를 발행한다.
-5. `user`의 `UserEventHandler`가 동기 수신하여 프로필을 저장한다.
-6. `AuthService`가 Credential을 저장한다.
+Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처리되어 Controller 목록에 나타나지 않는다.
 
-**로그인 정책**: `LoginPolicyProperties`(시도 최대 횟수, 잠금 해제 시간) + `LoginPolicyConfig` 설정. `UserCredential`에 `violationCount`/`untilLocked` 필드 추가. `FormUserDetailsService`에서 계정 잠금 상태 검증. `UserCredentialJpaRepository`에 PESSIMISTIC_WRITE 락 적용.
+현재 확인되지 않은 카탈로그 API:
 
-**서비스 분리**: `AuthService`가 `UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 책임을 위임.
+- `GET /catalog-products` 목록·검색
+- `GET /catalog-products/{catalogProductId}` 상세
+- Variant·Offer·Inventory 등록·조회 API
+- 카테고리 생성·수정·삭제 관리자 API
 
-**로그인 성공 핸들러**: `FormLoginSuccessHandler`가 JWT 발급 후 `FormLoginSuccessEvent`를 발행하고, 게스트 쿠키가 있으면 `SocialSignUpTask` 이벤트를 발행하여 게스트 → 회원 전환을 처리한다.
+## 데이터베이스
 
-**Hibernate 2nd Level Cache**: Caffeine 기반 2차 캐시 설정이 추가되었다. `application.yml`에 JCache RegionFactory 활성화, `application.conf`에 `Category`(500개, 12시간), `Tag`(1000개, 6시간) 캐시 정책 정의. `Category`, `Tag` 엔티티에 `@Immutable`과 `@Cache(region=..., usage=READ_ONLY)` 적용.
+- Flyway 마이그레이션은 `V1__init_schema.sql` 하나이며 `application.yml`에서 활성화되어 있다.
+- V1에는 사용자·인증·주소·포인트·관심상품, 카탈로그·Variant·Offer·Inventory·이미지·태그·리뷰, 장바구니, 쿠폰, 주문·결제·배송, Outbox·Saga·이벤트 발행, 판매자 테이블이 정의되어 있다.
+- 현재 Java 엔티티가 확인되는 영역은 사용자·인증·카탈로그·판매자이며, 나머지 테이블은 스키마만 존재한다.
+- `catalog_products`와 `CatalogProduct`는 현재 구현 대상이며, `product_variants`, `offers`, `inventories`는 현재 구현되지 않았다.
+- 테이블 존재만으로 도메인 로직·상태 전이·동시성 제어·API 완료를 의미하지 않는다.
 
-개발 일지에서 제시한 "평문 비밀번호를 auth에 국한"하는 방향은 반영됐다. 다만 사용자 프로필 생성은 작은 동기 인터페이스 호출이 아니라 명령 성격의 `FormSignUpTask` 이벤트를 사용한다. 이 방식의 실패·트랜잭션 의미를 ADR로 확정할 필요가 있다.
+## 프론트엔드
 
-### 아직 확인되지 않은 P1 요구사항
+- `amaazon-front/`에 React/TypeScript/Vite 애플리케이션이 있다.
+- 홈·내비게이션·배너·상품 그리드와 로그인·회원가입·OAuth UI가 존재한다.
+- 상품 화면은 프론트 정적 데이터와 UI를 사용하며 P2 백엔드 연동 완료로 확인되지 않았다.
 
-다음 항목은 현재 전용 모듈·진입점이 없거나 요구사항 전체 구현을 확인할 수 없다.
+## 테스트와 자동화
 
-- 주소록 CRUD, 사용자당 5개 제한, 기본 배송지 원자적 전환
-- 포인트 적립·사용·만료 원장과 동시성 제어
-- 관심상품 토글과 조회
-- **로그인 실패 5회에 따른 계정 잠금** (기능 구현됨, 테스트 범위 확정 필요)
-- 인증수단 연결·해제와 마지막 수단 보호
-- 관리자 역할 변경과 리소스 소유권 정책 전체
-- 비활성화 90일 후 개인정보 마스킹 배치
+- JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
+- `src/test`에서 Java 테스트 파일 41개를 확인했다. 이번 갱신에서는 실행 결과를 확인하지 않았다.
+- JaCoCo와 80% 라인 커버리지 검증 설정, Checkstyle 및 custom `checkstyle-rules` 모듈이 빌드에 포함되어 있다.
+- CI에는 build, JaCoCo 리포트, Codecov, CodeQL, OpenGrep, CodeRabbit 관련 설정이 있다.
 
-## 데이터베이스 현황
+## 현재 주요 불일치와 다음 작업
 
-- Flyway `V1__init_schema.sql`에 `users`, 인증 테이블뿐 아니라 상품, 장바구니, 쿠폰, 주문, 결제, 배송 등 P1~P6 목표 테이블이 정의되어 있다.
-- `event_publication`은 Spring Modulith 이벤트 발행 저장 기반이다.
-- `user_credentials` 테이블에 `violation_count`, `until_locked` 컬럼이 추가되었다.
-- `catalog_products`, `catalog_product_tags` 테이블이 추가되었다.
-- `products`, `product_tags` 테이블은 제거되었다.
-- `categories` 테이블에 `name` UNIQUE 제약(`uq_categories_name`)이 추가되었다.
-- `CatalogProduct`, `Category`, `Tag`, `CatalogProductTag` 엔티티가 `catalog` 모듈에 추가되었다. `Category`, `Tag`는 읽기 전용(`@Immutable`)으로 2차 캐시 대상이다.
-- DB 테이블 존재는 해당 도메인 로직, 상태 머신, 동시성 제어, API 구현 완료를 의미하지 않는다.
-- 이후 스키마 변경은 V1을 수정하기보다 새 마이그레이션을 추가하는 것이 기본이다.
-
-## 프론트엔드 현황
-
-- React/TypeScript/Vite 프로젝트가 `amaazon-front/`에 있다.
-- 홈 레이아웃, 내비게이션, 배너, 상품 그리드·스크롤 UI가 존재한다.
-- 로그인, 회원가입, OAuth callback과 소셜 로그인 UI 코드가 존재한다.
-- 상품 데이터는 현재 `src/data/products.ts`의 프론트 데이터가 포함되어 있으며 P2 백엔드 연동 완료로 간주하지 않는다.
-
-## 테스트와 자동화 기반
-
-- JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers가 설정되어 있다.
-- 코드 그래프에서 백엔드 테스트 파일 34개를 확인했다.
-- JaCoCo 라인 커버리지 기준은 80%다.
-- GitHub Actions, Codecov, CodeQL, OpenGrep, CodeRabbit 관련 설정이 존재한다.
-- 실제 최신 테스트 결과는 Gradle MCP 또는 CI 결과로 별도 확인해야 한다.
-
-## 해결해야 할 충돌과 결정
-
-1. 요구사항은 도메인 간 직접 Bean 주입을 금지하고 이벤트 통신을 요구하지만 현재 `auth`는 `user::user-api` 동기 Named Interface도 사용한다. 허용할 조회 seam의 기준을 ADR로 정해야 한다.
-2. `auth`와 `user`가 서로의 Named Interface를 허용한다. 신규 기능은 현재 순환 의존을 확대하지 않아야 한다.
-3. `FormSignUpTask`/`SocialSignUpTask`는 도메인 사실보다 명령에 가깝다. 이벤트로 유지할지 동기 프로필 생성 인터페이스로 바꿀지 결정해야 한다.
-4. 요구사항의 UserCredential 1:N과 현재 설계·구현의 0..1 관계가 다르다.
-5. `catalog` 모듈로 상품 도메인이 이동되었으며, `product` 모듈은 삭제되었다. `catalog_products` 스키마와 `CatalogProduct` 엔티티가 일치한다.
-
-## 다음 진행 순서
-
-다음 순서로 불확실성을 먼저 제거한다.
-
-1. 회원가입 seam과 이벤트 의미를 결정하고 첫 ADR로 기록한다.
-2. P1의 누락 기능과 요구사항 대비 테스트 범위를 확정한다.
-3. `catalog` 모듈 seam과 `seller` 모듈 통합을 검증한다.
-4. P1을 검증한 뒤 P3 장바구니 모듈 seam을 설계한다.
-5. 모듈 추가 시 `architecture.md`, 이 문서의 날짜와 Git SHA를 함께 갱신한다.
+1. 요구사항에 정의된 P2 목록·상세 조회와 Variant·Offer·Inventory 기능이 현재 코드에 없다.
+2. V1 스키마의 P3~P8 테이블 대부분에 대응하는 도메인 모듈과 API가 없다.
+3. 카테고리 관리 API는 P7 관리자 기능으로 분리되어야 하며 현재 구현되지 않았다.
+4. P2 API와 Catalog 테스트를 추가하고, 이후 P8 판매자·Offer 흐름을 구현한다.
+5. 구현 범위가 확장되면 해당 모듈의 테스트와 Modulith 경계 검증을 함께 추가한다.
