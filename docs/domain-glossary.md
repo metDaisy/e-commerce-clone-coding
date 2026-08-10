@@ -45,7 +45,7 @@
 | 기본 배송지 | 사용자당 하나만 존재하는 대표 Address. 변경은 같은 트랜잭션에서 기존 기본값을 해제해야 한다. |
 | Point | 결제에 사용할 수 있는 사용자 잔액. 음수가 될 수 없고 동일 사용자 차감은 동시성 제어가 필요하다. |
 | Point History | 포인트 증감의 불변 원장. 수정·삭제하지 않고 취소도 반대 부호 레코드를 추가한다. |
-| Wishlist | User와 CatalogProduct 사이의 관심 관계. 상품이 품절·보관되어도 관계는 유지하고 화면에서 상태를 구분한다. |
+| Wishlist | User와 ProductVariant 사이의 관심 관계. Variant가 품절·보관되어도 관계는 유지하고 화면에서 상태를 구분한다. |
 
 ## 상품과 전시
 
@@ -69,8 +69,8 @@
 | 용어 | 의미 |
 |---|---|
 | Category | 최대 3단계까지 부모를 가질 수 있는 상품 분류 |
-| CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
-| ProductVariant | CatalogProduct 아래에서 고객이 실제로 선택하고 주문하는 하나의 옵션 조합이자 SKU 단위. 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. 옵션이 없는 상품도 `기본 옵션` ProductVariant 1개를 가지며, 요구사항에서는 다중 ProductVariant 대신 기본 ProductVariant 1개만 생성한다. |
+| CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 공통 메타데이터와 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
+| ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
 | Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
 | Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
@@ -78,7 +78,9 @@
 | 기간성 할인 | Offer에 연결된 기본 가격과 시작·종료 시각이 있는 할인 가격. 심화사항에서는 쿠폰·회원가·복수 프로모션으로 확장한다. |
 | 적용가격 | 현재 시각과 적용 가능한 가격 정책을 기준으로 계산한 고객 표시 가격 |
 | Image/Media | 상품·ProductVariant·Review에 연결되는 이미지와 미디어 메타데이터. 표시 순서와 URL을 관리한다. |
-| Review | 구매와 배송 완료가 확인된 사용자가 상품당 하나 작성할 수 있는 평점·텍스트·이미지 평가 |
+| Review | 구매와 배송 완료가 확인된 사용자가 ProductVariant당 하나 작성할 수 있는 평점·텍스트·이미지 평가 |
+
+`CatalogProduct`와 `ProductVariant`는 `1 : N` 관계다. 하나의 CatalogProduct가 여러 ProductVariant를 가지며, CatalogProduct는 공통 상품 메타데이터를 제공하고 ProductVariant는 실제 판매·구매 단위를 표현한다. 판매자는 ProductVariant에 `Offer`를 등록해 가격·판매 상태·판매 조건을 관리하고, 재고는 Offer 단위로 관리한다.
 
 ## 구매와 혜택
 

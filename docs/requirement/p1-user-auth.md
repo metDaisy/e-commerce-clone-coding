@@ -34,8 +34,8 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 | POST | `/api/v1/me/addresses/{addressId}/default` | 로그인 | 기본 배송지 지정 |
 | GET | `/api/v1/me/points` | 로그인 | 포인트 잔액·원장 조회 |
 | GET | `/api/v1/me/wishlists` | 로그인 | 관심 상품 조회 |
-| PUT | `/api/v1/me/wishlists/{catalogProductId}` | 로그인 | 관심 상품 추가 |
-| DELETE | `/api/v1/me/wishlists/{catalogProductId}` | 로그인 | 관심 상품 삭제 |
+| PUT | `/api/v1/me/wishlists/{variantId}` | 로그인 | ProductVariant 관심 상품 추가 |
+| DELETE | `/api/v1/me/wishlists/{variantId}` | 로그인 | ProductVariant 관심 상품 삭제 |
 
 ## 3. 요구사항
 
@@ -172,10 +172,12 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 
 ### 3-8. 관심 상품
 
+- 관심 상품은 실제 구매 단위인 `ProductVariant`를 저장한다.
 - `PUT`은 관심 상품을 추가하고 이미 존재하면 성공으로 처리한다.
 - `DELETE`는 존재하지 않아도 성공으로 처리한다.
-- `(user_id, catalog_product_id)`는 UNIQUE다.
-- 조회 응답에는 상품명, 현재 가격, 썸네일, 구매 가능 상태를 포함한다.
+- `(user_id, variant_id)`는 UNIQUE다.
+- 조회 응답에는 `variantId`, `catalogProductId`, SKU, 상품명, 현재 가격, 썸네일, 구매 가능 상태를 포함한다.
+- ProductVariant가 품절·보관되어도 관심 관계는 유지하고 조회 화면에서 상태를 구분한다.
 
 #### 심화 사항
 
@@ -196,6 +198,7 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 | 400 | `INVALID_OAUTH_CALLBACK` | state·code 검증 실패 |
 | 403 | `ACCESS_DENIED` | 권한 부족 또는 타인 리소스 접근 |
 | 403 | `ACCOUNT_DEACTIVATED` | 비활성화 계정 사용 |
+| 404 | `WISHLIST_VARIANT_NOT_FOUND` | 관심 상품 대상 ProductVariant 없음 |
 | 409 | `EMAIL_ALREADY_EXISTS` | 이메일 중복 |
 | 409 | `SOCIAL_CREDENTIAL_ALREADY_LINKED` | 소셜 계정 중복 연결 |
 | 409 | `LAST_AUTH_METHOD` | 마지막 인증 수단 해제 |

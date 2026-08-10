@@ -55,7 +55,7 @@ CatalogProduct (상품군/전시 상품)
 | PATCH | `/api/v1/offers/{offerId}/price` | Offer 소유 PRODUCT_MANAGER, ADMIN | Offer 가격 수정 |
 | POST | `/api/v1/offers/{offerId}/inventory-adjustments` | PRODUCT_MANAGER, ADMIN | 재고 조정 |
 | GET | `/api/v1/catalog-products/{catalogProductId}/reviews` | 공개 | 리뷰 목록 |
-| POST | `/api/v1/catalog-products/{catalogProductId}/reviews` | 로그인 | 리뷰 작성 |
+| POST | `/api/v1/product-variants/{variantId}/reviews` | 로그인 | ProductVariant 리뷰 작성 |
 | PATCH | `/api/v1/reviews/{reviewId}` | 작성자 | 리뷰 수정 |
 | DELETE | `/api/v1/reviews/{reviewId}` | 작성자, ADMIN | 리뷰 삭제 |
 
@@ -338,6 +338,8 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 }
 ```
 
+`reviewSummary`는 해당 CatalogProduct에 속한 모든 ProductVariant 리뷰를 통합해 계산한다.
+
 ### 3-6. 가격
 
 - 가격은 Offer에 연결된 가격 정보가 소유한다.
@@ -431,6 +433,7 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
   "items": [
     {
       "reviewId": "uuid",
+      "variantId": "uuid",
       "userName": "홍**",
       "rating": 5,
       "content": "좋은 상품입니다.",
@@ -444,9 +447,10 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 ```
 
 - 리뷰 목록은 `createdAt DESC, reviewId DESC` 순서의 커서 기반 조회다.
+- 리뷰 목록은 해당 CatalogProduct에 속한 모든 ProductVariant의 리뷰를 통합해 반환한다.
 - `cursor`와 `page`를 함께 보내면 `PAGINATION_PARAMETER_CONFLICT`를 반환한다.
 
-`POST /api/v1/catalog-products/{catalogProductId}/reviews` 요청:
+`POST /api/v1/product-variants/{variantId}/reviews` 요청:
 
 ```json
 {
@@ -456,13 +460,13 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 }
 ```
 
-- 배송 완료(`DELIVERED`)된 구매자만 작성한다.
-- 사용자당 하나의 CatalogProduct에 하나의 리뷰만 허용한다.
+- 해당 ProductVariant를 구매하고 배송 완료(`DELIVERED`)된 구매자만 작성한다.
+- 사용자당 하나의 ProductVariant에 하나의 리뷰만 허용한다.
 - 평점은 1~5 정수, 본문은 최대 2000자, 이미지는 최대 5장이다.
 
 #### 심화 사항
 
-- ProductVariant별 리뷰, 인증 구매, 고객 이미지·동영상, 도움됨 투표와 리뷰 검수를 지원한다.
+- 인증 구매, 고객 이미지·동영상, 도움됨 투표와 리뷰 검수를 지원한다.
 
 ## 4. 예외
 
