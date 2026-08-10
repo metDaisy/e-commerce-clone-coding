@@ -118,6 +118,11 @@ erDiagram
         VARCHAR name
         TEXT description
         VARCHAR brand
+        VARCHAR asin
+        VARCHAR gtin
+        VARCHAR upc
+        VARCHAR ean
+        VARCHAR isbn
         JSONB attributes
         VARCHAR publication_status
         TIMESTAMPTZ archived_at

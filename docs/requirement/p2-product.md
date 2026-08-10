@@ -48,6 +48,7 @@ CatalogProduct (상품군/전시 상품)
 | GET | `/api/v1/products/{productId}` | 공개 | 상품 상세 |
 | PATCH | `/api/v1/products/{productId}` | PRODUCT_MANAGER, ADMIN | 상품 수정 |
 | DELETE | `/api/v1/products/{productId}` | PRODUCT_MANAGER, ADMIN | 상품 보관 |
+| PATCH | `/api/v1/offers/{offerId}/price` | Offer 소유 PRODUCT_MANAGER, ADMIN | Offer 가격 수정 |
 | POST | `/api/v1/offers/{offerId}/inventory-adjustments` | PRODUCT_MANAGER, ADMIN | 재고 조정 |
 | GET | `/api/v1/products/{productId}/reviews` | 공개 | 리뷰 목록 |
 | POST | `/api/v1/products/{productId}/reviews` | 로그인 | 리뷰 작성 |
@@ -106,6 +107,13 @@ CatalogProduct (상품군/전시 상품)
 
 `POST /api/v1/products`
 
+권한:
+
+- `PRODUCT_MANAGER`는 `SellerProfile.status = ACTIVE`일 때만 호출할 수 있다.
+- `ADMIN`은 플랫폼 운영자로서 호출할 수 있다.
+- `USER`, 승인되지 않은 `PRODUCT_MANAGER`, 비활성·정지된 판매자는 호출할 수 없다.
+- `PRODUCT_MANAGER`와 `ADMIN` 모두 `managerId` 또는 `sellerId`를 요청 본문으로 전달하지 않는다.
+
 요청:
 
 ```json
@@ -114,6 +122,11 @@ CatalogProduct (상품군/전시 상품)
   "name": "무선 헤드폰",
   "description": "상품 상세 설명",
   "brand": "Example Brand",
+  "asin": "B0EXAMPLE1",
+  "gtin": "8801234567890",
+  "upc": "012345678905",
+  "ean": "8801234567890",
+  "isbn": "9781234567897",
   "tags": ["무선", "블루투스"],
   "attributes": { "connectionType": "Bluetooth", "color": "Black" },
   "variant": {
@@ -123,7 +136,7 @@ CatalogProduct (상품군/전시 상품)
     "dimensions": { "width": 18, "height": 20, "depth": 8, "unit": "cm" }
   },
   "offer": {
-    "price": { "amount": 49900.00, "currency": "KRW" }
+    "basePrice": { "amount": 49900.00, "currency": "KRW" }
   },
   "inventory": { "initialQuantity": 100 },
   "media": [
@@ -142,13 +155,27 @@ CatalogProduct (상품군/전시 상품)
 - `categoryId`
 - `name`, `description`
 - `variant.sku`, `variant.displayName`
-- `offer.price.amount`, `offer.price.currency`
+- `offer.basePrice.amount`, `offer.basePrice.currency`
 - `inventory.initialQuantity`
-- `media`의 대표 이미지 1장
+- `media`의 이미지 1장 이상과 대표 이미지 정확히 1장
 
 선택 입력:
 
-- `brand`, `tags`, `attributes`, `weight`, `dimensions`
+- `brand`, `asin`, `gtin`, `upc`, `ean`, `isbn`, `tags`, `attributes`, `variant.weight`, `variant.dimensions`
+
+입력 규칙:
+
+- `categoryId`는 삭제되지 않은 기존 카테고리여야 한다. 카테고리 생성·수정·삭제는 P7의 `ADMIN` API에서 수행한다.
+- `name`과 `description`은 공백만으로 구성할 수 없다.
+- `tags`는 중복 없이 저장한다. `attributes`는 JSON object이며 서버가 허용하지 않은 구조는 거부한다.
+- `variant.sku`는 시스템 전체에서 유일해야 하며 생성 후 변경하지 않는다.
+- `variant.displayName`은 실제 구매 단위를 설명하는 값이며 옵션 선택 목록 자체가 아니다.
+- `asin`, `gtin`, `upc`, `ean`, `isbn`은 선택 입력이며 각각 상품 간 중복될 수 없다. 내부 PK로 사용하지 않는다.
+- `offer.basePrice.amount`와 `inventory.initialQuantity`는 0 이상이어야 한다.
+- `offer.basePrice.currency`는 3자리 대문자 통화 코드다.
+- 등록 시 할인 가격은 받지 않는다. 할인은 `PATCH /api/v1/offers/{offerId}/price`에서 설정한다.
+- `media`는 기본 요구사항에서 `IMAGE`만 허용하고, 대표 이미지(`isPrimary = true`)는 정확히 1개여야 한다.
+- `media.sortOrder`는 요청 내에서 중복될 수 없으며 이미지 URL 형식을 검증한다.
 
 등록 요청의 `variant`는 상품의 선택 옵션이 아니라 실제 구매 단위를 표현한다. 그러므로 `variant.sku`와 `variant.displayName`은 필수이며, 옵션이 없는 상품도 다음처럼 입력한다.
 
@@ -163,12 +190,15 @@ CatalogProduct (상품군/전시 상품)
 
 처리 규칙:
 
-1. 카테고리가 존재하고 삭제되지 않았는지 확인한다.
-2. SKU가 중복되지 않았는지 확인한다.
-3. 가격은 0 이상, 재고는 0 이상이어야 한다.
-4. 상품·Variant·Offer·가격·재고를 하나의 트랜잭션으로 생성한다.
-5. `PRODUCT_MANAGER`가 등록한 상품에는 해당 `SellerProfile`의 Offer를 생성하고, `ADMIN`이 등록한 상품에는 플랫폼 기본 Offer를 생성한다.
-6. 재고가 0이면 구매 가능 상태를 `OUT_OF_STOCK`으로 계산한다.
+1. 인증 주체의 역할과 판매자 프로필 상태를 확인한다.
+2. 카테고리 존재·활성 상태와 SKU 중복 여부를 확인한다.
+3. 가격·재고·Variant·Media 입력을 검증한다.
+4. 서버가 `productId`, `variantId`, `offerId`를 생성한다.
+5. `products.manager_id`를 인증된 `users.id`로 저장한다.
+6. `PRODUCT_MANAGER`가 등록하면 인증된 `SellerProfile.id`를 `offers.seller_id`로 저장한다.
+7. `ADMIN`이 등록하면 플랫폼 기본 Offer로 생성하고 `offers.seller_id`는 `NULL`로 저장한다.
+8. Product, Variant, Offer, 가격, Inventory, Media를 하나의 트랜잭션으로 생성한다.
+9. 재고가 0이면 `OUT_OF_STOCK`, 1 이상이면 `IN_STOCK`으로 계산한다.
 
 성공 응답 `201`:
 
@@ -180,7 +210,8 @@ CatalogProduct (상품군/전시 상품)
   "sku": "HEADPHONE-BLK-001",
   "name": "무선 헤드폰",
   "publicationStatus": "ACTIVE",
-  "currentPrice": { "amount": 49900.00, "currency": "KRW" },
+  "basePrice": { "amount": 49900.00, "currency": "KRW" },
+  "appliedPrice": { "amount": 49900.00, "currency": "KRW" },
   "availabilityStatus": "IN_STOCK",
   "createdAt": "2026-08-09T12:00:00Z"
 }
@@ -196,11 +227,34 @@ CatalogProduct (상품군/전시 상품)
 ### 3-3. 상품 수정·보관
 
 - `PATCH /api/v1/products/{productId}`는 전달된 필드만 수정한다.
-- 상품명·설명·브랜드·태그·속성·기본 가격은 수정할 수 있다.
-- SKU는 주문 이력이 있으면 변경할 수 없다.
-- `DELETE`는 물리 삭제하지 않고 `ARCHIVED`로 변경한다.
+- 요청 본문에서 허용하는 상품 필드는 `name`, `description`, `brand`, `tags`, `attributes`다.
+- `categoryId`, `variant`, `offer`, `inventory`, `media`, `publicationStatus`, `managerId`, `sellerId`는 상품 수정 요청으로 받지 않는다.
+- `categoryId` 변경은 카테고리 메타데이터와 상품 검색에 영향을 주므로 기본 요구사항에서는 지원하지 않는다.
+- 상품 가격은 Product가 아니라 Offer가 소유하므로 `PATCH /api/v1/offers/{offerId}/price`에서 수정한다.
+- `ProductVariant`의 `sku`는 구매·장바구니·재고·주문을 식별하는 값이므로 주문 이력 여부와 관계없이 변경할 수 없다.
+- `ProductVariant`의 `displayName`, `weight`, `dimensions`와 Media 변경 API는 기본 요구사항에 포함하지 않는다.
+- `PRODUCT_MANAGER`는 `products.manager_id`가 본인인 상품만 수정할 수 있고, `ADMIN`은 모든 상품을 수정할 수 있다.
+- 요청에 포함되지 않은 필드는 기존 값을 유지한다. `null`은 nullable 필드에서만 허용하고, `name`·`description`의 `null`은 거부한다.
+- 허용되지 않은 필드만 전달하거나 빈 객체를 전달하면 `400 VALIDATION_ERROR`를 반환한다.
+- 수정은 하나의 트랜잭션으로 처리하며 보관된 상품은 일반 상품 수정 API로 수정할 수 없다.
+- `DELETE`는 물리 삭제하지 않고 `publicationStatus = ARCHIVED`와 `archivedAt = 현재 시각`으로 변경한다. 활성 상품은 `archivedAt = null`이어야 한다.
 - 보관 상품은 공개 목록에서 제외한다.
 - 주문 상세에는 주문 당시 상품명·SKU·가격 스냅샷을 표시한다.
+
+수정 요청 예시:
+
+```json
+{
+  "name": "수정된 상품명",
+  "description": "수정된 상품 설명",
+  "brand": "Example Brand",
+  "tags": ["무선", "블루투스"],
+  "attributes": {
+    "connectionType": "Bluetooth",
+    "color": "Black"
+  }
+}
+```
 
 성공 응답:
 
@@ -305,10 +359,43 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 
 - 가격은 Offer에 연결된 가격 정보가 소유한다.
 - 기본 가격과 기간성 할인 0~1개를 지원한다.
-- 할인 가격은 기본 가격보다 작아야 한다.
-- 시작 시각은 종료 시각보다 이전이어야 한다.
+- `PATCH /api/v1/offers/{offerId}/price`는 전달된 가격 필드만 수정한다.
+- 가격 수정 요청은 `basePrice`, `discountPrice`, `discountStartAt`, `discountEndAt` 필드를 사용한다.
+- `basePrice.amount`와 `discountPrice.amount`는 0 이상이어야 하며, 할인 가격은 기본 가격보다 작아야 한다.
+- 할인 가격이 없으면 할인 시작·종료 시각도 전달할 수 없다.
+- 할인 시작 시각은 종료 시각보다 이전이어야 한다.
 - API는 기본 가격, 적용 가격, 할인율을 구분한다.
-- 가격 변경 권한은 `PRODUCT_MANAGER`, `ADMIN`이다.
+- 가격 변경 권한은 Offer 소유 `PRODUCT_MANAGER`와 `ADMIN`이다.
+- 다른 판매자의 Offer 가격은 수정할 수 없다.
+
+가격 수정 요청:
+
+```json
+{
+  "basePrice": { "amount": 49900.00, "currency": "KRW" },
+  "discountPrice": { "amount": 44900.00, "currency": "KRW" },
+  "discountStartAt": "2026-08-10T00:00:00Z",
+  "discountEndAt": "2026-08-31T23:59:59Z"
+}
+```
+
+- 요청에 포함되지 않은 가격 필드는 기존 값을 유지한다.
+- `discountPrice`가 `null`이면 할인을 제거하고 할인 기간도 함께 제거한다.
+- `currency`는 기존 Offer의 통화와 달라질 수 없다.
+- 성공 응답은 `offerId`, 기본 가격, 할인 가격, 적용 가격, 할인율, `updatedAt`을 반환한다.
+
+성공 응답 `200`:
+
+```json
+{
+  "offerId": "uuid",
+  "basePrice": { "amount": 49900.00, "currency": "KRW" },
+  "discountPrice": { "amount": 44900.00, "currency": "KRW" },
+  "appliedPrice": { "amount": 44900.00, "currency": "KRW" },
+  "discountRate": 10.02,
+  "updatedAt": "2026-08-10T12:00:00Z"
+}
+```
 
 #### 심화 사항
 
@@ -401,9 +488,12 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 400 | `VALIDATION_ERROR` | 요청 필드 검증 실패 |
 | 400 | `INVALID_PRICE` | 가격이 음수이거나 할인 가격이 기본 가격 이상 |
 | 400 | `INVALID_STOCK` | 재고가 음수 |
+| 400 | `INVALID_MEDIA` | 이미지 형식·URL·정렬 순서가 잘못됨 |
+| 400 | `DUPLICATE_PRIMARY_MEDIA` | 대표 이미지가 없거나 2개 이상임 |
 | 400 | `INVALID_DISCOUNT_PERIOD` | 할인 기간 오류 |
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `ACCESS_DENIED` | 상품 관리 권한 부족 |
+| 403 | `SELLER_APPROVAL_REQUIRED` | 활성 SellerProfile 없는 PRODUCT_MANAGER의 상품 등록 |
 | 403 | `REVIEW_NOT_ELIGIBLE` | 구매·배송 완료 조건 미충족 |
 | 404 | `CATEGORY_NOT_FOUND` | 카테고리 없음 |
 | 404 | `PRODUCT_NOT_FOUND` | 상품 없음 |

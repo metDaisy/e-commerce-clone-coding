@@ -23,7 +23,7 @@
 | PATCH | `/api/v1/seller/profile` | `PRODUCT_MANAGER` + `ACTIVE` | 내 판매자 프로필 수정 |
 | GET | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer 목록 |
 | POST | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | Variant Offer 등록 |
-| PATCH | `/api/v1/seller/offers/{offerId}` | `PRODUCT_MANAGER` + `ACTIVE` | Offer 수정·비활성화 |
+| PATCH | `/api/v1/seller/offers/{offerId}` | `PRODUCT_MANAGER` + `ACTIVE` | Offer 판매 상태·비활성화 |
 | POST | `/api/v1/seller/offers/{offerId}/inventory-adjustments` | `PRODUCT_MANAGER` + `ACTIVE` | 재고 조정 |
 | GET | `/api/v1/seller/orders` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer가 포함된 주문 목록 |
 | GET | `/api/v1/seller/orders/{orderId}` | `PRODUCT_MANAGER` + `ACTIVE` | 판매자 주문 상세 |
@@ -82,13 +82,15 @@
 ```json
 {
   "variantId": "uuid",
-  "price": { "amount": 49900.00, "currency": "KRW" }
+  "basePrice": { "amount": 49900.00, "currency": "KRW" }
 }
 ```
 
 - `PRODUCT_MANAGER`이면서 `SellerProfile.status = ACTIVE`인 판매자만 존재하는 Variant에 Offer를 등록한다.
 - `sellerId`는 요청 본문으로 받지 않고 인증된 SellerProfile에서 결정한다.
 - 판매자는 자신의 Offer만 조회·수정·비활성화할 수 있다.
+- 판매자 Offer 가격은 P2의 `PATCH /api/v1/offers/{offerId}/price`를 사용한다.
+- 판매자 Offer의 판매 상태·비활성화는 `PATCH /api/v1/seller/offers/{offerId}`에서 처리한다.
 - 기본 요구사항에서는 하나의 SellerProfile이 같은 Variant에 Offer를 하나만 등록한다.
 - 상품명·설명·카테고리·SKU는 P2의 CatalogProduct·Variant가 소유한다.
 
