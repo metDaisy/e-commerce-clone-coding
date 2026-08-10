@@ -6,10 +6,10 @@
 
 ## 스냅샷
 
-- 확인일: 2026-08-08
-- Git 브랜치: `product/issue17`
-- 기준 Git SHA: `6d0c1c21eb296bc057265d0e94c667372d7bfd88`
-- 코드 지식 그래프: 기준 SHA와 일치
+- 확인일: 2026-08-11
+- Git 브랜치: `p2-product/issue18`
+- 기준 Git SHA: `28cc60523b2b23cd859925c39ab549f266d014e9`
+- 코드 지식 그래프: 기준 SHA와 일치 (detect_changes 확인됨)
 - 검증 범위: 요구사항, 개발 일지, 코드 그래프, 핵심 회원가입 코드, Flyway, 빌드 설정, 최근 커밋
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 코드 존재와 구조에 대한 상태이며 전체 테스트 통과 선언이 아니다.
 
@@ -20,7 +20,7 @@
 | 단계 | 상태 | 확인된 범위 |
 |---|---|---|
 | P1 User & Auth | 진행 중 | 회원가입, 프로필 조회·수정, 로컬·소셜 인증 기반, JWT, 토큰 블랙리스트, 계정 비활성화 기반, **계정 잠금, 로그인 시도 횟수 관리** |
-| P2 Catalog & Inventory | 상품 생성·조회 구현 | Flyway 테이블 존재, `product` 모듈 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`) 및 리포지토리, 서비스(`ProductService`, `TagService`), 컨트롤러(`ProductController`) 구현; 태그 자동 생성 로직 포함 |
+| P2 Catalog & Inventory | 카탈로그 상품 생성·조회 구현 | Flyway 테이블 존재, `catalog` 모듈 엔티티(`CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`, `ProductPublicationStatus`) 및 리포지토리, 서비스(`CatalogProductService`, `CategoryService`, `TagService`), 컨트롤러(`CatalogProductController`, `CategoryController`) 구현; 판매자 검증(`ActiveSeller`, `ProductManager`) 포함. `product` 모듈은 삭제됨. |
 | P3 Cart | 미구현 | Flyway 테이블만 존재 |
 | P4 Coupon | 미구현 | Flyway 테이블만 존재 |
 | P5 Order & Payment | 미구현 | Flyway 테이블만 존재 |
@@ -30,7 +30,8 @@
 
 ### 구현된 모듈
 
-- `product`: 상품 도메인 엔티티(`Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus`), 리포지토리(`ProductRepository`, `CategoryRepository`, `TagRepository`), 서비스(`ProductService`, `TagService`), 컨트롤러(`ProductController`). 모듈 seam(`allowedDependencies: common::*`). `TagService`는 기존 태그 조회 후 미등록 태그 자동 생성 로직 포함.
+- `catalog`: 상품 도메인 엔티티(`CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`, `ProductPublicationStatus`), 리포지토리(`CatalogProductRepository`, `CategoryRepository`, `TagRepository`), 서비스(`CatalogProductService`, `CategoryService`, `TagService`), 컨트롤러(`CatalogProductController`, `CategoryController`). 판매자 활성 검증(`ActiveSeller`, `ProductManager`). 모듈 seam(`allowedDependencies: common::*`, `seller::*`).
+- `seller`: 판매자 엔티티(`Seller`, `SellerStatus`), 리포지토리(`SellerRepository`), 포트(`SellerQueryApi`), 어댑터(`CatalogSellerAdapter`).
 - `auth`: 로컬·소셜 Credential, 회원가입 진입점, 비밀번호 정책, Form/OAuth2 로그인 지원 클래스, Access·Refresh·Guest JWT, 로그아웃과 사용자·토큰 블랙리스트, 로그인 정책(`LoginPolicyProperties`), 계정 잠금 로직(`UserCredential`의 `violationCount`/`untilLocked`), 로그인 실패/성공/로그아웃 이벤트(`IncorrectPasswordEvent`, `FormLoginSuccessEvent`, `JwtLogoutSuccessEvent`) 및 핸들러(`UserCredentialEventHandler`), **서비스 분리(`UserCredentialService`, `SocialCredentialService`에 Credential 생성/수정/삭제 위임)**, **FormLoginSuccessHandler에서 로그인 성공 이벤트 발행 및 게스트 → 회원 전환 이벤트(`SocialSignUpTask`) 발행**. 로그인을 성공 후 게스트 쿠키를 가진 사용자를 회원으로 전환하는 로직이 추가되었다.
 - `user`: 사용자 프로필, 역할, 활성 상태, 프로필 조회·수정, 회원가입 프로필 생성(`FormSignUpTask`, `SocialSignUpTask` 이벤트 수신).
 - `common`: 공통 인증 주체, 예외, JPA 저장소, MapStruct 설정.
@@ -44,8 +45,10 @@
 - `POST /auth/update`
 - `GET /users/me`
 - `POST /users/update`
-- `POST /product` (관리가 필요함, `PRODUCT_MANAGER` 역할)
-- `GET /product/{id}`
+- `GET /catalog/products` (목록·검색)
+- `GET /catalog/products/{id}`
+- `POST /catalog/products` (판매자 검증 필요)
+- `GET /catalog/categories`
 
 Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler와 filter로 구성되어 컨트롤러 라우트 목록에 모두 나타나지 않는다.
 
@@ -85,10 +88,10 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 - Flyway `V1__init_schema.sql`에 `users`, 인증 테이블뿐 아니라 상품, 장바구니, 쿠폰, 주문, 결제, 배송 등 P1~P6 목표 테이블이 정의되어 있다.
 - `event_publication`은 Spring Modulith 이벤트 발행 저장 기반이다.
 - `user_credentials` 테이블에 `violation_count`, `until_locked` 컬럼이 추가되었다.
-- `products` 테이블에 `categories` 외래 키 제약(`fk_products_categories_id`)이 추가되었다.
-- `product_tags` 테이블에 `id`, `created_at` 컬럼이 추가되고 `products`, `tags` 외래 키 제약(`fk_product_tags_product_id`, `fk_product_tags_tag_id`)이 추가되었다. 삭제 시 CASCADE.
+- `catalog_products`, `catalog_product_tags` 테이블이 추가되었다.
+- `products`, `product_tags` 테이블은 제거되었다.
 - `categories` 테이블에 `name` UNIQUE 제약(`uq_categories_name`)이 추가되었다.
-- `Product`, `Category`, `Tag`, `ProductTag`, `ProductStatus` 엔티티가 `product` 모듈에 추가되었다. `Category`, `Tag`는 읽기 전용(`@Immutable`)으로 2차 캐시 대상이다.
+- `CatalogProduct`, `Category`, `Tag`, `CatalogProductTag` 엔티티가 `catalog` 모듈에 추가되었다. `Category`, `Tag`는 읽기 전용(`@Immutable`)으로 2차 캐시 대상이다.
 - DB 테이블 존재는 해당 도메인 로직, 상태 머신, 동시성 제어, API 구현 완료를 의미하지 않는다.
 - 이후 스키마 변경은 V1을 수정하기보다 새 마이그레이션을 추가하는 것이 기본이다.
 
@@ -112,8 +115,8 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 1. 요구사항은 도메인 간 직접 Bean 주입을 금지하고 이벤트 통신을 요구하지만 현재 `auth`는 `user::user-api` 동기 Named Interface도 사용한다. 허용할 조회 seam의 기준을 ADR로 정해야 한다.
 2. `auth`와 `user`가 서로의 Named Interface를 허용한다. 신규 기능은 현재 순환 의존을 확대하지 않아야 한다.
 3. `FormSignUpTask`/`SocialSignUpTask`는 도메인 사실보다 명령에 가깝다. 이벤트로 유지할지 동기 프로필 생성 인터페이스로 바꿀지 결정해야 한다.
-4. `Product`, `Delivery`, `Payment`의 목표 상태값과 V1 DB CHECK 제약조건이 다르다. P2/P5 구현 전 정렬해야 한다. → P2 `Product` 엔티티 추가 시 `ProductStatus` Enum(`ON_SALE`, `SOLD_OUT`, `RESTOCK_SCHEDULED`) 정의 완료, V1 CHECK 제약(`chk_products_status`)과 일치 확인됨.
-5. 요구사항의 UserCredential 1:N과 현재 설계·구현의 0..1 관계가 다르다.
+4. 요구사항의 UserCredential 1:N과 현재 설계·구현의 0..1 관계가 다르다.
+5. `catalog` 모듈로 상품 도메인이 이동되었으며, `product` 모듈은 삭제되었다. `catalog_products` 스키마와 `CatalogProduct` 엔티티가 일치한다.
 
 ## 다음 진행 순서
 
@@ -121,6 +124,6 @@ Form Login, OAuth2 callback, logout의 일부 흐름은 Spring Security handler�
 
 1. 회원가입 seam과 이벤트 의미를 결정하고 첫 ADR로 기록한다.
 2. P1의 누락 기능과 요구사항 대비 테스트 범위를 확정한다.
-3. DB 상태값 충돌을 구현 전에 정리한다.
-4. P1을 검증한 뒤 P2 `catalog`·`inventory` 모듈 seam을 설계한다.
+3. `catalog` 모듈 seam과 `seller` 모듈 통합을 검증한다.
+4. P1을 검증한 뒤 P3 장바구니 모듈 seam을 설계한다.
 5. 모듈 추가 시 `architecture.md`, 이 문서의 날짜와 Git SHA를 함께 갱신한다.
