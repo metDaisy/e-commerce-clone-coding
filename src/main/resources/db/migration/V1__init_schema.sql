@@ -219,7 +219,7 @@ COMMENT ON TABLE offers IS
     'ProductVariant에 대한 판매자별 판매 조건을 나타내는 Offer.';
 
 COMMENT ON COLUMN offers.seller_id IS
-    'Offer 소유자인 seller_profiles.id를 논리적으로 참조한다. NULL이면 ADMIN이 생성한 플랫폼 기본 Offer다.';
+    'Offer 소유자인 sellers.id를 논리적으로 참조한다. NULL이면 ADMIN이 생성한 플랫폼 기본 Offer다.';
 
 CREATE TABLE inventories
 (
@@ -536,7 +536,7 @@ CREATE TABLE event_publication
 -- P8: 판매자
 -- ============================================================================
 
-CREATE TABLE seller_profiles
+CREATE TABLE sellers
 (
     id                              UUID PRIMARY KEY,
     user_id                         UUID         NOT NULL,
@@ -551,11 +551,11 @@ CREATE TABLE seller_profiles
     review_reason                   VARCHAR(500),
     created_at                      TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at                      TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT chk_seller_profiles_status
+    CONSTRAINT chk_sellers_status
         CHECK (status IN ('PENDING', 'ACTIVE', 'REJECTED', 'SUSPENDED'))
 );
 
-COMMENT ON TABLE seller_profiles IS
+COMMENT ON TABLE sellers IS
     '판매자 신청·승인 프로필. 판매자 API는 PRODUCT_MANAGER 역할과 ACTIVE 상태를 모두 요구한다.';
 
 -- ============================================================================
@@ -623,9 +623,9 @@ CREATE INDEX idx_outbox_pending ON outbox_events (status, created_at, id);
 CREATE UNIQUE INDEX uq_event_consumptions_event_consumer
     ON event_consumptions (event_id, consumer);
 CREATE UNIQUE INDEX uq_saga_steps_saga_name ON saga_steps (saga_id, name);
-CREATE UNIQUE INDEX uq_seller_profiles_active_application
-    ON seller_profiles (user_id)
+CREATE UNIQUE INDEX uq_sellers_active_application
+    ON sellers (user_id)
     WHERE status IN ('PENDING', 'ACTIVE');
-CREATE INDEX idx_seller_profiles_status ON seller_profiles (status);
-CREATE INDEX idx_seller_profiles_user_id ON seller_profiles (user_id);
+CREATE INDEX idx_sellers_status ON sellers (status);
+CREATE INDEX idx_sellers_user_id ON sellers (user_id);
 CREATE INDEX idx_offers_seller_id ON offers (seller_id);
