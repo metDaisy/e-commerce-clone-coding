@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.product.domain.entity;
+package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.common.jpa.ImmutableEntity;
 import jakarta.persistence.Column;
