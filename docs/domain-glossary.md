@@ -72,6 +72,7 @@
 | CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 공통 메타데이터와 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
 | ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 하나의 ProductVariant는 정확히 하나의 CatalogProduct에만 속하며, 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
+| ASIN / GTIN / UPC / EAN / ISBN | 전 세계적으로 동일한 상품을 식별하기 위한 표준 바코드 및 식별자(아마존 식별자, 국제/북미/유럽 표준, 국제 도서 번호 등). `CatalogProduct` 간 중복될 수 없는 고유 값이다. |
 | Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
 | Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
 | 구매 가능 상태 | Inventory 수량을 바탕으로 계산한 `IN_STOCK`, `OUT_OF_STOCK` 등의 표시 상태. `SOLD_OUT`을 상품의 영구 상태로 저장하지 않는다. |

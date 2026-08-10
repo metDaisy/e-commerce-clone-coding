@@ -27,6 +27,21 @@
   실패: CANCELED → 사용 자원 복원
 ```
 
+`POST /api/v1/orders/price-preview`
+
+요청:
+
+```json
+{
+  "cartItemIds": ["uuid"],
+  "addressId": "uuid",
+  "userCouponId": "uuid",
+  "pointAmount": 5000
+}
+```
+
+응답은 주문 생성과 동일한 금액 구조와 `issues` 배열을 반환한다. 가격·재고·쿠폰·포인트 검증에 실패하면 `valid`는 `false`다.
+
 `POST /api/v1/orders` 요청:
 
 ```json
@@ -94,12 +109,11 @@
     }
   ],
   "amounts": {
-    "subtotal": 99800.00,
-    "discount": 5000.00,
-    "pointUsed": 5000.00,
-    "shippingFee": 0.00,
-    "paidAmount": 89800.00,
-    "currency": "KRW"
+    "subtotal": { "amount": 99800.00, "currency": "KRW" },
+    "discount": { "amount": 5000.00, "currency": "KRW" },
+    "pointUsed": 5000,
+    "shippingFee": { "amount": 0.00, "currency": "KRW" },
+    "paidAmount": { "amount": 89800.00, "currency": "KRW" }
   },
   "delivery": {
     "deliveryId": "uuid",
@@ -132,7 +146,7 @@
   "orderId": "uuid",
   "status": "CANCELED",
   "refundStatus": "COMPLETED",
-  "restoredPointAmount": 5000.00,
+  "restoredPointAmount": 5000,
   "restoredCoupon": true,
   "restoredInventory": true,
   "canceledAt": "2026-08-09T12:10:00Z"

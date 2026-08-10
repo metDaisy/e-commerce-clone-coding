@@ -24,7 +24,7 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 | GET | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer 목록 |
 | POST | `/api/v1/seller/offers` | `PRODUCT_MANAGER` + `ACTIVE` | ProductVariant Offer 등록 |
 | PATCH | `/api/v1/seller/offers/{offerId}` | `PRODUCT_MANAGER` + `ACTIVE` | Offer 판매 상태·비활성화 |
-| POST | `/api/v1/seller/offers/{offerId}/inventory-adjustments` | `PRODUCT_MANAGER` + `ACTIVE` | 재고 조정 |
+| POST | `/api/v1/offers/{offerId}/inventory-adjustments` | `PRODUCT_MANAGER` + `ACTIVE` | 재고 조정 |
 | GET | `/api/v1/seller/orders` | `PRODUCT_MANAGER` + `ACTIVE` | 내 Offer가 포함된 주문 목록 |
 | GET | `/api/v1/seller/orders/{orderId}` | `PRODUCT_MANAGER` + `ACTIVE` | 판매자 주문 상세 |
 
@@ -67,6 +67,18 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 }
 ```
 
+`PATCH /api/v1/seller/profile`는 승인된 판매자의 `displayName`만 수정한다.
+
+```json
+{ "displayName": "Updated Store" }
+```
+
+응답:
+
+```json
+{ "sellerId": "uuid", "displayName": "Updated Store", "updatedAt": "2026-08-09T12:05:00Z" }
+```
+
 ### 3-2. 판매자 프로필
 
 - 승인된 판매자만 자신의 프로필을 조회·수정한다.
@@ -88,11 +100,36 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 
 - `PRODUCT_MANAGER`이면서 `SellerProfile.status = ACTIVE`인 판매자만 존재하는 ProductVariant에 Offer를 등록한다.
 - `sellerId`는 요청 본문으로 받지 않고 인증된 SellerProfile에서 결정한다.
+- Offer 등록은 CatalogProduct·ProductVariant 등록과 별도 요청이다. 요청한 `variantId`의 ProductVariant가 먼저 존재해야 한다.
+- Offer 등록과 동시에 해당 Offer의 Inventory를 생성하고 초기 수량은 `0`으로 저장한다. 이후 재고 조정 API로 판매 수량을 등록한다.
 - 판매자는 자신의 Offer만 조회·수정·비활성화할 수 있다.
 - 판매자 Offer 가격은 P2의 `PATCH /api/v1/offers/{offerId}/price`를 사용한다.
 - 판매자 Offer의 판매 상태·비활성화는 `PATCH /api/v1/seller/offers/{offerId}`에서 처리한다.
 - 기본 요구사항에서는 하나의 SellerProfile이 같은 ProductVariant에 Offer를 하나만 등록한다.
 - 상품명·설명·카테고리·SKU는 P2의 CatalogProduct·ProductVariant가 소유한다.
+
+성공 응답 `201`:
+
+```json
+{
+  "offerId": "uuid",
+  "variantId": "uuid",
+  "sellerId": "uuid",
+  "basePrice": { "amount": 49900.00, "currency": "KRW" },
+  "inventoryQuantity": 0,
+  "status": "ACTIVE",
+  "createdAt": "2026-08-09T12:00:00Z"
+}
+```
+
+`PATCH /api/v1/seller/offers/{offerId}` 요청:
+
+```json
+{ "status": "INACTIVE" }
+```
+
+응답은 `offerId`, `status`, `updatedAt`을 반환한다. 가격 변경은 P2의
+`PATCH /api/v1/offers/{offerId}/price`를 사용한다.
 
 ### 3-4. 판매자 재고
 

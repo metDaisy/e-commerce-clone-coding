@@ -22,8 +22,8 @@ flowchart LR
         PointHistory["<b>PointHistory</b><br/>id<br/>amount<br/>description<br/>createdAt"]
         RefreshToken["<b>RefreshToken</b><br/>id<br/>deviceId<br/>token<br/>preToken<br/>expiredAt<br/>createdAt<br/>updatedAt"]
         BlacklistToken["<b>BlacklistToken</b><br/>id<br/>token<br/>expiredAt<br/>createdAt"]
-        BlacklistUser["<b>BlacklistUser</b><br/>id<br/>compromisedAt<br/>createdAt"]
-        SellerProfile["<b>SellerProfile</b><br/>id<br/>displayName<br/>businessName<br/>businessRegistrationNumber<br/>contactEmail<br/>contactPhone<br/>status<br/>reviewer<br/>reviewedAt<br/>reviewReason<br/>createdAt<br/>updatedAt"]
+        BlacklistUser["<b>BlacklistUser</b><br/>id<br/>user<br/>compromisedAt<br/>createdAt"]
+        SellerProfile["<b>SellerProfile</b><br/>id<br/>user<br/>displayName<br/>businessName<br/>businessRegistrationHash<br/>contactEmail<br/>contactPhone<br/>status<br/>reviewedBy<br/>reviewedAt<br/>reviewReason<br/>createdAt<br/>updatedAt"]
         Wishlist["<b>Wishlist</b><br/>id<br/>user<br/>productVariant<br/>createdAt"]
 
         User -->|"userCredential ↔ user<br/>1 : 0..1"| UserCredential
@@ -31,8 +31,8 @@ flowchart LR
         User -->|"addresses ↔ user<br/>1 : N"| Address
         User -->|"pointHistories ↔ user<br/>1 : N"| PointHistory
         User -->|"refreshTokens ↔ user<br/>1 : N"| RefreshToken
-        User -->|"blacklistEntries ↔ user<br/>1 : N"| BlacklistUser
-        User -->|"sellerProfile ↔ user<br/>1 : 0..1"| SellerProfile
+        User -->|"blacklistEntry ↔ user<br/>1 : 0..1"| BlacklistUser
+        User -->|"sellerProfiles ↔ user<br/>1 : N (active/pending 0..1)"| SellerProfile
         User -->|"wishlists<br/>User 1 : Wishlist N"| Wishlist
     end
 
@@ -142,6 +142,13 @@ flowchart LR
 - `Order.sourceAddress`는 주문 생성에 사용한 Address다. 배송 시점에는 `shipping*` 필드를 사용한다.
 - `EventPublication`은 Spring Modulith의 이벤트 발행 지원 객체이며, 업무 도메인 엔티티를 대체하지 않는다.
 - Access Token과 Guest Token은 영속 도메인 객체가 아니다. 구매 가능 상태는 Offer와 Inventory를 조합해 계산한다.
+
+추가 cardinality 규칙:
+
+- `BlacklistUser`는 사용자당 하나만 존재한다.
+- `SellerProfile`은 승인·거절·정지 이력을 보존할 수 있으므로 User와 `1:N`이다. 단, `PENDING` 또는 `ACTIVE` 상태는 사용자당 하나만 허용한다.
+- `UserCredential.passwordHash`는 SQL의 `user_credentials.password_hash`에 저장한다.
+- `SellerProfile.businessRegistrationHash`는 가입 요청의 사업자등록번호를 해시한 값이며 원문은 저장하지 않는다.
 
 ## P7 관리자
 
