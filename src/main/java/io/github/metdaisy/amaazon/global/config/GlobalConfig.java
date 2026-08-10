@@ -4,6 +4,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import java.time.Clock;
 @EnableAsync
 @EnableCaching
 @EnableWebSecurity
+@EnableMethodSecurity
 @Configuration
 public class GlobalConfig {
 
