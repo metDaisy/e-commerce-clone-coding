@@ -1,8 +1,9 @@
-package io.github.metdaisy.amaazon.product.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service;
 
-import io.github.metdaisy.amaazon.product.domain.entity.Tag;
-import io.github.metdaisy.amaazon.product.domain.repository.TagRepository;
+import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
+import io.github.metdaisy.amaazon.catalog.domain.repository.TagRepository;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,7 +19,7 @@ public class TagService {
   private final TagRepository repository;
 
   @Transactional
-  public List<Tag> findAndCreate(List<String> names) {
+  public List<Tag> findAndCreate(Collection<String> names) {
     List<Tag> tags = new ArrayList<>(repository.findByNameIn(names));
     Set<String> tagNames = tags.stream().map(Tag::getName).collect(Collectors.toSet());
     Set<String> noNames = new HashSet<>(names);
