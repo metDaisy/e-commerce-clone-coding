@@ -79,7 +79,7 @@ CREATE TABLE wishlists
 (
     id         UUID PRIMARY KEY,
     user_id    UUID NOT NULL,
-    catalog_product_id UUID NOT NULL,
+    variant_id UUID NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
@@ -272,13 +272,13 @@ CREATE TABLE catalog_product_tags
 CREATE TABLE reviews
 (
     id         UUID PRIMARY KEY,
-    catalog_product_id UUID         NOT NULL,
+    variant_id UUID         NOT NULL,
     user_id    UUID         NOT NULL,
     rating     INTEGER      NOT NULL,
     content    VARCHAR(2000),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_reviews_catalog_product
-        FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id) ON DELETE CASCADE,
+    CONSTRAINT fk_reviews_variant
+        FOREIGN KEY (variant_id) REFERENCES product_variants (id) ON DELETE CASCADE,
     CONSTRAINT chk_reviews_rating CHECK (rating BETWEEN 1 AND 5)
 );
 
@@ -598,10 +598,10 @@ CREATE INDEX idx_images_entity ON images (entity_type, entity_id, sort_order);
 CREATE UNIQUE INDEX uq_tags_name ON tags (name);
 CREATE UNIQUE INDEX uq_catalog_product_tags_catalog_product_tag
     ON catalog_product_tags (catalog_product_id, tag_id);
-CREATE INDEX idx_reviews_catalog_product_created
-    ON reviews (catalog_product_id, created_at DESC, id DESC);
-CREATE UNIQUE INDEX uq_reviews_user_catalog_product ON reviews (user_id, catalog_product_id);
-CREATE UNIQUE INDEX uq_wishlists_user_catalog_product ON wishlists (user_id, catalog_product_id);
+CREATE INDEX idx_reviews_variant_created
+    ON reviews (variant_id, created_at DESC, id DESC);
+CREATE UNIQUE INDEX uq_reviews_user_variant ON reviews (user_id, variant_id);
+CREATE UNIQUE INDEX uq_wishlists_user_variant ON wishlists (user_id, variant_id);
 CREATE UNIQUE INDEX uq_carts_one_active_per_user
     ON carts (user_id) WHERE status = 'ACTIVE';
 CREATE UNIQUE INDEX uq_cart_items_cart_offer ON cart_items (cart_id, offer_id);
