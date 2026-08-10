@@ -66,7 +66,7 @@ CatalogProduct (상품군/전시 상품)
 - `parent_id` 자기참조 FK로 계층을 관리한다.
 - `depth`는 루트를 1로 하는 계층 깊이이며, 자식은 부모 `depth + 1`로 저장한다.
 - 현재 구현 범위는 최대 3단계이며 루트는 `parent_id = NULL`, `depth = 1`이다.
-- `depth`는 `1~3`만 허용하고, 카테고리 생성·이동 시 부모와의 깊이 관계를 같은 트랜잭션에서 검증한다.
+- `depth`는 `1~3`만 허용하고, 카테고리 생성·수정 시 부모와의 깊이 관계와 순환 참조 여부를 같은 트랜잭션에서 검증한다. 이 관리 작업의 API와 요청·응답은 [P7 관리자 카테고리 관리](p7-admin.md#3-2-카테고리-관리)에서 정의한다.
 - `GET /api/v1/categories`는 전체 트리를 다음 형태로 반환한다.
 
 ```json
@@ -83,29 +83,8 @@ CatalogProduct (상품군/전시 상품)
 ```
 
 - 카테고리별 상품 조회는 해당 카테고리와 모든 하위 카테고리를 포함한다.
-- 하위 카테고리 또는 상품이 연결된 카테고리는 삭제할 수 없다.
-- 삭제 충돌은 `CATEGORY_HAS_CHILDREN` (409)이다.
-
-카테고리 생성 요청:
-
-```json
-{
-  "name": "노트북",
-  "parentId": "uuid"
-}
-```
-
-성공 응답 `201`:
-
-```json
-{
-  "categoryId": "uuid",
-  "name": "노트북",
-  "parentId": "uuid",
-  "depth": 3,
-  "createdAt": "2026-08-09T12:00:00Z"
-}
-```
+- 카테고리 생성·수정·삭제는 구매자·판매자 API가 아닌 P7의 `ADMIN` 전용 API로 수행한다.
+- 하위 카테고리 또는 상품이 연결된 카테고리는 P7 관리자 API에서도 삭제할 수 없다.
 
 ### 3-2. 상품 등록
 
@@ -504,7 +483,6 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 404 | `VARIANT_NOT_FOUND` | ProductVariant 없음 |
 | 404 | `OFFER_NOT_FOUND` | Offer 없음 |
 | 409 | `SKU_ALREADY_EXISTS` | SKU 중복 |
-| 409 | `CATEGORY_HAS_CHILDREN` | 하위 카테고리 또는 상품 존재 |
 | 409 | `INSUFFICIENT_STOCK` | 주문 수량이 재고보다 많음 |
 | 409 | `REVIEW_ALREADY_EXISTS` | 이미 리뷰 작성 |
 | 409 | `CATALOG_PRODUCT_ARCHIVED` | 보관 상품 변경 시도 |

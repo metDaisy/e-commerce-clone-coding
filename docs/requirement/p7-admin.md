@@ -66,9 +66,78 @@ P7은 관리자 전용 진입점과 운영 기능을 정의한다. 상품·쿠�
 
 ### 3-2. 카테고리 관리
 
-- 카테고리 생성·수정·삭제의 상세 규칙은 [P2 카테고리 요구사항](p2-product.md#3-1-카테고리)을 따른다.
-- 루트 카테고리와 하위 카테고리의 `parentId`, `depth` 관계를 검증한다.
-- 하위 카테고리나 상품이 존재하는 카테고리는 삭제할 수 없다.
+카테고리는 관리자가 관리하는 메타데이터다. 공개 사용자는 `GET /api/v1/categories`로 조회만 할 수 있으며, 생성·수정·삭제는 다음 `ADMIN` 전용 API로 수행한다.
+
+#### 카테고리 생성
+
+`POST /api/v1/admin/categories`
+
+요청:
+
+```json
+{
+  "name": "노트북",
+  "parentId": "uuid"
+}
+```
+
+- `name`은 공백만으로 구성할 수 없다.
+- `parentId`가 없으면 루트 카테고리로 생성하고 `depth = 1`로 저장한다.
+- `parentId`가 있으면 부모 카테고리가 존재해야 하며 `depth = parent.depth + 1`로 저장한다.
+- 부모 카테고리는 하나만 지정할 수 있으며, 서버는 부모 연결을 검증해 순환 참조가 생기지 않도록 한다.
+- `depth`는 `1~3`만 허용한다.
+
+성공 응답 `201`:
+
+```json
+{
+  "categoryId": "uuid",
+  "name": "노트북",
+  "parentId": "uuid",
+  "depth": 3,
+  "createdAt": "2026-08-09T12:00:00Z"
+}
+```
+
+#### 카테고리 수정
+
+`PATCH /api/v1/admin/categories/{categoryId}`
+
+요청:
+
+```json
+{
+  "name": "노트북·태블릿",
+  "parentId": "uuid"
+}
+```
+
+- 전달된 필드만 수정하고 전달되지 않은 필드는 유지한다.
+- `parentId` 변경 시 자기 자신이나 자신의 하위 카테고리를 부모로 지정할 수 없다.
+- 서버는 변경 후 부모를 따라가며 순환 참조가 발생하지 않는지 검증한다.
+- 수정 후 하위 카테고리 전체의 `depth`가 `1~3`을 벗어나면 요청을 거부한다.
+- 카테고리와 하위 카테고리의 `parentId`, `depth` 변경은 하나의 트랜잭션으로 처리한다.
+
+성공 응답 `200`:
+
+```json
+{
+  "categoryId": "uuid",
+  "name": "노트북·태블릿",
+  "parentId": "uuid",
+  "depth": 3,
+  "updatedAt": "2026-08-09T12:05:00Z"
+}
+```
+
+#### 카테고리 삭제
+
+`DELETE /api/v1/admin/categories/{categoryId}`
+
+- 하위 카테고리 또는 상품이 연결된 카테고리는 삭제할 수 없다.
+- 삭제는 물리 삭제로 처리한다. 연결된 하위 카테고리나 상품이 있으면 먼저 연결을 해소해야 한다.
+
+성공 응답 `204 No Content`를 반환한다.
 
 ### 3-3. 판매자 신청 관리
 
@@ -114,6 +183,9 @@ P7은 관리자 전용 진입점과 운영 기능을 정의한다. 상품·쿠�
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `ACCESS_DENIED` | ADMIN 권한 부족 |
 | 403 | `CANNOT_CHANGE_OWN_ADMIN_ROLE` | 자기 자신의 ADMIN 권한 변경 시도 |
+| 400 | `INVALID_CATEGORY_PARENT` | 부모가 없거나 자기 자신·하위 카테고리를 부모로 지정함 |
+| 400 | `CATEGORY_CYCLE_DETECTED` | 부모 연결에서 순환 참조가 발생함 |
+| 400 | `CATEGORY_DEPTH_EXCEEDED` | 카테고리 깊이가 3단계를 초과함 |
 | 404 | `USER_NOT_FOUND` | 사용자 없음 |
 | 404 | `SELLER_NOT_FOUND` | 판매자 프로필 없음 |
 | 404 | `CATEGORY_NOT_FOUND` | 카테고리 없음 |
