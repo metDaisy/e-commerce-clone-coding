@@ -6,14 +6,17 @@ spring:
       hibernate:
         cache:
           use_second_level_cache: true
+          use_query_cache: true
           region:
             factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
         javax:
           cache:
             missing_cache_strategy: fail
   flyway:
-    enabled: false
+    enabled: true
     baseline-on-migrate: false
+    validate-on-migrate: true
+    clean-disabled: true
   servlet:
     multipart:
       max-file-size: ${MAX_FILE_SIZE}
