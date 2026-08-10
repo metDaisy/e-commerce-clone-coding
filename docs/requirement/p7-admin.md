@@ -49,8 +49,8 @@ P7은 관리자 전용 진입점과 운영 기능을 정의한다. 상품·쿠�
 ```
 
 - 허용 역할은 `USER`, `PRODUCT_MANAGER`, `ADMIN`이다.
-- `PRODUCT_MANAGER`는 활성 `SellerProfile`을 가진 판매자에게만 부여할 수 있다.
-- 판매자 신청 승인 시 `SellerProfile.status`를 `ACTIVE`로 변경하고 사용자의 역할을 `PRODUCT_MANAGER`로 변경한다.
+- `PRODUCT_MANAGER`는 활성 `Seller`을 가진 판매자에게만 부여할 수 있다.
+- 판매자 신청 승인 시 `Seller.status`를 `ACTIVE`로 변경하고 사용자의 역할을 `PRODUCT_MANAGER`로 변경한다.
 - 판매자 정지 또는 승인 취소 시 판매자 API를 차단하고 역할을 `USER`로 되돌린다.
 - 요청자는 자신의 `ADMIN` 권한을 해제할 수 없다.
 - 대상 사용자가 없으면 `USER_NOT_FOUND`를 반환한다.

@@ -19,7 +19,7 @@ CatalogProduct (카탈로그 상품 메타데이터/전시 정보)
 - `ProductVariant`는 고객이 실제로 선택하고 주문하는 개별 옵션 조합이다. 예를 들어 같은 `무선 헤드폰`의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다.
 - ProductVariant는 반드시 하나의 `sku`를 가지며, SKU는 주문·장바구니·재고 차감에서 사용하는 실제 판매 단위 식별자다.
 - 색상·사이즈처럼 선택 가능한 값이 없는 단일 상품도 ProductVariant를 생략하지 않는다. 이 경우 `displayName`을 `기본 옵션`으로 정하고 ProductVariant 1개를 생성한다.
-- `Offer`는 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지를 나타낸다. 하나의 ProductVariant에 여러 Offer를 둘 수 있으며, 각 SellerProfile은 기본 요구사항에서 같은 ProductVariant에 Offer를 하나만 등록한다.
+- `Offer`는 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지를 나타낸다. 하나의 ProductVariant에 여러 Offer를 둘 수 있으며, 각 Seller은 기본 요구사항에서 같은 ProductVariant에 Offer를 하나만 등록한다.
 - `Inventory`는 Offer의 구매 가능 수량이다. 따라서 재고는 CatalogProduct 전체가 아니라 구매 가능한 판매 조건 단위로 차감한다.
 - CatalogProduct 등록은 메타데이터만 생성한다. ProductVariant와 Media는 별도 API로 등록하고, Offer는 P8 판매자 API에서 등록한다.
 - 현재 요구사항은 다중 옵션 선택 UI를 구현하지 않지만 ProductVariant를 별도 요청으로 하나씩 추가할 수 있다.
@@ -57,7 +57,7 @@ CatalogProduct: GIGABYTE AMD R9700
 - `catalog_products.manager_id`는 CatalogProduct를 등록·관리한 `users.id`다. `PRODUCT_MANAGER`는 자신이 등록한 CatalogProduct만 수정·보관할 수 있고, `ADMIN`은 모든 CatalogProduct를 관리할 수 있다.
 - `sku`는 구매 단위의 고유 식별자다.
 - `asin`, `gtin`, `upc`, `ean`, `isbn`은 외부 식별자로 선택 저장하며 내부 PK로 사용하지 않는다.
-- CatalogProduct 등록 요청에는 `sellerId`를 받지 않는다. Offer 소유자와 `offers.seller_id`는 P8 Offer 등록 시 인증된 `SellerProfile`로 결정한다.
+- CatalogProduct 등록 요청에는 `sellerId`를 받지 않는다. Offer 소유자와 `offers.seller_id`는 P8 Offer 등록 시 인증된 `Seller`로 결정한다.
 - `offers.seller_id`는 Offer를 소유한 `seller_profiles.id`이며, 플랫폼 기본 Offer를 생성하는 경우에만 `NULL`이다.
 
 ## 2. API 목록
@@ -113,7 +113,7 @@ CatalogProduct: GIGABYTE AMD R9700
 
 권한:
 
-- `PRODUCT_MANAGER`는 `SellerProfile.status = ACTIVE`일 때만 호출할 수 있다.
+- `PRODUCT_MANAGER`는 `Seller.status = ACTIVE`일 때만 호출할 수 있다.
 - `ADMIN`은 플랫폼 운영자로서 호출할 수 있다.
 - `USER`, 승인되지 않은 `PRODUCT_MANAGER`, 비활성·정지된 판매자는 호출할 수 없다.
 - `PRODUCT_MANAGER`와 `ADMIN` 모두 `managerId` 또는 `sellerId`를 요청 본문으로 전달하지 않는다.
@@ -543,7 +543,7 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 400 | `INVALID_DISCOUNT_PERIOD` | 할인 기간 오류 |
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `ACCESS_DENIED` | CatalogProduct 또는 Offer 관리 권한 부족 |
-| 403 | `SELLER_APPROVAL_REQUIRED` | 활성 SellerProfile 없는 PRODUCT_MANAGER의 CatalogProduct 등록 |
+| 403 | `SELLER_APPROVAL_REQUIRED` | 활성 Seller 없는 PRODUCT_MANAGER의 CatalogProduct 등록 |
 | 403 | `REVIEW_NOT_ELIGIBLE` | 구매·배송 완료 조건 미충족 |
 | 404 | `CATEGORY_NOT_FOUND` | 카테고리 없음 |
 | 404 | `CATALOG_PRODUCT_NOT_FOUND` | CatalogProduct 없음 |

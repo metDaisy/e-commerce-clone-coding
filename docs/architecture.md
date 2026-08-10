@@ -75,7 +75,7 @@ docs/             요구사항, 설계, 상태 문서
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
 - `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
-- 역할은 `USER`(기본 구매자), `PRODUCT_MANAGER`(판매자), `ADMIN`(플랫폼 운영자)으로 구분한다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있으며, 판매자 API는 활성 `SellerProfile`을 추가로 요구한다.
+- 역할은 `USER`(기본 구매자), `PRODUCT_MANAGER`(판매자), `ADMIN`(플랫폼 운영자)으로 구분한다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있으며, 판매자 API는 활성 `Seller`을 추가로 요구한다.
 - `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
 - `auth::password`: 회원가입 요청의 비밀번호 검증 규칙.
 - `global::jwt`: JWT 설정과 생성·검증 기능.
@@ -117,7 +117,7 @@ sequenceDiagram
 | P5 | `order`, `payment`, `delivery` | 금액 산출, 상태 머신, 결제와 환불, 배송 추적 |
 | P6 | `outbox`와 Saga 참여 모듈 | 이벤트 유실 방지, 재시도, 멱등 소비, 보상 트랜잭션 |
 | P7 | 관리자·운영 진입점 | 관리자 전용 API, 권한 변경, 운영·재처리 기능 |
-| P8 | `seller` | 판매자 온보딩, SellerProfile, Offer·재고·판매자 주문 조회 |
+| P8 | `seller` | 판매자 온보딩, Seller, Offer·재고·판매자 주문 조회 |
 
 모듈 이름과 분리 수준은 구현 전 ADR로 확정한다. 요구사항의 P 번호가 반드시 하나의 코드 모듈을 뜻하지는 않는다.
 
@@ -130,7 +130,7 @@ sequenceDiagram
 - 도메인 간 식별자는 애플리케이션 이벤트 또는 공개 port로 검증하며 DB 외래 키를 만들지 않는다. 외래 키는 같은 도메인 내부 엔티티 관계에만 추가한다.
 - P2의 목표 모델은 전시 상품군인 `CatalogProduct`, 구매 단위인 `ProductVariant`, 판매 조건·가격인 `Offer`, 수량 상태인 `Inventory`의 책임을 분리한다. 초기 요구사항에서는 기본 ProductVariant와 기본 Offer를 각각 하나만 생성한다.
 - P7은 P2~P6 테이블의 소유 모듈이 아니다. 관리자 전용 API는 각 모듈의 공개 application interface를 호출하고, 관리자 권한·운영 진입점만 담당한다.
-- P8은 P2의 CatalogProduct·ProductVariant를 소유하지 않는다. 판매자는 SellerProfile을 통해 자신의 Offer와 재고를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
+- P8은 P2의 CatalogProduct·ProductVariant를 소유하지 않는다. 판매자는 Seller을 통해 자신의 Offer와 재고를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
 - 초기 요구사항에는 별도 Seller 모듈이 없으므로 `Offer.sellerId`는 선택값이며, 값이 없으면 플랫폼 기본 Offer로 처리한다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.

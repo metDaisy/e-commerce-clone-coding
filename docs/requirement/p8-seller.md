@@ -5,10 +5,10 @@
 ## 1. 범위와 역할
 
 - `USER`는 기본 구매자 역할이며 상품을 구매·주문·리뷰한다.
-- 판매자는 별도 로그인 계정이 아니라 기존 사용자에게 연결된 `SellerProfile`이다.
+- 판매자는 별도 로그인 계정이 아니라 기존 사용자에게 연결된 `Seller`이다.
 - 한 사용자는 구매자이면서 판매자일 수 있다.
-- 판매자 신청이 승인된 `SellerProfile`만 판매자 API를 사용할 수 있다.
-- `PRODUCT_MANAGER`는 활성 `SellerProfile`을 가진 입점 판매자 역할이다.
+- 판매자 신청이 승인된 `Seller`만 판매자 API를 사용할 수 있다.
+- `PRODUCT_MANAGER`는 활성 `Seller`을 가진 입점 판매자 역할이다.
 - `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. 역할명은 구매자 기능을 배제하는 의미가 아니다.
 - `ADMIN`은 플랫폼 전체 운영과 판매자 신청을 담당하며 판매자 API를 사용하지 않는다.
 
@@ -98,14 +98,14 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 }
 ```
 
-- `PRODUCT_MANAGER`이면서 `SellerProfile.status = ACTIVE`인 판매자만 존재하는 ProductVariant에 Offer를 등록한다.
-- `sellerId`는 요청 본문으로 받지 않고 인증된 SellerProfile에서 결정한다.
+- `PRODUCT_MANAGER`이면서 `Seller.status = ACTIVE`인 판매자만 존재하는 ProductVariant에 Offer를 등록한다.
+- `sellerId`는 요청 본문으로 받지 않고 인증된 Seller에서 결정한다.
 - Offer 등록은 CatalogProduct·ProductVariant 등록과 별도 요청이다. 요청한 `variantId`의 ProductVariant가 먼저 존재해야 한다.
 - Offer 등록과 동시에 해당 Offer의 Inventory를 생성하고 초기 수량은 `0`으로 저장한다. 이후 재고 조정 API로 판매 수량을 등록한다.
 - 판매자는 자신의 Offer만 조회·수정·비활성화할 수 있다.
 - 판매자 Offer 가격은 P2의 `PATCH /api/v1/offers/{offerId}/price`를 사용한다.
 - 판매자 Offer의 판매 상태·비활성화는 `PATCH /api/v1/seller/offers/{offerId}`에서 처리한다.
-- 기본 요구사항에서는 하나의 SellerProfile이 같은 ProductVariant에 Offer를 하나만 등록한다.
+- 기본 요구사항에서는 하나의 Seller이 같은 ProductVariant에 Offer를 하나만 등록한다.
 - 상품명·설명·카테고리·SKU는 P2의 CatalogProduct·ProductVariant가 소유한다.
 
 성공 응답 `201`:

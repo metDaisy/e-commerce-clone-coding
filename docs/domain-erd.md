@@ -23,7 +23,7 @@ flowchart LR
         RefreshToken["<b>RefreshToken</b><br/>id<br/>deviceId<br/>token<br/>preToken<br/>expiredAt<br/>createdAt<br/>updatedAt"]
         BlacklistToken["<b>BlacklistToken</b><br/>id<br/>token<br/>expiredAt<br/>createdAt"]
         BlacklistUser["<b>BlacklistUser</b><br/>id<br/>user<br/>compromisedAt<br/>createdAt"]
-        SellerProfile["<b>SellerProfile</b><br/>id<br/>user<br/>displayName<br/>businessName<br/>businessRegistrationHash<br/>contactEmail<br/>contactPhone<br/>status<br/>reviewedBy<br/>reviewedAt<br/>reviewReason<br/>createdAt<br/>updatedAt"]
+        Seller["<b>Seller</b><br/>id<br/>user<br/>displayName<br/>businessName<br/>businessRegistrationHash<br/>contactEmail<br/>contactPhone<br/>status<br/>reviewedBy<br/>reviewedAt<br/>reviewReason<br/>createdAt<br/>updatedAt"]
         Wishlist["<b>Wishlist</b><br/>id<br/>user<br/>productVariant<br/>createdAt"]
 
         User -->|"userCredential ↔ user<br/>1 : 0..1"| UserCredential
@@ -32,7 +32,7 @@ flowchart LR
         User -->|"pointHistories ↔ user<br/>1 : N"| PointHistory
         User -->|"refreshTokens ↔ user<br/>1 : N"| RefreshToken
         User -->|"blacklistEntry ↔ user<br/>1 : 0..1"| BlacklistUser
-        User -->|"sellerProfiles ↔ user<br/>1 : N (active/pending 0..1)"| SellerProfile
+        User -->|"Sellers ↔ user<br/>1 : N (active/pending 0..1)"| Seller
         User -->|"wishlists<br/>User 1 : Wishlist N"| Wishlist
     end
 
@@ -102,7 +102,7 @@ flowchart LR
     User -.->|"user"| UserCoupon
     User -.->|"user"| Order
     User -.->|"user"| PaymentMethod
-    SellerProfile -.->|"seller"| Offer
+    Seller -.->|"seller"| Offer
     Category -.->|"applicableCategory"| Coupon
     ProductVariant -.->|"productVariant"| Wishlist
     Offer -.->|"offer"| CartItem
@@ -121,7 +121,7 @@ flowchart LR
     classDef commerce fill:#ffe8e8,stroke:#b65c5c,color:#4d1717
     classDef reliability fill:#eee8ff,stroke:#7662ad,color:#2d2452
 
-    class User,UserCredential,SocialCredential,Address,PointHistory,RefreshToken,BlacklistToken,BlacklistUser,SellerProfile,Wishlist identity
+    class User,UserCredential,SocialCredential,Address,PointHistory,RefreshToken,BlacklistToken,BlacklistUser,Seller,Wishlist identity
     class Category,CatalogProduct,ProductVariant,Offer,Inventory,Tag,Media,Review catalog
     class Cart,CartItem,Coupon,UserCoupon shopping
     class Order,OrderItem,PaymentMethod,Payment,Delivery commerce
@@ -146,13 +146,13 @@ flowchart LR
 추가 cardinality 규칙:
 
 - `BlacklistUser`는 사용자당 하나만 존재한다.
-- `SellerProfile`은 승인·거절·정지 이력을 보존할 수 있으므로 User와 `1:N`이다. 단, `PENDING` 또는 `ACTIVE` 상태는 사용자당 하나만 허용한다.
+- `Seller`은 승인·거절·정지 이력을 보존할 수 있으므로 User와 `1:N`이다. 단, `PENDING` 또는 `ACTIVE` 상태는 사용자당 하나만 허용한다.
 - `UserCredential.passwordHash`는 SQL의 `user_credentials.password_hash`에 저장한다.
-- `SellerProfile.businessRegistrationHash`는 가입 요청의 사업자등록번호를 해시한 값이며 원문은 저장하지 않는다.
+- `Seller.businessRegistrationHash`는 가입 요청의 사업자등록번호를 해시한 값이며 원문은 저장하지 않는다.
 
 ## P7 관리자
 
-관리자는 별도 `Admin` 엔티티를 만들지 않고 `User.role = ADMIN`으로 표현한다. 관리 대상은 Category, CatalogProduct, Coupon, SellerProfile, Delivery, OutboxEvent, SagaInstance이며 각 도메인의 소유권은 유지한다.
+관리자는 별도 `Admin` 엔티티를 만들지 않고 `User.role = ADMIN`으로 표현한다. 관리 대상은 Category, CatalogProduct, Coupon, Seller, Delivery, OutboxEvent, SagaInstance이며 각 도메인의 소유권은 유지한다.
 
 ## SQL 스키마와의 차이
 

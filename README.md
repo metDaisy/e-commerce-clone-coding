@@ -20,7 +20,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 - Outbox·Saga 기반 이벤트 처리
 - 관리자 운영 기능 및 판매자 마켓플레이스 기능
 
-구매자와 판매자는 별도 로그인 계정이 아닙니다. 하나의 `User`가 구매자 역할을 가지면서 `SellerProfile`을 통해 판매자로 활성화될 수 있습니다. 플랫폼 운영 권한은 `ADMIN` 역할로 구분합니다.
+구매자와 판매자는 별도 로그인 계정이 아닙니다. 하나의 `User`가 구매자 역할을 가지면서 `Seller`을 통해 판매자로 활성화될 수 있습니다. 플랫폼 운영 권한은 `ADMIN` 역할로 구분합니다.
 
 ## 기술 스택
 
@@ -36,7 +36,8 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 src/main/java/io/github/metdaisy/amaazon/
 ├── auth/       # 로컬·소셜 인증
 ├── user/       # 사용자·프로필·주소·포인트
-├── product/    # CatalogProduct 중심 상품 기능
+├── catalog/    # CatalogProduct 중심 상품 기능
+├── seller/     # 판매자
 ├── common/     # 공통 타입·예외·영속화 기반
 └── global/     # 보안·웹·애플리케이션 설정
 

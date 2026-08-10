@@ -33,7 +33,7 @@
 | Refresh Token | 새 Access Token 발급에 사용하는 장기 JWT. 목표 만료시간은 7일이다. |
 | Blacklist | 로그아웃, 자격 증명 변경, 계정 비활성화 후 기존 JWT를 즉시 거부하기 위한 토큰·사용자 무효화 기록 |
 | Role | 접근 권한. `USER`는 기본 구매자, `PRODUCT_MANAGER`는 판매자, `ADMIN`은 플랫폼 운영자다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. |
-| SellerProfile | 기존 User에 연결된 판매자 신청·승인 프로필. `PENDING`, `ACTIVE`, `REJECTED`, `SUSPENDED` 상태를 가지며 `PRODUCT_MANAGER` 역할과 `ACTIVE` 상태가 모두 충족될 때 판매자 API를 사용할 수 있다. |
+| Seller | 기존 User에 연결된 판매자 신청·승인 프로필. `PENDING`, `ACTIVE`, `REJECTED`, `SUSPENDED` 상태를 가지며 `PRODUCT_MANAGER` 역할과 `ACTIVE` 상태가 모두 충족될 때 판매자 API를 사용할 수 있다. |
 | 계정 비활성화 | 주문 이력 보존을 위해 User를 삭제하지 않고 로그인과 사용만 막는 논리적 삭제 상태 |
 | SignUpTask | 현재 auth가 user에 프로필 생성을 요청할 때 발행하는 동기 메시지. 이름과 달리 완료 이벤트가 아니라 명령 성격이 있다. |
 
@@ -73,7 +73,7 @@
 | ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 하나의 ProductVariant는 정확히 하나의 CatalogProduct에만 속하며, 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
 | ASIN / GTIN / UPC / EAN / ISBN | 전 세계적으로 동일한 상품을 식별하기 위한 표준 바코드 및 식별자(아마존 식별자, 국제/북미/유럽 표준, 국제 도서 번호 등). `CatalogProduct` 간 중복될 수 없는 고유 값이다. |
-| Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 SellerProfile의 Offer가 될 수 있다. |
+| Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 Seller의 Offer가 될 수 있다. |
 | Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
 | 구매 가능 상태 | Inventory 수량을 바탕으로 계산한 `IN_STOCK`, `OUT_OF_STOCK` 등의 표시 상태. `SOLD_OUT`을 상품의 영구 상태로 저장하지 않는다. |
 | 기간성 할인 | Offer에 연결된 기본 가격과 시작·종료 시각이 있는 할인 가격. 심화사항에서는 쿠폰·회원가·복수 프로모션으로 확장한다. |
