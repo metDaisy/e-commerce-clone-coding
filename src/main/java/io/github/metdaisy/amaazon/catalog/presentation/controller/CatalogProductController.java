@@ -1,0 +1,35 @@
+package io.github.metdaisy.amaazon.catalog.presentation.controller;
+
+import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.catalog.application.validator.ActiveSeller;
+import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/catalog-products")
+@RequiredArgsConstructor
+public class CatalogProductController {
+
+  private final CatalogProductService service;
+
+  @PreAuthorize("hasAnyRole('PRODUCT_MANAGER', 'ADMIN')")
+  @ActiveSeller
+  @PostMapping
+  public ResponseEntity<CatalogProductResponse> create(
+      @AuthenticationPrincipal AmaazonPrincipal principal,
+      @RequestBody @Valid CatalogProductCreateRequest request) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(service.create(principal.getId(), request));
+  }
+}
