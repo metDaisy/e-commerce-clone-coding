@@ -27,18 +27,17 @@ public class ActiveSellerValidator {
   public void validate(JoinPoint point, ActiveSeller activeSeller) {
     AmaazonPrincipal principal = (AmaazonPrincipal) SecurityContextHolder.getContext()
         .getAuthentication().getPrincipal();
-    if (principal.getRole().equals("ADMIN")) {
+    if ("ADMIN".equals(principal.getRole())) {
       return;
     }
     validateSeller(principal);
-    validateOwner(point, activeSeller, principal);
+    if (activeSeller.checkOwner()) {
+      validateOwner(point, activeSeller, principal);
+    }
   }
 
   private void validateOwner(JoinPoint joinPoint, ActiveSeller activeSeller,
       AmaazonPrincipal principal) {
-    if (!activeSeller.checkOwner()) {
-      return;
-    }
     UUID catalogId = extractCatalogId(joinPoint, activeSeller.catalogId());
     UUID managerId = principal.getId();
     if (!repository.existsByIdAndManagerId(catalogId, managerId)) {
