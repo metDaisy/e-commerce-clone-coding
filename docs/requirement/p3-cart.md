@@ -21,7 +21,7 @@
 - 상품을 처음 추가하면 장바구니를 자동 생성한다.
 - 단일 상품 수량은 1~10개다.
 - 장바구니 전체 상품 종류는 최대 50개다.
-- 동일 ProductVariant·Offer를 다시 추가하면 기존 수량에 합산한다.
+- 동일 Offer를 다시 추가하면 기존 수량에 합산한다. Offer는 정확히 하나의 ProductVariant에 속하므로 Variant를 별도로 비교하지 않는다.
 - 수량을 0으로 변경하면 항목을 삭제한다.
 - 모든 조회·변경 API는 장바구니 소유자를 검증한다.
 
@@ -74,8 +74,9 @@
       "name": "무선 헤드폰",
       "thumbnailUrl": "https://cdn.example.com/thumb.jpg",
       "quantity": 2,
-      "unitPrice": { "amount": 49900.00, "currency": "KRW" },
-      "subtotal": { "amount": 99800.00, "currency": "KRW" },
+       "unitPrice": { "amount": 49900.00, "currency": "KRW" },
+       "previousUnitPrice": null,
+       "subtotal": { "amount": 99800.00, "currency": "KRW" },
       "priceChanged": false,
       "outOfStock": false,
       "unavailable": false
@@ -89,7 +90,7 @@
 ```
 
 - 조회 시 현재 가격·상품 보관 여부·구매 가능 재고를 재검증한다.
-- 가격이 변경되면 이전 가격과 현재 가격을 함께 반환한다.
+- 가격이 변경되면 `previousUnitPrice`와 현재 `unitPrice`를 함께 반환하고, 변경되지 않았으면 `previousUnitPrice`는 `null`이다.
 - 품절·보관 상품이 하나라도 있으면 결제 미리보기와 주문 생성을 차단한다.
 
 #### 심화 사항

@@ -21,7 +21,7 @@
 
 | 용어 | 의미 |
 |---|---|
-| User | 이름, 연락처, 역할, 활성 상태 등 고객 프로필의 주체. 비밀번호나 OAuth 공급자 세부정보를 소유하지 않는다. |
+| User | 이름, 연락처, 역할, 활성 상태 등 고객 프로필의 주체. 이메일·비밀번호·OAuth 공급자 세부정보는 소유하지 않으며 각각 인증수단이 소유한다. |
 | UserCredential | 이메일과 비밀번호 해시로 구성된 로컬 로그인 수단. 현재 설계에서는 User에게 선택적으로 하나가 연결된다. |
 | SocialCredential | OAuth 공급자와 공급자 사용자 ID로 식별하는 소셜 로그인 수단. 신규 소셜 사용자는 OAuth 인증 후 회원가입 화면에서 추가 정보를 입력하고 가입을 완료하며, 이때 생성된다. `UserCredential`은 생성하지 않는다. 한 User가 여러 공급자 수단을 가질 수 있다. |
 | provider | 이 프로젝트가 정의한 OAuth 공급자 식별 enum. 요구사항 값은 `GOOGLE`, `NAVER`, `KAKAO`, `GITHUB`이며 Amazon의 표준 회원 필드가 아니다. |
@@ -102,7 +102,7 @@ CatalogProduct: GIGABYTE AMD R9700
 |---|---|
 | Cart | 사용자당 하나인 활성 장바구니 |
 | Cart Item | Cart에 담긴 Offer와 수량. 동일 Offer는 중복 행 대신 수량을 합친다. |
-| Coupon | 할인 타입, 값, 기간, 최소 주문액, 발급 한도를 정의하는 쿠폰 원본 |
+| Coupon | 할인 타입, 값, 통화, 기간, 최소 주문액, 발급 한도를 정의하는 쿠폰 원본. 저장 모델의 `discountValue`는 `PERCENTAGE`에서는 할인율, `FIXED_AMOUNT`에서는 할인 금액이며 API는 각각 `discountRate`, `discountAmount`로 구분한다. 카테고리·상품 등 적용 대상 제한은 심화사항이다. |
 | User Coupon | 특정 User에게 발급된 Coupon 인스턴스. `AVAILABLE`, `USED`, `EXPIRED` 생명주기를 가진다. |
 | 정률 할인 | 상품 금액의 일정 비율을 할인하되 최대 할인 한도를 적용하는 방식 |
 | 정액 할인 | 고정 금액을 할인하는 방식 |
@@ -112,7 +112,7 @@ CatalogProduct: GIGABYTE AMD R9700
 | 용어 | 의미 |
 |---|---|
 | Order | 결제 대상 품목, 가격·할인·포인트 계산 결과, 주소 스냅샷과 상태를 보존하는 구매 기록 |
-| Order Item | 주문 시점 CatalogProduct 이름, 단가, 수량을 보존하는 항목. 이후 상품 변경과 분리된다. |
+| Order Item | 주문 시점의 CatalogProduct·ProductVariant·Offer를 식별하고 상품명·SKU·단가·수량을 스냅샷으로 보존하는 항목. 이후 상품 변경과 분리된다. |
 | 상품 총액 | 각 Order Item의 적용가격과 수량을 곱한 값의 합 |
 | 최종 결제 금액 | 상품 총액에서 쿠폰 할인액과 포인트 사용액을 차감한 값. 0보다 작을 수 없다. |
 | Payment Method | 카드, 간편결제, 계좌이체 같은 결제 전략의 종류 |

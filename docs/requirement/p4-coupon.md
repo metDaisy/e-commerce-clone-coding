@@ -6,6 +6,9 @@
 
 | Method | URI | 권한 | 설명 |
 |---|---|---|---|
+| POST | `/api/v1/admin/coupons` | `ADMIN` | 쿠폰 생성 (P7 진입점) |
+| PATCH | `/api/v1/admin/coupons/{couponId}` | `ADMIN` | 쿠폰명·만료일 수정, 비활성화 (P7 진입점) |
+| GET | `/api/v1/admin/coupons` | `ADMIN` | 쿠폰 관리 목록 (P7 진입점) |
 | POST | `/api/v1/coupons/{couponId}/claim` | 로그인 | 쿠폰 발급 |
 | GET | `/api/v1/me/coupons` | 로그인 | 내 쿠폰 조회 |
 
@@ -13,7 +16,7 @@
 
 ### 2-1. 쿠폰 생성
 
-관리자 쿠폰 생성 요청:
+`POST /api/v1/admin/coupons`
 
 요청:
 
@@ -21,20 +24,35 @@
 {
   "name": "신규 가입 10% 할인",
   "discountType": "PERCENTAGE",
-  "discountValue": 10,
-  "maxDiscountAmount": 5000,
-  "minimumOrderAmount": 30000,
-  "applicableCategoryId": null,
+  "discountRate": 10,
+  "maxDiscountAmount": { "amount": 5000.00, "currency": "KRW" },
+  "minimumOrderAmount": { "amount": 30000.00, "currency": "KRW" },
   "totalQuantity": 1000,
   "validFrom": "2026-08-09T00:00:00Z",
   "validUntil": "2026-09-09T00:00:00Z"
 }
 ```
 
-- `PERCENTAGE`는 0 초과 100 이하이고 최대 할인 금액이 필수다.
-- `FIXED_AMOUNT`는 할인 금액이 주문 상품 금액보다 클 수 없다.
+- `PERCENTAGE`는 `discountRate`를 사용하며 0 초과 100 이하다. `maxDiscountAmount`가 필수다.
+- `FIXED_AMOUNT`는 `discountAmount`를 사용한다. `discountRate`, `maxDiscountAmount`는 전달할 수 없다.
+- 모든 금액은 `{ "amount", "currency" }` 형식이고, 한 Coupon의 금액 필드는 모두 같은 ISO 4217 `currency`를 사용한다.
+- `FIXED_AMOUNT`의 할인 금액은 주문 상품 금액보다 클 수 없다.
 - `validFrom < validUntil`이어야 한다.
 - `totalQuantity = null`은 무제한이다.
+
+`FIXED_AMOUNT` 요청은 다음 형태를 사용한다.
+
+```json
+{
+  "name": "5,000원 할인",
+  "discountType": "FIXED_AMOUNT",
+  "discountAmount": { "amount": 5000.00, "currency": "KRW" },
+  "minimumOrderAmount": { "amount": 30000.00, "currency": "KRW" },
+  "totalQuantity": 1000,
+  "validFrom": "2026-08-09T00:00:00Z",
+  "validUntil": "2026-09-09T00:00:00Z"
+}
+```
 
 #### 심화 사항
 
@@ -48,7 +66,9 @@
   "couponId": "uuid",
   "name": "신규 가입 10% 할인",
   "discountType": "PERCENTAGE",
-  "discountValue": 10,
+  "discountRate": 10,
+  "maxDiscountAmount": { "amount": 5000.00, "currency": "KRW" },
+  "minimumOrderAmount": { "amount": 30000.00, "currency": "KRW" },
   "status": "ACTIVE",
   "issuedQuantity": 0,
   "totalQuantity": 1000,
@@ -56,6 +76,14 @@
   "validUntil": "2026-09-09T00:00:00Z"
 }
 ```
+
+`PATCH /api/v1/admin/coupons/{couponId}`는 `name`, `validUntil`, `status`만 수정한다.
+
+- 할인 유형·할인 값·최소 주문 금액·발급 한도는 생성 후 변경하지 않는다.
+- `status`는 `ACTIVE → INACTIVE`만 허용하며 비활성 쿠폰은 신규 발급할 수 없다.
+- `validUntil`은 `validFrom` 이후여야 한다.
+
+`GET /api/v1/admin/coupons`는 `page`, `size`, `status`를 받아 Coupon의 발급·잔여 수량과 기간을 페이지 기반 목록으로 반환한다.
 
 ### 2-2. 쿠폰 발급·조회
 
@@ -69,6 +97,8 @@
   "validUntil": "2026-09-09T00:00:00Z"
 }
 ```
+
+`GET /api/v1/me/coupons`는 `page`, `size`, `status`를 받아 로그인 사용자의 User Coupon을 페이지 기반 목록으로 반환한다. 각 항목은 `userCouponId`, `couponId`, `name`, `status`, `validUntil`을 포함한다.
 
 사용자 쿠폰 상태는 `AVAILABLE`, `USED`, `EXPIRED`다.
 

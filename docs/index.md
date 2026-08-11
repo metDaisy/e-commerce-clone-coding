@@ -1,6 +1,6 @@
 # 프로젝트 문서 인덱스
 
-도메인 객체 간 논리 관계는 [domain-erd.md](domain-erd.md), 데이터베이스 테이블·컬럼·외래 키는 [README.md](../README.md)의 기본 스키마를 참고합니다.
+도메인 객체 간 논리 관계는 [domain-erd.md](domain-erd.md), 데이터베이스 테이블·컬럼·제약 조건은 [V1 초기 스키마](../src/main/resources/db/migration/V1__init_schema.sql)를 참고합니다.
 
 이 문서는 필요한 컨텍스트만 선택해서 읽기 위한 문서 지도다. 모든 문서를 한 번에 읽지 않는다.
 

@@ -66,30 +66,6 @@
 6. 결제 성공 시 `PENDING → PAID`로 변경한다.
 7. 결제 성공 후 재고·쿠폰·포인트·장바구니·배송 처리를 실행한다.
 
-#### 심화 사항
-
-- 결제 승인 전 재고 예약과 예약 만료를 지원한다.
-
-### 2-2. 주문 목록
-
-`GET /api/v1/orders`
-
-- Query는 `cursor`와 `size`를 사용한다. 첫 조회에서는 `cursor`를 생략한다.
-- 기본 `size`는 20, 최대값은 100이다.
-- 로그인한 사용자의 주문만 반환한다.
-- 정렬은 `createdAt DESC, orderId DESC`로 고정한다.
-- 응답은 `items`, `nextCursor`, `hasNext`를 포함하며 전체 주문 건수는 제공하지 않는다.
-- 주문 상태·기간 필터를 추가할 경우 해당 조건은 cursor에 포함되어야 한다.
-
-금액 계산:
-
-```text
-상품 총액 = Σ(적용 가격 × 수량)
-쿠폰 할인 = 정률 할인 또는 정액 할인
-포인트 사용 = 보유 포인트 이내이며 상품 금액의 50% 이하
-최종 결제 금액 = 상품 총액 - 쿠폰 할인 - 포인트 사용
-```
-
 성공 응답 `201`:
 
 ```json
@@ -101,6 +77,8 @@
     {
       "orderItemId": "uuid",
       "catalogProductId": "uuid",
+      "variantId": "uuid",
+      "offerId": "uuid",
       "sku": "HEADPHONE-BLK-001",
       "catalogProductName": "무선 헤드폰",
       "quantity": 2,
@@ -115,11 +93,51 @@
     "shippingFee": { "amount": 0.00, "currency": "KRW" },
     "paidAmount": { "amount": 89800.00, "currency": "KRW" }
   },
-  "delivery": {
-    "deliveryId": "uuid",
-    "status": "PREPARING"
-  },
+  "delivery": { "deliveryId": "uuid", "status": "PREPARING" },
   "createdAt": "2026-08-09T12:00:00Z"
+}
+```
+
+#### 심화 사항
+
+- 결제 승인 전 재고 예약과 예약 만료를 지원한다.
+
+### 2-2. 주문 목록
+
+`GET /api/v1/orders`
+
+- Query는 `cursor`와 `size`를 사용한다. 첫 조회에서는 `cursor`를 생략한다.
+- 기본 `size`는 20, 최대값은 100이다.
+- 로그인한 사용자의 주문만 반환한다.
+- 정렬은 `createdAt DESC, orderId DESC`로 고정한다.
+- 응답은 `data`, `nextCursor`, `hasNext`를 포함하며 전체 주문 건수는 제공하지 않는다.
+- 주문 상태·기간 필터를 추가할 경우 해당 조건은 cursor에 포함되어야 한다.
+
+금액 계산:
+
+```text
+상품 총액 = Σ(적용 가격 × 수량)
+쿠폰 할인 = 정률 할인 또는 정액 할인
+포인트 사용 = 보유 포인트 이내이며 상품 금액의 50% 이하
+최종 결제 금액 = 상품 총액 - 쿠폰 할인 - 포인트 사용
+```
+
+성공 응답 `200`:
+
+```json
+{
+  "data": [
+    {
+      "orderId": "uuid",
+      "orderNumber": "ORD-20260809-000001",
+      "status": "PAID",
+      "itemCount": 2,
+      "paidAmount": { "amount": 89800.00, "currency": "KRW" },
+      "createdAt": "2026-08-09T12:00:00Z"
+    }
+  ],
+  "nextCursor": "opaque-cursor",
+  "hasNext": true
 }
 ```
 

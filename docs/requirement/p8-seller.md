@@ -12,7 +12,7 @@
 - `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. 역할명은 구매자 기능을 배제하는 의미가 아니다.
 - `ADMIN`은 플랫폼 전체 운영과 판매자 신청을 담당하며 판매자 API를 사용하지 않는다.
 
-CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 ProductVariant에 자신의 Offer를 등록하고 가격·판매 상태·재고를 관리한다.
+CatalogProduct·ProductVariant는 P2가 소유한다. 활성 `PRODUCT_MANAGER`는 P2 API로 자신이 관리할 CatalogProduct·ProductVariant를 등록할 수 있고, Offer 등록은 이미 존재하는 ProductVariant를 대상으로 한다. 판매자는 자신의 Offer 가격·판매 상태·재고를 관리한다.
 
 ## 2. API 목록
 
@@ -49,12 +49,12 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 ```
 
 - 신청자는 로그인한 사용자다. `ADMIN`은 판매자 신청 대상이 아니다.
-- 사용자당 활성 신청 또는 `ACTIVE` 판매자 프로필은 하나만 허용한다.
+- 사용자당 `PENDING` 신청 또는 `ACTIVE` Seller는 각각 하나만 허용한다. `REJECTED`·`SUSPENDED` Seller만 있는 사용자는 새 신청을 할 수 있다.
 - 신청 상태는 `PENDING`, `ACTIVE`, `REJECTED`, `SUSPENDED`다.
 - 사업자 등록번호 등 민감한 식별 정보는 응답·로그에 원문으로 노출하지 않는다.
 - 신청이 승인되기 전에는 Offer를 등록할 수 없다.
 - `PENDING → ACTIVE` 승인 시 사용자의 역할을 `PRODUCT_MANAGER`로 변경한다.
-- `ACTIVE → SUSPENDED` 또는 승인 취소 시 판매자 API를 차단하고 사용자의 역할을 `USER`로 되돌린다.
+- `PENDING → ACTIVE`, `PENDING → REJECTED`, `ACTIVE → SUSPENDED`만 허용한다. `REJECTED` 또는 `SUSPENDED`가 되면 판매자 API를 차단하고 사용자의 역할을 `USER`로 되돌린다.
 
 성공 응답 `201`:
 
@@ -67,23 +67,19 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 }
 ```
 
-`PATCH /api/v1/seller/profile`는 승인된 판매자의 `displayName`만 수정한다.
-
-```json
-{ "displayName": "Updated Store" }
-```
-
-응답:
-
-```json
-{ "sellerId": "uuid", "displayName": "Updated Store", "updatedAt": "2026-08-09T12:05:00Z" }
-```
-
 ### 3-2. 판매자 프로필
 
 - 승인된 판매자만 자신의 프로필을 조회·수정한다.
 - 판매자 표시명·연락처만 수정할 수 있다.
 - 판매자 정산 정보는 기본 요구사항에 포함하지 않는다.
+
+`PATCH /api/v1/seller/profile` 요청:
+
+```json
+{ "displayName": "Updated Store", "contactPhone": "010-1234-5678" }
+```
+
+응답은 `sellerId`, `displayName`, `contactEmail`, `contactPhone`, `updatedAt`을 반환한다.
 
 ### 3-3. Offer 관리
 
@@ -136,11 +132,13 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 - 판매자는 자신의 Offer 재고만 조정한다.
 - 재고 수량은 0 미만이 될 수 없다.
 - 구매자 주문에 의한 재고 차감 규칙은 P2·P5·P6을 따른다.
+- `POST /api/v1/offers/{offerId}/inventory-adjustments`의 요청·응답·동시성 규칙은 P2 3-7을 따른다.
 
 ### 3-5. 판매자 주문 조회
 
 - 판매자는 자신의 Offer가 포함된 주문만 조회한다.
 - 주문 목록은 `createdAt DESC, orderId DESC` 커서 기반 조회를 사용한다.
+- `GET /api/v1/seller/orders`의 응답은 `data`, `nextCursor`, `hasNext`를 사용한다. `data`의 각 항목은 `orderId`, `orderNumber`, `status`, `createdAt`과 해당 판매자의 `offerId`, `variantId`, `quantity`, `unitPrice`, 배송 처리에 필요한 수령인·연락처·주소 스냅샷만 포함한다.
 - 구매자의 개인정보는 배송 처리에 필요한 최소 정보만 반환한다.
 - 기본 요구사항에서는 주문·배송 상태 변경을 ADMIN이 수행한다. 판매자별 배송 처리는 심화사항으로 둔다.
 
@@ -156,4 +154,4 @@ CatalogProduct·ProductVariant는 P2가 소유한다. 판매자는 기존 Produc
 | 404 | `OFFER_NOT_FOUND` | Offer 없음 |
 | 409 | `SELLER_APPLICATION_ALREADY_EXISTS` | 중복 신청 |
 | 409 | `SELLER_OFFER_ALREADY_EXISTS` | 같은 ProductVariant에 Offer 중복 등록 |
-| 409 | `SELLER_SUSPENDED` | 정지된 판매자 사용 |
+| 403 | `SELLER_SUSPENDED` | 정지된 판매자 API 사용 |

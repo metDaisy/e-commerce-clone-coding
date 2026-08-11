@@ -63,7 +63,7 @@ flowchart LR
         direction TB
         Cart["<b>Cart</b><br/>id<br/>user<br/>status<br/>createdAt<br/>updatedAt"]
         CartItem["<b>CartItem</b><br/>id<br/>cart<br/>offer<br/>quantity<br/>createdAt<br/>updatedAt"]
-        Coupon["<b>Coupon</b><br/>id<br/>name<br/>discountType<br/>discountValue<br/>maxDiscountAmount<br/>minimumOrderAmount<br/>applicableCategory<br/>totalQuantity<br/>issuedQuantity<br/>status<br/>validFrom<br/>validUntil<br/>createdAt<br/>updatedAt"]
+        Coupon["<b>Coupon</b><br/>id<br/>name<br/>discountType<br/>discountValue<br/>maxDiscountAmount<br/>minimumOrderAmount<br/>currency<br/>totalQuantity<br/>issuedQuantity<br/>status<br/>validFrom<br/>validUntil<br/>createdAt<br/>updatedAt"]
         UserCoupon["<b>UserCoupon</b><br/>id<br/>user<br/>coupon<br/>status<br/>usedAt<br/>createdAt<br/>updatedAt"]
 
         Cart -->|"items ↔ cart<br/>1 : N"| CartItem
@@ -103,7 +103,6 @@ flowchart LR
     User -.->|"user"| Order
     User -.->|"user"| PaymentMethod
     Seller -.->|"seller"| Offer
-    Category -.->|"applicableCategory"| Coupon
     ProductVariant -.->|"productVariant"| Wishlist
     Offer -.->|"offer"| CartItem
     Offer -.->|"offer"| OrderItem

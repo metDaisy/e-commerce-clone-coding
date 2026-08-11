@@ -18,6 +18,7 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 | Method | URI | 권한 | 설명 |
 |---|---|---|---|
 | POST | `/api/v1/auth/signup` | 공개 | 회원가입 |
+| POST | `/api/v1/auth/social-signup` | Guest Token | 소셜 회원가입 완료 |
 | POST | `/api/v1/auth/login` | 공개 | 이메일·비밀번호 로그인 |
 | GET | `/api/v1/auth/oauth/{provider}/authorize` | 공개 | OAuth 인증 시작 |
 | GET | `/api/v1/auth/oauth/{provider}/callback` | 공개 | OAuth callback 처리 |
@@ -55,12 +56,12 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 ```
 
 - `name`, `email`, `password`는 필수다.
-- 이메일은 RFC 5322 형식이며 대소문자를 구분하지 않는다.
+- 이메일은 `user_credentials.email`에 저장하는 로컬 로그인 식별자이며 RFC 5322 형식과 대소문자 비구분 규칙을 따른다. `users`에는 이메일을 저장하지 않는다.
 - 이메일은 정규화 후 UNIQUE다.
 - 비밀번호는 8자 이상이며 영문 대소문자·숫자·특수문자 중 2종 이상을 포함한다.
 - 비밀번호는 Bcrypt로 저장한다.
 - 가입 성공 시 `USER` 권한과 포인트 잔액 0을 생성한다.
-- 응답에는 `userId`, `name`, `email`, `role`, `createdAt`만 포함한다. 비밀번호는 포함하지 않는다.
+- 응답에는 `userId`, `name`, `loginEmail`, `role`, `createdAt`만 포함한다. 비밀번호는 포함하지 않는다.
 
 성공 응답 `201`:
 
@@ -68,7 +69,7 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 {
   "userId": "uuid",
   "name": "홍길동",
-  "email": "user@example.com",
+  "loginEmail": "user@example.com",
   "role": "USER",
   "createdAt": "2026-08-09T12:00:00Z"
 }
@@ -104,29 +105,44 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 - 소셜 인증 성공 후 기존 계정이 있으면 로그인하고, 없으면 이 프로젝트의 회원가입 보완 절차를 거쳐 로컬 `users` 계정을 생성한다.
 - 이 절차에서 `provider`는 외부 서비스의 실제 회원 유형을 의미하지 않고, 우리 서비스의 `social_credentials` 연결 정보만 의미한다.
 
+`POST /api/v1/auth/social-signup`
+
+요청자는 OAuth callback이 발급한 Guest Token을 사용한다.
+
+```json
+{
+  "name": "홍길동",
+  "phone": "010-1234-5678"
+}
+```
+
+- `name`은 필수이고 `phone`은 선택이다.
+- 서버는 Guest Token의 `provider`, `providerId`와 요청값을 결합해 `users`, `social_credentials`를 하나의 트랜잭션으로 생성한다.
+- 이 API는 `email`, `password`를 받지 않으며 `user_credentials`를 생성하지 않는다.
+- 성공 응답은 `userId`, `name`, `role`, `createdAt`을 반환한다. 소셜 계정에는 로컬 로그인 이메일이 없으므로 `loginEmail`을 반환하지 않는다.
+
+성공 응답 `201`:
+
+```json
+{
+  "userId": "uuid",
+  "name": "홍길동",
+  "role": "USER",
+  "createdAt": "2026-08-09T12:00:00Z"
+}
+```
+
 #### 심화 사항
 
 - Google·Naver·Kakao·GitHub OAuth2 로그인과 게스트 토큰을 지원한다.
 - Login with Amazon을 별도 OAuth 공급자 `AMAZON`으로 연동할 수 있다. 이때 Amazon의 `user_id`는 `providerId`로 저장하고, Amazon의 고객 계정 자체를 우리 서비스의 사용자 테이블로 간주하지 않는다.
 - 다중 소셜 인증 수단 연결·해제를 지원한다.
 
-성공 응답 `200`:
-
-```json
-{
-  "user": {
-    "userId": "uuid",
-    "name": "홍길동",
-    "email": "user@example.com",
-    "role": "USER"
-  },
-  "expiresIn": 1800
-}
-```
+OAuth callback의 성공 응답은 JSON이 아니라 redirect다. 기존 `(provider, providerId)` 계정이면 Access·Refresh Token 쿠키를 설정한 뒤 프론트엔드 시작 경로로 `302` redirect한다. 신규 계정이면 Guest Token 쿠키를 설정한 뒤 `/signup`으로 `302` redirect한다.
 
 ### 3-4. 프로필·계정
 
-- `GET /api/v1/me`는 이름, 이메일, 연락처, 가입일, 포인트 잔액을 반환한다.
+- `GET /api/v1/me`는 이름, 연락처, 가입일, 포인트 잔액과 로컬 로그인 사용자에게만 존재하는 nullable `loginEmail`을 반환한다. `users` 프로필 자체는 이메일을 소유하지 않는다.
 - `PATCH /api/v1/me`는 이름과 연락처만 수정한다.
 - 이메일 변경은 별도 API로 분리하고 기존 비밀번호를 재확인한다.
 - 탈퇴는 물리 삭제하지 않고 `is_active=false`로 처리한다.
@@ -164,7 +180,7 @@ P1은 사용자, 인증 수단, 권한, 주소록, 포인트, 관심 상품을 �
 - 잔액은 음수가 될 수 없다.
 - `GET /api/v1/me/points`의 원장 목록은 `createdAt DESC, pointHistoryId DESC` 순서의 커서 기반 조회다.
 - 첫 조회는 `cursor` 없이 요청하고, 이후 응답의 `nextCursor`를 전달한다. `size` 기본값은 20, 최대값은 100이다.
-- 응답은 `balance`, `items`, `nextCursor`, `hasNext`를 포함하며 전체 건수는 제공하지 않는다.
+- 응답은 `balance`, `data`, `nextCursor`, `hasNext`를 포함하며 전체 건수는 제공하지 않는다. `data`는 Point History 배열이다.
 
 #### 심화 사항
 
