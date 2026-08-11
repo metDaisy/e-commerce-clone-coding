@@ -11,11 +11,11 @@
 CREATE TABLE users
 (
     id            UUID PRIMARY KEY,
-    name          VARCHAR(100) NOT NULL,
+    name          VARCHAR(100)             NOT NULL,
     phone_number  VARCHAR(20),
-    role          VARCHAR(30)  NOT NULL DEFAULT 'USER',
-    point_balance INTEGER      NOT NULL DEFAULT 0,
-    is_active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    role          VARCHAR(30)              NOT NULL DEFAULT 'USER',
+    point_balance INTEGER                  NOT NULL DEFAULT 0,
+    is_active     BOOLEAN                  NOT NULL DEFAULT TRUE,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_users_role CHECK (role IN ('USER', 'PRODUCT_MANAGER', 'ADMIN')),
@@ -28,9 +28,9 @@ COMMENT ON COLUMN users.role IS
 CREATE TABLE user_credentials
 (
     user_id         UUID PRIMARY KEY,
-    email           VARCHAR(255) NOT NULL,
-    password_hash   VARCHAR(255) NOT NULL,
-    violation_count INTEGER      NOT NULL DEFAULT 0,
+    email           VARCHAR(255)             NOT NULL,
+    password_hash   VARCHAR(255)             NOT NULL,
+    violation_count INTEGER                  NOT NULL DEFAULT 0,
     until_locked    TIMESTAMP WITH TIME ZONE,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
@@ -42,9 +42,9 @@ COMMENT ON TABLE user_credentials IS
 CREATE TABLE social_credentials
 (
     id          UUID PRIMARY KEY,
-    user_id     UUID         NOT NULL,
-    provider    VARCHAR(20)  NOT NULL,
-    provider_id VARCHAR(255) NOT NULL,
+    user_id     UUID                     NOT NULL,
+    provider    VARCHAR(20)              NOT NULL,
+    provider_id VARCHAR(255)             NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_social_credentials_provider
         CHECK (provider IN ('GOOGLE', 'NAVER', 'KAKAO', 'GITHUB'))
@@ -56,12 +56,12 @@ COMMENT ON TABLE social_credentials IS
 CREATE TABLE addresses
 (
     id              UUID PRIMARY KEY,
-    user_id         UUID         NOT NULL,
-    recipient_name  VARCHAR(100) NOT NULL,
-    recipient_phone VARCHAR(20)  NOT NULL,
-    postal_code     VARCHAR(20)  NOT NULL,
-    address_line    VARCHAR(255) NOT NULL,
-    is_primary      BOOLEAN      NOT NULL DEFAULT FALSE,
+    user_id         UUID                     NOT NULL,
+    recipient_name  VARCHAR(100)             NOT NULL,
+    recipient_phone VARCHAR(20)              NOT NULL,
+    postal_code     VARCHAR(20)              NOT NULL,
+    address_line    VARCHAR(255)             NOT NULL,
+    is_primary      BOOLEAN                  NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL
 );
@@ -69,26 +69,26 @@ CREATE TABLE addresses
 CREATE TABLE point_histories
 (
     id          UUID PRIMARY KEY,
-    user_id     UUID         NOT NULL,
-    amount      INTEGER      NOT NULL,
-    description VARCHAR(255) NOT NULL,
+    user_id     UUID                     NOT NULL,
+    amount      INTEGER                  NOT NULL,
+    description VARCHAR(255)             NOT NULL,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE wishlists
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID NOT NULL,
-    variant_id UUID NOT NULL,
+    user_id    UUID                     NOT NULL,
+    variant_id UUID                     NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE refresh_tokens
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID         NOT NULL,
-    device_id  VARCHAR(100) NOT NULL,
-    token      VARCHAR(255) NOT NULL,
+    user_id    UUID                     NOT NULL,
+    device_id  VARCHAR(100)             NOT NULL,
+    token      VARCHAR(255)             NOT NULL,
     pre_token  VARCHAR(255),
     expired_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE refresh_tokens
 CREATE TABLE blacklist_tokens
 (
     id         UUID PRIMARY KEY,
-    token      VARCHAR(255) NOT NULL,
+    token      VARCHAR(255)             NOT NULL,
     expired_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
@@ -106,7 +106,7 @@ CREATE TABLE blacklist_tokens
 CREATE TABLE blacklist_users
 (
     id             UUID PRIMARY KEY,
-    user_id        UUID NOT NULL,
+    user_id        UUID                     NOT NULL,
     compromised_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at     TIMESTAMP WITH TIME ZONE NOT NULL
 );
@@ -119,8 +119,8 @@ CREATE TABLE categories
 (
     id         UUID PRIMARY KEY,
     parent_id  UUID,
-    name       VARCHAR(255) NOT NULL,
-    depth      INTEGER      NOT NULL,
+    name       VARCHAR(255)             NOT NULL,
+    depth      INTEGER                  NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_categories_parent
@@ -132,10 +132,10 @@ CREATE TABLE categories
 CREATE TABLE catalog_products
 (
     id                 UUID PRIMARY KEY,
-    category_id        UUID         NOT NULL,
-    manager_id         UUID         NOT NULL,
-    name               VARCHAR(255) NOT NULL,
-    description        TEXT         NOT NULL,
+    category_id        UUID                     NOT NULL,
+    manager_id         UUID                     NOT NULL,
+    name               VARCHAR(255)             NOT NULL,
+    description        TEXT                     NOT NULL,
     brand              VARCHAR(255),
     asin               VARCHAR(50),
     gtin               VARCHAR(50),
@@ -143,7 +143,7 @@ CREATE TABLE catalog_products
     ean                VARCHAR(50),
     isbn               VARCHAR(50),
     attributes         JSONB,
-    publication_status VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
+    publication_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
     archived_at        TIMESTAMP WITH TIME ZONE,
     created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at         TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -175,14 +175,14 @@ COMMENT ON COLUMN catalog_products.isbn IS
 
 CREATE TABLE product_variants
 (
-    id           UUID PRIMARY KEY,
-    catalog_product_id   UUID         NOT NULL,
-    sku          VARCHAR(100) NOT NULL,
-    display_name VARCHAR(255) NOT NULL,
-    weight       NUMERIC(10, 3),
-    dimensions   JSONB,
-    created_at   TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at   TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                 UUID PRIMARY KEY,
+    catalog_product_id UUID                     NOT NULL,
+    sku                VARCHAR(100)             NOT NULL,
+    display_name       VARCHAR(255)             NOT NULL,
+    weight             NUMERIC(10, 3),
+    dimensions         JSONB,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at         TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_product_variants_catalog_product
         FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id)
 );
@@ -193,14 +193,14 @@ COMMENT ON TABLE product_variants IS
 CREATE TABLE offers
 (
     id                    UUID PRIMARY KEY,
-    variant_id            UUID           NOT NULL,
+    variant_id            UUID                     NOT NULL,
     seller_id             UUID,
-    base_price_amount     NUMERIC(19, 2) NOT NULL,
+    base_price_amount     NUMERIC(19, 2)           NOT NULL,
     discount_price_amount NUMERIC(19, 2),
-    currency              CHAR(3)        NOT NULL,
+    currency              CHAR(3)                  NOT NULL,
     discount_start_at     TIMESTAMP WITH TIME ZONE,
     discount_end_at       TIMESTAMP WITH TIME ZONE,
-    status                VARCHAR(20)    NOT NULL DEFAULT 'ACTIVE',
+    status                VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
     created_at            TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at            TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_offers_variant
@@ -224,8 +224,8 @@ COMMENT ON COLUMN offers.seller_id IS
 CREATE TABLE inventories
 (
     id         UUID PRIMARY KEY,
-    offer_id   UUID      NOT NULL,
-    quantity   INTEGER   NOT NULL DEFAULT 0,
+    offer_id   UUID                     NOT NULL,
+    quantity   INTEGER                  NOT NULL DEFAULT 0,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT uq_inventories_offer UNIQUE (offer_id),
     CONSTRAINT chk_inventories_quantity CHECK (quantity >= 0),
@@ -239,12 +239,12 @@ COMMENT ON TABLE inventories IS
 CREATE TABLE images
 (
     id          UUID PRIMARY KEY,
-    entity_type VARCHAR(30)   NOT NULL,
-    entity_id   UUID          NOT NULL,
-    media_type  VARCHAR(20)   NOT NULL DEFAULT 'IMAGE',
-    image_url   VARCHAR(1000) NOT NULL,
-    is_primary  BOOLEAN       NOT NULL DEFAULT FALSE,
-    sort_order  INTEGER       NOT NULL DEFAULT 0,
+    entity_type VARCHAR(30)              NOT NULL,
+    entity_id   UUID                     NOT NULL,
+    media_type  VARCHAR(20)              NOT NULL DEFAULT 'IMAGE',
+    image_url   VARCHAR(1000)            NOT NULL,
+    is_primary  BOOLEAN                  NOT NULL DEFAULT FALSE,
+    sort_order  INTEGER                  NOT NULL DEFAULT 0,
     created_at  TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_images_media_type CHECK (media_type = 'IMAGE'),
     CONSTRAINT chk_images_sort_order CHECK (sort_order >= 0)
@@ -253,16 +253,16 @@ CREATE TABLE images
 CREATE TABLE tags
 (
     id         UUID PRIMARY KEY,
-    name       VARCHAR(100) NOT NULL,
+    name       VARCHAR(100)             NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE catalog_product_tags
 (
-    id         UUID PRIMARY KEY,
-    catalog_product_id UUID NOT NULL,
-    tag_id     UUID NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                 UUID PRIMARY KEY,
+    catalog_product_id UUID                     NOT NULL,
+    tag_id             UUID                     NOT NULL,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_catalog_product_tags_catalog_product
         FOREIGN KEY (catalog_product_id) REFERENCES catalog_products (id) ON DELETE CASCADE,
     CONSTRAINT fk_catalog_product_tags_tag
@@ -272,9 +272,9 @@ CREATE TABLE catalog_product_tags
 CREATE TABLE reviews
 (
     id         UUID PRIMARY KEY,
-    variant_id UUID         NOT NULL,
-    user_id    UUID         NOT NULL,
-    rating     INTEGER      NOT NULL,
+    variant_id UUID                     NOT NULL,
+    user_id    UUID                     NOT NULL,
+    rating     INTEGER                  NOT NULL,
     content    VARCHAR(2000),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_reviews_variant
@@ -289,8 +289,8 @@ CREATE TABLE reviews
 CREATE TABLE carts
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID        NOT NULL,
-    status     VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    user_id    UUID                     NOT NULL,
+    status     VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_carts_status CHECK (status IN ('ACTIVE', 'CHECKED_OUT'))
@@ -299,9 +299,9 @@ CREATE TABLE carts
 CREATE TABLE cart_items
 (
     id         UUID PRIMARY KEY,
-    cart_id    UUID NOT NULL,
-    offer_id   UUID NOT NULL,
-    quantity   INTEGER NOT NULL,
+    cart_id    UUID                     NOT NULL,
+    offer_id   UUID                     NOT NULL,
+    quantity   INTEGER                  NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_cart_items_cart
@@ -315,20 +315,20 @@ CREATE TABLE cart_items
 
 CREATE TABLE coupons
 (
-    id                     UUID PRIMARY KEY,
-    name                   VARCHAR(255)     NOT NULL,
-    discount_type          VARCHAR(20)      NOT NULL,
-    discount_value         NUMERIC(19, 2)   NOT NULL,
-    max_discount_amount    NUMERIC(19, 2),
-    minimum_order_amount   NUMERIC(19, 2)   NOT NULL DEFAULT 0,
-    applicable_category_id UUID,
-    total_quantity         INTEGER,
-    issued_quantity        INTEGER          NOT NULL DEFAULT 0,
-    status                 VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
-    valid_from             TIMESTAMP WITH TIME ZONE NOT NULL,
-    valid_until            TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at             TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at             TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                   UUID PRIMARY KEY,
+    name                 VARCHAR(255)             NOT NULL,
+    discount_type        VARCHAR(20)              NOT NULL,
+    discount_value       NUMERIC(19, 2)           NOT NULL,
+    max_discount_amount  NUMERIC(19, 2),
+    minimum_order_amount NUMERIC(19, 2)           NOT NULL DEFAULT 0,
+    currency             CHAR(3)                  NOT NULL,
+    total_quantity       INTEGER,
+    issued_quantity      INTEGER                  NOT NULL DEFAULT 0,
+    status               VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
+    valid_from           TIMESTAMP WITH TIME ZONE NOT NULL,
+    valid_until          TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at           TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at           TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_coupons_discount_type
         CHECK (discount_type IN ('PERCENTAGE', 'FIXED_AMOUNT')),
     CONSTRAINT chk_coupons_discount_value CHECK (discount_value > 0),
@@ -339,7 +339,8 @@ CREATE TABLE coupons
                (max_discount_amount IS NULL OR max_discount_amount > 0)),
     CONSTRAINT chk_coupons_quantity
         CHECK (issued_quantity >= 0 AND
-               (total_quantity IS NULL OR (total_quantity >= 0 AND issued_quantity <= total_quantity))),
+               (total_quantity IS NULL OR
+                (total_quantity >= 0 AND issued_quantity <= total_quantity))),
     CONSTRAINT chk_coupons_period CHECK (valid_from < valid_until),
     CONSTRAINT chk_coupons_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
 );
@@ -347,9 +348,9 @@ CREATE TABLE coupons
 CREATE TABLE user_coupons
 (
     id         UUID PRIMARY KEY,
-    user_id    UUID        NOT NULL,
-    coupon_id  UUID        NOT NULL,
-    status     VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+    user_id    UUID                     NOT NULL,
+    coupon_id  UUID                     NOT NULL,
+    status     VARCHAR(20)              NOT NULL DEFAULT 'AVAILABLE',
     used_at    TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -365,24 +366,24 @@ CREATE TABLE user_coupons
 
 CREATE TABLE orders
 (
-    id                      UUID PRIMARY KEY,
-    order_number            VARCHAR(40)      NOT NULL,
-    user_id                 UUID             NOT NULL,
-    address_id              UUID             NOT NULL,
-    used_user_coupon_id     UUID,
-    used_point_amount       INTEGER          NOT NULL DEFAULT 0,
-    status                  VARCHAR(20)      NOT NULL DEFAULT 'PENDING',
-    subtotal_amount         NUMERIC(19, 2)   NOT NULL,
-    discount_amount         NUMERIC(19, 2)   NOT NULL DEFAULT 0,
-    shipping_fee            NUMERIC(19, 2)   NOT NULL DEFAULT 0,
-    paid_amount             NUMERIC(19, 2)   NOT NULL,
-    currency                CHAR(3)          NOT NULL,
-    shipping_recipient_name VARCHAR(100)     NOT NULL,
-    shipping_recipient_phone VARCHAR(20)     NOT NULL,
-    shipping_postal_code    VARCHAR(20)      NOT NULL,
-    shipping_address_line   VARCHAR(255)     NOT NULL,
-    created_at              TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at              TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                       UUID PRIMARY KEY,
+    order_number             VARCHAR(40)              NOT NULL,
+    user_id                  UUID                     NOT NULL,
+    address_id               UUID                     NOT NULL,
+    used_user_coupon_id      UUID,
+    used_point_amount        INTEGER                  NOT NULL DEFAULT 0,
+    status                   VARCHAR(20)              NOT NULL DEFAULT 'PENDING',
+    subtotal_amount          NUMERIC(19, 2)           NOT NULL,
+    discount_amount          NUMERIC(19, 2)           NOT NULL DEFAULT 0,
+    shipping_fee             NUMERIC(19, 2)           NOT NULL DEFAULT 0,
+    paid_amount              NUMERIC(19, 2)           NOT NULL,
+    currency                 CHAR(3)                  NOT NULL,
+    shipping_recipient_name  VARCHAR(100)             NOT NULL,
+    shipping_recipient_phone VARCHAR(20)              NOT NULL,
+    shipping_postal_code     VARCHAR(20)              NOT NULL,
+    shipping_address_line    VARCHAR(255)             NOT NULL,
+    created_at               TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at               TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_orders_status CHECK (status IN ('PENDING', 'PAID', 'CANCELED')),
     CONSTRAINT chk_orders_amounts CHECK (subtotal_amount >= 0 AND discount_amount >= 0 AND
                                          shipping_fee >= 0 AND used_point_amount >= 0 AND
@@ -391,18 +392,18 @@ CREATE TABLE orders
 
 CREATE TABLE order_items
 (
-    id             UUID PRIMARY KEY,
-    order_id       UUID           NOT NULL,
-    catalog_product_id     UUID           NOT NULL,
-    variant_id     UUID           NOT NULL,
-    offer_id       UUID           NOT NULL,
-    sku            VARCHAR(100)   NOT NULL,
-    catalog_product_name   VARCHAR(255)   NOT NULL,
-    quantity       INTEGER        NOT NULL,
-    unit_price     NUMERIC(19, 2) NOT NULL,
-    subtotal       NUMERIC(19, 2) NOT NULL,
-    currency       CHAR(3)        NOT NULL,
-    created_at     TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                   UUID PRIMARY KEY,
+    order_id             UUID                     NOT NULL,
+    catalog_product_id   UUID                     NOT NULL,
+    variant_id           UUID                     NOT NULL,
+    offer_id             UUID                     NOT NULL,
+    sku                  VARCHAR(100)             NOT NULL,
+    catalog_product_name VARCHAR(255)             NOT NULL,
+    quantity             INTEGER                  NOT NULL,
+    unit_price           NUMERIC(19, 2)           NOT NULL,
+    subtotal             NUMERIC(19, 2)           NOT NULL,
+    currency             CHAR(3)                  NOT NULL,
+    created_at           TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_order_items_order
         FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE,
     CONSTRAINT chk_order_items_quantity CHECK (quantity > 0),
@@ -412,8 +413,8 @@ CREATE TABLE order_items
 CREATE TABLE payment_methods
 (
     id            UUID PRIMARY KEY,
-    user_id       UUID        NOT NULL,
-    method_type   VARCHAR(30) NOT NULL,
+    user_id       UUID                     NOT NULL,
+    method_type   VARCHAR(30)              NOT NULL,
     provider      VARCHAR(100),
     masked_number VARCHAR(50),
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -425,12 +426,12 @@ CREATE TABLE payment_methods
 CREATE TABLE payments
 (
     id                UUID PRIMARY KEY,
-    order_id          UUID           NOT NULL,
-    payment_method_id UUID           NOT NULL,
-    transaction_id    VARCHAR(255)   NOT NULL,
-    status            VARCHAR(20)    NOT NULL,
-    amount            NUMERIC(19, 2) NOT NULL,
-    currency          CHAR(3)        NOT NULL,
+    order_id          UUID                     NOT NULL,
+    payment_method_id UUID                     NOT NULL,
+    transaction_id    VARCHAR(255)             NOT NULL,
+    status            VARCHAR(20)              NOT NULL,
+    amount            NUMERIC(19, 2)           NOT NULL,
+    currency          CHAR(3)                  NOT NULL,
     paid_at           TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at        TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at        TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -445,8 +446,8 @@ CREATE TABLE payments
 CREATE TABLE deliveries
 (
     id                         UUID PRIMARY KEY,
-    order_id                   UUID        NOT NULL,
-    status                     VARCHAR(20) NOT NULL DEFAULT 'PREPARING',
+    order_id                   UUID                     NOT NULL,
+    status                     VARCHAR(20)              NOT NULL DEFAULT 'PREPARING',
     tracking_number            VARCHAR(100),
     delivery_status_updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
     created_at                 TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -467,12 +468,12 @@ CREATE TABLE deliveries
 CREATE TABLE outbox_events
 (
     id             UUID PRIMARY KEY,
-    aggregate_type VARCHAR(30)  NOT NULL,
-    aggregate_id   UUID         NOT NULL,
-    event_type     VARCHAR(255) NOT NULL,
-    payload        JSONB        NOT NULL,
-    status         VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
-    retry_count    INTEGER      NOT NULL DEFAULT 0,
+    aggregate_type VARCHAR(30)              NOT NULL,
+    aggregate_id   UUID                     NOT NULL,
+    event_type     VARCHAR(255)             NOT NULL,
+    payload        JSONB                    NOT NULL,
+    status         VARCHAR(20)              NOT NULL DEFAULT 'PENDING',
+    retry_count    INTEGER                  NOT NULL DEFAULT 0,
     created_at     TIMESTAMP WITH TIME ZONE NOT NULL,
     published_at   TIMESTAMP WITH TIME ZONE,
     last_error     TEXT,
@@ -483,9 +484,9 @@ CREATE TABLE outbox_events
 CREATE TABLE event_consumptions
 (
     id           UUID PRIMARY KEY,
-    event_id     UUID        NOT NULL,
-    consumer     VARCHAR(255) NOT NULL,
-    status       VARCHAR(20) NOT NULL,
+    event_id     UUID                     NOT NULL,
+    consumer     VARCHAR(255)             NOT NULL,
+    status       VARCHAR(20)              NOT NULL,
     processed_at TIMESTAMP WITH TIME ZONE,
     created_at   TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_event_consumptions_event
@@ -496,23 +497,23 @@ CREATE TABLE event_consumptions
 CREATE TABLE saga_instances
 (
     id         UUID PRIMARY KEY,
-    order_id   UUID        NOT NULL,
-    status     VARCHAR(30) NOT NULL,
+    order_id   UUID                     NOT NULL,
+    status     VARCHAR(30)              NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE saga_steps
 (
-    id             UUID PRIMARY KEY,
-    saga_id        UUID        NOT NULL,
-    name           VARCHAR(100) NOT NULL,
-    status         VARCHAR(30) NOT NULL,
-    retry_count    INTEGER     NOT NULL DEFAULT 0,
-    completed_at   TIMESTAMP WITH TIME ZONE,
-    last_error     TEXT,
-    created_at     TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at     TIMESTAMP WITH TIME ZONE NOT NULL,
+    id           UUID PRIMARY KEY,
+    saga_id      UUID                     NOT NULL,
+    name         VARCHAR(100)             NOT NULL,
+    status       VARCHAR(30)              NOT NULL,
+    retry_count  INTEGER                  NOT NULL DEFAULT 0,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    last_error   TEXT,
+    created_at   TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at   TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_saga_steps_saga
         FOREIGN KEY (saga_id) REFERENCES saga_instances (id) ON DELETE CASCADE,
     CONSTRAINT chk_saga_steps_retry_count CHECK (retry_count >= 0)
@@ -538,19 +539,19 @@ CREATE TABLE event_publication
 
 CREATE TABLE sellers
 (
-    id                              UUID PRIMARY KEY,
-    user_id                         UUID         NOT NULL,
-    display_name                    VARCHAR(255) NOT NULL,
-    business_name                   VARCHAR(255) NOT NULL,
-    business_registration_hash     VARCHAR(128) NOT NULL,
-    contact_email                   VARCHAR(255) NOT NULL,
-    contact_phone                   VARCHAR(20)  NOT NULL,
-    status                          VARCHAR(20)  NOT NULL DEFAULT 'PENDING',
-    reviewed_by                     UUID,
-    reviewed_at                     TIMESTAMP WITH TIME ZONE,
-    review_reason                   VARCHAR(500),
-    created_at                      TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at                      TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                         UUID PRIMARY KEY,
+    user_id                    UUID                     NOT NULL,
+    display_name               VARCHAR(255)             NOT NULL,
+    business_name              VARCHAR(255)             NOT NULL,
+    business_registration_hash VARCHAR(128)             NOT NULL,
+    contact_email              VARCHAR(255)             NOT NULL,
+    contact_phone              VARCHAR(20)              NOT NULL,
+    status                     VARCHAR(20)              NOT NULL DEFAULT 'PENDING',
+    reviewed_by                UUID,
+    reviewed_at                TIMESTAMP WITH TIME ZONE,
+    review_reason              VARCHAR(500),
+    created_at                 TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at                 TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_sellers_status
         CHECK (status IN ('PENDING', 'ACTIVE', 'REJECTED', 'SUSPENDED'))
 );
