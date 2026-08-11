@@ -7,16 +7,19 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(config = GlobalMapperConfig.class)
+@Mapper(config = GlobalMapperConfig.class, uses = TagMapper.class)
 public interface CatalogProductMapper {
 
   @Mapping(target = "categoryId", source = "category.id")
+  @Mapping(target = "tags", source = "tags", qualifiedByName = "toTagName")
   CatalogProductResponse toDto(CatalogProduct catalogProduct);
 
   @Mapping(target = "tags", ignore = true)

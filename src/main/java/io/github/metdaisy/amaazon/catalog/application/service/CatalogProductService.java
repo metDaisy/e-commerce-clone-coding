@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.application.service;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
+import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
@@ -15,7 +16,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Service
 @Transactional(readOnly = true)
@@ -30,7 +30,6 @@ public class CatalogProductService {
   @Transactional
   public CatalogProductResponse create(UUID managerId, CatalogProductCreateRequest request) {
     Category category = categoryService.getProxy(request.categoryId());
-    validateProductCodes(request);
     CatalogProduct catalogProduct = mapper.toEntity(managerId, category, request);
     List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
         .stream()
@@ -41,26 +40,16 @@ public class CatalogProductService {
     return mapper.toDto(catalogProduct);
   }
 
-  private void validateProductCodes(CatalogProductCreateRequest request) {
-    if (StringUtils.hasText(request.asin()) && repository.existsByAsin(request.asin())) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          Map.of("asin", request.asin()));
-    }
-    if (StringUtils.hasText(request.gtin()) && repository.existsByGtin(request.gtin())) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          Map.of("gtin", request.gtin()));
-    }
-    if (StringUtils.hasText(request.upc()) && repository.existsByUpc(request.upc())) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          Map.of("upc", request.upc()));
-    }
-    if (StringUtils.hasText(request.ean()) && repository.existsByEan(request.ean())) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          Map.of("ean", request.ean()));
-    }
-    if (StringUtils.hasText(request.isbn()) && repository.existsByIsbn(request.isbn())) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          Map.of("isbn", request.isbn()));
-    }
+  @Transactional
+  public CatalogProductResponse update(UUID id, CatalogProductUpdateRequest request) {
+    CatalogProduct catalog = repository.findById(id)
+        .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
+            Map.of("catalogId", id)));
+    List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
+        .stream()
+        .map(tag -> CatalogProductTag.of(catalog, tag))
+        .toList();
+    mapper.update(catalog, tags, request);
+    return mapper.toDto(catalog);
   }
 }

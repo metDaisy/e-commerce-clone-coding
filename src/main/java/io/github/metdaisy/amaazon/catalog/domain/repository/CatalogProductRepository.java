@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public interface CatalogProductRepository extends DomainRepository<CatalogProduct> {
 
-  boolean existByIdAndManagerId(UUID id, UUID managerId);
+  boolean existsByIdAndManagerId(UUID id, UUID managerId);
 
   boolean existsByAsin(String asin);
 
