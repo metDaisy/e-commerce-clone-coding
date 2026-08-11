@@ -10,7 +10,7 @@ import org.springframework.modulith.NamedInterface;
 
 @NamedInterface
 @MapperConfig(componentModel = MappingConstants.ComponentModel.SPRING,
-        unmappedTargetPolicy = ReportingPolicy.WARN,
+        unmappedTargetPolicy = ReportingPolicy.IGNORE,
         nullValueIterableMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
         injectionStrategy = InjectionStrategy.CONSTRUCTOR)

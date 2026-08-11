@@ -16,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,6 +30,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.type.SqlTypes;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "catalog_products")
@@ -42,7 +44,6 @@ public class CatalogProduct extends MutableEntity {
   @JoinColumn(name = "category_id", nullable = false)
   private Category category;
 
-  @Setter
   @OneToMany(fetch = FetchType.LAZY, mappedBy = "tag", cascade = {CascadeType.PERSIST,
       CascadeType.REMOVE}, orphanRemoval = true)
   private List<CatalogProductTag> tags = new ArrayList<>();
@@ -86,7 +87,7 @@ public class CatalogProduct extends MutableEntity {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "attributes")
-  private Map<String, Object> attributes;
+  private Map<String, Object> attributes = new HashMap<>();
 
   @Size(max = 20)
   @NotNull
