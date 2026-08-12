@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.annotation.LastModifiedDate;
 
 @Getter
@@ -16,6 +17,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 @MappedSuperclass
 public abstract class MutableEntity extends ImmutableEntity {
 
+  @Setter
   @Column
   @LastModifiedDate
   private Instant updatedAt;
