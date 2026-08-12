@@ -72,8 +72,7 @@ CatalogProduct: GIGABYTE AMD R9700
 | POST | `/api/v1/product-variants/{variantId}/media` | PRODUCT_MANAGER, ADMIN | ProductVariant Media 등록 |
 | GET | `/api/v1/catalog-products/{catalogProductId}` | 공개 | CatalogProduct 상세 |
 | PATCH | `/api/v1/catalog-products/{catalogProductId}` | PRODUCT_MANAGER, ADMIN | CatalogProduct 수정 |
-| POST | `/api/v1/catalog-products/{catalogProductId}/identifiers/{identifierType}/verification` | PRODUCT_MANAGER, ADMIN | 식별자 하나 검증 |
-| PATCH | `/api/v1/catalog-products/{catalogProductId}/identifiers` | PRODUCT_MANAGER, ADMIN | 검증 완료된 식별자 수정 |
+| PATCH | `/api/v1/catalog-products/{catalogProductId}/identifiers` | PRODUCT_MANAGER, ADMIN | CatalogProduct 식별자 수정 |
 | POST | `/api/v1/catalog-products/{catalogProductId}/archive` | PRODUCT_MANAGER, ADMIN | CatalogProduct 보관 |
 | PATCH | `/api/v1/offers/{offerId}/price` | Offer 소유 PRODUCT_MANAGER, ADMIN | Offer 가격 수정 |
 | POST | `/api/v1/offers/{offerId}/inventory-adjustments` | PRODUCT_MANAGER, ADMIN | 재고 조정 |
@@ -119,7 +118,7 @@ CatalogProduct: GIGABYTE AMD R9700
 - `ADMIN`은 플랫폼 운영자로서 호출할 수 있다.
 - `USER`, 승인되지 않은 `PRODUCT_MANAGER`, 비활성·정지된 판매자는 호출할 수 없다.
 - `PRODUCT_MANAGER`와 `ADMIN` 모두 `managerId` 또는 `sellerId`를 요청 본문으로 전달하지 않는다.
-- `asin`, `gtin`, `upc`, `ean`, `isbn`은 등록 요청으로 받지 않는다. CatalogProduct 생성 후 식별자 전용 API에서 별도로 검증·저장한다.
+- `asin`, `gtin`, `upc`, `ean`, `isbn`은 등록 요청으로 받지 않는다. CatalogProduct 생성 후 식별자 전용 API에서 별도로 저장한다.
 - 이 API는 `catalog_products`와 CatalogProduct의 태그 연결만 생성한다. ProductVariant·Offer·Inventory·Media는 생성하지 않는다.
 
 요청:
@@ -317,116 +316,34 @@ POST /api/v1/product-variants/{variantId}/media
 
 `asin`, `gtin`, `upc`, `ean`, `isbn`은 CatalogProduct 등록 후 일반 수정 API로 변경할 수 없다. 이 값들을 `PATCH /api/v1/catalog-products/{catalogProductId}` 요청으로 전달하면 `400 VALIDATION_ERROR`를 반환한다.
 
-#### 3-3-2. CatalogProduct 식별자 검증·수정
-
-##### 식별자 검증
-
-식별자는 UI에서 한 번에 하나씩 입력하고 검증한다. `identifierType`은 `asin`, `gtin`, `upc`, `ean`, `isbn` 중 하나다.
-
-`POST /api/v1/catalog-products/{catalogProductId}/identifiers/{identifierType}/verification`
-
-요청 예시:
-
-```json
-{
-  "value": "8801234567890"
-}
-```
-
-- `PRODUCT_MANAGER`는 자신이 관리하는 CatalogProduct만 검증할 수 있고, `ADMIN`은 모든 CatalogProduct를 검증할 수 있다.
-- 서버는 값을 정규화한 후 형식·길이·체크디지트·CatalogProduct 간 중복을 검증한다.
-- 검증에 성공하면 해당 값에만 사용할 수 있는 만료 시간이 있는 서명 검증 토큰을 발급한다.
-- 검증 토큰은 데이터베이스에 저장하지 않으며, CatalogProduct·사용자·식별자 종류·정규화된 값에 연결한다.
-- 검증에 실패하면 토큰을 발급하지 않고 `400 PRODUCT_CODE_ERROR` 또는 `409 CATALOG_PRODUCT_IDENTIFIER_CONFLICT`를 반환한다.
-
-검증 토큰 생성 규칙:
-
-- 검증 토큰은 클라이언트가 생성하지 않고 서버가 발급한다.
-- 토큰 payload에는 다음 정보를 포함한다.
-
-```json
-{
-  "purpose": "CATALOG_PRODUCT_IDENTIFIER_UPDATE",
-  "catalogProductId": "uuid",
-  "identifierType": "GTIN",
-  "normalizedValueHash": "sha256-hash",
-  "subject": "user-uuid",
-  "verificationMethod": "LOCAL",
-  "issuedAt": 1723206000,
-  "expiresAt": 1723206600,
-  "keyId": "verification-key-v1",
-  "jti": "random-uuid"
-}
-```
-
-- `normalizedValueHash`는 정규화된 식별자 값의 SHA-256 해시이며, 토큰에 식별자 원문을 저장하지 않는다.
-- `verificationMethod`는 기본 요구사항에서 `LOCAL`로 저장하고, 심화 사항에서는 `AMAZON_SP_API`, `GS1` 등 외부 제공자를 사용할 수 있다.
-- 서버는 서버 전용 비밀키로 payload를 HMAC-SHA256 서명하고, `Base64Url(payload).Base64Url(signature)` 형식의 토큰을 반환한다. Base64Url은 인코딩일 뿐 암호화가 아니므로 payload에 비밀정보를 포함하지 않는다.
-- 토큰은 짧은 만료 시간을 가지며, `jti`는 토큰 식별과 향후 일회성 사용 처리를 위해 포함한다. 현재 요구사항에서는 토큰을 저장하지 않으므로 만료 전 재사용을 허용하고, 일회성 사용이 필요하면 Redis 또는 별도 저장소로 확장한다.
-- `subject`는 검증을 수행한 사용자 ID다. 역할은 토큰을 신뢰하지 않고 수정 요청 시점의 현재 권한을 다시 확인한다.
-
-수정 API는 저장 직전에 다음을 다시 검증한다.
-
-1. 토큰 서명과 만료 시간을 확인한다.
-2. 현재 로그인 사용자와 `subject`가 일치하는지 확인한다.
-3. CatalogProduct, 식별자 종류, 정규화된 값의 해시가 토큰과 일치하는지 확인한다.
-4. 현재 사용자의 권한을 확인하고 형식·체크디지트·중복을 다시 검증한다.
-
-하나라도 실패하면 전체 수정 요청을 반려하고 변경사항을 저장하지 않는다.
-
-성공 응답 `200` (공통 응답 envelope의 `data`):
-
-```json
-{
-  "identifierType": "gtin",
-  "value": "8801234567890",
-  "verificationStatus": "VERIFIED",
-  "verificationToken": "signed-verification-token",
-  "expiresAt": "2026-08-09T12:20:00Z"
-}
-```
-
-##### 식별자 수정
+#### 3-3-2. CatalogProduct 식별자 수정
 
 `PATCH /api/v1/catalog-products/{catalogProductId}/identifiers`
 
 - `PRODUCT_MANAGER`는 자신이 관리하는 CatalogProduct만 수정할 수 있고, `ADMIN`은 모든 CatalogProduct를 수정할 수 있다.
-- 요청 본문에는 수정할 식별자를 하나 이상 포함한다.
-- 포함되지 않은 식별자는 기존 값을 유지한다. `null`을 명시한 식별자는 삭제한다.
+- 요청 본문에는 `asin`, `gtin`, `upc`, `ean`, `isbn` 중 수정할 값을 포함한다.
+- 요청에 포함되지 않았거나 `null`인 식별자는 기존 값을 유지한다. 식별자 삭제는 지원하지 않는다.
 - 보관된 CatalogProduct에는 사용할 수 없다.
-- 서버는 저장 전에 공백 제거·대문자 변환 등 식별자별 정규화를 수행한다.
-- `null`이 아닌 식별자마다 직전에 발급된 `verificationToken`을 함께 전달해야 한다.
-- 입력된 식별자 중 하나라도 검증되지 않았거나 토큰의 CatalogProduct·사용자·식별자 종류·값이 일치하지 않으면 전체 수정을 거부한다.
-- 저장 시 서버가 형식·길이·체크디지트·중복을 다시 검증한다. 검증 토큰 발급 후 다른 CatalogProduct가 같은 식별자를 먼저 등록한 경우에도 수정하지 않는다.
+- 요청에 포함된 식별자는 식별자 타입별 검증기를 통해 확인한다.
+- 하나라도 검증에 실패하면 전체 수정을 저장하지 않고 `400 PRODUCT_CODE_ERROR`를 반환한다.
+- 확인과 수정은 하나의 트랜잭션에서 처리한다.
 
 서버에 전달되는 수정 요청 JSON:
 
 ```json
 {
   "asin": "B0EXAMPLE1",
-  "gtin": "8801234567890",
-  "upc": null,
-  "ean": null,
-  "isbn": null,
-  "verificationTokens": {
-    "asin": "signed-verification-token",
-    "gtin": "signed-verification-token"
-  }
+  "gtin": "8801234567890"
 }
 ```
 
-`verificationTokens`의 각 키는 같은 요청 JSON의 식별자 필드와 대응한다. 서버는 `asin`과 `gtin`의 값을 정규화한 뒤 각각 `verificationTokens.asin`과 `verificationTokens.gtin`을 검증한다. 따라서 이 요청은 다음 두 식별자가 모두 검증 완료된 경우에만 성공한다.
-
-- `asin` 값과 `verificationTokens.asin`의 서명·사용자·CatalogProduct·식별자 종류·값 해시 일치
-- `gtin` 값과 `verificationTokens.gtin`의 서명·사용자·CatalogProduct·식별자 종류·값 해시 일치
-
-토큰 검증을 위한 별도의 클라이언트 요청은 두지 않는다. 클라이언트가 `PATCH` 요청을 보내면 서버가 요청 JSON의 각 식별자와 대응하는 토큰을 함께 검증한 후 전체 수정 또는 전체 거부를 수행한다. 토큰이 없거나 검증에 실패하면 `400 IDENTIFIER_VERIFICATION_REQUIRED` 또는 `410 IDENTIFIER_VERIFICATION_EXPIRED`를 반환한다.
+요청에 포함된 식별자만 확인·수정하며, 나머지 식별자는 변경하지 않는다.
 
 성공 응답 `200` (공통 응답 envelope의 `data`):
 
 ```json
 {
-  "catalogProductId": "uuid",
+  "id": "uuid",
   "asin": "B0EXAMPLE1",
   "gtin": "8801234567890",
   "upc": null,
@@ -435,35 +352,6 @@ POST /api/v1/product-variants/{variantId}/media
   "updatedAt": "2026-08-09T12:08:00Z"
 }
 ```
-
-#### 요구사항
-
-- 모든 식별자는 저장 전에 식별자별 형식과 길이를 검증한다.
-- 체크디지트가 정의된 식별자는 체크디지트를 검증한다.
-- 각 식별자는 전체 CatalogProduct에서 유일해야 한다. 중복이면 변경하지 않고 `409 CATALOG_PRODUCT_IDENTIFIER_CONFLICT`를 반환한다.
-- 검증 실패 시 변경하지 않고 `400 PRODUCT_CODE_ERROR`를 반환한다.
-- UI는 입력된 식별자가 모두 `VERIFIED` 상태가 되기 전까지 저장 버튼을 활성화하지 않는다. 단, 이 검사는 UX 보조 기능이며 서버가 토큰으로 최종 검증한다.
-
-#### 심화 사항
-
-외부 식별자 검증 API 연동은 선택적 심화 기능으로 둔다. 외부 연동 여부와 관계없이 식별자별 검증 API와 검증 토큰 흐름은 동일하게 유지한다.
-
-- 외부 검증을 설정한 경우에도 로컬 형식·길이·체크디지트·중복 검증을 먼저 수행한다.
-- 로컬 검증을 통과한 뒤 외부 조회를 수행하고, 외부 조회 결과가 식별자와 일치하지 않으면 검증 토큰을 발급하지 않고 `422 IDENTIFIER_VERIFICATION_FAILED`를 반환한다.
-- 외부 제공자 장애·타임아웃·인증 실패 시 저장하지 않고 `503 IDENTIFIER_VERIFICATION_UNAVAILABLE`를 반환한다.
-- 외부 검증 결과와 제공자 원문은 기본 스키마에 저장하지 않는다. 필요한 경우 별도 검증 이력 기능으로 확장한다.
-
-식별자별 외부 검증 후보:
-
-| 식별자 | 로컬 검증 | 외부 검증 후보 | 한계 |
-|---|---|---|---|
-| `asin` | 10자리 형식 | Amazon SP-API Catalog Items API | Amazon Selling Partner 권한과 판매자 인증이 필요하다. |
-| `gtin` | GTIN-8/12/13/14 형식·체크디지트 | GS1 Verified by GS1 | 전체 API 연동은 GS1 회원·사업자 계약이 필요할 수 있다. |
-| `upc` | GTIN-12 형식·체크디지트 | GS1 Verified by GS1 | UPC는 GTIN-12의 표현이다. |
-| `ean` | GTIN-13 형식·체크디지트 | GS1 Verified by GS1 | EAN은 GTIN-13의 표현이다. |
-| `isbn` | ISBN-10/13 형식·체크디지트 | Google Books 또는 Open Library | 존재·서지정보 확인용이며 ISBN 발행기관의 권위 있는 소유권 검증과는 다르다. |
-
-현재 판매자 인증정보가 없는 개발 환경에서는 Amazon·GS1 외부 검증을 구현하거나 필수 기능으로 사용하지 않는다.
 
 #### 3-3-3. CatalogProduct 보관
 
@@ -733,7 +621,6 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 400 | `DUPLICATE_PRIMARY_MEDIA` | 대표 이미지가 없거나 2개 이상임 |
 | 400 | `INVALID_DISCOUNT_PERIOD` | 할인 기간 오류 |
 | 400 | `PRODUCT_CODE_ERROR` | 상품 식별자(`asin`, `gtin`, `upc`, `ean`, `isbn`) 검증 오류 |
-| 400 | `IDENTIFIER_VERIFICATION_REQUIRED` | 수정하려는 식별자의 검증 토큰이 없거나 값과 일치하지 않음 |
 | 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
 | 403 | `ACCESS_DENIED` | CatalogProduct 또는 Offer 관리 권한 부족 |
 | 403 | `SELLER_APPROVAL_REQUIRED` | 활성 Seller 없는 PRODUCT_MANAGER의 CatalogProduct 등록 |
@@ -743,10 +630,6 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 | 404 | `VARIANT_NOT_FOUND` | ProductVariant 없음 |
 | 404 | `OFFER_NOT_FOUND` | Offer 없음 |
 | 409 | `SKU_ALREADY_EXISTS` | SKU 중복 |
-| 409 | `CATALOG_PRODUCT_IDENTIFIER_CONFLICT` | CatalogProduct 외부 식별자 중복 |
 | 409 | `INSUFFICIENT_STOCK` | 주문 수량이 재고보다 많음 |
 | 409 | `REVIEW_ALREADY_EXISTS` | 이미 리뷰 작성 |
 | 409 | `CATALOG_PRODUCT_ARCHIVED` | 보관된 CatalogProduct 변경 시도 |
-| 410 | `IDENTIFIER_VERIFICATION_EXPIRED` | 식별자 검증 토큰 만료 |
-| 422 | `IDENTIFIER_VERIFICATION_FAILED` | 외부 검증 결과가 요청 식별자와 불일치 |
-| 503 | `IDENTIFIER_VERIFICATION_UNAVAILABLE` | 외부 식별자 검증 제공자 사용 불가 |

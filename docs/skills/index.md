@@ -15,16 +15,20 @@ This document is a catalog of personal local skills installed in `$AGENT_SKILLS`
 | Skill | When to Read | Location |
 |---|---|---|
 | `caveman` | When keeping internal reasoning and user responses short but complete. | `$AGENT_SKILLS/caveman/SKILL.md` |
+| `clean-architecture` | When deciding architecture layers, dependency direction, ports and adapters, boundaries, or where business logic belongs. | `$AGENT_SKILLS/clean-architecture/SKILL.md` |
 | `codebase-design` | When designing or improving module interfaces, seams, adapters, dependency directions, and test surfaces. | `$AGENT_SKILLS/codebase-design/SKILL.md` |
 | `improve-codebase-architecture` | When investigating candidates for structural improvement across the codebase and comparing them with visual reports. | `$AGENT_SKILLS/improve-codebase-architecture/SKILL.md` |
 | `java-springboot` | When implementing or reviewing Spring Boot configuration, layers, transactions, dependency injection, and web/data features. | `$AGENT_SKILLS/java-springboot/SKILL.md` |
 | `java-junit` | When writing or reviewing JUnit 5 unit tests, parameterized tests, test structure, and assertions. | `$AGENT_SKILLS/java-junit/SKILL.md` |
 | `java-refactoring-extract-method` | When performing refactoring to extract cohesive logic from long Java methods into separate methods. | `$AGENT_SKILLS/java-refactoring-extract-method/SKILL.md` |
 | `java-refactoring-remove-parameter` | When safely removing unused or unnecessary Java parameters and verifying the impact on call sites. | `$AGENT_SKILLS/java-refactoring-remove-parameter/SKILL.md` |
+| `305-frameworks-spring-boot-modulith` | When designing or reviewing Spring Modulith modules, named interfaces, allowed dependencies, domain events, or module tests. | `$AGENT_SKILLS/305-frameworks-spring-boot-modulith/SKILL.md` |
 | `agent-browser` | When website navigation, form input, browser automation, screenshots, or web application QA is required. | `$AGENT_SKILLS/agent-browser/SKILL.md` |
 | `semble` | When locating code implementations by meaning or behavior using semantic search. | `$AGENT_SKILLS/semble/SKILL.md` |
 | `codebase-memory` | When verifying relationships for symbols, tracing paths, or understanding the knowledge graph of the codebase. | `$AGENT_SKILLS/codebase-memory/SKILL.md` |
+| `domain-modeling` | When actively building or refining the project's domain model, challenging terms, inventing edge-case scenarios, or writing glossary and ADRs. | `$AGENT_SKILLS/domain-modeling/SKILL.md` |
 | `find-skills` | When searching for an installable skill for a task that has no suitable local skill. | `$AGENT_SKILLS/find-skills/SKILL.md` |
+| `handoff` | When summarizing a conversation into a handoff document so a fresh agent can continue work without re-reading full chat history. | `$AGENT_SKILLS/handoff/SKILL.md` |
 
 ## Maintenance
 
