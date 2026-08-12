@@ -4,9 +4,9 @@
 
 ## 스냅샷
 
-- 확인일: 2026-08-12
+- 확인일: 2026-08-13
 - Git 브랜치: `p2-product/issue18`
-- 구현 기준 Git SHA: `6596f778826415b808f2d55e97bfbe93d1251e62`
+- 구현 기준 Git SHA: `2dbc9eb4f4e7a606ad2734da14a56d2de960f926`
 - 기준 상태: 구현 기준 SHA 이후의 uncommitted 구현 변경은 포함하지 않았다.
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 정적 코드·설정·마이그레이션 확인 결과이며 테스트 통과를 의미하지 않는다.
 
@@ -50,6 +50,7 @@ Spring Modulith `package-info.java`의 `allowedDependencies`와 Named Interface�
 | POST | `/api/v1/users/update` | 구현 |
 | POST | `/api/v1/catalog-products` | 구현·`PRODUCT_MANAGER`는 활성 판매자 검증, `ADMIN`은 우회 |
 | PATCH | `/api/v1/catalog-products/{id}` | 구현·`PRODUCT_MANAGER`는 활성 판매자 및 소유자 검증, `ADMIN`은 우회 |
+| PATCH | `/api/v1/catalog-products/{id}/identifiers` | 구현·상품 식별자(ASIN/GTIN/UPC/EAN/ISBN) 검증 업데이트 |
 | GET | `/api/v1/categories` | 구현 |
 
 Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처리되어 Controller 목록에 나타나지 않는다.
@@ -58,7 +59,7 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 
 - `GET /api/v1/catalog-products` 목록·검색
 - `GET /api/v1/catalog-products/{id}` 상세
-- `PATCH /api/v1/catalog-products/{id}/codes` 상품 코드 업데이트 (DTO는 존재하나 API 미구현)
+- `PATCH /api/v1/catalog-products/{id}/identifiers` 상품 식별자 업데이트 (구현 완료)
 - Variant·Offer·Inventory 등록·조회 API
 - 카테고리 생성·수정·삭제 관리자 API
 
@@ -86,7 +87,7 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 ## 현재 주요 불일치와 다음 작업
 
 1. 요구사항에 정의된 P2 목록·상세 조회와 Variant·Offer·Inventory 기능이 현재 코드에 없다.
-2. 상품 코드 업데이트 DTO(`CatalogProductCodeUpdateRequest`, `CatalogProductCodeResponse`)는 존재하나 API 엔드포인트로 연결되지 않았다.
+2. 상품 식별자 업데이트 API(`PATCH /api/v1/catalog-products/{id}/identifiers`)가 구현되었으며 ASIN/GTIN/UPC/EAN/ISBN 검증 어댑터가 추가되었다.
 3. V1 스키마의 P3~P8 테이블 대부분에 대응하는 도메인 모듈과 API가 없다.
 4. 카테고리 관리 API는 P7 관리자 기능으로 분리되어야 하며 현재 구현되지 않았다.
 5. P2 API와 Catalog 테스트를 추가하고, 이후 P8 판매자·Offer 흐름을 구현한다.
