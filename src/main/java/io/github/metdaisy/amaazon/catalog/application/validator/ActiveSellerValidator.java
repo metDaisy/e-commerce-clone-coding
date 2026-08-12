@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.application.validator;
 
-import io.github.metdaisy.amaazon.catalog.application.port.out.CatalogSellerPort;
+import io.github.metdaisy.amaazon.catalog.domain.port.out.CatalogSellerPort;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
