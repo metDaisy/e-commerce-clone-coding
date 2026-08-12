@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.port.out;
+package io.github.metdaisy.amaazon.catalog.domain.port.out;
 
 import java.util.UUID;
 
