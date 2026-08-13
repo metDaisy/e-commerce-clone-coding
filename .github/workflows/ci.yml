@@ -5,6 +5,21 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/main/java/**'
+      - 'src/test/java/**'
+      - 'src/main/resources/**'
+      - 'config/checkstyle/**'
+      - 'build-tools/checkstyle-rules/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'codecov.yml'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'gradle/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [ "main" ]
     paths:
