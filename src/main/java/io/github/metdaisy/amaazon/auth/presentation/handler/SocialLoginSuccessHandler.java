@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.auth.presentation.handler;
 
 import java.io.IOException;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
@@ -9,8 +10,6 @@ import org.springframework.web.util.WebUtils;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
 import io.github.metdaisy.amaazon.auth.application.service.GuestTokenService;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
 import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import jakarta.servlet.http.Cookie;
@@ -45,7 +44,7 @@ public class SocialLoginSuccessHandler extends AbstractLoginSuccessHandler {
   protected String getDeviceId(HttpServletRequest request) {
     Cookie cookie = WebUtils.getCookie(request, AuthWebConstants.COOKIE_DEVICE_ID);
     if (cookie == null) {
-      throw new AuthException(AuthErrorCode.DEVICE_ID_NOT_FOUND);
+      throw new AuthenticationCredentialsNotFoundException("deviceId cookie is required");
     }
     return cookie.getValue();
   }

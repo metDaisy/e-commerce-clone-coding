@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.user.application.handler;
 
-import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
+import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;

@@ -2,9 +2,9 @@ package io.github.metdaisy.amaazon.auth.application.service;
 
 import io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest;
 import io.github.metdaisy.amaazon.auth.application.dto.request.UserCredentialUpdateRequest;
-import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
+import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;

@@ -2,9 +2,8 @@ package io.github.metdaisy.amaazon.user.presentation.controller;
 
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
+import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
-import io.github.metdaisy.amaazon.user.presentation.dto.response.UserResponse;
-import io.github.metdaisy.amaazon.user.presentation.mapper.UserMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserController {
 
-  private final UserMapper mapper;
   private final UserService service;
 
   @PostMapping(value = "/update")
@@ -29,13 +27,13 @@ public class UserController {
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @RequestBody @Valid UserUpdateRequest request) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(mapper.toDto(service.update(principal.getId(), request)));
+        .body(service.updateProfile(principal.getId(), request));
   }
 
   @GetMapping("/me")
   public ResponseEntity<UserResponse> getMe(
       @AuthenticationPrincipal AmaazonPrincipal principal) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(mapper.toDto(service.find(principal.getId())));
+        .body(service.findProfile(principal.getId()));
   }
 }

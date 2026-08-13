@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.auth.application.event;
+package io.github.metdaisy.amaazon.user.application.event;
 
 import java.util.UUID;
 import org.springframework.modulith.NamedInterface;
