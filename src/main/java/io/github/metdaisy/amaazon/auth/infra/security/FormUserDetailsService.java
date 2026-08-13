@@ -32,7 +32,7 @@ public class FormUserDetailsService implements UserDetailsService {
     return userPort.loadUser(credential.getId())
         .map(userDto -> new FormUserDetails(userDto.id(),
             userDto.role(),
-            credential.getPassword(),
+            credential.getPasswordHash(),
             userDto.isEnabled(),
             credential.isLocked(maxAttempt, Instant.now())))
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,

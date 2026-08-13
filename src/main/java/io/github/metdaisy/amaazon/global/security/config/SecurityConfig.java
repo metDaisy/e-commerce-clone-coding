@@ -55,6 +55,7 @@ public class SecurityConfig {
             .permitAll()
             .requestMatchers(HttpMethod.POST, SecurityConstants.PUBLIC_POST_PATHS)
             .permitAll()
+            .requestMatchers(SecurityConstants.ONLY_ADMIN).hasRole("ADMIN")
             .anyRequest().authenticated())
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .build();

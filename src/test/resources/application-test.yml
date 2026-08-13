@@ -1,7 +1,7 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: false
@@ -15,10 +15,6 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 100MB
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:db/migration/V1__init_schema.sql
 
 amaazon:
   jwt:

@@ -1,7 +1,9 @@
 package io.github.metdaisy.amaazon.user.application.service;
 
-import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
+import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
+import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
+import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
@@ -19,11 +21,12 @@ import org.springframework.util.StringUtils;
 public class UserService {
 
   private final UserRepository repository;
+  private final UserMapper userMapper;
 
   @Transactional
   public void create(FormSignUpTask task) {
     validatePhoneNumber(task.phoneNumber());
-    User user = User.createUser(task.id(), task.name(), task.phoneNumber(), task.address());
+    User user = User.createUser(task.id(), task.name(), task.phoneNumber());
     repository.save(user);
   }
 
@@ -33,12 +36,20 @@ public class UserService {
     user.updateName(request.name());
     validatePhoneNumber(request.phoneNumber());
     user.updatePhoneNumber(request.phoneNumber());
-    user.updateAddress(request.address());
     return user;
+  }
+
+  @Transactional
+  public UserResponse updateProfile(UUID id, UserUpdateRequest request) {
+    return userMapper.toDto(update(id, request));
   }
 
   public User find(UUID id) {
     return findById(id);
+  }
+
+  public UserResponse findProfile(UUID id) {
+    return userMapper.toDto(find(id));
   }
 
   private void validatePhoneNumber(String phoneNumber) {

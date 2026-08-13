@@ -12,8 +12,10 @@ spring:
           cache:
             missing_cache_strategy: fail
   flyway:
-    enabled: false
+    enabled: true
     baseline-on-migrate: false
+    validate-on-migrate: true
+    clean-disabled: true
   servlet:
     multipart:
       max-file-size: ${MAX_FILE_SIZE}

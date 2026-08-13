@@ -41,6 +41,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    auto_incremental_review: false
     base_branches:
       - "main"
   finishing_touches:

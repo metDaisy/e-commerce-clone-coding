@@ -5,7 +5,7 @@ spring:
     password: amaazon
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: false
     database: PostgreSQL
     defer-datasource-initialization: false
@@ -17,10 +17,6 @@ spring:
         order_updates: true
         default_batch_fetch_size: 500
     open-in-view: false
-  sql:
-    init:
-      mode: always
-      schema-locations: classpath:db/migration/V1__init_schema.sql
 
 logging:
   level:

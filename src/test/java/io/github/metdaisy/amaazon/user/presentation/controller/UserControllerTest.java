@@ -12,12 +12,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
+import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
-import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
-import io.github.metdaisy.amaazon.user.presentation.dto.response.UserResponse;
-import io.github.metdaisy.amaazon.user.presentation.mapper.UserMapper;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -41,19 +39,14 @@ class UserControllerTest extends RestControllerTest {
   @MockitoBean
   private UserService userService;
 
-  @MockitoBean
-  private UserMapper userMapper;
-
   @Test
   @DisplayName("회원정보 수정 성공: 인증 사용자 ID와 수정 요청을 서비스에 그대로 전달한다")
   void update_success() throws Exception {
-    UserUpdateRequest request = new UserUpdateRequest("updated", "01098765432", "Busan");
-    User user = User.createUser(
-        UUID.randomUUID(), request.name(), request.phoneNumber(), request.address());
-    UserResponse response = new UserResponse(
-        user.getName(), user.getPhoneNumber(), 0, user.getAddress(), Instant.now());
-    given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willReturn(user);
-    given(userMapper.toDto(user)).willReturn(response);
+    UserUpdateRequest request = new UserUpdateRequest("updated", "01098765432");
+    UserResponse profile = new UserResponse(
+        request.name(), request.phoneNumber(), 0, Instant.now());
+    given(userService.updateProfile(any(UUID.class), any(UserUpdateRequest.class)))
+        .willReturn(profile);
 
     mockMvc.perform(postJson(USERS_URL + "/update", request))
         .andExpect(status().isOk());
@@ -61,10 +54,9 @@ class UserControllerTest extends RestControllerTest {
     ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
     ArgumentCaptor<UserUpdateRequest> requestCaptor =
         ArgumentCaptor.forClass(UserUpdateRequest.class);
-    verify(userService).update(userIdCaptor.capture(), requestCaptor.capture());
+    verify(userService).updateProfile(userIdCaptor.capture(), requestCaptor.capture());
     assertThat(userIdCaptor.getValue()).isEqualTo(USER_ID);
     assertThat(requestCaptor.getValue()).isEqualTo(request);
-    verify(userMapper).toDto(user);
   }
 
   @ParameterizedTest(name = "[{index}] {0}")
@@ -78,30 +70,25 @@ class UserControllerTest extends RestControllerTest {
         .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"))
         .andExpect(jsonPath("$.details." + field, hasItem(expectedMessage)));
 
-    verify(userService, never()).update(any(UUID.class), any(UserUpdateRequest.class));
-    verify(userMapper, never()).toDto(any(User.class));
+    verify(userService, never()).updateProfile(any(UUID.class), any(UserUpdateRequest.class));
   }
 
   @Test
   @DisplayName("내 정보 조회 성공: 인증 사용자 ID로 조회한 사용자 정보를 반환한다")
   void getMe_success() throws Exception {
-    User user = User.createUser(USER_ID, "tester", "01012345678", "Seoul");
-    UserResponse response = new UserResponse(
-        user.getName(), user.getPhoneNumber(), 0, user.getAddress(), Instant.now());
-    given(userService.find(USER_ID)).willReturn(user);
-    given(userMapper.toDto(user)).willReturn(response);
+    UserResponse profile = new UserResponse("tester", "01012345678", 0, Instant.now());
+    given(userService.findProfile(USER_ID)).willReturn(profile);
 
     mockMvc.perform(get(USERS_URL + "/me"))
         .andExpect(status().isOk());
 
-    verify(userService).find(USER_ID);
-    verify(userMapper).toDto(user);
+    verify(userService).findProfile(USER_ID);
   }
 
   @Test
   @DisplayName("내 정보 조회 실패: 사용자가 없으면 404와 오류 코드를 반환한다")
   void getMe_failure_whenUserNotFound() throws Exception {
-    given(userService.find(USER_ID))
+    given(userService.findProfile(USER_ID))
         .willThrow(new UserException(UserErrorCode.USER_NOT_FOUND));
 
     mockMvc.perform(get(USERS_URL + "/me"))
@@ -113,10 +100,10 @@ class UserControllerTest extends RestControllerTest {
   private static Stream<Arguments> invalidUpdateRequests() {
     return Stream.of(
         Arguments.of("이름 길이 초과",
-            new UserUpdateRequest("nameistoolong", null, null),
+            new UserUpdateRequest("nameistoolong", null),
             "name", "이름은 영문자 또는 한글만 1자 이상 10자 이하로 입력해주세요."),
         Arguments.of("전화번호 형식 오류",
-            new UserUpdateRequest(null, "010-1234-5678", null),
+            new UserUpdateRequest(null, "010-1234-5678"),
             "phoneNumber", "전화번호는 숫자만 11자리로 입력해주세요."));
   }
 }

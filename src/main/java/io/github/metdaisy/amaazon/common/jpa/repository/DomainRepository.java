@@ -15,4 +15,8 @@ public interface DomainRepository<T> {
   void delete(T entity);
 
   Optional<T> findById(UUID id);
+
+  boolean existsById(UUID id);
+
+  T getReferenceById(UUID id);
 }

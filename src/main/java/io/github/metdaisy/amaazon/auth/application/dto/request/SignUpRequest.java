@@ -12,7 +12,6 @@ public record SignUpRequest(
         regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
         message = "올바른 이메일 형식이 아닙니다.") String email,
     @ValidPassword String password,
-    @Pattern(regexp = "^\\d{11}$", message = "전화번호는 숫자만 11자리로 입력해주세요.") String phoneNumber,
-    String address) {
+    @Pattern(regexp = "^\\d{11}$", message = "전화번호는 숫자만 11자리로 입력해주세요.") String phoneNumber) {
 
 }

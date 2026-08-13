@@ -3,45 +3,72 @@ package io.github.metdaisy.amaazon;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.library.Architectures;
-import org.junit.jupiter.api.Disabled;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
-@Disabled("나중에 수정")
+@DisplayName("모듈 구조 검증")
 class ModularityTest {
 
+  private static final String BASE_PACKAGE = "io.github.metdaisy.amaazon";
+  private static final List<String> DOMAINS = List.of("auth", "user", "catalog");
+
   @Test
+  @DisplayName("모듈 경계: 공개 인터페이스 외의 의존성과 순환 의존성이 없다")
   void verifyModularity() {
-    ApplicationModules.of(Amaazon.class).verify();
+    // 도메인 간 의존성은 각 도메인의 최상위 package-info.java의
+    // @ApplicationModule(allowedDependencies = ...)를 기준으로 검증한다.
+    String previousProfile = System.getProperty("SPRING_PROFILES_ACTIVE");
+    System.setProperty("SPRING_PROFILES_ACTIVE", "test");
+    try {
+      ApplicationModules.of(Amaazon.class).verify();
+    } finally {
+      if (previousProfile == null) {
+        System.clearProperty("SPRING_PROFILES_ACTIVE");
+      } else {
+        System.setProperty("SPRING_PROFILES_ACTIVE", previousProfile);
+      }
+    }
   }
 
   @Test
+  @DisplayName("계층 구조: 구현된 도메인은 presentation-application-domain-infra 방향을 따른다")
   void verifyLayerArchitecture() {
-    // 우리 프로젝트의 모든 클래스를 불러옵니다.
-    JavaClasses importedClasses = new ClassFileImporter()
-            .importPackages("io.github.metdaisy.amaazon");
-    Architectures.layeredArchitecture()
-            .consideringOnlyDependenciesInLayers() // 자바 기본 클래스 등은 무시하고 우리 레이어 간의 의존성만 검사
-            // [레이어 정의] 패키지명 기준으로 레이어를 나눕니다.
-            .layer("Presentation").definedBy("..presentation..")
-            .layer("Application").definedBy("..application..")
-            .layer("Domain").definedBy("..domain..")
-            .layer("Infrastructure").definedBy("..infra..")
+    JavaClasses importedClasses = importProductionClasses();
 
-            // [규칙 정의]
-            // Presentation은 가장 바깥이므로 아무에게도 참조당하지 않음
-            .whereLayer("Presentation").mayNotBeAccessedByAnyLayer()
+    for (String domain : DOMAINS) {
+      String domainPackage = BASE_PACKAGE + "." + domain;
 
-            // Application은 Presentation에게만 참조될 수 있음 (Presentation -> Application)
-            .whereLayer("Application").mayOnlyBeAccessedByLayers("Presentation")
+      Architectures.layeredArchitecture()
+          .consideringOnlyDependenciesInLayers()
+          .layer("Presentation").definedBy(domainPackage + ".presentation..")
+          .layer("Application").definedBy(domainPackage + ".application..")
+          .layer("Domain").definedBy(domainPackage + ".domain..")
+          .layer("Infrastructure").definedBy(domainPackage + ".infra..")
 
-            // Domain은 Presentation, Application, Infra 모두에게 참조될 수 있음
-            .whereLayer("Domain").mayOnlyBeAccessedByLayers("Presentation", "Application", "Infrastructure")
+          // 도메인 내부 계층 방향: Presentation -> Application -> Domain <- Infrastructure
+          .whereLayer("Presentation").mayOnlyBeAccessedByLayers("Presentation")
+          // Infrastructure는 DIP에 따라 Application의 outbound port를 구현할 수 있다.
+          .whereLayer("Application")
+          .mayOnlyBeAccessedByLayers("Presentation", "Application", "Infrastructure")
+          .whereLayer("Domain")
+          .mayOnlyBeAccessedByLayers("Application", "Domain", "Infrastructure")
+          .whereLayer("Infrastructure").mayOnlyBeAccessedByLayers("Infrastructure")
+          .check(importedClasses);
+    }
+  }
 
-            // Infra 역시 아무에게도 참조당하지 않음 (의존성 역전에 의해 Application이 Infra를 참조하면 안 됨!)
-            .whereLayer("Infrastructure").mayNotBeAccessedByAnyLayer()
-
-            // 검증 실행!
-            .check(importedClasses);
+  private JavaClasses importProductionClasses() {
+    try {
+      Path mainClasses = Paths.get(
+          Amaazon.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+      return new ClassFileImporter().importPath(mainClasses);
+    } catch (URISyntaxException exception) {
+      throw new IllegalStateException("프로덕션 클래스 경로를 확인할 수 없습니다.", exception);
+    }
   }
 }
