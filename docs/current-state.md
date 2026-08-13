@@ -6,7 +6,7 @@
 
 - 확인일: 2026-08-13
 - Git 브랜치: `p2-product/issue18`
-- 구현 기준 Git SHA: `2dbc9eb4f4e7a606ad2734da14a56d2de960f926`
+- 구현 기준 Git SHA: `56967ea9a42bf601d815864393c9b7d0f949539f`
 - 기준 상태: 구현 기준 SHA 이후의 uncommitted 구현 변경은 포함하지 않았다.
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 정적 코드·설정·마이그레이션 확인 결과이며 테스트 통과를 의미하지 않는다.
 
@@ -15,13 +15,15 @@
 | 단계 | 상태 | 근거와 범위 |
 |---|---|---|
 | P1 User & Auth | 부분 구현 | `auth`·`user` 모듈의 회원가입, Credential, 로컬·소셜 인증 지원, JWT, 로그아웃/블랙리스트, 사용자 프로필 API와 관련 테스트가 존재한다. 주소록·포인트·관심상품·인증수단 전체 관리 등 요구사항 전체는 구현되지 않았다. |
-| P2 Catalog & Inventory | 부분 구현 | 카탈로그 상품 생성·수정과 카테고리 목록 조회가 구현되어 있다. 상품 목록·상세 조회, Variant·Offer·Inventory 구현과 관련 테스트는 확인되지 않았다. |
+| P2 Catalog | 부분 구현 | 카탈로그 상품 생성·수정, 공개 카테고리 트리 조회, ADMIN 전용 카테고리 생성·수정이 구현되어 있다. CatalogProduct 상세, Variant와 상품용 Media 구현은 확인되지 않았다. |
 | P3 Cart | 스키마만 존재 | 장바구니 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P4 Coupon | 스키마만 존재 | 쿠폰 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P5 Order & Payment | 스키마만 존재 | 주문·결제·배송 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P6 Infrastructure | 기반 부분 구현 | Spring Modulith 이벤트 발행, Outbox 설정·스케줄러와 관련 테이블이 존재한다. 실제 주문 Saga와 보상 흐름은 확인되지 않았다. |
-| P7 Admin & Operations | 미구현 | 전용 관리자 모듈·관리 API·운영 기능은 확인되지 않았다. |
-| P8 Seller & Marketplace | 부분 구현 | `Seller` 엔티티·저장소·조회 API와 카탈로그 생성 시 `PRODUCT_MANAGER`의 활성 판매자 검증이 존재한다(`ADMIN`은 검증을 우회한다). 판매자 등록·관리 화면/API와 Offer 기반 판매 흐름은 확인되지 않았다. |
+| P7 Admin & Operations | 부분 구현 | 카테고리 생성·수정 ADMIN 진입점은 구현되어 있다. 전용 관리자 모듈과 나머지 운영 API는 확인되지 않았다. |
+| P8 Seller | 부분 구현 | `Seller` 엔티티·저장소·조회 API와 카탈로그 생성 시 `PRODUCT_MANAGER`의 활성 판매자 검증이 존재한다(`ADMIN`은 검증을 우회한다). 판매자 등록·관리 화면/API는 확인되지 않았다. |
+| P9 Offer & Marketplace | 미구현 | Offer·Inventory, 가격·판매 상태, 고객용 Marketplace 검색·상세 API는 확인되지 않았다. |
+| P10 Review | 스키마만 존재 | 리뷰 테이블은 V1에 있으나 Review 도메인·API·구매 자격 검증은 확인되지 않았다. |
 
 ## 백엔드 구조
 
@@ -52,6 +54,8 @@ Spring Modulith `package-info.java`의 `allowedDependencies`와 Named Interface�
 | PATCH | `/api/v1/catalog-products/{id}` | 구현·`PRODUCT_MANAGER`는 활성 판매자 및 소유자 검증, `ADMIN`은 우회 |
 | PATCH | `/api/v1/catalog-products/{id}/identifiers` | 구현·상품 식별자(ASIN/GTIN/UPC/EAN/ISBN) 검증 업데이트 |
 | GET | `/api/v1/categories` | 구현 |
+| POST | `/api/v1/admin/categories` | 구현 · `ADMIN` 전용 |
+| PATCH | `/api/v1/admin/categories/{categoryId}` | 구현 · `ADMIN` 전용 |
 
 Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처리되어 Controller 목록에 나타나지 않는다.
 
@@ -60,8 +64,8 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 - `GET /api/v1/catalog-products` 목록·검색
 - `GET /api/v1/catalog-products/{id}` 상세
 - `PATCH /api/v1/catalog-products/{id}/identifiers` 상품 식별자 업데이트 (구현 완료)
-- Variant·Offer·Inventory 등록·조회 API
-- 카테고리 생성·수정·삭제 관리자 API
+- Variant 등록·조회 API
+- Offer·Inventory 등록·조회 API와 고객용 Marketplace API
 
 ## 데이터베이스
 
@@ -75,20 +79,20 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 
 - `amaazon-front/`에 React/TypeScript/Vite 애플리케이션이 있다.
 - 홈·내비게이션·배너·상품 그리드와 로그인·회원가입·OAuth UI가 존재한다.
-- 상품 화면은 프론트 정적 데이터와 UI를 사용하며 P2 백엔드 연동 완료로 확인되지 않았다.
+- 상품 화면은 프론트 정적 데이터와 UI를 사용하며 P2 Catalog·P9 Marketplace 백엔드 연동 완료로 확인되지 않았다.
 
 ## 테스트와 자동화
 
 - JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
-- `src/test`에서 Java 테스트 파일 41개를 확인했다. 이번 갱신에서는 실행 결과를 확인하지 않았다.
+- 카테고리 관리자 컨트롤러 테스트 3개가 통과했다. 전체 `check`는 164개 통과·3개 실패했으며, Testcontainers의 Docker 환경 부재와 기존 Modulith/ArchUnit 위반으로 완료되지 않았다.
 - JaCoCo와 80% 라인 커버리지 검증 설정, Checkstyle 및 custom `checkstyle-rules` 모듈이 빌드에 포함되어 있다.
 - CI에는 build, JaCoCo 리포트, Codecov, CodeQL, OpenGrep, CodeRabbit 관련 설정이 있다.
 
 ## 현재 주요 불일치와 다음 작업
 
-1. 요구사항에 정의된 P2 목록·상세 조회와 Variant·Offer·Inventory 기능이 현재 코드에 없다.
+1. 요구사항에 정의된 P2 Catalog 상세·Variant 기능과 P9 Offer·Inventory·Marketplace 기능이 현재 코드에 없다.
 2. 상품 식별자 업데이트 API(`PATCH /api/v1/catalog-products/{id}/identifiers`)가 구현되었으며 ASIN/GTIN/UPC/EAN/ISBN 검증 어댑터가 추가되었다.
-3. V1 스키마의 P3~P8 테이블 대부분에 대응하는 도메인 모듈과 API가 없다.
-4. 카테고리 관리 API는 P7 관리자 기능으로 분리되어야 하며 현재 구현되지 않았다.
-5. P2 API와 Catalog 테스트를 추가하고, 이후 P8 판매자·Offer 흐름을 구현한다.
+3. V1 스키마의 P3~P10 테이블 대부분에 대응하는 도메인 모듈과 API가 없다.
+4. 카테고리 생성·수정 API는 `/api/v1/admin/categories`에 구현되었으며, 기본 요구사항에는 카테고리 삭제 API를 두지 않는다.
+5. P2 Catalog API와 테스트를 추가하고, 이후 P9 Offer·Marketplace와 P10 Review 흐름을 구현한다.
 6. 구현 범위가 확장되면 해당 모듈의 테스트와 Modulith 경계 검증을 함께 추가한다.

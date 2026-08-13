@@ -15,7 +15,7 @@
 flowchart LR
     subgraph Identity["P1·P8 사용자 / 인증 / 판매자"]
         direction TB
-        User["<b>User</b><br/>id<br/>name<br/>phoneNumber<br/>role<br/>pointBalance<br/>isActive<br/>createdAt<br/>updatedAt"]
+        User["<b>User</b><br/>id<br/>name<br/>phoneNumber<br/>role<br/>pointBalance<br/>isEnabled<br/>createdAt<br/>updatedAt"]
         UserCredential["<b>UserCredential</b><br/>email<br/>passwordHash<br/>violationCount<br/>untilLocked<br/>createdAt<br/>updatedAt"]
         SocialCredential["<b>SocialCredential</b><br/>id<br/>provider<br/>providerId<br/>createdAt"]
         Address["<b>Address</b><br/>id<br/>recipientName<br/>recipientPhone<br/>postalCode<br/>addressLine<br/>isPrimary<br/>createdAt<br/>updatedAt"]

@@ -22,7 +22,7 @@
 
 ## Discovery
 
-- The codebase-memory project name is `e-commerce-clone-coding`.
+- The codebase-memory project name is `C-Users-leee-IdeaProjects-e-commerce-clone-coding`.
 - Prefer Semble and codebase-memory MCP for code discovery and relationship checks; use targeted reads only after locating the relevant symbol.
 - Use Semble's `docs` or `config` content scope for documentation and configuration. Use `rg` for exact strings or non-code files.
 - Never run equivalent searches in both Semble and codebase-memory: Semble discovers candidates; codebase-memory verifies structure.

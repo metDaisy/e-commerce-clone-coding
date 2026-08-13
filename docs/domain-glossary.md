@@ -32,7 +32,7 @@
 | Access Token | API 요청 인증에 사용하는 단기 JWT. 목표 만료시간은 30분이며 HttpOnly 쿠키로 전달한다. |
 | Refresh Token | 새 Access Token 발급에 사용하는 장기 JWT. 목표 만료시간은 7일이다. |
 | Blacklist | 로그아웃, 자격 증명 변경, 계정 비활성화 후 기존 JWT를 즉시 거부하기 위한 토큰·사용자 무효화 기록 |
-| Role | 접근 권한. `USER`는 기본 구매자, `PRODUCT_MANAGER`는 판매자, `ADMIN`은 플랫폼 운영자다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. |
+| Role | 접근 권한. `USER`는 기본 구매자, `PRODUCT_MANAGER`는 `ACTIVE` Seller를 가진 User에게 부여되는 판매자 역할, `ADMIN`은 플랫폼 운영자다. `PRODUCT_MANAGER`도 구매자 API를 사용할 수 있다. |
 | Seller | 기존 User에 연결된 판매자 신청·승인 프로필. `PENDING`, `ACTIVE`, `REJECTED`, `SUSPENDED` 상태를 가지며 `PRODUCT_MANAGER` 역할과 `ACTIVE` 상태가 모두 충족될 때 판매자 API를 사용할 수 있다. |
 | 계정 비활성화 | 주문 이력 보존을 위해 User를 삭제하지 않고 로그인과 사용만 막는 논리적 삭제 상태 |
 | SignUpTask | 현재 auth가 user에 프로필 생성을 요청할 때 발행하는 동기 메시지. 이름과 달리 완료 이벤트가 아니라 명령 성격이 있다. |
@@ -69,16 +69,16 @@
 | 용어 | 의미 |
 |---|---|
 | Category | 최대 3단계까지 부모를 가질 수 있는 상품 분류 |
-| CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 공통 메타데이터와 전시 정보를 소유하는 도메인 객체. 실제 가격과 재고의 소유자가 아니다. |
-| ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. 하나의 ProductVariant는 정확히 하나의 CatalogProduct에만 속하며, 예를 들어 같은 무선 헤드폰의 `블랙/대형`과 `화이트/소형`은 서로 다른 ProductVariant다. |
+| CatalogProduct | 상품명·설명·브랜드·카테고리·상품 속성 등 상품군의 공통 메타데이터와 전시 정보를 소유하는 도메인 객체. `ADMIN`만 생성·수정·보관하며 관리자 소유자나 `managerId`를 저장하지 않는다. 실제 가격과 재고의 소유자가 아니다. |
+| ProductVariant | CatalogProduct의 메타데이터를 바탕으로 구성된 판매 대상이다. 고객이 실제로 선택·주문하고 판매자가 판매하는 하나의 옵션 조합이자 SKU 단위다. `ADMIN`만 생성·수정·보관하며 하나의 ProductVariant는 정확히 하나의 CatalogProduct에만 속한다. |
 | SKU(Stock Keeping Unit) | ProductVariant를 식별하는 판매 단위 코드. 요구사항에서는 시스템 전체에서 UNIQUE다. |
 | ASIN / GTIN / UPC / EAN / ISBN | 전 세계적으로 동일한 상품을 식별하기 위한 표준 바코드 및 식별자(아마존 식별자, 국제/북미/유럽 표준, 국제 도서 번호 등). `CatalogProduct` 간 중복될 수 없는 고유 값이다. |
-| Offer | 특정 ProductVariant를 어떤 가격·판매 상태·상품 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. 플랫폼 기본 Offer 또는 승인된 Seller의 Offer가 될 수 있다. |
-| Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
+| Offer | 승인된 Seller가 특정 ProductVariant를 어떤 가격·판매 상태·판매자 조건으로 판매하는지 나타내는 판매 제안. Seller별로 같은 ProductVariant에 하나만 가질 수 있으며, 생성 시 Inventory가 함께 만들어진다. |
+| Inventory | 특정 Offer의 구매 가능 수량과 차감·복원 규칙을 소유하는 재고 정보. Offer에 종속되고 Offer 생성 시 함께 생성되며, 재고는 CatalogProduct 전체가 아니라 실제 판매 조건 단위로 관리한다. |
 | 구매 가능 상태 | Inventory 수량을 바탕으로 계산한 `IN_STOCK`, `OUT_OF_STOCK` 등의 표시 상태. `SOLD_OUT`을 상품의 영구 상태로 저장하지 않는다. |
 | 기간성 할인 | Offer에 연결된 기본 가격과 시작·종료 시각이 있는 할인 가격. 심화사항에서는 쿠폰·회원가·복수 프로모션으로 확장한다. |
 | 적용가격 | 현재 시각과 적용 가능한 가격 정책을 기준으로 계산한 고객 표시 가격 |
-| Image/Media | 상품·ProductVariant·Review에 연결되는 이미지와 미디어 메타데이터. 표시 순서와 URL을 관리한다. |
+| Image/Media | 상품·ProductVariant·Review에 연결되는 이미지와 미디어 메타데이터. CatalogProduct·ProductVariant Media의 등록·수정·보관은 `ADMIN`만 수행하고 Review Media는 Review가 소유하며, 표시 순서와 URL을 관리한다. 실제 파일 저장은 infra adapter가 담당한다. |
 | Review | 구매와 배송 완료가 확인된 사용자가 ProductVariant당 하나 작성할 수 있는 평점·텍스트·이미지 평가 |
 
 `CatalogProduct`와 `ProductVariant`는 `1 : N` 관계다. 하나의 CatalogProduct가 여러 ProductVariant를 가지며, 각 ProductVariant는 하나의 CatalogProduct에만 속한다. 따라서 `(catalogProductId, variantId)` 조합은 유일하고, `variantId`가 전역 PK이므로 별도의 복합 식별자를 만들지 않는다. 판매자는 ProductVariant에 `Offer`를 등록해 가격·판매 상태·판매 조건을 관리하고, 재고는 Offer 단위로 관리한다.
@@ -130,9 +130,13 @@ CatalogProduct: GIGABYTE AMD R9700
 ## 상태 및 관계 기준
 
 - `CatalogProduct.publicationStatus`는 `ACTIVE`, `ARCHIVED`를 사용한다.
-- `Offer.status`는 `ACTIVE`, `INACTIVE`를 사용한다.
+- `ProductVariant.publicationStatus`는 `ACTIVE`, `ARCHIVED`를 사용한다.
+- `Offer.status`는 `ACTIVE`, `INACTIVE`, `ARCHIVED`를 사용한다. `ARCHIVED`는 논리 삭제이며 다시 활성화할 수 없다.
+- CatalogProduct 또는 ProductVariant가 `ARCHIVED`가 되면 하위 Offer는 `INACTIVE`가 되고 공개 검색·구매 대상에서 제외된다.
 - `Inventory`의 구매 가능 상태는 수량을 기준으로 `IN_STOCK` 또는 `OUT_OF_STOCK`으로 계산한다.
 - `Delivery.status`는 `PREPARING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED`를 사용한다.
 - `PaymentMethod.methodType`는 `CREDIT_CARD`, `KAKAO_PAY`, `BANK_TRANSFER`를 사용한다.
 - `Payment.status`는 `SUCCESS`, `FAILED`, `REFUNDED`를 사용한다.
 - `UserCredential`은 User에 선택적으로 연결되며, 소셜 회원가입만으로는 생성하지 않는다.
+- `User.isEnabled`는 `UserDetails.isEnabled()`와 같은 의미로, 인증을 허용할지 나타낸다. User 테이블에는 `is_enabled`만 저장하며 `is_active`는 사용하지 않는다.
+- `UserCredential.isLocked`는 저장 컬럼이 아니다. `violationCount`와 `untilLocked`를 기준으로 계산되는 로그인 잠금 파생 상태다.
