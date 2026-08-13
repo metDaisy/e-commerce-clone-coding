@@ -92,7 +92,7 @@ class UserServiceTest {
     UUID userId = UUID.randomUUID();
     User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest(
-        "변경이름", "01033334444", "변경주소");
+        "변경이름", "01033334444");
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(false);
 
@@ -111,7 +111,7 @@ class UserServiceTest {
   void update_failure_whenUserDoesNotExist() {
     // given
     UUID userId = UUID.randomUUID();
-    UserUpdateRequest request = new UserUpdateRequest(null, null, null);
+    UserUpdateRequest request = new UserUpdateRequest(null, null);
     given(userRepository.findById(userId)).willReturn(Optional.empty());
 
     // when & then
@@ -127,7 +127,7 @@ class UserServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     User user = User.createUser(userId, "기존이름", "01011112222");
-    UserUpdateRequest request = new UserUpdateRequest(null, "01033334444", null);
+    UserUpdateRequest request = new UserUpdateRequest(null, "01033334444");
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(duplicateCount);
 
@@ -138,6 +138,6 @@ class UserServiceTest {
   }
 
   private FormSignUpTask createTask(String phoneNumber) {
-    return new FormSignUpTask(UUID.randomUUID(), "홍길동", phoneNumber, "서울시 강남구");
+    return new FormSignUpTask(UUID.randomUUID(), "홍길동", phoneNumber);
   }
 }

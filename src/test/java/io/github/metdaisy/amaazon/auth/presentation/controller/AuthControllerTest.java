@@ -237,21 +237,21 @@ class AuthControllerTest extends RestControllerTest {
   private static Stream<Arguments> invalidSignUpRequests() {
     return Stream.of(
         Arguments.of("이름 누락",
-            new SignUpRequest("", "test@example.com", "Password1!", "01012345678", "Seoul"),
+            new SignUpRequest("", "test@example.com", "Password1!", "01012345678"),
             "name", "이름은 영문자 또는 한글만 1자 이상 10자 이하로 입력해주세요."),
         Arguments.of("이메일 형식 오류",
-            new SignUpRequest("tester", "invalid-email", "Password1!", "01012345678", "Seoul"),
+            new SignUpRequest("tester", "invalid-email", "Password1!", "01012345678"),
             "email", "올바른 이메일 형식이 아닙니다."),
         Arguments.of("비밀번호 길이 부족",
-            new SignUpRequest("tester", "test@example.com", "Pass1!", "01012345678", "Seoul"),
+            new SignUpRequest("tester", "test@example.com", "Pass1!", "01012345678"),
             "password", "비밀번호는 최소 8자 이상이어야 합니다."),
         Arguments.of("전화번호 형식 오류",
-            new SignUpRequest("tester", "test@example.com", "Password1!", "010-1234-5678", "Seoul"),
+            new SignUpRequest("tester", "test@example.com", "Password1!", "010-1234-5678"),
             "phoneNumber", "전화번호는 숫자만 11자리로 입력해주세요."));
   }
 
   private static SignUpRequest validSignUpRequest() {
     return new SignUpRequest(
-        "tester", "test@example.com", "Password1!", "01012345678", "Seoul");
+        "tester", "test@example.com", "Password1!", "01012345678");
   }
 }

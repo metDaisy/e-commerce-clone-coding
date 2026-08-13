@@ -45,7 +45,7 @@ class AuthServiceTest {
     given(userCredentialService.create("test@example.com", "Password1!")).willReturn(credential);
 
     // when
-    authService.create(new SignUpRequest("tester", "test@example.com", "Password1!", "01012345678", "Seoul"));
+    authService.create(new SignUpRequest("tester", "test@example.com", "Password1!", "01012345678"));
 
     // then
     ArgumentCaptor<FormSignUpTask> captor = ArgumentCaptor.forClass(FormSignUpTask.class);
@@ -53,7 +53,6 @@ class AuthServiceTest {
     assertThat(captor.getValue().id()).isEqualTo(userId);
     assertThat(captor.getValue().name()).isEqualTo("tester");
     assertThat(captor.getValue().phoneNumber()).isEqualTo("01012345678");
-    assertThat(captor.getValue().address()).isEqualTo("Seoul");
   }
 
   @Test

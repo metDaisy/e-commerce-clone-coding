@@ -26,7 +26,7 @@ class UserEventHandlerTest {
   @DisplayName("handle: SignUpTask 발생 시 UserService.create 를 호출한다")
   void handle() {
     // given
-    FormSignUpTask task = new FormSignUpTask(UUID.randomUUID(), "tester", "01012345678", "Seoul");
+    FormSignUpTask task = new FormSignUpTask(UUID.randomUUID(), "tester", "01012345678");
 
     // when
     userEventHandler.handle(task);
