@@ -1,6 +1,8 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ProductPublicationStatus;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -35,7 +37,7 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "catalog_products")
 @SQLDelete(sql = "update catalog_products "
-    + "set publication_status = 'ARCHIVED', archived_at = now() "
+    + "set publication_status = 'ARCHIVED', archived_at = now(), updated_at = now() "
     + "where id = ?")
 public class CatalogProduct extends MutableEntity {
 
@@ -116,5 +118,12 @@ public class CatalogProduct extends MutableEntity {
     this.publicationStatus = ProductPublicationStatus.ACTIVE;
     this.archivedAt = null;
     this.tags = tags;
+  }
+
+  public void validateActive() {
+    if (publicationStatus.equals(ProductPublicationStatus.ARCHIVED)) {
+      throw new CatalogProductException(CatalogProductErrorCode.CATALOG_PRODUCT_ARCHIVED,
+          Map.of("catalogId", getId()));
+    }
   }
 }

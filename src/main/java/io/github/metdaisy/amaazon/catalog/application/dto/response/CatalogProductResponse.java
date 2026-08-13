@@ -13,6 +13,6 @@ public record CatalogProductResponse(UUID id, UUID categoryId, String name, Stri
                                      String isbn, List<String> tags,
                                      Map<String, Object> attributes,
                                      ProductPublicationStatus publicationStatus,
-                                     Instant archivedAt, Instant createdAt, Instant updatedAt) {
+                                     Instant archivedAt, Instant createdAt) {
 
 }

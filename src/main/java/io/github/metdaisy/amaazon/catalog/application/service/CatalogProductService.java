@@ -48,26 +48,34 @@ public class CatalogProductService {
   @Transactional
   public CatalogProductResponse update(UUID id, CatalogProductUpdateRequest request) {
     CatalogProduct catalog = findById(id);
-    List<CatalogProductTag> tags = request.tags() == null
-        ? null
-        : tagService.findAndCreate(request.tags())
-            .stream()
-            .map(tag -> CatalogProductTag.of(catalog, tag))
-            .toList();
+    catalog.validateActive();
+    List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
+        .stream()
+        .map(tag -> CatalogProductTag.of(catalog, tag))
+        .toList();
     mapper.update(catalog, tags, request);
     return mapper.toDto(catalog);
   }
 
   @Transactional
-  public CatalogProductIdentifierUpdateResponse updateIdentifier(UUID id, CatalogProductIdentifierUpdateRequest request) {
+  public CatalogProductIdentifierUpdateResponse updateIdentifier(UUID id,
+      CatalogProductIdentifierUpdateRequest request) {
     CatalogProduct catalog = findById(id);
+    catalog.validateActive();
     request.toMap().forEach((type, value) -> verifyIdentifier(id, type, value));
     mapper.update(catalog, request);
     return mapper.toIdentifierResponse(catalog);
   }
 
+  @Transactional
+  public void archive(UUID id) {
+    CatalogProduct catalog = findById(id);
+    catalog.validateActive();
+    repository.delete(catalog);
+  }
+
   private void verifyIdentifier(UUID id, CatalogProductIdentifierType type, String value) {
-    for (CatalogProductIdentifierVerifier verifier: verifiers) {
+    for (CatalogProductIdentifierVerifier verifier : verifiers) {
       if (verifier.support(type)) {
         verifier.verify(id, value);
         return;

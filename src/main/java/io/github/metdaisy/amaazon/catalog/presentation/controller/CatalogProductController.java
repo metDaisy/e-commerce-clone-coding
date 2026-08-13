@@ -7,6 +7,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProduc
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
 import io.github.metdaisy.amaazon.catalog.application.validator.ActiveSeller;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -54,5 +55,13 @@ public class CatalogProductController {
   public ResponseEntity<CatalogProductIdentifierUpdateResponse> verifyIdentifierCode(
       @PathVariable UUID id, @RequestBody CatalogProductIdentifierUpdateRequest request) {
     return ResponseEntity.status(HttpStatus.OK).body(service.updateIdentifier(id, request));
+  }
+
+  @PreAuthorize("hasAnyRole('PRODUCT_MANAGER', 'ADMIN')")
+  @ActiveSeller(checkOwner = true)
+  @PostMapping("/{id}/archive")
+  public ResponseEntity<CatalogProductArchivedResponse> archive(@PathVariable UUID id) {
+    service.archive(id);
+    return ResponseEntity.status(HttpStatus.OK).body(new CatalogProductArchivedResponse(id));
   }
 }

@@ -14,6 +14,7 @@ public enum CatalogProductErrorCode implements AmaazonErrorCode {
   UNAUTHORIZED_UPDATE("CATALOG-004", "권한이 없습니다.", AmaazonErrorType.UNAUTHORIZED),
   SELLER_APPROVAL_REQUIRED("CATALOG-005", "판매자만 가능합니다.", AmaazonErrorType.UNAUTHORIZED),
   PRODUCT_CODE_ERROR("CATALOG-006", "상품 식별자가 옳바르지 않거나 이미 등록되어 있습니다.", AmaazonErrorType.BAD_REQUEST),
+  CATALOG_PRODUCT_ARCHIVED("CATALOG-007", "아카이브된 상품 카탈로그입니다.", AmaazonErrorType.CONFLICT),
   ;
 
   private final String code;

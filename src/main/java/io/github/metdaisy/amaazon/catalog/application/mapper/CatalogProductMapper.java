@@ -10,15 +10,12 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
-import org.mapstruct.SourceParameterCondition;
 
 @Mapper(config = GlobalMapperConfig.class, uses = TagMapper.class)
 public interface CatalogProductMapper {
@@ -51,11 +48,5 @@ public interface CatalogProductMapper {
   default void updateUpdatedAt(@MappingTarget CatalogProduct catalog,
       CatalogProductIdentifierUpdateRequest request) {
     catalog.setUpdatedAt(Instant.now());
-  }
-
-  @SourceParameterCondition
-  @Named("checkCollection")
-  default <T extends Collection<?>> boolean checkCollection(T collection) {
-    return collection != null && !collection.isEmpty();
   }
 }
