@@ -46,6 +46,12 @@ public class CaffeineConfig {
         .expireAfterWrite(jwtTokenExpiration.accessExpiration())
         .executor(caffeineWorker)
         .recordStats());
+    manager.registerCustomCache("categories", Caffeine.newBuilder()
+        .maximumSize(1)
+        .expireAfterAccess(Duration.ofHours(1))
+        .executor(caffeineWorker)
+        .recordStats()
+        .build());
     return manager;
   }
 
