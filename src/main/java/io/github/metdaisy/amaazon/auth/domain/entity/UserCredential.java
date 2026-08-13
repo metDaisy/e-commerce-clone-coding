@@ -31,8 +31,8 @@ public class UserCredential extends MutableEntity {
 
   @Size(max = 255)
   @NotNull
-  @Column(name = "password", nullable = false)
-  private String password;
+  @Column(name = "password_hash", nullable = false)
+  private String passwordHash;
 
   @Column(name = "violation_count", nullable = false)
   private int violationCount;
@@ -41,22 +41,22 @@ public class UserCredential extends MutableEntity {
   private Instant untilLocked;
 
   @Builder(access = AccessLevel.PRIVATE)
-  private UserCredential(String email, String password, int violationCount) {
+  private UserCredential(String email, String passwordHash, int violationCount) {
     this.email = email;
-    this.password = password;
+    this.passwordHash = passwordHash;
     this.violationCount = violationCount;
   }
 
   public static UserCredential of(String email, String password) {
     return UserCredential.builder()
         .email(email)
-        .password(password)
+        .passwordHash(password)
         .violationCount(0)
         .build();
   }
 
   public void updatePassword(String password) {
-    updateIfChanged(this.password, password, value -> this.password = value);
+    updateIfChanged(this.passwordHash, password, value -> this.passwordHash = value);
   }
 
   public void updateEmail(String email) {
@@ -64,7 +64,7 @@ public class UserCredential extends MutableEntity {
   }
 
   public void validatePassword(Predicate<String> validator) {
-    if (!validator.test(password)) {
+    if (!validator.test(passwordHash)) {
       throw new AuthException(AuthErrorCode.INCORRECT_PASSWORD);
     }
   }
