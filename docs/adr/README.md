@@ -27,5 +27,7 @@ ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정�
 | ADR-0002 | P2 상품군·ProductVariant·Offer·재고 책임 분리 | Accepted | [0002-separate-p2-product-concepts.md](0002-separate-p2-product-concepts.md) |
 | ADR-0003 | OAuth provider는 프로젝트 정의 enum으로 관리 | Accepted | [0003-project-defined-oauth-provider.md](0003-project-defined-oauth-provider.md) |
 | ADR-0004 | 스키마 외래 키는 Modulith 도메인 경계를 따른다 | Accepted | [0004-schema-fk-follows-modulith-boundaries.md](0004-schema-fk-follows-modulith-boundaries.md) |
+| ADR-0005 | 상품 소유권·수명주기·역할별 조회 모델 | Superseded | [0005-product-ownership-lifecycle-and-read-models.md](0005-product-ownership-lifecycle-and-read-models.md) |
+| ADR-0006 | Catalog·Offer·Review 요구사항 경계 분리 | Accepted | [0006-split-catalog-offer-and-review-contexts.md](0006-split-catalog-offer-and-review-contexts.md) |
 
 ADR이 추가되면 번호, 제목, 상태, 대체 관계를 이 목록에 기록한다.

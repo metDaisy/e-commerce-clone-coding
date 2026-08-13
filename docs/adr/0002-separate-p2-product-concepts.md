@@ -27,24 +27,25 @@ Amazon과 유사한 상품 화면은 상품 설명, 색상·사이즈 조합, �
 
 ### Option B: CatalogProduct, ProductVariant, Offer, Inventory로 분리
 
-모델은 늘어나지만 각 책임이 명확하고, 초기에는 기본 ProductVariant와 기본 Offer 하나만 생성해 구현 난이도를 제한할 수 있다.
+모델은 늘어나지만 각 책임이 명확하고, CatalogProduct·ProductVariant 등록과 Seller의 Offer 등록을 단계적으로 구현할 수 있다.
 
 ## Decision
 
 Option B를 선택한다.
 
-- `CatalogProduct`는 상품명, 설명, 브랜드, 카테고리, 상품 속성, 전시 미디어를 소유한다.
-- `ProductVariant`는 실제 구매 조합과 SKU를 소유한다. 초기 요구사항에서는 기본 ProductVariant 하나를 생성한다.
-- `Offer`는 ProductVariant의 가격, 판매 상태, 상품 상태, 판매자 식별자, 배송·Prime 표시 확장 지점을 소유한다. 초기 요구사항에서는 기본 Offer 하나를 생성한다.
-- `Inventory`는 Offer의 가용 수량과 차감·복원 규칙을 소유한다.
-- 별도 Seller 모듈이 추가되기 전까지 `Offer.sellerId`는 선택값이다. 값이 없으면 플랫폼 기본 Offer로 처리한다.
-- 상품 삭제는 물리 삭제보다 보관 상태 전환을 우선하며, 주문·리뷰·관심상품의 참조 이력을 보존한다.
+- `CatalogProduct`는 상품명, 설명, 브랜드, 카테고리, 상품 속성, 전시 미디어를 소유하며 `ADMIN`만 생성·수정·보관한다. 관리자 소유자나 `managerId`는 저장하지 않는다.
+- `ProductVariant`는 실제 구매 조합과 SKU를 소유하며 `ADMIN`만 생성·수정·보관한다.
+- `Offer`는 활성 Seller가 ProductVariant를 판매하기 위한 가격·판매 상태·판매자 조건을 소유한다. 하나의 Seller는 같은 ProductVariant에 Offer를 하나만 가진다.
+- `Inventory`는 Offer 생성 시 함께 생성되며 Offer별 가용 수량·차감·복원 규칙을 소유한다.
+- Seller가 아닌 플랫폼 기본 Offer는 기본 모델에 두지 않는다. 고객 공개 조회는 활성 Seller의 공개 Offer만 조합한다.
+- 상품과 판매 제안의 삭제는 물리 삭제보다 보관 상태 전환을 우선하며, CatalogProduct·ProductVariant 보관 시 하위 Offer를 `INACTIVE`로 전환한다.
+- 고객·Seller·ADMIN 조회는 서로 다른 목적의 read model을 사용한다. 고객은 공개 Offer 요약, Seller는 자신의 `myOffer`, ADMIN은 보관 상태와 관리 메타데이터를 본다.
 
 ## Consequences
 
 ### Positive
 
-- 기본 상품 등록은 단일 ProductVariant·Offer로 단순하게 유지할 수 있다.
+- CatalogProduct·ProductVariant와 판매자의 Offer 등록을 분리해 각 권한 경계를 명확히 유지할 수 있다.
 - ProductVariant, 복수 판매자, 가격 정책, 재고를 독립적으로 확장할 수 있다.
 - 상품 상세 응답에서 전시 정보와 실제 구매 가능 조건을 구분할 수 있다.
 
@@ -52,7 +53,7 @@ Option B를 선택한다.
 
 - 상품 등록과 조회 시 여러 객체를 조합해야 한다.
 - 가격과 재고의 일관성을 보장하기 위해 Offer·Inventory 경계와 트랜잭션 규칙을 지켜야 한다.
-- Seller 모듈 도입 시 `sellerId`의 nullable 정책을 정리하고 데이터 마이그레이션해야 한다.
+- 기존 `manager_id`와 플랫폼 기본 Offer를 제거하는 스키마·데이터 마이그레이션이 필요하다.
 
 ### Follow-up
 
@@ -62,6 +63,6 @@ Option B를 선택한다.
 
 ## Evidence
 
-- [P2 상품·재고 요구사항](../requirement/p2-product.md)
+- [P2 Catalog 요구사항](../requirement/p2-catalog.md)
 - [아키텍처 문서](../architecture.md)
 

@@ -15,7 +15,7 @@ CREATE TABLE users
     phone_number  VARCHAR(20),
     role          VARCHAR(30)              NOT NULL DEFAULT 'USER',
     point_balance INTEGER                  NOT NULL DEFAULT 0,
-    is_active     BOOLEAN                  NOT NULL DEFAULT TRUE,
+    is_enabled    BOOLEAN                  NOT NULL DEFAULT TRUE,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT chk_users_role CHECK (role IN ('USER', 'PRODUCT_MANAGER', 'ADMIN')),
@@ -117,12 +117,12 @@ CREATE TABLE blacklist_users
 
 CREATE TABLE categories
 (
-    id         UUID PRIMARY KEY,
-    parent_id  UUID,
-    name       VARCHAR(255)             NOT NULL,
-    depth      INTEGER                  NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    id                 UUID PRIMARY KEY,
+    parent_id          UUID,
+    name               VARCHAR(255)             NOT NULL,
+    depth              INTEGER                  NOT NULL,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at         TIMESTAMP WITH TIME ZONE NOT NULL,
     CONSTRAINT fk_categories_parent
         FOREIGN KEY (parent_id) REFERENCES categories (id),
     CONSTRAINT chk_categories_depth CHECK (depth BETWEEN 1 AND 3)
@@ -133,7 +133,6 @@ CREATE TABLE catalog_products
 (
     id                 UUID PRIMARY KEY,
     category_id        UUID                     NOT NULL,
-    manager_id         UUID                     NOT NULL,
     name               VARCHAR(255)             NOT NULL,
     description        TEXT                     NOT NULL,
     brand              VARCHAR(255),
@@ -158,9 +157,6 @@ CREATE TABLE catalog_products
 
 COMMENT ON TABLE catalog_products IS
     '공통 카탈로그 정보를 소유하는 CatalogProduct 집합. 판매자별 판매 조건은 offers가 소유한다.';
-
-COMMENT ON COLUMN catalog_products.manager_id IS
-    '카탈로그 상품을 등록·관리한 users.id를 논리적으로 참조한다. PRODUCT_MANAGER는 자신의 상품을 관리하고 ADMIN은 모든 상품을 관리할 수 있다.';
 
 COMMENT ON COLUMN catalog_products.asin IS
     '선택적인 외부 상품 식별자이며 기본 키로 사용하지 않는다.';
@@ -580,8 +576,6 @@ CREATE UNIQUE INDEX uq_categories_name ON categories (name);
 CREATE INDEX idx_categories_parent_depth ON categories (parent_id, depth);
 CREATE INDEX idx_catalog_products_category_status
     ON catalog_products (category_id, publication_status);
-CREATE INDEX idx_catalog_products_manager_status
-    ON catalog_products (manager_id, publication_status);
 CREATE UNIQUE INDEX uq_catalog_products_asin
     ON catalog_products (asin) WHERE asin IS NOT NULL;
 CREATE UNIQUE INDEX uq_catalog_products_gtin
