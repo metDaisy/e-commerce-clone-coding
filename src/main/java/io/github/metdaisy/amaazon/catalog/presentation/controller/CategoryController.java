@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
-import io.github.metdaisy.amaazon.catalog.application.service.CategoryService;
+import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CategoryController {
 
-  private final CategoryService service;
+  private final CategoryQueryService service;
 
   @GetMapping
   public ResponseEntity<List<CategoryResponse>> findAll() {
