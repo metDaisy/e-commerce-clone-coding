@@ -8,9 +8,9 @@ import static org.mockito.Mockito.verify;
 
 import io.github.metdaisy.amaazon.auth.application.dto.request.SignUpRequest;
 import io.github.metdaisy.amaazon.auth.application.dto.request.UserCredentialUpdateRequest;
-import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
+import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

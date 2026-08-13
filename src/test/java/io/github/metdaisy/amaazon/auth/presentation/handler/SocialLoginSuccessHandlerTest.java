@@ -8,7 +8,6 @@ import static org.mockito.Mockito.doReturn;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.service.AuthTokenService;
 import io.github.metdaisy.amaazon.auth.application.service.GuestTokenService;
-import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
 import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import jakarta.servlet.http.Cookie;
@@ -25,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("소셜 로그인 성공 핸들러")
 class SocialLoginSuccessHandlerTest {
 
   @Mock
@@ -47,7 +48,7 @@ class SocialLoginSuccessHandlerTest {
   private SocialLoginSuccessHandler handler;
 
   @Test
-  @DisplayName("onAuthenticationSuccess: guest user")
+  @DisplayName("게스트 로그인: 게스트 토큰 쿠키를 설정하고 가입 페이지로 이동한다")
   void onAuthenticationSuccess_guest() throws Exception {
     // given
     MockHttpServletRequest request = new MockHttpServletRequest();
@@ -73,7 +74,7 @@ class SocialLoginSuccessHandlerTest {
   }
 
   @Test
-  @DisplayName("onAuthenticationSuccess: normal user")
+  @DisplayName("일반 로그인: 디바이스 ID로 토큰을 발급하고 기본 페이지로 이동한다")
   void onAuthenticationSuccess_normal() throws Exception {
     // given
     MockHttpServletRequest request = new MockHttpServletRequest();
@@ -102,7 +103,7 @@ class SocialLoginSuccessHandlerTest {
   }
 
   @Test
-  @DisplayName("onAuthenticationSuccess: normal user without device id throws exception")
+  @DisplayName("일반 로그인 실패: 디바이스 ID 쿠키가 없으면 인증 예외를 던진다")
   void onAuthenticationSuccess_noDeviceId() {
     // given
     MockHttpServletRequest request = new MockHttpServletRequest();
@@ -115,6 +116,6 @@ class SocialLoginSuccessHandlerTest {
 
     // when & then
     assertThatThrownBy(() -> handler.onAuthenticationSuccess(request, response, authentication))
-        .isInstanceOf(AuthException.class);
+        .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
   }
 }

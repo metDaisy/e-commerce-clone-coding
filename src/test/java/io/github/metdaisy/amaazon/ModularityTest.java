@@ -7,15 +7,18 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
+@DisplayName("모듈 구조 검증")
 class ModularityTest {
 
   private static final String BASE_PACKAGE = "io.github.metdaisy.amaazon";
-  private static final List<String> DOMAINS = List.of("auth", "user", "product");
+  private static final List<String> DOMAINS = List.of("auth", "user", "catalog");
 
   @Test
+  @DisplayName("모듈 경계: 공개 인터페이스 외의 의존성과 순환 의존성이 없다")
   void verifyModularity() {
     // 도메인 간 의존성은 각 도메인의 최상위 package-info.java의
     // @ApplicationModule(allowedDependencies = ...)를 기준으로 검증한다.
@@ -33,6 +36,7 @@ class ModularityTest {
   }
 
   @Test
+  @DisplayName("계층 구조: 구현된 도메인은 presentation-application-domain-infra 방향을 따른다")
   void verifyLayerArchitecture() {
     JavaClasses importedClasses = importProductionClasses();
 

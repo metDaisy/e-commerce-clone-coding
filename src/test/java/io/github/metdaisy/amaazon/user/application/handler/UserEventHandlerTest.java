@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.user.application.handler;
 
 import static org.mockito.Mockito.verify;
 
-import io.github.metdaisy.amaazon.auth.application.event.FormSignUpTask;
+import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
