@@ -7,7 +7,5 @@ import java.util.UUID;
 
 public interface CatalogProductRepository extends DomainRepository<CatalogProduct> {
 
-  boolean existsByIdAndManagerId(UUID id, UUID managerId);
-
   boolean existsIdentifier(UUID id, CatalogProductIdentifierType type, String value);
 }

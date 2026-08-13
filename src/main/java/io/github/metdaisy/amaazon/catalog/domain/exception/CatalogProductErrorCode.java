@@ -15,6 +15,10 @@ public enum CatalogProductErrorCode implements AmaazonErrorCode {
   SELLER_APPROVAL_REQUIRED("CATALOG-005", "판매자만 가능합니다.", AmaazonErrorType.UNAUTHORIZED),
   PRODUCT_CODE_ERROR("CATALOG-006", "상품 식별자가 옳바르지 않거나 이미 등록되어 있습니다.", AmaazonErrorType.BAD_REQUEST),
   CATALOG_PRODUCT_ARCHIVED("CATALOG-007", "아카이브된 상품 카탈로그입니다.", AmaazonErrorType.CONFLICT),
+  CATEGORY_DEPTH_EXCEEDED("CATALOG-008", "Category depth must not exceed three levels.", AmaazonErrorType.BAD_REQUEST),
+  CATEGORY_CYCLE_DETECTED("CATALOG-009", "Category hierarchy cannot contain a cycle.", AmaazonErrorType.BAD_REQUEST),
+  CATEGORY_UPDATE_EMPTY("CATALOG-010", "At least one category field must be provided.", AmaazonErrorType.BAD_REQUEST),
+  CATEGORY_NAME_INVALID("CATALOG-011", "Category name must not be blank.", AmaazonErrorType.BAD_REQUEST),
   ;
 
   private final String code;

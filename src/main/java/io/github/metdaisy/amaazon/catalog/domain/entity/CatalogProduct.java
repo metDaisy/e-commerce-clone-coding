@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -46,13 +45,9 @@ public class CatalogProduct extends MutableEntity {
   @JoinColumn(name = "category_id", nullable = false)
   private Category category;
 
-  @OneToMany(fetch = FetchType.LAZY, mappedBy = "tag", cascade = {CascadeType.PERSIST,
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "catalogProduct", cascade = {CascadeType.PERSIST,
       CascadeType.REMOVE}, orphanRemoval = true)
   private List<CatalogProductTag> tags = new ArrayList<>();
-
-  @NotNull
-  @Column(name = "manager_id", nullable = false)
-  private UUID managerId;
 
   @Size(max = 255)
   @NotNull
@@ -101,11 +96,10 @@ public class CatalogProduct extends MutableEntity {
   private Instant archivedAt;
 
   @Builder
-  private CatalogProduct(Category category, UUID managerId, String name, String description,
+  private CatalogProduct(Category category, String name, String description,
       String brand, String asin, String gtin, String upc, String ean, String isbn,
       Map<String, Object> attributes, List<CatalogProductTag> tags) {
     this.category = category;
-    this.managerId = managerId;
     this.name = name;
     this.description = description;
     this.brand = brand;

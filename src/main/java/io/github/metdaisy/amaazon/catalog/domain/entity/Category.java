@@ -1,12 +1,13 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,19 +16,14 @@ import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.Immutable;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "categories")
-@Immutable
-@Cache(region = "Category", usage = CacheConcurrencyStrategy.READ_ONLY)
 public class Category extends MutableEntity {
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "parent_id")
   private Category parent;
 
@@ -40,7 +36,55 @@ public class Category extends MutableEntity {
   @Column(name = "depth", nullable = false)
   private Integer depth;
 
-  @OneToMany(mappedBy = "categories", fetch = FetchType.LAZY)
-  private List<Category> childrenCategory = new ArrayList<>();
+  @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY,
+      cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Category> children = new ArrayList<>();
+
+  private Category(String name, Category parent, Integer depth, List<Category> children) {
+    this.name = name;
+    this.parent = parent;
+    this.depth = depth;
+    this.children = children;
+  }
+
+  public static Category of(String name, Category parent) {
+    Category category = new Category(name, parent, parent == null ? 1 : parent.getDepth() + 1,
+        new ArrayList<>());
+    if (parent != null) {
+      parent.addChild(category);
+    }
+    return category;
+  }
+
+  public void rename(String name) {
+    this.name = name;
+  }
+
+  public void moveTo(Category parent) {
+    if (this.parent != parent) {
+      if (this.parent != null) {
+        this.parent.removeChild(this);
+      }
+      if (parent != null) {
+        parent.addChild(this);
+      }
+    }
+    this.parent = parent;
+    this.depth = parent == null ? 1 : parent.getDepth() + 1;
+  }
+
+  public void addChild(Category child) {
+    if (!children.contains(child)) {
+      children.add(child);
+    }
+  }
+
+  public void removeChild(Category child) {
+    children.remove(child);
+  }
+
+  public void updateDepth(int depth) {
+    this.depth = depth;
+  }
 
 }
