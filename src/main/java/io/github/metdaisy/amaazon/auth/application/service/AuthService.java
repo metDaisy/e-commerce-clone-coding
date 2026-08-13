@@ -25,8 +25,7 @@ public class AuthService {
   public void create(SignUpRequest request) {
     UserCredential credential = userCredentialService.create(request.email(), request.password());
     eventPublisher.publishEvent(
-        new FormSignUpTask(credential.getId(), request.name(), request.phoneNumber(),
-            request.address()));
+        new FormSignUpTask(credential.getId(), request.name(), request.phoneNumber()));
   }
 
   @Transactional
