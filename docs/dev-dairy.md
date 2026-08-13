@@ -151,3 +151,17 @@ spring cache 는 메소드 반환값을, 2차 캐시는 엔티티를 저장한�
 반대로 지연 로딩(Lazy Loading)으로 조회하면 N+1 쿼리 문제가 발생하는데, `product_tags` 에 `product_id` 를 조회해 연관된 `tag_id`들을 얻는 쿼리 1번, `Tag` 는 캐싱했으니 쿼리 발생하지 않으므로(캐싱되지 않은 `Tag`가 있다면 쿼리 발생) 최소 1번 발생한다.
 
 </details>
+
+<details>
+
+<summary><h2>2026-08-12</h2></summary>
+
+`CatalogProduct` 의 response dto 로 변환하면서 `updatedAt` 에 대한 고민이 생겼다.  
+`@LastModifiedDate` annotation 을 붙이면 dirty checking 을 통해 update query 를 생성할 때 업데이트 된다.  
+문제는 이 과정은 transaction 에서 일어나는데 만약 entity class -> response dto 로 변환할 때 updatedAt 은 최신화된 값이 아니다.  
+dirty checking 은 transaction aop 에서 일어나기 때문이다.  
+`CatalogProduct` 는 field 갯수가 많아 mapper 로 객체 생성 및 업데이트를 위임하고 있다.  
+업데이트가 일어났는지 확인하는 건 적절하지 않은 것 같고 `flush()`를 하자니 dirty checking 을 2번하게 되서 적절하지 않아 보인다.  
+일단 updatedAt 에 `@Setter` 를 추가해 업데이트 시 현재 시간으로 업데이트하도록 했다.  
+
+</details>
