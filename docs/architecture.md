@@ -122,7 +122,7 @@ sequenceDiagram
 
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
-| P1 | `user`, `auth` | 프로필, 인증수단, 권한, 주소, 포인트, 관심상품 |
+| P1 | `user` | 프로필, 권한, 주소, 포인트, 관심상품 |
 | P2 | `catalog` | 카테고리, CatalogProduct·ProductVariant, 상품용 Media, 판매자·관리자 카탈로그 조회 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
@@ -132,6 +132,7 @@ sequenceDiagram
 | P8 | `seller` | 판매자 온보딩, Seller, 판매자 주문 조회 |
 | P9 | `offer` | Offer, Inventory, 가격·판매 상태, 고객용 Marketplace 검색·상세 |
 | P10 | `review` | Review와 리뷰 Media, 구매·배송 완료 자격 검증 |
+| P11 | `auth` | 로컬·소셜 인증수단, 회원가입 인증 흐름, 로그인·로그아웃, 토큰 |
 
 위 표는 목표 분리 단위다. 현재 구현 모듈과 일치하지 않는 목표 모듈은 구현 시 ADR로 분리 수준과 공개 seam을 확정한다. 요구사항의 P 번호가 반드시 하나의 코드 모듈을 뜻하지는 않는다.
 

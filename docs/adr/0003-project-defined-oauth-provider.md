@@ -63,5 +63,5 @@ Option B를 선택한다.
 
 ## Evidence
 
-- [P1 인증 요구사항](../requirement/p1-user-auth.md)
+- [P11 인증 요구사항](../requirement/p11-auth.md)
 - [Login with Amazon 공식 문서](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html)

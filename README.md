@@ -53,7 +53,7 @@ docs/          # 요구사항·아키텍처·ADR·개발 가이드
 
 | 문서 | 설명 |
 |---|---|
-| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P8 도메인 요구사항 |
+| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P11 도메인 요구사항 |
 | [Domain ERD](./docs/domain-erd.md) | SQL과 독립적인 도메인 객체·업무 관계 |
 | [Architecture](./docs/architecture.md) | 모듈 경계와 의존성 규칙 |
 | [Domain Glossary](./docs/domain-glossary.md) | 도메인 용어와 상태값 기준 |

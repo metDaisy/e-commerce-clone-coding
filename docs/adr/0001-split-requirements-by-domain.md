@@ -32,7 +32,7 @@
 Option B를 선택한다.
 
 - `docs/requirement/index.md`는 문서 인덱스와 공통 API 계약의 기준으로 사용한다.
-- `p1-user-auth.md`부터 `p6-infrastructure.md`까지 도메인별 문서에 URI, 요청·응답, 예외, 요구사항, 심화사항을 기록한다.
+- `p1-user.md`, `p2-catalog.md`부터 `p6-infrastructure.md`까지와 `p11-auth.md`에 도메인별 URI, 요청·응답, 예외, 요구사항, 심화사항을 기록한다.
 - 기존 `docs/requirement.md`는 `docs/requirement/index.md`로 이동한 것으로 취급하고, 새 문서에는 도메인별 링크를 둔다.
 - 공통 규칙은 인덱스에만 기록하고, 도메인 문서에는 해당 도메인에 특화된 규칙만 기록한다.
 - `docs/index.md`를 문서 진입점으로 유지한다.
