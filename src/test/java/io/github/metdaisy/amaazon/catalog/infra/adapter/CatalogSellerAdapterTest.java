@@ -24,10 +24,10 @@ class CatalogSellerAdapterTest {
 
   @Test
   @DisplayName("판매자 존재 확인: 판매자 조회 API의 활성 상태를 그대로 반환한다")
-  void existsSeller_shouldDelegateToSellerQueryApi() {
+  void existsActiveSellerByUserId_shouldDelegateToSellerQueryApi() {
     UUID sellerId = UUID.randomUUID();
     given(api.isActiveSeller(sellerId)).willReturn(true);
 
-    assertThat(adapter.existsSeller(sellerId)).isTrue();
+    assertThat(adapter.existsActiveSellerByUserId(sellerId)).isTrue();
   }
 }

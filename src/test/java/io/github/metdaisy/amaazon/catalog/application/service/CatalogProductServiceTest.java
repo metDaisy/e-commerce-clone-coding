@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
@@ -118,6 +119,27 @@ class CatalogProductServiceTest {
   }
 
   @Test
+  @DisplayName("상품 수정: tags가 null이면 기존 태그를 유지하고 예외 없이 수정한다")
+  void update_shouldHandleNullTags() {
+    UUID productId = UUID.randomUUID();
+    CatalogProduct product = product(Category.of("Computers", null));
+    CatalogProductUpdateRequest request = new CatalogProductUpdateRequest(
+        "Updated laptop", null, null, null, null);
+    CatalogProductResponse response = CatalogProductResponse.builder().name("Updated laptop")
+        .build();
+    given(repository.findById(productId)).willReturn(Optional.of(product));
+    given(mapper.toDto(product)).willReturn(response);
+
+    assertThat(service.update(productId, request)).isSameAs(response);
+
+    @SuppressWarnings("unchecked")
+    ArgumentCaptor<List<CatalogProductTag>> tagsCaptor = ArgumentCaptor.forClass(List.class);
+    then(mapper).should().update(eq(product), tagsCaptor.capture(), eq(request));
+    assertThat(tagsCaptor.getValue()).isNull();
+    then(tagService).shouldHaveNoInteractions();
+  }
+
+  @Test
   @DisplayName("식별자 수정: 지원하는 식별자 검증기를 호출하고 수정 결과를 반환한다")
   void updateIdentifier_shouldVerifySupportedIdentifierAndReturnResponse() {
     UUID productId = UUID.randomUUID();
@@ -176,15 +198,19 @@ class CatalogProductServiceTest {
   }
 
   @Test
-  @DisplayName("상품 보관: 활성 상품을 삭제 처리한다")
-  void archive_shouldDeleteActiveProduct() {
+  @DisplayName("상품 보관: 영속 상태와 동일한 보관 정보를 반환한다")
+  void archive_shouldReturnPersistedArchiveState() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(Category.of("Computers", null));
     given(repository.findById(productId)).willReturn(Optional.of(product));
 
-    service.archive(productId);
+    CatalogProductArchivedResponse response = service.archive(productId);
 
-    then(repository).should().delete(product);
+    assertThat(response.id()).isEqualTo(product.getId());
+    assertThat(response.publicationStatus()).isEqualTo(ProductPublicationStatus.ARCHIVED);
+    assertThat(response.archivedAt()).isNotNull();
+    assertThat(response.updatedAt()).isEqualTo(response.archivedAt());
+    then(repository).should(never()).delete(product);
   }
 
   @Test

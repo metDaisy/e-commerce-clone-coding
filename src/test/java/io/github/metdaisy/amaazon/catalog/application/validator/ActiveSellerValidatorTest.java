@@ -55,11 +55,11 @@ class ActiveSellerValidatorTest {
   void validate_shouldAllowActiveSeller() {
     UUID sellerId = UUID.randomUUID();
     authenticateAs("PRODUCT_MANAGER", sellerId);
-    given(sellerPort.existsSeller(sellerId)).willReturn(true);
+    given(sellerPort.existsActiveSellerByUserId(sellerId)).willReturn(true);
 
     new ActiveSellerValidator(sellerPort).validate(joinPoint, activeSeller);
 
-    then(sellerPort).should().existsSeller(sellerId);
+    then(sellerPort).should().existsActiveSellerByUserId(sellerId);
   }
 
   @Test
@@ -67,7 +67,7 @@ class ActiveSellerValidatorTest {
   void validate_shouldRejectInactiveSeller() {
     UUID sellerId = UUID.randomUUID();
     authenticateAs("PRODUCT_MANAGER", sellerId);
-    given(sellerPort.existsSeller(sellerId)).willReturn(false);
+    given(sellerPort.existsActiveSellerByUserId(sellerId)).willReturn(false);
 
     assertThatThrownBy(() -> new ActiveSellerValidator(sellerPort)
         .validate(joinPoint, activeSeller))

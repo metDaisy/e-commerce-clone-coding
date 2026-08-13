@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
@@ -120,6 +121,26 @@ class CategoryCommandServiceTest {
     assertThat(descendant.getDepth()).isEqualTo(3);
     assertThat(oldParent.getChildren()).doesNotContain(category);
     assertThat(newParent.getChildren()).contains(category);
+  }
+
+  @Test
+  @DisplayName("카테고리 수정: parentId가 null이면 루트 카테고리로 이동한다")
+  void update_shouldMoveCategoryToRoot_whenParentIdIsNull() {
+    Category oldParent = Category.of("Old parent", null);
+    Category category = Category.of("Category", oldParent);
+    CategoryResponse response = new CategoryResponse(category.getId(), "Renamed", null, 1,
+        List.of());
+    given(repository.findById(category.getId())).willReturn(Optional.of(category));
+    given(repository.findAll()).willReturn(List.of(oldParent, category));
+    given(mapper.toDto(category)).willReturn(response);
+
+    assertThat(service.update(category.getId(), new CategoryUpdateRequest("Renamed", null)))
+        .isSameAs(response);
+
+    assertThat(category.getParent()).isNull();
+    assertThat(category.getDepth()).isEqualTo(1);
+    assertThat(oldParent.getChildren()).doesNotContain(category);
+    then(repository).should(never()).findById(null);
   }
 
   @Test

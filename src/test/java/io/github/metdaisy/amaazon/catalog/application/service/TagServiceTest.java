@@ -49,4 +49,12 @@ class TagServiceTest {
     assertThat(result).extracting(Tag::getName).containsExactlyInAnyOrder("office", "sale");
     then(repository).should().saveAll(any());
   }
+
+  @Test
+  @DisplayName("태그 조회: tags가 null이면 빈 목록을 반환하고 저장소를 조회하지 않는다")
+  void findAndCreate_shouldReturnEmptyList_whenNamesAreNull() {
+    assertThat(service.findAndCreate(null)).isEmpty();
+
+    then(repository).shouldHaveNoInteractions();
+  }
 }

@@ -1,7 +1,10 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -37,5 +40,17 @@ class CategoryTest {
     root.removeChild(child);
 
     assertThat(root.getChildren()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("카테고리 계층: 자신의 하위 카테고리로 이동하면 순환을 거절한다")
+  void moveTo_shouldRejectDescendantAsParent() {
+    Category root = Category.of("Computers", null);
+    Category child = Category.of("Laptops", root);
+
+    assertThatThrownBy(() -> root.moveTo(child))
+        .isInstanceOf(CatalogProductException.class)
+        .hasFieldOrPropertyWithValue("code",
+            CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED.getCode());
   }
 }

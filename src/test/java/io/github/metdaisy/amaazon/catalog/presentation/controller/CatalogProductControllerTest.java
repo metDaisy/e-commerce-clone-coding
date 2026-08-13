@@ -13,10 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ProductPublicationStatus;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +103,22 @@ class CatalogProductControllerTest extends RestControllerTest {
   }
 
   @Test
+  @DisplayName("상품 수정 실패: 빈 상품명은 서비스 호출 없이 400으로 거절한다")
+  void update_shouldRejectBlankName() throws Exception {
+    UUID productId = UUID.randomUUID();
+    CatalogProductUpdateRequest request = new CatalogProductUpdateRequest(
+        " ", null, null, null, null);
+
+    mockMvc.perform(patch(PRODUCTS_URL + "/" + productId)
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"));
+
+    then(service).should(never()).update(any(UUID.class), any(CatalogProductUpdateRequest.class));
+  }
+
+  @Test
   @DisplayName("상품 식별자 수정: 식별자 요청을 서비스에 전달하고 200 응답을 반환한다")
   void updateIdentifier_shouldReturnUpdatedIdentifiers() throws Exception {
     UUID productId = UUID.randomUUID();
@@ -123,10 +142,14 @@ class CatalogProductControllerTest extends RestControllerTest {
   @DisplayName("상품 보관: 경로 ID를 서비스에 전달하고 보관된 상품 ID를 반환한다")
   void archive_shouldReturnArchivedProductId() throws Exception {
     UUID productId = UUID.randomUUID();
+    CatalogProductArchivedResponse response = new CatalogProductArchivedResponse(productId,
+        ProductPublicationStatus.ARCHIVED, Instant.now(), Instant.now());
+    given(service.archive(productId)).willReturn(response);
 
     mockMvc.perform(post(PRODUCTS_URL + "/" + productId + "/archive"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(productId.toString()));
+        .andExpect(jsonPath("$.id").value(productId.toString()))
+        .andExpect(jsonPath("$.publicationStatus").value("ARCHIVED"));
 
     then(service).should().archive(productId);
   }
