@@ -9,13 +9,15 @@
 | 도메인 | 문서 |
 |---|---|
 | P1 User & Auth | [p1-user-auth.md](p1-user-auth.md) |
-| P2 Catalog & Inventory | [p2-product.md](p2-product.md) |
+| P2 Catalog | [p2-catalog.md](p2-catalog.md) |
 | P3 Cart | [p3-cart.md](p3-cart.md) |
 | P4 Coupon | [p4-coupon.md](p4-coupon.md) |
 | P5 Order, Payment, Delivery | [p5-order-payment-delivery.md](p5-order-payment-delivery.md) |
 | P6 Outbox & Saga | [p6-infrastructure.md](p6-infrastructure.md) |
 | P7 Admin & Operations | [p7-admin.md](p7-admin.md) |
-| P8 Seller & Marketplace | [p8-seller.md](p8-seller.md) |
+| P8 Seller | [p8-seller.md](p8-seller.md) |
+| P9 Offer & Marketplace | [p9-offer.md](p9-offer.md) |
+| P10 Review | [p10-review.md](p10-review.md) |
 
 현재 구현 여부는 [current-state.md](../current-state.md)를 확인한다. 구현 순서는 각 작업 요청과 현재 상태를 기준으로 결정한다.
 

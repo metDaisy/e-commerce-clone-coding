@@ -145,7 +145,7 @@ OAuth callback의 성공 응답은 JSON이 아니라 redirect다. 기존 `(provi
 - `GET /api/v1/me`는 이름, 연락처, 가입일, 포인트 잔액과 로컬 로그인 사용자에게만 존재하는 nullable `loginEmail`을 반환한다. `users` 프로필 자체는 이메일을 소유하지 않는다.
 - `PATCH /api/v1/me`는 이름과 연락처만 수정한다.
 - 이메일 변경은 별도 API로 분리하고 기존 비밀번호를 재확인한다.
-- 탈퇴는 물리 삭제하지 않고 `is_active=false`로 처리한다.
+- 탈퇴는 물리 삭제하지 않고 `is_enabled=false`로 처리한다.
 - 비활성화된 계정은 로그인할 수 없다.
 - 비활성화 후 90일이 지나면 개인정보를 마스킹한다.
 
