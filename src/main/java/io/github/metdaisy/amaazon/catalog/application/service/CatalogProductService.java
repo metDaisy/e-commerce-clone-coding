@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProduct
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
@@ -50,10 +51,11 @@ public class CatalogProductService {
   public CatalogProductResponse update(UUID id, CatalogProductUpdateRequest request) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
-    List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
-        .stream()
-        .map(tag -> CatalogProductTag.of(catalog, tag))
-        .toList();
+    List<CatalogProductTag> tags = request.tags() == null ? null
+        : tagService.findAndCreate(request.tags())
+            .stream()
+            .map(tag -> CatalogProductTag.of(catalog, tag))
+            .toList();
     mapper.update(catalog, tags, request);
     return mapper.toDto(catalog);
   }
@@ -69,10 +71,11 @@ public class CatalogProductService {
   }
 
   @Transactional
-  public void archive(UUID id) {
+  public CatalogProductArchivedResponse archive(UUID id) {
     CatalogProduct catalog = findById(id);
-    catalog.validateActive();
-    repository.delete(catalog);
+    catalog.archive();
+    return new CatalogProductArchivedResponse(catalog.getId(), catalog.getPublicationStatus(),
+        catalog.getArchivedAt(), catalog.getUpdatedAt());
   }
 
   private void verifyIdentifier(UUID id, CatalogProductIdentifierType type, String value) {

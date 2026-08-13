@@ -31,7 +31,7 @@ public class ActiveSellerValidator {
 
   private void validateSeller(AmaazonPrincipal principal) {
     UUID managerId = principal.getId();
-    if (!sellerPort.existsSeller(managerId)) {
+    if (!sellerPort.existsActiveSellerByUserId(managerId)) {
       throw new CatalogProductException(CatalogProductErrorCode.SELLER_APPROVAL_REQUIRED,
           Map.of("managerId", managerId));
     }

@@ -14,6 +14,11 @@ public class CatalogProductSpecification {
         -> cb.equal(root.get("id"), id);
   }
 
+  public Specification<CatalogProduct> hasIdNot(UUID id) {
+    return (root, query, cb)
+        -> cb.notEqual(root.get("id"), id);
+  }
+
   public Specification<CatalogProduct> hasIdentifier(CatalogProductIdentifierType type,
       String value) {
     String field = switch (type) {

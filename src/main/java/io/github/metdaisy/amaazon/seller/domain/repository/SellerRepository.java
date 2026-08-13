@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface SellerRepository extends DomainRepository<Seller> {
 
-  boolean existsByIdAndStatus(UUID id, SellerStatus status);
+  boolean existsByUserIdAndStatus(UUID userId, SellerStatus status);
 }

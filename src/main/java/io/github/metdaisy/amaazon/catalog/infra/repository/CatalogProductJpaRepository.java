@@ -14,8 +14,10 @@ public interface CatalogProductJpaRepository extends JpaRepository<CatalogProduc
 
   @Override
   default boolean existsIdentifier(UUID id, CatalogProductIdentifierType type, String value) {
-    Specification<CatalogProduct> spec = CatalogProductSpecification.hasId(id)
-        .and(CatalogProductSpecification.hasIdentifier(type, value));
+    Specification<CatalogProduct> spec = CatalogProductSpecification.hasIdentifier(type, value);
+    if (id != null) {
+      spec = spec.and(CatalogProductSpecification.hasIdNot(id));
+    }
     return this.exists(spec);
   }
 }

@@ -28,6 +28,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 @Getter
@@ -38,6 +39,7 @@ import org.hibernate.type.SqlTypes;
 @SQLDelete(sql = "update catalog_products "
     + "set publication_status = 'ARCHIVED', archived_at = now(), updated_at = now() "
     + "where id = ?")
+@SQLRestriction("publication_status <> 'ARCHIVED'")
 public class CatalogProduct extends MutableEntity {
 
   @NotNull
@@ -86,7 +88,6 @@ public class CatalogProduct extends MutableEntity {
   @Column(name = "attributes")
   private Map<String, Object> attributes = new HashMap<>();
 
-  @Size(max = 20)
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(name = "publication_status", nullable = false, length = 20)
@@ -119,5 +120,13 @@ public class CatalogProduct extends MutableEntity {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_PRODUCT_ARCHIVED,
           Map.of("catalogId", getId()));
     }
+  }
+
+  public void archive() {
+    validateActive();
+    Instant now = Instant.now();
+    publicationStatus = ProductPublicationStatus.ARCHIVED;
+    archivedAt = now;
+    setUpdatedAt(now);
   }
 }

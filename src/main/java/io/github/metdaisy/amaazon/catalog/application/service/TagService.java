@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
 import io.github.metdaisy.amaazon.catalog.domain.repository.TagRepository;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,6 +21,9 @@ public class TagService {
 
   @Transactional
   public List<Tag> findAndCreate(Collection<String> names) {
+    if (names == null || names.isEmpty()) {
+      return Collections.emptyList();
+    }
     List<Tag> tags = new ArrayList<>(repository.findByNameIn(names));
     Set<String> tagNames = tags.stream().map(Tag::getName).collect(Collectors.toSet());
     Set<String> noNames = new HashSet<>(names);

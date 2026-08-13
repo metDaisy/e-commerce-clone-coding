@@ -1,5 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -13,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -61,6 +64,7 @@ public class Category extends MutableEntity {
   }
 
   public void moveTo(Category parent) {
+    validateNoCycle(parent);
     if (this.parent != parent) {
       if (this.parent != null) {
         this.parent.removeChild(this);
@@ -71,6 +75,17 @@ public class Category extends MutableEntity {
     }
     this.parent = parent;
     this.depth = parent == null ? 1 : parent.getDepth() + 1;
+  }
+
+  private void validateNoCycle(Category parent) {
+    Category current = parent;
+    while (current != null) {
+      if (current == this || (getId() != null && getId().equals(current.getId()))) {
+        throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
+            Map.of("categoryId", getId()));
+      }
+      current = current.parent;
+    }
   }
 
   public void addChild(Category child) {

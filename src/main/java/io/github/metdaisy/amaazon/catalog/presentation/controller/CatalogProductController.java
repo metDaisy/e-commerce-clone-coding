@@ -3,10 +3,10 @@ package io.github.metdaisy.amaazon.catalog.presentation.controller;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
-import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductArchivedResponse;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,6 @@ public class CatalogProductController {
 
   @PostMapping("/{id}/archive")
   public ResponseEntity<CatalogProductArchivedResponse> archive(@PathVariable UUID id) {
-    service.archive(id);
-    return ResponseEntity.status(HttpStatus.OK).body(new CatalogProductArchivedResponse(id));
+    return ResponseEntity.status(HttpStatus.OK).body(service.archive(id));
   }
 }

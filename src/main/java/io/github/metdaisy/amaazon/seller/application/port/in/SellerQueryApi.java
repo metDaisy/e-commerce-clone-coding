@@ -16,7 +16,7 @@ public class SellerQueryApi {
 
   private final SellerRepository repository;
 
-  public boolean isActiveSeller(UUID id) {
-    return repository.existsByIdAndStatus(id, SellerStatus.ACTIVE);
+  public boolean isActiveSeller(UUID userId) {
+    return repository.existsByUserIdAndStatus(userId, SellerStatus.ACTIVE);
   }
 }

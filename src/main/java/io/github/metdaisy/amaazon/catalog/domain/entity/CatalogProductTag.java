@@ -5,7 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -28,7 +27,7 @@ public class CatalogProductTag extends ImmutableEntity {
   private CatalogProduct catalogProduct;
 
   @NotNull
-  @OneToOne(fetch = FetchType.LAZY, optional = false)
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "tag_id", nullable = false)
   private Tag tag;
 

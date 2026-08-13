@@ -13,7 +13,7 @@ public class CatalogSellerAdapter implements CatalogSellerPort {
   private final SellerQueryApi api;
 
   @Override
-  public boolean existsSeller(UUID id) {
-    return api.isActiveSeller(id);
+  public boolean existsActiveSellerByUserId(UUID userId) {
+    return api.isActiveSeller(userId);
   }
 }

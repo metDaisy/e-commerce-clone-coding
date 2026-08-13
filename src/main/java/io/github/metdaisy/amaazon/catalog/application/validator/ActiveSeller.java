@@ -8,8 +8,4 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ActiveSeller {
-
-  boolean checkOwner() default false;
-
-  String catalogId() default "id";
 }

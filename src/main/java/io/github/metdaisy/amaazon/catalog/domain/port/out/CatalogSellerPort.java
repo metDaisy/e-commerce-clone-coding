@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface CatalogSellerPort {
 
-  boolean existsSeller(UUID id);
+  boolean existsActiveSellerByUserId(UUID userId);
 }
