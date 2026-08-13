@@ -11,7 +11,6 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -29,8 +28,7 @@ public interface CatalogProductMapper {
   @Mapping(target = "tags", ignore = true)
   @Mapping(target = "name", source = "request.name")
   @Mapping(target = ".", source = "request")
-  CatalogProduct toEntity(UUID managerId, Category category,
-      CatalogProductCreateRequest request);
+  CatalogProduct toEntity(Category category, CatalogProductCreateRequest request);
 
   @Mapping(target = "tags", source = "tags", conditionQualifiedByName = "checkCollection")
   void update(@MappingTarget CatalogProduct catalog, List<CatalogProductTag> tags,

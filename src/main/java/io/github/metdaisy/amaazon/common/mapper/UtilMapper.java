@@ -1,9 +1,12 @@
 package io.github.metdaisy.amaazon.common.mapper;
 
 import java.util.Collection;
+import org.mapstruct.Mapper;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
 import org.mapstruct.SourceParameterCondition;
 
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface UtilMapper {
 
   @SourceParameterCondition

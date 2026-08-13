@@ -8,6 +8,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProduc
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
+import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
@@ -29,13 +30,13 @@ public class CatalogProductService {
   private final CatalogProductRepository repository;
   private final CatalogProductMapper mapper;
   private final TagService tagService;
-  private final CategoryService categoryService;
+  private final CategoryQueryService categoryQueryService;
   private final List<CatalogProductIdentifierVerifier> verifiers;
 
   @Transactional
-  public CatalogProductResponse create(UUID managerId, CatalogProductCreateRequest request) {
-    Category category = categoryService.getProxy(request.categoryId());
-    CatalogProduct catalogProduct = mapper.toEntity(managerId, category, request);
+  public CatalogProductResponse create(CatalogProductCreateRequest request) {
+    Category category = categoryQueryService.getProxy(request.categoryId());
+    CatalogProduct catalogProduct = mapper.toEntity(category, request);
     List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
         .stream()
         .map(tag -> CatalogProductTag.of(catalogProduct, tag))

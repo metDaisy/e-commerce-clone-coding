@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service.category;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
@@ -10,17 +10,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class CategoryService {
+public class CategoryQueryService {
 
   private final CategoryRepository repository;
   private final CategoryMapper mapper;
 
+  @Cacheable(cacheNames = "categories")
   public List<CategoryResponse> findAll() {
     return mapper.toDto(repository.findAll());
   }
@@ -32,5 +34,4 @@ public class CategoryService {
     }
     return repository.getReferenceById(id);
   }
-
 }
