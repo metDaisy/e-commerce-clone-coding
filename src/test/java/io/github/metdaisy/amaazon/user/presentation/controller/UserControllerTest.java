@@ -49,9 +49,9 @@ class UserControllerTest extends RestControllerTest {
   void update_success() throws Exception {
     UserUpdateRequest request = new UserUpdateRequest("updated", "01098765432", "Busan");
     User user = User.createUser(
-        UUID.randomUUID(), request.name(), request.phoneNumber(), request.address());
+        UUID.randomUUID(), request.name(), request.phoneNumber());
     UserResponse response = new UserResponse(
-        user.getName(), user.getPhoneNumber(), 0, user.getAddress(), Instant.now());
+        user.getName(), user.getPhoneNumber(), 0, null, Instant.now());
     given(userService.update(any(UUID.class), any(UserUpdateRequest.class))).willReturn(user);
     given(userMapper.toDto(user)).willReturn(response);
 
@@ -85,9 +85,9 @@ class UserControllerTest extends RestControllerTest {
   @Test
   @DisplayName("내 정보 조회 성공: 인증 사용자 ID로 조회한 사용자 정보를 반환한다")
   void getMe_success() throws Exception {
-    User user = User.createUser(USER_ID, "tester", "01012345678", "Seoul");
+    User user = User.createUser(USER_ID, "tester", "01012345678");
     UserResponse response = new UserResponse(
-        user.getName(), user.getPhoneNumber(), 0, user.getAddress(), Instant.now());
+        user.getName(), user.getPhoneNumber(), 0, null, Instant.now());
     given(userService.find(USER_ID)).willReturn(user);
     given(userMapper.toDto(user)).willReturn(response);
 

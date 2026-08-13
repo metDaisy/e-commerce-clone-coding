@@ -42,7 +42,7 @@ class UserServiceTest {
   void create_success() {
     // given
     FormSignUpTask task = createTask("01012345678");
-    User savedUser = User.createUser(task.id(), task.name(), task.phoneNumber(), task.address());
+    User savedUser = User.createUser(task.id(), task.name(), task.phoneNumber());
     given(userRepository.existsByPhoneNumber(task.phoneNumber())).willReturn(false);
     given(userRepository.save(any(User.class))).willReturn(savedUser);
 
@@ -60,7 +60,7 @@ class UserServiceTest {
   void create_success_whenPhoneNumberHasNoText(String phoneNumber) {
     // given
     FormSignUpTask task = createTask(phoneNumber);
-    User savedUser = User.createUser(task.id(), task.name(), phoneNumber, task.address());
+    User savedUser = User.createUser(task.id(), task.name(), phoneNumber);
     given(userRepository.save(any(User.class))).willReturn(savedUser);
 
     // when
@@ -90,7 +90,7 @@ class UserServiceTest {
   void update_success() {
     // given
     UUID userId = UUID.randomUUID();
-    User user = User.createUser(userId, "기존이름", "01011112222", "기존주소");
+    User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest(
         "변경이름", "01033334444", "변경주소");
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
@@ -102,8 +102,8 @@ class UserServiceTest {
     // then
     assertThat(result).isSameAs(user);
     assertThat(result)
-        .extracting(User::getName, User::getPhoneNumber, User::getAddress)
-        .containsExactly(request.name(), request.phoneNumber(), request.address());
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly(request.name(), request.phoneNumber());
   }
 
   @Test
@@ -126,7 +126,7 @@ class UserServiceTest {
   void update_failure_whenPhoneNumberAlreadyExists(boolean duplicateCount) {
     // given
     UUID userId = UUID.randomUUID();
-    User user = User.createUser(userId, "기존이름", "01011112222", "기존주소");
+    User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest(null, "01033334444", null);
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(duplicateCount);

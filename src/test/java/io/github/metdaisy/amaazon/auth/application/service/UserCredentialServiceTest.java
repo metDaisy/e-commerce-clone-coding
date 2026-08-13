@@ -52,7 +52,7 @@ class UserCredentialServiceTest {
     // then
     verify(repository).save(credential);
     assertThat(credential.getEmail()).isEqualTo("test@example.com");
-    assertThat(credential.getPassword()).isEqualTo("encoded-password");
+    assertThat(credential.getPasswordHash()).isEqualTo("encoded-password");
   }
 
   @Test
@@ -78,7 +78,7 @@ class UserCredentialServiceTest {
     userCredentialService.update(id, "new@example.com", "new-password");
 
     assertThat(credential.getEmail()).isEqualTo("new@example.com");
-    assertThat(credential.getPassword()).isEqualTo("new-encoded-password");
+    assertThat(credential.getPasswordHash()).isEqualTo("new-encoded-password");
   }
 
   @Test
