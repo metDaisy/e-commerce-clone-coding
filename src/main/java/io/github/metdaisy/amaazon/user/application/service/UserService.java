@@ -23,7 +23,7 @@ public class UserService {
   @Transactional
   public void create(FormSignUpTask task) {
     validatePhoneNumber(task.phoneNumber());
-    User user = User.createUser(task.id(), task.name(), task.phoneNumber(), task.address());
+    User user = User.createUser(task.id(), task.name(), task.phoneNumber());
     repository.save(user);
   }
 
@@ -33,7 +33,6 @@ public class UserService {
     user.updateName(request.name());
     validatePhoneNumber(request.phoneNumber());
     user.updatePhoneNumber(request.phoneNumber());
-    user.updateAddress(request.address());
     return user;
   }
 
