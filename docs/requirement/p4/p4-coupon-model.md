@@ -69,6 +69,8 @@
 - `clipId → CouponClip → Coupon` 관계로 쿠폰을 추적하므로 `couponId`를 중복 저장하지 않는다.
 - `redeemedAt`은 Clip 시각이나 주문 생성 시각이 아니라 쿠폰 적용 시각이다.
 - 주문 재시도로 동일 할인 기록을 중복 생성하지 않는다.
+- 하나의 `OrderItem`에는 `CONFIRMED` 상태의 CouponRedemption을 하나만 유지한다. 동일 상품에 여러 쿠폰을 중첩하지 않는다.
+- 하나의 Order에는 서로 다른 `UserCoupon`을 최대 5개까지 적용할 수 있다. 하나의 쿠폰이 여러 OrderItem에 적용되면 OrderItem별 CouponRedemption을 생성한다.
 - 주문 취소·환불에 따른 적용 취소 기준은 P5에서 정의한다.
 
 ## 5. 상태 전이
