@@ -203,3 +203,20 @@ provider 마다 반환되는 oauth 응답이 다르지만 생성해야 하는 `a
 요구사항을 github issue 에 등록하여 issue 단위로 구현할 것이다.  
 
 </details>
+
+<details>
+
+<summary><h2>2026-08-15</h2></summary>
+
+동시 접속은 허용하되 하나의 주문은 한 기기에서만 주문 조회·갱신·결제를 허용한다.  
+주문 세션은 영속 데이터가 아닌 Caffeine 기반의 임시 점유 정보로 관리하며 서버 재시작 시 초기화한다.  
+`OrderSession`은 `orderId`, `userId`, `tokenHash`, `expiresAt`, `heartbeatExpiresAt`만 가진다.  
+Checkout Token은 서버가 생성한 32바이트 난수이며 원문은 HttpOnly Cookie에만 저장하고 서버에는 SHA-256 해시만 저장한다.  
+`tokenHash`는 서버가 현재 유효한 주문 세션을 직접 통제하기 위한 값이며 `deviceId`는 보안 검증에 사용하지 않는다.  
+Refresh Token은 서명과 사용자 정보를 검증하기 위해 JWT를 사용하지만 주문 세션은 즉시 해제와 단일 기기 점유가 필요하므로 랜덤 토큰과 `tokenHash`를 사용한다.  
+주문 관련 API 활동이 있으면 `expiresAt`을 30분 연장하고 하트비트는 브라우저 생존 확인을 위해 `heartbeatExpiresAt`만 3분 연장한다.  
+주문 화면에서 사용하는 API allowlist는 세션을 유지하고 만료 시간을 연장하며 allowlist 외 API 응답은 해당 토큰의 세션과 Cookie를 정리한다.  
+SPA·CSR에서는 별도 진입 endpoint를 만들지 않고 기존 화면 API 응답의 `Set-Cookie`로 현재 브라우저의 Checkout Cookie를 삭제한다.  
+세션 정리는 `userId`가 아닌 `tokenHash` 기준으로 수행하므로 다른 기기의 주문 세션에는 영향을 주지 않는다.
+
+</details>
