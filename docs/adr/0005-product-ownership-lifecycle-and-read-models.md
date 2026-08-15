@@ -8,13 +8,13 @@
 
 ## Context
 
-CatalogProduct와 ProductVariant는 여러 판매자가 공유하는 카탈로그와 구매 단위다. 판매자가 이를 직접 생성·수정하면 동일 상품의 중복 등록과 SKU·상품 정보 불일치가 발생하고, `managerId`를 소유자로 저장하면 다른 판매자가 같은 상품에 Offer를 등록하는 모델과 충돌한다. 또한 관리자, 판매자, 고객은 같은 상품을 조회하더라도 필요한 정보와 노출해도 되는 정보가 다르다.
+CatalogProduct와 ProductVariant는 여러 판매자가 공유하는 카탈로그와 구매 단위다. 판매자가 이를 직접 생성·수정하면 동일 상품의 중복 등록과 상품 정보 불일치가 발생하고, `managerId`를 소유자로 저장하면 다른 판매자가 같은 상품에 Offer를 등록하는 모델과 충돌한다. 또한 관리자, 판매자, 고객은 같은 상품을 조회하더라도 필요한 정보와 노출해도 되는 정보가 다르다.
 
 상품과 판매 제안의 삭제 의미도 분리해야 한다. 상품 이력을 보존하면서 공개 노출과 구매를 막아야 하고, 상위 CatalogProduct가 보관될 때 하위 Offer가 계속 활성 상태로 남아서는 안 된다.
 
 ## Decision Drivers
 
-- CatalogProduct·ProductVariant의 공통 정보와 SKU 일관성
+- CatalogProduct·ProductVariant의 공통 정보와 Variant 식별자 일관성
 - 판매자 간 데이터 격리와 최소 권한
 - 주문·리뷰·감사 이력의 보존
 - 고객 응답의 개인정보·정확한 재고 수량·관리 정보 노출 방지
@@ -25,11 +25,11 @@ CatalogProduct와 ProductVariant는 여러 판매자가 공유하는 카탈로�
 
 ### Option A: 판매자가 CatalogProduct·ProductVariant를 소유
 
-판매자별 `managerId`를 저장하고 자신의 상품만 수정한다. 초기 등록은 단순하지만 동일 상품의 중복 등록, SKU 충돌, 판매자 간 공유 상품 모델의 복잡성이 커진다.
+판매자별 `managerId`를 저장하고 자신의 상품만 수정한다. 초기 등록은 단순하지만 동일 상품의 중복 등록과 판매자 간 공유 상품 모델의 복잡성이 커진다.
 
 ### Option B: ADMIN이 카탈로그를 소유하고 판매자는 Offer를 소유
 
-ADMIN만 CatalogProduct·ProductVariant·Media를 생성·수정·보관한다. 활성 Seller인 `PRODUCT_MANAGER`는 기존 ProductVariant를 조회하고 자신의 Offer·Inventory만 관리한다. 카탈로그의 단일 기준을 유지하는 대신 판매자가 Offer를 등록하기 전에 카탈로그를 검색해야 한다.
+ADMIN만 CatalogProduct·ProductVariant·CatalogProduct Media를 생성·수정·보관한다. 활성 Seller인 `PRODUCT_MANAGER`는 기존 ProductVariant를 조회하고 자신의 Offer·Offer Media·Inventory만 관리한다. 카탈로그의 단일 기준을 유지하는 대신 판매자가 Offer를 등록하기 전에 카탈로그를 검색해야 한다.
 
 ### Option C: 모든 역할이 같은 검색 응답을 사용
 
@@ -39,7 +39,7 @@ API를 단순하게 유지할 수 있지만 고객에게 관리자 상태·정�
 
 Option B를 선택하고 Option C를 사용하지 않는다.
 
-- CatalogProduct와 ProductVariant의 생성·수정·보관은 `ADMIN`만 수행한다. Media 등록·수정·보관도 동일하게 `ADMIN` 전용이다.
+- CatalogProduct와 ProductVariant의 생성·수정·보관은 `ADMIN`만 수행한다. CatalogProduct Media 등록·수정·보관도 `ADMIN` 전용이며, Offer Media는 Offer 소유 Seller가 관리한다.
 - `CatalogProduct`에는 관리자 소유자나 `managerId`를 저장하지 않는다. 모든 ADMIN이 모든 CatalogProduct·ProductVariant를 관리한다.
 - `PRODUCT_MANAGER`는 활성 Seller를 가진 User를 뜻한다. CatalogProduct·ProductVariant를 변경하지 않고, 자신의 Offer와 Offer에 종속된 Inventory만 생성·수정·보관·조정한다.
 - Offer 보관은 물리 삭제가 아닌 `status = ARCHIVED`이며 다시 활성화할 수 없다. Offer의 활성·비활성은 소유 Seller와 ADMIN이 수행하되, 보관된 Offer는 예외다.
@@ -54,7 +54,7 @@ Option B를 선택하고 Option C를 사용하지 않는다.
 ### Positive
 
 - 상품 메타데이터와 판매 조건의 소유권이 분리되어 다중 판매자 Offer를 안전하게 추가할 수 있다.
-- SKU·상품 설명·Media의 단일 관리 주체가 명확해진다.
+- Variant 식별자·상품 설명·Media의 단일 관리 주체가 명확해진다.
 - 보관과 Offer 비활성화를 통해 이력을 보존하면서 공개·구매 상태를 차단할 수 있다.
 - 고객·판매자·관리자에게 필요한 정보만 제공해 조회 권한과 응답 책임이 분리된다.
 
@@ -74,11 +74,11 @@ Option B를 선택하고 Option C를 사용하지 않는다.
 
 ## Evidence
 
-- [P2 Catalog 요구사항](../requirement/p2-catalog.md)
-- [P7 관리자 요구사항](../requirement/p7-admin.md)
-- [P8 Seller 요구사항](../requirement/p8-seller.md)
-- [P9 Offer & Marketplace 요구사항](../requirement/p9-offer.md)
-- [P10 Review 요구사항](../requirement/p10-review.md)
+- [P2 Catalog 요구사항](../requirement/p2/p2-catalog.md)
+- [P7 관리자 요구사항](../requirement/p7/p7-admin.md)
+- [P8 Seller 요구사항](../requirement/p8/p8-seller.md)
+- [P9 Offer & Marketplace 요구사항](../requirement/p9/p9-offer.md)
+- [P10 Review 요구사항](../requirement/p10/p10-review.md)
 - [도메인 용어집](../domain-glossary.md)
 - [아키텍처 문서](../architecture.md)
 - [ADR-0002 상품 개념 분리](0002-separate-p2-product-concepts.md)

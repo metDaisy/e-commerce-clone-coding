@@ -34,7 +34,7 @@
 
 Option B를 선택한다.
 
-- **P2 Catalog**는 Category, CatalogProduct, ProductVariant, 상품용 Media, 판매자·관리자 카탈로그 조회를 소유한다. CatalogProduct·ProductVariant·상품용 Media의 생성·수정·보관은 `ADMIN`만 수행한다.
+- **P2 Catalog**는 Category, CatalogProduct, ProductVariant, CatalogProduct Media, 판매자·관리자 카탈로그 조회를 소유한다. CatalogProduct·ProductVariant·CatalogProduct Media의 생성·수정·보관은 `ADMIN`만 수행한다. ProductVariant에는 Media를 연결하지 않는다.
 - **P8 Seller**는 Seller 신청·승인·프로필과 판매자 주문 조회만 소유한다. Offer·Inventory는 소유하지 않는다.
 - **P9 Offer & Marketplace**는 Offer, Inventory, 가격·판매 상태, 판매자의 Offer 등록 흐름, 고객용 상품 검색·상세를 소유한다. P9가 P2의 공개 Catalog interface를 호출해 Variant를 검증하고, P2는 P9를 직접 호출하지 않는다.
 - **P10 Review**는 Review와 리뷰 Media, 구매·배송 완료 자격 검증을 소유한다. 고객용 상품 상세는 P10의 Review 요약만 조합한다.
@@ -60,15 +60,15 @@ Option B를 선택한다.
 
 ### Follow-up
 
-- P2 문서를 `p2-catalog.md`로 유지하고 P9·P10 문서를 요구사항 인덱스에 등록한다.
+- P2 문서는 `p2/` 디렉토리에서 관리하고 P9·P10 문서를 요구사항 인덱스에 등록한다.
 - 기존 P8 Offer·Inventory 절과 기존 P2 Review·고객 검색 절을 제거하고 새 문서로 이동한다.
 - `/api/v1/catalog-products/{catalogProductId}`의 `PRODUCT_MANAGER + ACTIVE Seller` 권한과 고객용 P9 상세 API를 각각 테스트한다.
 - 구현 시 P9의 Catalog 참조와 P10의 Order 참조를 Modulith 공개 interface로 제한한다.
 
 ## Evidence
 
-- [P2 Catalog 요구사항](../requirement/p2-catalog.md)
-- [P8 Seller 요구사항](../requirement/p8-seller.md)
-- [P9 Offer & Marketplace 요구사항](../requirement/p9-offer.md)
-- [P10 Review 요구사항](../requirement/p10-review.md)
+- [P2 Catalog 요구사항](../requirement/p2/p2-catalog.md)
+- [P8 Seller 요구사항](../requirement/p8/p8-seller.md)
+- [P9 Offer & Marketplace 요구사항](../requirement/p9/p9-offer.md)
+- [P10 Review 요구사항](../requirement/p10/p10-review.md)
 - [아키텍처 문서](../architecture.md)

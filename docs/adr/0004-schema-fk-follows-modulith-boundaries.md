@@ -33,7 +33,7 @@
 
 Option B를 선택한다.
 
-- 같은 도메인 내부 엔티티에는 FK를 생성한다. 예: `catalog_product_tags → catalog_products/tags`, `product_variants → catalog_products`, `reviews → product_variants`, `cart_items → carts`, `order_items → orders`, `saga_steps → saga_instances`.
+- 같은 도메인 내부 엔티티에는 FK를 생성한다. 예: `catalog_product_tags → catalog_products/tags`, `product_variants → catalog_products`, `reviews → offers`(ADR-0008 전환 목표), `cart_items → carts`, `order_items → orders`, `saga_steps → saga_instances`.
 - 다른 도메인의 ID는 UUID 컬럼으로 저장하되 FK를 생성하지 않는다. 예: 인증수단의 `user_id`, 리뷰의 `user_id`, 결제·배송의 `order_id`.
 - `V1__init_schema.sql`에 요구사항 기준 컬럼·구매 모델·내부 FK를 정의한다.
 - 심화사항은 이후 버전의 별도 Flyway migration으로 추가한다.

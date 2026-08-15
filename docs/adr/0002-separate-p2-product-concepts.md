@@ -34,7 +34,7 @@ Amazon과 유사한 상품 화면은 상품 설명, 색상·사이즈 조합, �
 Option B를 선택한다.
 
 - `CatalogProduct`는 상품명, 설명, 브랜드, 카테고리, 상품 속성, 전시 미디어를 소유하며 `ADMIN`만 생성·수정·보관한다. 관리자 소유자나 `managerId`는 저장하지 않는다.
-- `ProductVariant`는 실제 구매 조합과 SKU를 소유하며 `ADMIN`만 생성·수정·보관한다.
+- `ProductVariant`는 실제 구매 조합을 소유하고 서버 생성 `variantId`로 식별하며 `ADMIN`만 생성·수정·보관한다.
 - `Offer`는 활성 Seller가 ProductVariant를 판매하기 위한 가격·판매 상태·판매자 조건을 소유한다. 하나의 Seller는 같은 ProductVariant에 Offer를 하나만 가진다.
 - `Inventory`는 Offer 생성 시 함께 생성되며 Offer별 가용 수량·차감·복원 규칙을 소유한다.
 - Seller가 아닌 플랫폼 기본 Offer는 기본 모델에 두지 않는다. 고객 공개 조회는 활성 Seller의 공개 Offer만 조합한다.
@@ -63,6 +63,6 @@ Option B를 선택한다.
 
 ## Evidence
 
-- [P2 Catalog 요구사항](../requirement/p2-catalog.md)
+- [P2 Catalog 요구사항](../requirement/p2/p2-catalog.md)
 - [아키텍처 문서](../architecture.md)
 
