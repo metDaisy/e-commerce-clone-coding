@@ -8,17 +8,31 @@
 
 | 도메인 | 문서 |
 |---|---|
-| P1 User | [p1-user.md](p1-user.md) |
-| P2 Catalog | [p2-catalog.md](p2-catalog.md) |
-| P3 Cart | [p3-cart.md](p3-cart.md) |
-| P4 Coupon | [p4-coupon.md](p4-coupon.md) |
-| P5 Order, Payment, Delivery | [p5-order-payment-delivery.md](p5-order-payment-delivery.md) |
-| P6 Outbox & Saga | [p6-infrastructure.md](p6-infrastructure.md) |
-| P7 Admin & Operations | [p7-admin.md](p7-admin.md) |
-| P8 Seller | [p8-seller.md](p8-seller.md) |
-| P9 Offer & Marketplace | [p9-offer.md](p9-offer.md) |
-| P10 Review | [p10-review.md](p10-review.md) |
-| P11 Auth | [p11-auth.md](p11-auth.md) |
+| P1 User | [P1 index](p1/p1-index.md), [Policy](p1/p1-policy.md), [User API](p1/p1-user.md), [Address API](p1/p1-address.md) |
+| P2 Catalog | [P2 index](p2/p2-index.md), [Policy](p2/p2-policy.md), [Catalog](p2/p2-catalog.md), [Category](p2/p2-category.md), [CatalogProduct](p2/p2-catalog-product.md), [ProductVariant](p2/p2-product-variant.md) |
+| P3 Cart | [P3 index](p3/p3-index.md), [Policy](p3/p3-policy.md), [Cart](p3/p3-cart.md) |
+| P4 Coupon | [P4 index](p4/p4-index.md), [Policy](p4/p4-policy.md), [Coupon API](p4/p4-coupon.md), [Seller API](p4/p4-coupon-seller.md), [Customer API](p4/p4-coupon-customer.md), [Advanced](p4/p4-coupon-advanced.md) |
+| P5 Order, Payment, Delivery | [P5 index](p5/p5-index.md), [Policy](p5/p5-policy.md), [Order](p5/p5-order.md), [Order Core](p5/p5-order-core.md), [Order Checkout](p5/p5-order-checkout.md), [Order Session](p5/p5-order-session.md), [Order History](p5/p5-order-history.md), [Payment](p5/p5-payment.md), [Payment Method](p5/p5-payment-method.md), [Payment Process](p5/p5-payment-process.md), [Delivery](p5/p5-delivery.md) |
+| P6 Outbox & Saga | [P6 index](p6/p6-index.md), [Infrastructure](p6/p6-infrastructure.md) |
+| P7 Admin & Operations | [P7 index](p7/p7-index.md), [Policy](p7/p7-policy.md), [Admin API](p7/p7-admin.md) |
+| P8 Seller | [P8 index](p8/p8-index.md), [P8 Policy](p8/p8-policy.md), [SellerApplication API](p8/p8-seller-application.md), [Seller API](p8/p8-seller-profile.md), [CatalogRegistrationRequest API](p8/p8-catalog-requests.md), [SellerOrder API](p8/p8-seller-orders.md) |
+| P9 Offer & Marketplace | [P9 index](p9/p9-index.md), [Policy](p9/p9-policy.md), [Offer API](p9/p9-offer.md), [Inventory API](p9/p9-inventory.md), [Seller Catalog API](p9/p9-seller-catalog.md), [Marketplace API](p9/p9-marketplace.md), [Exceptions](p9/p9-exceptions.md) |
+| P10 Review | [P10 index](p10/p10-index.md), [Policy](p10/p10-policy.md), [Review](p10/p10-review.md) |
+| P11 Auth | [P11 index](p11/p11-index.md), [Policy](p11/p11-policy.md), [Credential](p11/p11-credential.md), [Sign-up](p11/p11-signup.md), [Session](p11/p11-session.md) |
+| P12 Media | [P12 index](p12/p12-index.md), [Policy](p12/p12-policy.md), [Media API](p12/p12-media.md) |
+
+도메인 문서를 새로 작성할 때는 [요구사항 문서 템플릿](template/index.md)을 사용한다. 템플릿은 `index.md`, `policy.md`, `[resource].md`로 구성한다.
+
+P2 상세 문서:
+
+- [P2 Category](p2/p2-category.md)
+- [P2 CatalogProduct](p2/p2-catalog-product.md)
+- [P2 ProductVariant](p2/p2-product-variant.md)
+
+P2 심화 문서:
+
+- [P2 SearchKeyword](p2/p2-search-keyword.md)
+- [P2 ProductType·ItemType](p2/p2-product-type.md)
 
 현재 구현 여부는 [current-state.md](../current-state.md)를 확인한다. 구현 순서는 각 작업 요청과 현재 상태를 기준으로 결정한다.
 
@@ -45,28 +59,14 @@
 
 ### 성공 응답
 
-단건 성공 응답과 오류 응답은 다음 봉투를 사용한다.
-
-```json
-{
-  "success": true,
-  "data": {},
-  "error": null,
-  "meta": {
-    "requestId": "uuid",
-    "timestamp": "2026-08-09T12:00:00Z"
-  }
-}
-```
-
-목록 조회의 성공 응답은 `success`, `error`, `meta`를 생략하고 목록 데이터와 페이지네이션 필드만 반환한다. 도메인 문서의 단건 응답 예시는 envelope의 `data` 내부 값이고, 목록 응답 예시는 최상위 응답 전체다.
+성공 응답은 공통 봉투를 사용하지 않는다. 각 도메인이 정의한 Response DTO를 HTTP 응답 본문으로 직접 반환한다. 목록 조회도 목록 데이터와 페이지네이션 필드를 포함한 도메인별 Response DTO를 직접 반환한다.
 
 - 생성 성공은 `201 Created`, 조회·수정·삭제 성공은 기본 `200 OK`를 사용한다.
 - 본문이 없는 성공은 `204 No Content`를 사용할 수 있다.
-- 도메인 문서의 응답 예시는 `data` 내부 값이다.
-- 서버는 모든 요청에 `requestId`를 부여하고 로그·이벤트에 같은 값을 기록한다.
+- 도메인 문서는 각 API가 반환하는 Response DTO 전체를 성공 응답 예시로 작성한다.
+- 서버는 모든 요청에 `requestId`를 부여하고 `X-Request-Id` 응답 헤더와 로그·이벤트에 같은 값을 기록한다. `requestId`는 응답 본문에 포함하지 않는다.
 - 모든 날짜·시간은 ISO-8601 UTC를 사용한다.
-- 금액은 부동소수점이 아닌 `amount`와 ISO 4217 `currency` 조합으로 표현한다.
+- 금액은 기본적으로 부동소수점이 아닌 `amount`와 ISO 4217 `currency` 조합으로 표현한다. 단, KRW로 고정한 P5 Order 금액은 숫자 필드만 사용하고 `currency`를 노출하지 않는다.
 
 ### 목록·페이지네이션 응답
 
@@ -76,18 +76,18 @@
   "page": 0,
   "size": 20,
   "totalElements": 0,
-  "totalPages": 0,
-  "hasNext": false
+  "totalPages": 0
 }
 ```
 
 - 기본 `page=0`, `size=20`이다.
 - 최대 `size=100`이다.
+- 다음 페이지 존재 여부는 `page + 1 < totalPages`로 판단한다.
 - 정렬 기준과 방향은 도메인 문서에서 명시한다.
 
 ### 커서 기반 페이지네이션
 
-상품·리뷰·주문·포인트 원장처럼 데이터가 계속 누적되거나 목록이 자주 변경되는 조회는 커서 기반 조회를 사용한다.
+상품·판매자 주문·포인트 히스토리처럼 데이터가 계속 누적되거나 목록이 자주 변경되는 조회는 커서 기반 조회를 사용한다. Review 목록과 구매자 주문 목록은 전체 건수와 페이지 이동이 필요하므로 페이지 기반 조회를 사용하며, 설명 키워드 검색은 심화사항으로 둔다.
 
 - 첫 조회에서는 `cursor`를 생략하고, 다음 조회부터 응답의 `nextCursor`를 그대로 전달한다.
 - `cursor`는 정렬 기준·필터 조건·마지막 항목의 위치를 포함하는 opaque 값이며 클라이언트가 해석하거나 수정하지 않는다.
@@ -117,55 +117,54 @@
 
 ### 예외 응답
 
+예외 응답은 성공 응답과 마찬가지로 봉투를 사용하지 않는다. 모든 도메인은 다음 클라이언트용 오류 DTO를 사용한다.
+
 ```json
 {
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "요청 값이 올바르지 않습니다.",
-    "details": {
-      "fields": [
-        {
-          "field": "variant.sku",
-          "reason": "required",
-          "message": "필수 값입니다."
-        }
-      ]
-    }
+  "statusCode": 404,
+  "exceptionCode": "USER-001",
+  "message": "유저를 찾을 수 없습니다.",
+  "details": {
+    "field1": "value1",
+    "field2": "value2"
   },
-  "meta": {
-    "requestId": "uuid",
-    "timestamp": "2026-08-09T12:00:00Z"
-  }
+  "timestamp": "2026-08-16T12:31:33.333Z"
 }
 ```
 
-### HTTP 상태 규칙
+- `statusCode`는 HTTP 상태 코드와 동일하다.
+- `exceptionCode`는 도메인 접두사와 일련번호를 사용하는 `USER-001` 형식이다.
+- `message`는 클라이언트에 전달하는 안전한 안내 문구다.
+- `details`는 선택 필드이며, 클라이언트가 입력을 수정하는 데 필요한 안전한 정보만 포함한다.
+- `timestamp`는 ISO-8601 UTC 형식을 사용한다.
 
-| HTTP | 의미 | 기본 코드 예시 |
-|---:|---|---|
-| 400 | JSON 형식·필드·값 검증 실패 | `VALIDATION_ERROR`, `INVALID_PRICE`, `INVALID_CURSOR`, `PAGINATION_PARAMETER_CONFLICT` |
-| 401 | 인증 정보 없음·위조·만료 | `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN` |
-| 402 | 결제 승인이 거절됨 | `PAYMENT_DECLINED` |
-| 403 | 인증은 됐지만 권한 없음 | `ACCESS_DENIED` |
-| 404 | 요청 리소스 없음 | `CATALOG_PRODUCT_NOT_FOUND` |
-| 409 | 중복·현재 상태와 충돌 | `SKU_ALREADY_EXISTS`, `OUT_OF_STOCK` |
-| 423 | 계정 또는 리소스 잠금 | `ACCOUNT_LOCKED` |
-| 429 | 요청 제한 초과 | `RATE_LIMIT_EXCEEDED` |
-| 500 | 예상하지 못한 내부 오류 | `INTERNAL_SERVER_ERROR` |
-| 503 | 외부 서비스·인프라 이용 불가 | `SERVICE_UNAVAILABLE` |
+### 예외 응답 필드 규칙
 
-- 예외 코드는 대문자 `UPPER_SNAKE_CASE`다.
-- 클라이언트는 `message` 문자열이 아니라 `code`를 기준으로 분기한다.
-- 내부 stack trace, SQL, 토큰, 비밀번호는 `details`에 넣지 않는다.
-- Bean Validation 실패는 필드별 `details.fields`를 반환한다.
+- `statusCode`는 HTTP 표준 응답 상태 코드 체계를 따른다. 각 API 문서에는 가능한 HTTP 상태 코드를 명시한다.
+- `exceptionCode`는 도메인이 정하는 백엔드·프론트엔드 간 약속된 값이다. 프론트엔드는 이 값을 기준으로 사용자에게 보여줄 예외를 결정한다.
+- `exceptionCode`는 도메인과 일련번호의 조합으로 고유해야 하며, 하나의 코드에는 하나의 예외 의미만 부여한다.
+- 도메인별 일련번호는 계속 증가시키고, 한 번 사용한 코드는 삭제·변경·재사용하지 않는다. 번호의 공백은 허용한다.
+- `message`는 클라이언트에 전달하는 통상적이고 어느 정도 추상화된 안내 문구다. 예외 분기 기준으로 사용하지 않는다.
+- `details`는 선택 필드이며, `exceptionCode`에 따라 구조와 포함 여부가 달라진다.
+- `timestamp`는 서버가 예외를 생성한 시각을 `Instant.now()`로 기록한 ISO-8601 UTC 값이다. 프론트엔드는 이를 현재 사용자의 지역 시간대로 변환해 표시한다.
+- 내부 기록용 메시지와 원인은 클라이언트의 `message`와 별도로 서버 로그에 기록하며, 예외 응답에 포함하지 않는다.
+- API 문서는 다른 도메인이 소유한 예외도 응답 목록에 포함한다. 예외 코드·메시지·로그 규칙의 원본은 리소스 소유 도메인 문서가 정의하며, 호출 도메인은 원본 문서를 참조하고 재정의하지 않는다.
+
+### 예측할 수 없는 내부 오류
+
+예측하지 못한 서버 내부 오류는 모든 도메인에서 공통으로 다음 응답을 사용한다.
+
+| HTTP | exceptionCode | client message | details |
+|---:|---|---|---|
+| 500 | `SYSTEM-001` | 요청을 처리하지 못했습니다. | 생략 |
+
+실제 오류 원인과 stack trace는 `system message`와 서버 로그에만 기록하며 클라이언트 응답에는 포함하지 않는다.
 
 ### 공통 인증·권한
 
 - 인증이 필요한 API는 HttpOnly Secure 쿠키의 Access Token을 사용한다.
-- Access Token이 없거나 유효하지 않으면 `401 AUTHENTICATION_REQUIRED` 또는 `401 INVALID_TOKEN`이다.
-- 로그인했지만 권한이 없으면 `403 ACCESS_DENIED`이다.
+- Access Token이 없거나 유효하지 않으면 `401 AUTH-001`이다.
+- 비활성 계정으로 인증된 요청은 `403 AUTH-002`이다. 관리자 권한 부족은 [P7 Admin](p7/p7-admin.md)의 `ADMIN-001`을 따른다.
 - 자기 소유 리소스가 아니면 리소스 존재 여부를 노출하지 않고 `403`으로 처리할 수 있다.
 
 ### 공통 트랜잭션·멱등성
@@ -180,5 +179,4 @@
 - Amazon.com의 일반 고객 인증과 이 프로젝트의 소셜 회원가입은 동일한 개념으로 간주하지 않는다. 이 프로젝트의 `provider`는 애플리케이션이 정의한 OAuth 공급자 enum이다.
 - Amazon은 제3자 웹사이트·앱이 Amazon 계정으로 로그인하게 하는 Login with Amazon을 제공한다. 이는 Amazon.com 자체가 Google·Naver·Kakao 회원가입을 제공한다는 의미가 아니다. ([공식 문서](https://developer.amazon.com/docs/login-with-amazon/documentation-overview.html))
 - Amazon Catalog Items는 ASIN을 기준으로 카탈로그 상품·식별자·이미지·변형을 조회한다.
-- Amazon Listings Items는 판매자별 등록을 `sellerId + seller SKU`로 관리한다.
 - 상품 유형별 등록 필드는 Product Type Definitions API가 제공하는 스키마에 따라 달라진다.
