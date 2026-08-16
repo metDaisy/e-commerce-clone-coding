@@ -1,5 +1,6 @@
 package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
@@ -26,7 +27,8 @@ public class AuthenticationBuilder {
   public Authentication buildAuthentication(ParsedToken token, String tokenString) {
     String authClaim = token.role();
     if (!StringUtils.hasText(authClaim)) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload에서 role을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("payload에서 role을 찾을 수 없습니다."));
     }
 
     Collection<? extends GrantedAuthority> authorities = parseAuthorities(authClaim);

@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 import io.github.metdaisy.amaazon.global.security.jwt.registry.BlacklistRegistry;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String jti = provider.parseJti(token);
     Instant issueTime = provider.parseIssueTime(token);
     if (registry.isBlacklisted(jti, userId, issueTime)) {
-      throw new JwtException(JwtErrorCode.BLACKLISTED_TOKEN, Map.of("token", token));
+      throw new JwtException(JwtErrorCode.BLACKLISTED_TOKEN,
+          AmaazonExceptionContext.logDetails(Map.of("token", token)));
     }
     SecurityContextHolder.getContext().setAuthentication(authToken);
     filterChain.doFilter(request, response);
