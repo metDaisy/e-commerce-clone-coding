@@ -83,7 +83,7 @@ docs/             요구사항, 설계, 상태 문서
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
 - `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
-- `UserRolesChangedEvent`: User가 역할 집합 변경 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
+- `UserRolesChangedEvent`, `UserDeactivatedEvent`: User가 역할 변경·계정 비활성화 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
 - `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
 - 역할 집합은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 추가 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구성한다. 역할은 독립적으로 보유할 수 있고 `USER`는 다른 역할을 추가해도 유지한다.
 - `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
@@ -175,7 +175,7 @@ sequenceDiagram
 - 사용자 역할 집합 변경은 `UserRolesChangedEvent`로 통지하고, 이벤트 Outbox 기록은 역할 집합 변경과 같은 트랜잭션으로 저장한다.
 - 모듈 간 동기 조회: 필요성이 명확할 때만 작은 Named Interface seam.
 - 외부 결제·스토리지: 도메인 인터페이스 뒤의 adapter로 격리한다.
-- 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다.
+- 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다. User 비활성화 이벤트의 업무 식별자는 `eventId`이며, Auth는 해당 이벤트를 사용자 단위 세션 무효화로 처리한다.
 
 ## 예외 처리
 

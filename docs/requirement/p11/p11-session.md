@@ -121,4 +121,4 @@ Access Token은 목표 만료시간 30분, Refresh Token은 7일이다. 두 Toke
 
 ### 3-5. 역할 변경에 따른 세션 무효화
 
-P1 User가 `UserRolesChangedEvent`를 발행하면 P11은 대상 User의 모든 Login Session을 무효화한다. P7은 P11의 저장소를 직접 호출하지 않는다. P6 Outbox 재전달은 `eventId` 기준으로 멱등 처리한다.
+P1 User가 `UserRolesChangedEvent`를 발행하면 P11은 대상 User의 모든 Login Session을 무효화한다. 계정 비활성화 시에는 `UserDeactivatedEvent`를 발행하며, P11은 동일하게 대상 User의 모든 Login Session을 무효화한다. P7은 P11의 저장소를 직접 호출하지 않는다. P6 Outbox 재전달은 `eventId` 기준으로 멱등 처리한다.

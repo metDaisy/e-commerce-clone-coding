@@ -18,6 +18,7 @@
 | Adapter | DB, PG, OAuth 공급자, 캐시처럼 모듈 밖 기술을 도메인 인터페이스에 연결하는 구현 |
 | DomainEventEnvelope | 공개 이벤트의 `eventId`, 버전, aggregate, 추적 ID와 최소 업무 payload를 담는 P6 공통 계약 |
 | UserRolesChangedEvent | P1 User가 역할 집합 변경 사실을 발행하고 P11 Auth가 기존 로그인 세션을 무효화하도록 알리는 이벤트 |
+| UserDeactivatedEvent | P1 User가 계정 비활성화 사실을 발행하고 P11 Auth가 해당 User의 기존 로그인 세션을 무효화하도록 알리는 이벤트 |
 | EventConsumption | 소비자별 `eventId` 처리 결과를 기록해 같은 이벤트의 업무 중복 처리를 막는 P6 모델 |
 | SagaInstance / SagaStep | 여러 도메인 로컬 트랜잭션의 정방향·보상 실행과 상태를 추적하는 P6 모델과 단계 |
 
