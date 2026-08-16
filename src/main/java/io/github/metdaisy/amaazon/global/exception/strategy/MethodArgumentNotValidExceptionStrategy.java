@@ -31,7 +31,7 @@ public class MethodArgumentNotValidExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(MethodArgumentNotValidException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

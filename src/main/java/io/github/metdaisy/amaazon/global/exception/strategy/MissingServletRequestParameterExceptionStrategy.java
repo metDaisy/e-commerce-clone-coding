@@ -19,7 +19,7 @@ public class MissingServletRequestParameterExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(MissingServletRequestParameterException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

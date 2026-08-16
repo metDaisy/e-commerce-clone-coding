@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.global.exception.strategy;
 
 import io.github.metdaisy.amaazon.global.exception.ExceptionResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 
 /**
  * 일반 Exception 처리 전략
@@ -21,8 +22,11 @@ public class ExceptionStrategy extends AbstractExceptionResponseStrategy<Excepti
 
   @Override
   public ExceptionResponse createErrorResponse(Exception exception) {
-    return new ExceptionResponse("INTERNAL_SERVER_ERROR",
-        "서버 내부 에러가 발생했습니다.", null);
+    return ExceptionResponse.of(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        "SYSTEM-001",
+        "요청을 처리하지 못했습니다.",
+        null);
   }
 
 }

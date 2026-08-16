@@ -24,7 +24,7 @@ public class HttpMessageNotReadableExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(HttpMessageNotReadableException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

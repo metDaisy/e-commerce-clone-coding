@@ -19,7 +19,7 @@ public class MethodArgumentTypeMismatchExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(MethodArgumentTypeMismatchException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override
