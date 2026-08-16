@@ -18,6 +18,7 @@
 - Catalog와 Offer 사이의 의존 방향을 단방향으로 유지한다.
 - 고객에게 제공하는 조합 상품 정보와 판매자용 카탈로그 정보를 분리한다.
 - Review의 구매·배송 완료 자격과 Review Media를 Catalog에서 분리한다.
+- Media 업로드·저장 인프라와 각 업무 도메인의 Media attachment 규칙을 분리한다.
 - API URI만 보아도 조회 대상과 권한을 구분할 수 있어야 한다.
 
 ## Considered Options
@@ -38,6 +39,7 @@ Option B를 선택한다.
 - **P8 Seller**는 Seller 신청·승인·프로필과 판매자 주문 조회만 소유한다. Offer·Inventory는 소유하지 않는다.
 - **P9 Offer & Marketplace**는 Offer, Inventory, 가격·판매 상태, 판매자의 Offer 등록 흐름, 고객용 상품 검색·상세를 소유한다. P9가 P2의 공개 Catalog interface를 호출해 Variant를 검증하고, P2는 P9를 직접 호출하지 않는다.
 - **P10 Review**는 Review와 리뷰 Media, 구매·배송 완료 자격 검증을 소유한다. 고객용 상품 상세는 P10의 Review 요약만 조합한다.
+- **P12 Media**는 `MediaUpload` 세션·파일 검증·`READY`/만료·취소 상태와 `MediaStoragePort` 계약을 소유한다. P2·P9·P10은 완료된 업로드를 각자의 attachment 규칙으로 연결하며 P12가 업무 도메인의 소유권·대표·최대 개수를 판단하지 않는다.
 - `GET /api/v1/catalog-products/{catalogProductId}`는 `PRODUCT_MANAGER`이면서 `Seller.status = ACTIVE`인 판매자 전용 CatalogProduct·Variant 조회다. Offer·가격·재고·Review는 포함하지 않는다.
 - 고객용 조합 상세는 `GET /api/v1/product/{catalogProductId}`, 고객용 검색은 `GET /api/v1/product/search`, 리뷰 목록은 `GET /api/v1/product/{catalogProductId}/reviews`에서 제공한다.
 - `GET /api/v1/categories`는 전체 트리를 반환한다. Category가 설명·SEO·랜딩 콘텐츠를 갖기 전까지 `GET /api/v1/categories/{categoryId}`는 추가하지 않는다.
@@ -49,6 +51,7 @@ Option B를 선택한다.
 
 - CatalogProduct·ProductVariant, Offer·Inventory, Review의 변경 주체가 분명해진다.
 - P9 → P2, P10 → P2/P5 방향의 공개 interface를 설계할 수 있어 순환 의존을 피할 수 있다.
+- P12를 공통 저장·검증 계약으로 두고 P2·P9·P10의 attachment 정책을 독립적으로 유지할 수 있다.
 - 고객·판매자·관리자 응답을 목적별로 분리할 수 있다.
 - P2를 먼저 구현하면서 P9 Offer와 P10 Review를 후속 단계로 독립 구현할 수 있다.
 
@@ -64,11 +67,13 @@ Option B를 선택한다.
 - 기존 P8 Offer·Inventory 절과 기존 P2 Review·고객 검색 절을 제거하고 새 문서로 이동한다.
 - `/api/v1/catalog-products/{catalogProductId}`의 `PRODUCT_MANAGER + ACTIVE Seller` 권한과 고객용 P9 상세 API를 각각 테스트한다.
 - 구현 시 P9의 Catalog 참조와 P10의 Order 참조를 Modulith 공개 interface로 제한한다.
+- 구현 시 P2·P9·P10의 Media 연결은 P12의 공개 업로드·저장 계약으로 제한하고, Media 업무 규칙은 각 소유 도메인에 둔다.
 
 ## Evidence
 
 - [P2 Catalog 요구사항](../requirement/p2/p2-catalog.md)
-- [P8 Seller 요구사항](../requirement/p8/p8-seller.md)
+- [P8 Seller 정책](../requirement/p8/p8-policy.md)
 - [P9 Offer & Marketplace 요구사항](../requirement/p9/p9-offer.md)
 - [P10 Review 요구사항](../requirement/p10/p10-review.md)
+- [P12 Media 요구사항](../requirement/p12/p12-policy.md)
 - [아키텍처 문서](../architecture.md)
