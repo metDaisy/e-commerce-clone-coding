@@ -76,7 +76,7 @@ Option B를 선택하고 Option C를 사용하지 않는다.
 
 - [P2 Catalog 요구사항](../requirement/p2/p2-catalog.md)
 - [P7 관리자 요구사항](../requirement/p7/p7-admin.md)
-- [P8 Seller 요구사항](../requirement/p8/p8-seller.md)
+- [P8 Seller 정책](../requirement/p8/p8-policy.md)
 - [P9 Offer & Marketplace 요구사항](../requirement/p9/p9-offer.md)
 - [P10 Review 요구사항](../requirement/p10/p10-review.md)
 - [도메인 용어집](../domain-glossary.md)
