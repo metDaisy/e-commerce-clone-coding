@@ -63,5 +63,5 @@ User가 역할 변경 사실을 이벤트로 발행하고 Auth가 세션 무효�
 - [P1 User 권한](../requirement/p1/p1-user.md)
 - [P6 Outbox & Saga](../requirement/p6/p6-infrastructure.md)
  - [P7 사용자 권한 변경](../requirement/p7/p7-access.md)
-- [P11 Auth 로그인·토큰](../requirement/p11/p11-auth.md)
+- [P11 Auth 로그인·토큰](../requirement/p11/p11-session.md)
 - [Architecture](../architecture.md)
