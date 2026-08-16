@@ -5,6 +5,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,8 @@ public class SocialCredentialService {
 
   private void validateUserId(UUID userId) {
     if (!userPort.existsUser(userId)) {
-      throw new AuthException(AuthErrorCode.USER_NOT_FOUND, Map.of("userId", userId));
+      throw new AuthException(AuthErrorCode.USER_NOT_FOUND,
+          AmaazonExceptionContext.logDetails(Map.of("userId", userId)));
     }
   }
 }

@@ -8,6 +8,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 import java.time.Instant;
@@ -36,11 +37,11 @@ public class AuthTokenService {
     String jti = provider.parseJti(token);
     RefreshToken tokenEntity = repository.findByToken(jti)
         .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
-            Map.of("refreshToken", token)));
+            AmaazonExceptionContext.logDetails(Map.of("refreshToken", token))));
     validateTokenEntity(tokenEntity, jti);
     AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId())
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("userId", tokenEntity.getUserId())));
+            AmaazonExceptionContext.logDetails(Map.of("userId", tokenEntity.getUserId()))));
     return issueTokens(userDto, tokenEntity::reissue);
   }
 
@@ -48,7 +49,7 @@ public class AuthTokenService {
   public JwtLoginDto create(UUID userId, String device) {
     AuthUserDto userDto = userPort.loadUser(userId)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("userId", userId)));
+            AmaazonExceptionContext.logDetails(Map.of("userId", userId))));
     return issueTokens(userDto, (jti, expiredAt) -> {
       RefreshToken tokenEntity = RefreshToken.of(userId, device, jti, expiredAt);
       repository.save(tokenEntity);
@@ -66,11 +67,13 @@ public class AuthTokenService {
     if (tokenEntity.isCompromised(jti)) {
       eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId, Instant.now()));
       throw new AuthException(AuthErrorCode.TOKEN_COMPROMISED,
-          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId, "jti", jti, "device", tokenEntity.getDeviceId())));
     }
     if (!tokenEntity.isCurrentToken(jti)) {
       throw new AuthException(AuthErrorCode.TOKEN_EXPIRED,
-          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId, "jti", jti, "device", tokenEntity.getDeviceId())));
     }
   }
 

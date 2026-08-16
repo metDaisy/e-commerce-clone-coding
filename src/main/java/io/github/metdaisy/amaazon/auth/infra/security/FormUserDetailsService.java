@@ -6,6 +6,7 @@ import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.time.Instant;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,7 @@ public class FormUserDetailsService implements UserDetailsService {
             userDto.isEnabled(),
             credential.isLocked(maxAttempt, Instant.now())))
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("email", email)));
+            AmaazonExceptionContext.logDetails(Map.of("email", email))));
   }
 
 }
