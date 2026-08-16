@@ -1,33 +1,66 @@
-# P5 Payment (결제)
+# P5 Payment API
 
-P5 Payment는 결제 수단 관리와 주문 결제 과정을 분리해 관리한다. 공통 응답 봉투와 예외 규칙은 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
+Payment의 데이터 모델과 결제 상태 조회 API를 정의한다. 결제 수단은 [Payment Method API](p5-payment-method.md), 결제 요청과 Webhook은 [Payment Process](p5-payment-process.md), 정책은 [P5 Policy](p5-policy.md)를 따른다.
 
-## 1. 세부 문서
+## 1. 데이터 모델과 API 관계
 
-| 문서 | 책임 |
-|---|---|
-| [P5 Payment Method](p5-payment-method.md) | 결제 수단 등록·조회·삭제 |
-| [P5 Payment Process](p5-payment-process.md) | 최종 결제·결제 상태·비동기 Webhook·결제 이벤트 |
+| 데이터 모델 | 책임 | API |
+|---|---|---|
+| `Payment` | 주문에 대한 결제 시도와 최종 상태 | 상태 조회 |
+| `Payment`와 `Order` | Order 1건에 대한 결제 상태 연결 | 결제 요청은 Payment Process에서 정의 |
 
-주문 생성·취소와의 연결은 [P5 Order](p5-order.md), 이벤트·보상 흐름은 [P6 Outbox & Saga](../p6/p6-infrastructure.md)를 따른다.
+## 2. 데이터 모델
 
-## 2. API 영역
+### 2-1. `Payment`
 
-| 영역 | API |
-|---|---|
-| 결제 수단 관리 | `POST/GET/DELETE /api/v1/payment-methods` |
-| 최종 결제 | `POST /api/v1/orders/{orderId}/pay` |
-| 결제 상태 조회 | `GET /api/v1/payments/{paymentId}` |
-| 결제 결과 수신 | `POST /internal/payment-webhooks/payment-simulator` |
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `paymentId` | UUID | O | 결제 식별자 |
+| `orderId` | UUID | O | 대상 주문 |
+| `paymentMethodId` | UUID | O | 사용한 결제 수단 |
+| `transactionId` | String | - | Simulator 거래 식별자 |
+| `status` | Enum | O | `PROCESSING`, `SUCCESS`, `FAILED`, `REFUNDED` |
+| `amount` | Integer | O | 결제 금액(KRW) |
+| `failureCode` | String | - | 실패 사유 코드 |
+| `webhookEventId` | String | - | Webhook 중복 처리를 위한 이벤트 ID |
+| `completedAt` | Instant | - | 성공 또는 실패 확정 시각 |
+| `createdAt` | Instant | O | 생성 시각 |
+| `updatedAt` | Instant | O | 변경 시각 |
 
-## 3. 결제 인프라 경계
+`currency` 필드는 사용하지 않는다. 프로젝트의 금액 단위가 KRW로 고정되어 있기 때문이다. 카드번호 원문과 CVC는 Payment에 저장하지 않는다.
 
-결제 승인 연동은 `PaymentGateway` 포트로 추상화한다. 현재 구현은 `Payment Simulator`를 인프라 어댑터로 사용하며, P5 결제 모듈은 특정 시뮬레이터 구현에 직접 의존하지 않는다.
+### 2-2. 관계와 제약
 
-Payment Simulator의 지연 시간·성공·실패·Webhook 전달 방식은 인프라 설정으로 관리한다. P5는 결제 요청 시 `PROCESSING` Payment를 저장하고, 최종 결과를 받은 뒤 `SUCCESS` 또는 `FAILED`로 확정한다.
+- Payment는 하나의 Order와 하나의 PaymentMethod에 연결된다.
+- 결제 요청 직전 계산한 Order 금액과 Payment `amount`는 같아야 한다.
+- `PROCESSING` Payment는 중복 결제 요청으로 여러 건 생성하지 않는다.
+- `webhookEventId`는 unique 제약으로 중복 Webhook을 멱등 처리한다.
 
-## 4. 결제 상태
+## 3. API 정의
 
-`Payment.status`는 `PROCESSING`, `SUCCESS`, `FAILED`, `REFUNDED`를 사용한다. 현재 범위에서는 `AUTHORIZED`, `CAPTURED`를 사용하지 않는다.
+### 3-1. 결제 상태 조회
 
-결제 시도마다 별도의 Payment를 생성한다. 실패한 Payment를 성공 상태로 덮어쓰지 않으며, 재시도는 새로운 Payment로 기록한다.
+`GET /api/v1/payments/{paymentId}`
+
+권한: 주문 소유자 본인과 유효한 OrderSession.
+
+#### 성공 응답: `200 OK`
+
+```json
+{
+  "paymentId": "payment-uuid",
+  "orderId": "order-uuid",
+  "status": "PROCESSING",
+  "amount": 1200000,
+  "failureCode": null,
+  "completedAt": null
+}
+```
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message |
+|---:|---|---|---|
+| 403 | `PAYMENT-001` | 다른 사용자의 결제 | 결제 정보를 조회할 수 없습니다. |
+| 404 | `PAYMENT-002` | 결제가 없음 | 결제 정보를 찾을 수 없습니다. |
+| 423 | `ORDER-003` | 주문 화면 세션 없음 | 주문 화면 세션이 필요합니다. |

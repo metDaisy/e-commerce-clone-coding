@@ -1,86 +1,99 @@
-# P5 Payment Method (결제 수단)
+# P5 Payment Method API
 
-결제 수단 등록·조회·삭제를 정의한다. 최종 결제 과정은 [P5 Payment Process](p5-payment-process.md)를 따른다.
+사용자가 저장한 결제 수단의 등록·조회·삭제를 정의한다. 실제 결제 흐름은 [Payment Process](p5-payment-process.md), 정책은 [P5 Policy](p5-policy.md)를 따른다.
 
-## 1. API 목록
+## 1. 데이터 모델과 API 관계
 
-| Method | URI | 권한 | 설명 |
-|---|---|---|---|
-| POST | `/api/v1/payment-methods` | 로그인 | 결제 수단 등록 |
-| GET | `/api/v1/payment-methods` | 로그인 | 결제 수단 조회 |
-| DELETE | `/api/v1/payment-methods/{paymentMethodId}` | 로그인 | 결제 수단 삭제 |
+### 1-1. `PaymentMethod`
 
-## 2. 공통 규칙
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `paymentMethodId` | UUID | O | 결제 수단 식별자 |
+| `userId` | UUID | O | 소유자 |
+| `type` | Enum | O | `CARD` |
+| `brand` | String | O | 카드 브랜드 |
+| `maskedNumber` | String | O | 예: `****-****-****-1234` |
+| `expiryMonth` | Integer | O | 만료 월 |
+| `expiryYear` | Integer | O | 만료 연도 |
+| `providerToken` | String | O | Simulator 결제용 토큰 |
+| `deletedAt` | Instant | - | 논리 삭제 시각 |
+| `createdAt` | Instant | O | 생성 시각 |
 
-결제 수단은 로그인한 사용자에게 귀속된다. `userId`는 요청 본문으로 받지 않고 인증된 사용자에서 결정한다.
+카드번호 원문, CVC, 인증 원문은 저장하지 않는다. 카드번호 형식과 Luhn check digit, 만료일 형식은 등록 시 검증하지만 실제 카드 인증은 Payment Simulator가 담당한다.
 
-조회·사용·삭제는 본인 소유의 결제 수단만 가능하다. 다른 사용자의 `paymentMethodId`는 존재 여부를 노출하지 않도록 `PAYMENT_METHOD_NOT_FOUND`로 처리한다.
+## 2. API 정의
 
-결제 수단 목록은 현재 범위에서 페이지 기반 조회를 사용하지 않는다. 삭제는 논리 삭제이며, 삭제된 결제 수단은 이후 조회와 신규 결제에 사용할 수 없다. 과거 Payment 이력은 유지한다.
+### 2-1. 결제 수단 등록
 
-## 3. 결제 수단 등록
+`POST /api/v1/payment-methods`
 
-`POST /api/v1/payment-methods`는 사용자의 결제 수단을 등록하고 `201 Created`를 반환한다.
+권한: 로그인 사용자. 주문 화면에서 호출하면 OrderSession의 활동으로 인정한다.
 
-카드 등록 요청 예시:
+요청 예시:
 
 ```json
 {
-  "methodType": "CREDIT_CARD",
   "cardNumber": "4111111111111111",
+  "expiryMonth": 12,
+  "expiryYear": 2030,
+  "cvc": "123"
+}
+```
+
+#### 성공 응답: `201 Created`
+
+```json
+{
+  "paymentMethodId": "payment-method-uuid",
+  "type": "CARD",
+  "brand": "VISA",
+  "maskedNumber": "****-****-****-1111",
   "expiryMonth": 12,
   "expiryYear": 2030
 }
 ```
 
-`KAKAO_PAY`와 `BANK_TRANSFER`는 `methodType`만 전달한다. 현재 프로젝트에서는 실제 카드 인증·결제를 수행하지 않으므로 카드번호의 길이·숫자 여부·Luhn 체크·유효기간만 검증한다.
+#### 예외
 
-카드번호와 인증번호 같은 원문 민감 정보는 저장·로그·이벤트·응답에 남기지 않는다.
+| HTTP | exceptionCode | 발생 조건 | client message |
+|---:|---|---|---|
+| 400 | `PAYMENT-003` | 카드번호·만료일·CVC 형식 오류 | 결제 수단 정보를 확인해주세요. |
+| 409 | `PAYMENT-004` | 동일 수단 중복 등록 | 이미 등록된 결제 수단입니다. |
 
-응답에는 결제수단 식별과 화면 표시용 정보만 포함한다.
+### 2-2. 결제 수단 조회
 
-```json
-{
-  "paymentMethodId": "uuid",
-  "methodType": "CREDIT_CARD",
-  "provider": "PAYMENT_SIMULATOR",
-  "maskedNumber": "**** **** **** 1111",
-  "createdAt": "2026-08-16T12:00:00Z"
-}
-```
+`GET /api/v1/payment-methods`
 
-## 4. 결제 수단 조회
+권한: 로그인 사용자. 본인이 등록한 삭제되지 않은 결제 수단만 반환한다.
 
-`GET /api/v1/payment-methods`는 로그인한 사용자의 삭제되지 않은 결제 수단 목록을 반환한다.
-
-주문 화면은 이 API를 호출해 결제수단을 표시하고, 사용자가 선택한 `paymentMethodId`를 [최종 결제 요청](p5-payment-process.md#3-최종-결제)에 전달한다.
-
-응답 예시:
+#### 성공 응답: `200 OK`
 
 ```json
 {
-  "items": [
+  "data": [
     {
-      "paymentMethodId": "uuid",
-      "methodType": "CREDIT_CARD",
-      "provider": "PAYMENT_SIMULATOR",
-      "maskedNumber": "**** **** **** 1111",
-      "createdAt": "2026-08-16T12:00:00Z"
+      "paymentMethodId": "payment-method-uuid",
+      "type": "CARD",
+      "brand": "VISA",
+      "maskedNumber": "****-****-****-1111",
+      "expiryMonth": 12,
+      "expiryYear": 2030
     }
   ]
 }
 ```
 
-## 5. 결제 수단 삭제
+### 2-3. 결제 수단 삭제
 
-`DELETE /api/v1/payment-methods/{paymentMethodId}`는 결제 수단을 논리 삭제하고 `204 No Content`를 반환한다.
+`DELETE /api/v1/payment-methods/{paymentMethodId}`
 
-주문 화면에서 선택한 결제 수단을 삭제한 경우 최종 결제 시 `PAYMENT_METHOD_NOT_FOUND`가 반환될 수 있다. 클라이언트는 결제수단을 다시 조회하고 다른 결제 수단을 선택하게 한다.
+권한: 소유자 본인. 논리 삭제하며 이미 삭제된 결제 수단은 멱등하게 처리한다.
 
-## 6. 예외
+#### 성공 응답: `204 No Content`
 
-| HTTP | 코드 | 발생 조건 |
-|---:|---|---|
-| 400 | `VALIDATION_ERROR` | 결제 수단 요청 필드·카드 형식 오류 |
-| 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
-| 404 | `PAYMENT_METHOD_NOT_FOUND` | 결제 수단 없음 또는 타인 소유 |
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message |
+|---:|---|---|---|
+| 403 | `PAYMENT-005` | 다른 사용자의 결제 수단 | 결제 수단을 삭제할 수 없습니다. |
+| 404 | `PAYMENT-006` | 결제 수단이 없음 | 결제 수단을 찾을 수 없습니다. |

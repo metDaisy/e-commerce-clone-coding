@@ -1,61 +1,80 @@
-# P5 Order History (주문 조회·주문 목록)
+# P5 Order History API
 
-주문 소유자의 주문 상세와 주문 목록 조회를 정의한다. 주문 모델과 상태는 [P5 Order Core](p5-order-core.md), 주문 화면의 사용 흐름은 [P5 Order Checkout](p5-order-checkout.md)를 따른다.
+주문 상세와 주문 목록을 정의한다. Order 모델은 [Order API](p5-order.md), 주문 화면의 유효 세션은 [Order Session](p5-order-session.md)을 따른다.
 
 ## 1. 주문 상세
 
 `GET /api/v1/orders/{orderId}`
 
-- 주문 생성 응답과 같은 주문서·금액 구조를 반환한다. 배송지 확정 전 `PENDING` 주문의 `shippingAddress`는 null이다.
-- 결제 완료 주문은 최종 결제 시 저장한 배송지 스냅샷을 `shippingAddress`로 반환한다.
-- `PENDING` 주문은 [P5 Order Session](p5-order-session.md)의 유효한 Checkout Cookie가 있을 때만 조회하고 결제를 재시도할 수 있다.
-- 주문 화면은 [P5 Payment Method](p5-payment-method.md)의 `GET /api/v1/payment-methods`로 결제수단을 조회해 표시한다.
-- `PAID` 주문은 `delivery`에 `deliveryId`, `status`를 포함한다.
-- 구매자용 조회는 `order.userId`와 인증 사용자 ID가 같은 경우에만 허용한다.
+권한: 로그인한 주문 소유자 본인. `PENDING` 주문은 유효한 OrderSession이 필요하고, 결제 완료·취소·만료 주문은 일반 본인 인증으로 조회한다.
+
+### 성공 응답: `200 OK`
+
+```json
+{
+  "orderId": "order-uuid",
+  "status": "PAID",
+  "items": [
+    {
+      "productName": "NVIDIA GPU 5080",
+      "variantDisplayName": "16GB",
+      "quantity": 1,
+      "lineAmount": 1200000
+    }
+  ],
+  "totalAmount": 1200000,
+  "shippingAddress": {
+    "recipient": "홍길동",
+    "address1": "서울시",
+    "address2": "101호"
+  },
+  "paymentStatus": "SUCCESS",
+  "delivery": {
+    "deliveryId": "delivery-uuid",
+    "status": "PREPARING"
+  },
+  "createdAt": "2026-08-16T12:00:00Z"
+}
+```
+
+### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message |
+|---:|---|---|---|
+| 403 | `ORDER-002` | 다른 사용자의 주문 | 주문을 조회할 수 없습니다. |
+| 404 | `ORDER-001` | 주문이 없음 | 주문을 찾을 수 없습니다. |
+| 423 | `ORDER-003` | 세션 없는 `PENDING` 주문 | 주문 화면 세션이 필요합니다. |
 
 ## 2. 주문 목록
 
 `GET /api/v1/orders`
 
-- 페이지 기반 조회를 사용한다. 기본 Query는 `page`, `size`, 기간 조건을 사용한다.
-- `page`는 0부터 시작하며 기본값은 `0`이다. 기본 `size`는 20, 최대값은 100이다.
-- 기간을 지정하지 않으면 최근 3개월을 기본값으로 사용한다.
-- 기간 preset은 `dateRange=LAST_3_MONTHS`, `dateRange=LAST_6_MONTHS`, `dateRange=LAST_1_YEAR`를 지원한다.
-- 직접 기간을 조회할 때는 `startDate`와 `endDate`를 함께 전달하며, 두 날짜를 포함한 범위로 조회한다. `dateRange`와 `startDate`·`endDate`는 동시에 사용할 수 없다.
-- 날짜 형식은 `YYYY-MM-DD`다. `startDate`는 `endDate`보다 늦을 수 없다.
-- 주문 상태는 목록에 표시하지만 현재 목록 필터로 제공하지 않는다.
-- 로그인한 사용자의 주문만 반환한다.
-- 주문 목록에는 결제가 완료되었거나 취소·만료된 주문만 표시한다. `PENDING` 주문은 주문 화면에서 결제 대기 상태로 관리하고 주문 목록에서는 제외한다.
-- 정렬은 `createdAt DESC, orderId DESC`로 고정한다.
-- 주문 이력 응답은 `orderId`, `status`, `itemSummary`, `purchasedAt`, `paidAmount`, `deliveryStatus`만 반환한다. `itemSummary`는 대표 상품명을 기준으로 `NVIDIA GPU 5080 외 1개`처럼 표시한다. `offerId`, `catalogProductId`, `variantId`는 반환하지 않는다.
-- 응답은 공통 페이지 형식의 `data`, `page`, `size`, `totalElements`, `totalPages`를 사용한다.
+주문 목록은 페이지 기반 조회를 사용한다. 목록에는 결제 완료 또는 취소된 주문만 표시한다.
 
-목록 항목 규칙:
+### Query parameters
 
-- `status`는 `PAID`(결제완료), `CANCELED`(취소), `EXPIRED`(만료)를 사용한다.
-- `purchasedAt`은 결제가 완료된 시각이다. 결제 전에 취소·만료된 주문은 `null`이다.
-- `paidAmount`는 최종 결제 금액이며, 결제 전에 취소·만료된 주문은 `0`이다.
-- `deliveryStatus`는 배송 상태이며, 결제 후 취소된 주문은 `CANCELED`, 결제 전 취소·만료 주문은 `null`이다.
+| 파라미터 | 설명 |
+|---|---|
+| `page` | 0부터 시작하는 페이지 번호, 기본 `0` |
+| `size` | 페이지 크기, 기본 `20`, 최대 `100` |
+| `startDate` | 구매일 시작일(포함) |
+| `endDate` | 구매일 종료일(포함) |
+| `period` | `3M`, `6M`, `1Y` 최근 기간 preset |
+| `keyword` | 구매 상품 검색어, 심화 과정 |
 
-예시:
+`period`와 `startDate`·`endDate`를 동시에 전달하면 `400 ORDER-005`를 반환한다. 날짜를 생략하면 기본 기간은 최근 3개월이다.
 
-`GET /api/v1/orders?page=0&size=20&dateRange=LAST_3_MONTHS`
-
-직접 기간 조회 예시:
-
-`GET /api/v1/orders?page=0&size=20&startDate=2026-01-01&endDate=2026-03-31`
-
-성공 응답 `200`:
+### 성공 응답: `200 OK`
 
 ```json
 {
   "data": [
     {
-      "orderId": "uuid",
+      "orderId": "order-uuid",
       "status": "PAID",
-      "itemSummary": "NVIDIA GPU 5080 외 1개",
-      "purchasedAt": "2026-08-09T12:00:00Z",
-      "paidAmount": 89800.00,
+      "summary": "NVIDIA GPU 5080 외 2건",
+      "purchasedAt": "2026-08-16T12:00:00Z",
+      "totalAmount": 1200000,
       "deliveryStatus": "PREPARING"
     }
   ],
@@ -66,12 +85,20 @@
 }
 ```
 
-## 3. 심화 사항: 구매 상품 설명 키워드 검색
+목록의 상태 값은 `PAID`와 `CANCELED`다. 배송 상태는 결제 완료 주문에 대해서만 현재 Delivery 상태를 표시한다.
 
-- `keyword` 검색은 기본 기능에 포함하지 않는다.
-- 날짜 조건으로 먼저 로그인 사용자의 주문 이력을 제한한 뒤, 해당 주문에 포함된 상품을 검색한다.
-- 검색 대상은 연결된 `CatalogProduct.description`, `ProductVariant.description`, `Offer.description`의 설명 텍스트다.
-- 설명 중 하나라도 키워드와 일치하면 해당 Order를 목록에 포함한다. 하나의 주문에 여러 상품이 일치해도 주문은 한 번만 반환한다.
-- 검색 결과는 기존 주문 목록 요약 응답과 페이지 형식을 그대로 사용한다.
-- 현재 OrderItem은 상품명과 Variant 표시명만 스냅샷으로 보존하므로, 설명의 과거 시점 보존이 필요할 경우 설명 스냅샷 또는 별도 검색 모델을 추가해야 한다.
-- 대량 데이터에서의 조인, 비정규화 read model, PostgreSQL Full-Text Search 등 어떤 방식으로 최적화할지는 심화 설계에서 결정한다.
+## 3. 키워드 검색
+
+키워드 검색은 심화 과정으로 둔다. 사용자가 지정한 기간의 주문 항목 중 CatalogProduct, ProductVariant, Offer의 설명·표시 정보와 일치하는 주문을 반환한다.
+
+초기 구현은 조회 시 조합하는 단순 검색을 기준으로 하며, 전문 검색 인덱스·비정규화·검색어 정규화 등 최적화 방법은 별도 설계 과제로 남긴다.
+
+## 4. 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message |
+|---:|---|---|---|
+| 400 | `ORDER-004` | 날짜 형식·범위 오류 | 조회 기간을 확인해주세요. |
+| 400 | `ORDER-005` | preset과 직접 기간 동시 사용 | 조회 조건을 하나만 선택해주세요. |
+| 400 | `ORDER-006` | 페이지·크기 범위 오류 | 페이지 조건을 확인해주세요. |
+
+공통 페이지 응답과 예외 형식은 [공통 API 계약](../index.md#공통-api-계약)을 따른다.

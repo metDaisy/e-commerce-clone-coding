@@ -1,64 +1,63 @@
-# P5 Delivery (배송)
+# P5 Delivery API
 
-공통 응답 봉투와 예외 규칙은 [공통 API 계약](../index.md#공통-api-계약)을 따른다. 주문 생성·취소와의 연결은 [P5 Order](p5-order.md), 이벤트·보상 흐름은 [P6 Outbox & Saga](../p6/p6-infrastructure.md)를 따른다.
+배송 서비스·운송사·fulfillment를 사용하지 않는 프로젝트에서 결제 완료 주문의 배송 상태를 임의 전환하는 규칙을 정의한다. 주문·결제와의 연결은 [P5 Policy](p5-policy.md), 이벤트 전달은 [P6 Infrastructure](../p6/p6-infrastructure.md)를 따른다.
 
-배송 상태는 외부 배송 서비스 없이 애플리케이션 내부 스케줄러가 시뮬레이션한다. 이 문서는 배송 도메인의 상태와 자동 전환 규칙을 소유한다.
+## 1. 데이터 모델과 API 관계
 
-## 1. 범위와 책임
+### 1-1. `Delivery`
 
-현재 배송은 결제 완료 후 주문에 연결되는 단순한 상태 기록이다.
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `deliveryId` | UUID | O | 배송 식별자 |
+| `orderId` | UUID | O | 배송 대상 주문 |
+| `status` | Enum | O | `PREPARING`, `SHIPPED`, `IN_TRANSIT`, `DELIVERED` |
+| `statusChangedAt` | Instant | O | 현재 상태 진입 시각 |
+| `createdAt` | Instant | O | 배송 생성 시각 |
+| `updatedAt` | Instant | O | 변경 시각 |
 
-- 결제 성공 주문마다 배송을 정확히 1개 생성한다.
-- Fulfillment, Shipment, 창고, 택배사 연동, 운송장 추적은 지원하지 않는다.
-- 분할 배송·다중 배송지·판매자별 배송은 지원하지 않는다.
-- 배송 상태는 외부 배송 서비스가 아니라 애플리케이션 내부 스케줄러가 임의로 전환한다.
-- 배송은 `Order`의 취소 여부를 결정하지 않는다. 주문 취소 가능 여부는 [P5 Order](p5-order.md)가 판단한다.
+배송지와 운송장 번호는 현재 모델에 포함하지 않는다. 배송지는 Order가 결제 확정 시 저장한 스냅샷으로 조회한다.
 
-## 2. 요구사항
+### 1-2. 관계와 제약
 
-- 결제 완료마다 배송을 1개 생성하고 초기 상태는 `PREPARING`이다.
-- 상태 전이는 `PREPARING → SHIPPED → IN_TRANSIT → DELIVERED` 순서와 `PREPARING → CANCELED`만 허용한다.
-- `PREPARING`, `SHIPPED`, `IN_TRANSIT`는 각각 90초 동안 유지한 뒤 다음 상태로 자동 전환한다.
-- `DELIVERED`와 `CANCELED`는 종료 상태이며 자동 전환하지 않는다.
-- 상태 변경 시 `deliveryStatusUpdatedAt`을 갱신한다.
-- `DELIVERED` 도달 시 포인트 적립과 리뷰 작성 가능 이벤트를 발행한다.
+- 하나의 `PAID` Order마다 Delivery 하나를 생성한다.
+- 결제 성공 Webhook 처리 전에는 Delivery를 생성하지 않는다.
+- Delivery 상태는 정의된 순서로만 전환한다.
+- 각 상태는 `90초` 동안 유지한 뒤 다음 상태로 전환한다.
 
-## 3. 이벤트와 책임
+## 2. API 정의
 
-- `PaymentCompletedEvent`를 소비해 기본 배송을 생성한다.
-- 배송 생성과 자동 상태 전환은 배송 모듈이 소유한다. 주문 취소에 따른 `PREPARING → CANCELED` 전이는 주문 모듈의 공개 취소 흐름에서 요청한다.
-- 스케줄러는 `deliveryStatusUpdatedAt + 90초`가 지난 배송을 찾아 다음 상태로 원자적으로 전환한다.
-- 애플리케이션이 일시 중단되면 전환은 지연될 수 있으며, 재시작 후 만료된 전환을 다시 처리한다.
-- `DeliveryCompletedEvent`는 포인트 적립과 리뷰 작성 자격 활성화를 위해 발행한다.
-- 배송이 `SHIPPED` 이상이면 주문 취소를 허용하지 않는다. 취소 판단과 보상 흐름은 [P5 Order](p5-order.md)와 [P6 Outbox & Saga](../p6/p6-infrastructure.md)를 따른다.
+### 2-1. 배송 상세 조회
 
-배송 상태 변경 응답:
+`GET /api/v1/deliveries/{deliveryId}`
+
+권한: 연결된 Order의 소유자 본인.
+
+#### 성공 응답: `200 OK`
 
 ```json
 {
-  "deliveryId": "uuid",
-  "orderId": "uuid",
-  "status": "SHIPPED",
-  "deliveryStatusUpdatedAt": "2026-08-09T12:00:00Z"
+  "deliveryId": "delivery-uuid",
+  "orderId": "order-uuid",
+  "status": "PREPARING",
+  "statusChangedAt": "2026-08-16T12:00:00Z"
 }
 ```
 
-## 4. 상태
+#### 예외
 
-| 상태 | 설명 | 유지 시간 | 허용 전이 |
-|---|---|---|---|
-| `PREPARING` | 결제 완료 후 배송 준비 | 90초 | `SHIPPED` |
-| `SHIPPED` | 배송 시작 | 90초 | `IN_TRANSIT` |
-| `IN_TRANSIT` | 배송 중 | 90초 | `DELIVERED` |
-| `DELIVERED` | 배송 완료 | 종료 상태 | 없음 |
-| `CANCELED` | 주문 취소로 배송 중단 | 종료 상태 | 없음 |
+| statusCode | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 403 | `DELIVERY-001` | 연결된 Order의 소유자가 아님 | 배송 정보를 조회할 수 없습니다. | 없음 | Order 소유권 검증 실패와 요청자·배송 식별자를 기록한다. |
+| 404 | `DELIVERY-002` | 배송 식별자가 존재하지 않음 | 배송 정보를 찾을 수 없습니다. | 없음 | 배송 식별자와 요청 식별자를 기록한다. |
 
-`SHIPPED`, `IN_TRANSIT`, `DELIVERED`는 실제 택배사 연동 결과가 아니라 애플리케이션 스케줄러가 90초 간격으로 전환하는 시뮬레이션 상태다.
+배송 조회에서 발생하는 접근 권한·존재 여부 오류는 Delivery API가 `DELIVERY_*` 코드로 반환한다. Order 소유권 확인에 필요한 내부 조회 오류는 외부 응답에 그대로 노출하지 않는다.
 
-## 5. 예외
+### 2-2. 운영 상태 전환
 
-| HTTP | 코드 | 발생 조건 |
-|---:|---|---|
-| 400 | `VALIDATION_ERROR` | 배송 상태 변경 요청 필드 오류 |
-| 400 | `INVALID_DELIVERY_STATUS_TRANSITION` | 배송 상태 전이 오류 |
-| 401 | `AUTHENTICATION_REQUIRED` | 로그인 필요 |
+고객용 상태 변경 API는 제공하지 않는다. 스케줄러가 다음 전환을 수행한다.
+
+```text
+PREPARING --90초--> SHIPPED --90초--> IN_TRANSIT --90초--> DELIVERED
+```
+
+운영자 수동 전환이 필요하면 P7 Admin의 운영 API로 제공하며, 상태 전환 규칙과 잘못된 상태 전환의 예외는 이 문서를 참조한다. 스케줄러 실패는 고객 API 예외가 아니므로 시스템 로그와 P6 운영 흐름으로 처리한다.
