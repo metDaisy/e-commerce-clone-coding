@@ -1,10 +1,10 @@
 # ADR-0012: 관리자 심사 통합 조회 모델과 도메인 요청 원본 분리
 
-- Status: Accepted
+- Status: Superseded
 - Date: 2026-08-16
 - Deciders: 사용자와 Codex
 - Supersedes: 없음
-- Superseded by: 없음
+- Superseded by: ADR-0013
 
 ## Context
 
@@ -31,7 +31,7 @@ P8과 P9가 요청 원본과 업무 상태를 소유하고, P7은 `AdminReviewIt
 
 Option B를 채택한다.
 
-- P8 `Seller`는 판매자 신청 원본을, P8 `CatalogRegistrationRequest`는 Catalog·Variant 등록 요청 원본을, P9 `OfferActivationRequest`는 Offer 활성화 요청 원본을 소유한다.
+- P8 `SellerApplication`은 판매자 신청 원본을, P8 `SellerApplicationReview`는 신청 심사 이력을, P8 `CatalogRegistrationRequest`는 Catalog·Variant 등록 요청 원본을, P9 `OfferActivationRequest`는 Offer 활성화 요청 원본을 소유한다.
 - P7 `AdminReviewItem`은 `requestType`, `sourceModule`, `sourceRequestId`, 판매자·요청자, 목록용 `summary`, 통합 상태와 처리 이력만 저장한다.
 - P7의 승인·거절 API는 원본 모듈의 공개 application interface를 호출하고, 처리 결과를 `AdminReviewItem`에 반영한다.
 - 원본 payload의 상세 조회는 `sourceModule`과 `sourceRequestId`를 통해 원본 모듈에서 수행한다.
@@ -58,7 +58,8 @@ Option B를 채택한다.
 
 ## Evidence
 
-- [P7 Admin 관리자 심사 통합 모델](../requirement/p7/p7-admin.md#3-관리자-심사-통합-모델)
-- [P8 Seller 요청 모델](../requirement/p8/p8-catalog-requests.md#catalogregistrationrequest)
-- [P9 Offer 요청 모델](../requirement/p9/p9-offer.md#2-1-데이터-모델)
+- [P7 Admin 관리자 심사 요청 조회](../requirement/p7/p7-admin.md#1-관리자-api-관계)
+- [P8 Seller 신청·심사 모델](../requirement/p8/p8-seller-application.md#sellerapplication)
+- [P8 CatalogRegistrationRequest 모델](../requirement/p8/p8-catalog-requests.md#catalogregistrationrequest)
+- [P9 Offer 요청 모델](../requirement/p9/p9-offer.md#2-3-offeractivationrequest)
 - [Project Context](../../CONTEXT.md)
