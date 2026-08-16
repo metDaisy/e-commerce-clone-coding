@@ -44,9 +44,9 @@ _Avoid_: seller user, 요청자
 여러 도메인의 관리자 심사 대상을 한 화면에서 조회하기 위한 통합 항목이다. 원본 요청의 상세 데이터와 업무 상태를 소유하지 않고, 원본 모듈과 요청 식별자·목록용 요약·심사 상태만 연결한다.
 _Avoid_: P7이 모든 도메인 요청의 원본 payload를 소유함
 
-**Seller Application Storage**:
-판매자 신청은 별도 임시 요청 객체가 아니라 `PENDING` 상태의 Seller 레코드로 저장한다. 승인되면 같은 레코드를 활성 판매자 프로필로 사용하고, 거절 후 재신청하면 새 Seller 레코드를 생성해 이전 심사 이력을 보존한다.
-_Avoid_: 별도 SellerApplication 임시 레코드, 승인 사유 필수
+**SellerApplication**:
+판매자 신청 원본과 심사 상태를 보존하는 별도 리소스다. `PENDING` 신청이 승인될 때 `Seller` 프로필을 생성하고, 거절된 신청은 보존하며 재신청은 새로운 `SellerApplication`으로 저장한다. 승인·거절 결과는 `SellerApplicationReview` 불변 이력으로 남긴다.
+_Avoid_: 신청 전에 Seller 생성, Seller 레코드 자체를 신청 원본으로 사용, 심사 이력 덮어쓰기
 
 **Catalog Registration Request**:
 활성 Seller가 Category, CatalogProduct 또는 ProductVariant의 등록을 관리자에게 심사 요청한 기록이다. 요청 종류와 제출 payload를 보존하며, 요청 기록은 대상 Seller(`sellerId`)와 실제 제출 User(`requestedByUserId`)를 모두 보존한다.

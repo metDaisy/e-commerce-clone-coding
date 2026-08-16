@@ -17,6 +17,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 - 회원가입·로그인·소셜 인증 및 사용자 프로필
 - CatalogProduct, ProductVariant, Offer, Inventory 기반 상품·재고 관리
 - 장바구니·쿠폰·주문·결제·배송
+- Review·Media Upload·도메인별 Media attachment
 - Outbox·Saga 기반 이벤트 처리
 - 관리자 운영 기능 및 판매자 마켓플레이스 기능
 
@@ -35,7 +36,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 ```text
 src/main/java/io/github/metdaisy/amaazon/
 ├── auth/       # 로컬·소셜 인증
-├── user/       # 사용자·프로필·주소·포인트
+├── user/       # 사용자·프로필·주소·역할·활성 상태
 ├── catalog/    # CatalogProduct 중심 상품 기능
 ├── seller/     # 판매자
 ├── common/     # 공통 타입·예외·영속화 기반
@@ -53,7 +54,7 @@ docs/          # 요구사항·아키텍처·ADR·개발 가이드
 
 | 문서 | 설명 |
 |---|---|
-| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P11 도메인 요구사항 |
+| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P12 도메인 요구사항 |
 | [Domain ERD](./docs/domain-erd.md) | SQL과 독립적인 도메인 객체·업무 관계 |
 | [Architecture](./docs/architecture.md) | 모듈 경계와 의존성 규칙 |
 | [Domain Glossary](./docs/domain-glossary.md) | 도메인 용어와 상태값 기준 |
