@@ -1,6 +1,6 @@
 # P4 Coupon Advanced (쿠폰 심화 과정)
 
-[P4 쿠폰 개요](p4-coupon.md)와 [쿠폰 데이터 모델](p4-coupon-model.md)을 따른다.
+기본 업무 정책은 [P4 Coupon Policy](p4-policy.md), 데이터 모델과 공통 API는 [Coupon API](p4-coupon.md)를 따른다. 이 문서는 기본 과정에 포함하지 않는 심화 정책과 Amazon 비교를 정의한다.
 
 이 문서에서 정책을 다음과 같이 구분한다.
 

@@ -1,25 +1,12 @@
-# P4 Coupon Seller (판매자·관리자 쿠폰 운영)
+# P4 Coupon Seller API (판매자·관리자 쿠폰 운영)
 
-[P4 쿠폰 개요](p4-coupon.md)와 [쿠폰 데이터 모델](p4-coupon-model.md)을 따른다.
+업무 정책은 [P4 Coupon Policy](p4-policy.md), 데이터 모델과 공통 API는 [Coupon API](p4-coupon.md)를 따른다. 이 문서는 판매자·관리자 행위자별 조건과 목록 API를 정의한다.
 
 ## 1. 생성
 
 `POST /api/v1/coupons`
 
-관리자와 판매자는 같은 요청 스키마를 사용한다.
-
-```json
-{
-  "name": "신규 상품 10% 할인",
-  "targetOfferIds": ["uuid-offer-1", "uuid-offer-2"],
-  "discountType": "PERCENTAGE",
-  "discount": 10,
-  "validFrom": "2026-08-20T00:00:00Z",
-  "validUntil": "2026-09-19T00:00:00Z"
-}
-```
-
-`FIXED_AMOUNT`는 `discount`에 원 단위 정수 금액을 넣는다. `PERCENTAGE`는 5 이상 50 이하의 정수 퍼센트다.
+관리자와 판매자는 같은 요청·성공 응답 스키마를 사용한다. 상세 계약은 [Coupon API](p4-coupon.md)의 `4-2. Coupon 생성`을 따른다.
 
 생성 규칙:
 
@@ -37,17 +24,13 @@
 
 `PATCH /api/v1/coupons/{couponId}`
 
+공통 요청·성공 응답은 [Coupon API](p4-coupon.md)의 `4-3. Coupon 수정`을 따른다.
+
 ### SCHEDULED
 
 - 이름, 대상 Offer, 할인 정책, 기간을 수정할 수 있다.
 
 ### ACTIVE
-
-```json
-{
-  "validUntil": "2026-09-25T00:00:00Z"
-}
-```
 
 - `validUntil`만 수정할 수 있다.
 - `validUntil`은 현재 시각 이후여야 한다.
@@ -136,7 +119,13 @@
 }
 ```
 
-## 5. 관리자 규칙
+## 5. API 예외
+
+각 API의 예외 표는 [Coupon API](p4-coupon.md)의 API별 예외 매트릭스를 따른다. 이 문서에서는 판매자·관리자 API의 요청·성공 응답과 운영 규칙만 정의하고 예외를 중복 작성하지 않는다.
+
+이미 `INACTIVE`인 Coupon의 비활성화는 오류가 아니라 `204 No Content`를 반환하는 멱등 처리다.
+
+## 6. 관리자 규칙
 
 - 관리자는 전체 쿠폰을 조회할 수 있다.
 - 관리자는 모든 쿠폰을 운영상 비활성화할 수 있다.

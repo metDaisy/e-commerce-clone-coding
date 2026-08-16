@@ -1,16 +1,32 @@
-# P4 Coupon Customer (고객 쿠폰 사용)
+# P4 Coupon Customer API (고객 쿠폰 사용)
 
-[P4 쿠폰 개요](p4-coupon.md)와 [쿠폰 데이터 모델](p4-coupon-model.md)을 따른다.
+업무 정책은 [P4 Coupon Policy](p4-policy.md), 데이터 모델과 공통 API는 [Coupon API](p4-coupon.md)를 따른다. 이 문서는 고객 행위자별 Clip·보유 쿠폰·주문 적용 API를 정의한다.
 
 ## 1. 쿠폰 Clip
 
 `POST /api/v1/coupons/{couponId}/clip`
 
+권한: 로그인 고객
+
+요청 본문은 없다.
+
 - 로그인한 고객만 Clip할 수 있다.
 - `ACTIVE` 쿠폰만 Clip할 수 있다.
 - `(couponId, userId)` 중복 Clip은 허용하지 않는다.
 - Clip 레코드의 `createdAt`은 고객이 쿠폰을 저장한 시각이다.
-- 중복 Clip은 `409 COUPON_ALREADY_CLIPPED`를 반환한다.
+- 중복 Clip은 `409 COUPON-009`를 반환한다. 원본 매트릭스는 [Coupon API](p4-coupon.md#4-7-coupon-clip)를 따른다.
+
+#### 성공 응답: `201 Created`
+
+```json
+{
+  "clipId": "uuid-clip-1",
+  "couponId": "uuid-coupon-1",
+  "userId": "uuid-user-1",
+  "status": "CLIPPED",
+  "createdAt": "2026-08-15T12:00:00Z"
+}
+```
 
 ## 2. 고객 보유 쿠폰 조회
 
@@ -74,7 +90,7 @@
 }
 ```
 
-## 3. 주문 적용
+## 3. 주문 적용 정책 (P5 연계)
 
 쿠폰 적용과 사용 기록 생성은 주문 처리의 원자적 범위에 포함한다.
 
@@ -82,7 +98,7 @@
 - `validFrom <= now < validUntil`이어야 한다.
 - 고객의 Clip이 존재하고 `CLIPPED` 상태여야 한다.
 - 기본 과정의 고객별 최대 사용 횟수는 1회다.
-- 한 주문에는 서로 다른 `UserCoupon`을 최대 5개까지 적용한다.
+- 한 주문에는 서로 다른 `Coupon`을 최대 5개까지 적용한다.
 - 하나의 쿠폰은 선택한 여러 Cart Item에 적용할 수 있다.
 - `CouponTarget`에 포함된 Offer라도 자동으로 쿠폰을 적용하지 않는다. 사용자가 쿠폰 적용 대상으로 선택한 Cart Item에만 적용한다.
 - 하나의 Cart Item에는 쿠폰을 최대 1개만 적용한다. 동일 상품에 여러 쿠폰을 중첩하지 않는다.
@@ -92,3 +108,7 @@
 - 결제 확정 시 `CouponRedemption`을 `CONFIRMED`로 생성한다. `redeemedAt`은 쿠폰이 주문에 실제 적용된 시각이다.
 - 결제 실패·주문 생성 실패 시 쿠폰 사용 기록을 생성하지 않고 Clip 상태를 유지한다.
 - 주문 취소·환불에 따른 사용 복원은 P5에서 정의한다.
+
+## 4. API 예외
+
+Clip·보유 쿠폰 조회의 API별 예외 표는 [Coupon API](p4-coupon.md)의 API별 예외 매트릭스를 따른다. 주문 생성·결제·환불의 최종 예외는 [P5 Order API](../p5/p5-order.md)가 소유한다.
