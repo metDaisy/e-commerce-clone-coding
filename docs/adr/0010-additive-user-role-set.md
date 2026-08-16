@@ -46,5 +46,5 @@
 
 - [P1 User](../requirement/p1/p1-user.md)
  - [P7 권한·판매자 심사](../requirement/p7/p7-access.md)
-- [P11 Auth](../requirement/p11/p11-auth.md)
+- [P11 Auth](../requirement/p11/p11-index.md)
 - [Project Context](../../CONTEXT.md)
