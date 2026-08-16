@@ -1,24 +1,74 @@
-# P2 CatalogProduct (카탈로그 상품)
+# P2 CatalogProduct API
 
-[P2 Catalog 개요](p2-catalog.md)의 CatalogProduct 메타데이터와 전시 정보에 대한 상세 요구사항이다.
+이 문서는 CatalogProduct 데이터 모델과 상품 공통 정보·식별자·CatalogProduct Media를 관리하는 API를 정의한다. 업무 정책은 [P2 Policy](p2-policy.md), Category 규칙은 [Category API](p2-category.md), 공통 파일 계약은 [P12 Media](../p12/p12-media.md)를 따른다.
 
-## 1. 모델과 책임
+## 1. 데이터 모델과 API 관계
 
-CatalogProduct는 여러 ProductVariant가 공유하는 상품군의 공통 메타데이터다.
+| 데이터 모델 | 책임 | 관련 API |
+|---|---|---|
+| `CatalogProduct` | 상품명·설명·브랜드·외부 식별자·공통 attributes·상태 | 조회·생성·수정·보관 |
+| `CatalogProductIdentifier` | CatalogProduct와 외부 상품 코드의 유형별 연결 | 생성·수정 |
+| `CatalogProductMedia` | 상품 이미지의 대상·정렬·대표·보관 상태 | 연결·수정·보관 |
+| `Category` | 상품의 대표 분류 | [Category API](p2-category.md) |
+| `ProductVariant` | 상품군에 속한 구매 단위 | [ProductVariant API](p2-product-variant.md) |
 
-- `name`, `description`, `brand`, 외부 식별자, 동적 `attributes`, Media를 소유한다.
-- Category 하나와 연결한다. Category 계층 경로와 하위 Category 검색은 [Category](p2-category.md) 규칙을 따른다.
-- 정식 생성·수정·보관은 `ADMIN`만 수행한다. 관리자 소유자나 `managerId`를 저장하지 않는다.
-- ProductVariant·Offer·Inventory는 생성 시 함께 만들지 않는다.
-- Offer·Inventory 규칙은 P9, Seller 등록 요청은 P8, 관리자 진입점은 P7이 소유한다.
+P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는다. 외부 도메인의 Offer·Inventory·Review는 식별자와 공개 계약만 참조한다.
 
-## 2. 등록
+## 2. 데이터 모델
 
-```http
-POST /api/v1/admin/catalog-products
-```
+### 2-1. `CatalogProduct`
 
-요청 예시:
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `catalogProductId` | UUID | 예 | 서버 생성 내부 식별자 |
+| `categoryId` | UUID | 예 | 대표 Category 단일 참조 |
+| `name` | String | 예 | 공백이 아닌 상품명 |
+| `description` | String | 예 | 공백이 아닌 상품 설명 |
+| `brand` | String | 예 | 상품 브랜드 |
+| `attributes` | JSON object | 예 | 상품군 공통 동적 속성. 기본값 `{}` |
+| `identifiers` | Object | 예 | `asin`, `gtin`, `upc`, `ean`, `isbn` 중 하나 이상 |
+| `publicationStatus` | Enum | 예 | `ACTIVE` 또는 `ARCHIVED` |
+| `archivedAt` | Instant | 아니오 | 보관 시각 |
+| `createdAt` | Instant | 예 | 생성 시각 |
+| `updatedAt` | Instant | 예 | 수정 시각 |
+
+### 2-2. `CatalogProductMedia`
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---:|---|
+| `mediaId` | UUID | 예 | Media 연결 식별자 |
+| `catalogProductId` | UUID | 예 | 소유 CatalogProduct |
+| `uploadId` | UUID | 예 | P12에서 `READY`로 발급된 업로드 식별자 |
+| `sortOrder` | Integer | 예 | 상품 안에서 유일한 정렬 순서 |
+| `isPrimary` | Boolean | 예 | 대표 이미지 여부. 상품당 하나 |
+| `status` | Enum | 예 | `ACTIVE` 또는 `ARCHIVED` |
+| `createdAt` | Instant | 예 | 연결 시각 |
+| `updatedAt` | Instant | 예 | 변경 시각 |
+
+### 2-3. 관계와 제약
+
+- 생성 시 `categoryId`가 존재해야 하며 CatalogProduct·식별자·Category 연결은 하나의 트랜잭션으로 처리한다.
+- ProductVariant·Offer·Inventory·Media는 CatalogProduct 생성 시 함께 생성하지 않는다.
+- `asin`, `gtin`, `upc`, `ean`, `isbn` 중 하나 이상을 입력한다. 각 유형은 형식·체크디지트·CatalogProduct 간 유일성을 검증한다.
+- `isbn`만 외부 도서 API로 추가 검증한다.
+- `attributes` 최상위 값은 object여야 한다. 공통 크기·깊이 제한만 적용하고 Category별 스키마는 강제하지 않는다.
+- `PATCH`의 `attributes`는 JSON Merge Patch다. 일반 값은 추가·수정, `null`은 키 삭제, 생략은 유지, `{}`는 변경 없음이다. `null` 자체를 값으로 저장하지 않는다.
+- 일반 수정은 `name`, `description`, `brand`, `attributes`만 받는다. Category·Variant·Offer·Inventory·`publicationStatus`는 받지 않는다.
+- 외부 식별자 수정은 전달된 값만 바꾸며 식별자 삭제는 지원하지 않는다.
+- `ACTIVE` Media는 상품당 최대 20개, 대표 Media는 최대 하나, `sortOrder`는 상품 내 유일값이다.
+- Media DELETE와 CatalogProduct 보관은 물리 삭제가 아닌 `ARCHIVED` 전환이다.
+
+## 3. API 정의
+
+성공 응답은 구매자·Seller용 API에서 내부 `catalogProductId`, `variantId`를 제외한다. 관리자 API는 운영에 필요한 내부 ID와 상태를 반환한다.
+
+### 3-1. CatalogProduct 생성
+
+`POST /api/v1/admin/catalog-products`
+
+권한: ADMIN
+
+요청:
 
 ```json
 {
@@ -31,132 +81,266 @@ POST /api/v1/admin/catalog-products
 }
 ```
 
-- `ADMIN`만 호출할 수 있다.
-- `categoryId`는 하나여야 하며 해당 Category가 존재해야 한다.
-- `name`, `description`은 공백만으로 구성할 수 없다.
-- `asin`, `gtin`, `upc`, `ean`, `isbn` 중 최소 하나를 입력해야 한다.
-- CatalogProduct 생성 시 ProductVariant·Offer·Inventory·Media는 생성하지 않는다.
-- CatalogProduct, 외부 식별자, Category 연결은 하나의 트랜잭션으로 생성한다.
-
-입력된 외부 식별자에는 다음 규칙을 적용한다.
-
-- `gtin`, `upc`, `ean`: 형식·체크디지트·CatalogProduct 간 유일성 검사
-- `asin`: 10자리 영문 대문자·숫자 형식·CatalogProduct 간 유일성 검사
-- `isbn`: ISBN-10/ISBN-13 형식·체크디지트·유일성 및 외부 도서 API 검사
-- 외부 API는 ISBN 검증에만 사용한다.
-
-식별자 검증에 실패하면 `message`는 안전한 공통 안내로 유지하되, 사용자가 수정할 수 있도록 응답 `details.fields`에 실패한 필드별 정보를 포함한다. 여러 식별자가 동시에 잘못된 경우 모든 실패 필드를 한 번에 반환한다.
+#### 성공 응답: `201 Created`
 
 ```json
 {
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "상품 식별자 입력을 확인해 주세요.",
-    "details": {
-      "fields": [
-        {
-          "field": "gtin",
-          "reason": "invalid_check_digit",
-          "message": "GTIN 체크디지트가 올바르지 않습니다."
-        },
-        {
-          "field": "isbn",
-          "reason": "external_verification_failed",
-          "message": "ISBN 정보를 확인할 수 없습니다."
-        }
-      ]
-    }
-  },
-  "meta": {
-    "requestId": "uuid"
+  "catalogProductId": "uuid-product",
+  "categoryId": "uuid-graphics-card",
+  "name": "무선 헤드폰",
+  "description": "카탈로그 상품 설명",
+  "brand": "Example Brand",
+  "attributes": { "connectionType": "BLUETOOTH" },
+  "identifiers": { "gtin": "8801234567890" },
+  "publicationStatus": "ACTIVE"
+}
+```
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 400 | `CATALOG-013` | 이름·설명·브랜드·attributes 검증 실패 | 상품 정보를 확인해 주세요. | 실패 필드와 수정 가능한 reason | 내부 검증 원인 |
+| 400 | `CATALOG-014` | 식별자 형식·체크디지트 실패 또는 식별자 없음 | 상품 식별자 입력을 확인해 주세요. | `details.fields`에 필드·reason·안내 메시지 | 실제 입력값은 로그에만 기록 |
+| 400 | `CATALOG-015` | ISBN 외부 검증 실패 | 상품 식별자 입력을 확인해 주세요. | `field=isbn`, `reason=external_verification_failed` | 외부 응답 원문은 로그에만 기록 |
+| 404 | `CATALOG-016` | Category가 없음 | 카테고리를 찾을 수 없습니다. | 없음 | `categoryId`, requestId |
+| 409 | `CATALOG-017` | 식별자가 다른 CatalogProduct와 중복 | 이미 등록된 상품 식별자입니다. | 식별자 유형만 | 충돌 식별자 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
+| 500 | `CATALOG-018` | 저장소 또는 예상하지 못한 오류 | 요청을 처리하지 못했습니다. | 없음 | 내부 원인과 requestId |
+
+식별자 오류가 여러 개면 `details.fields`에 모든 실패 필드를 반환한다. 전체 식별자 값·SQL·외부 API 원문은 반환하지 않는다.
+
+### 3-2. CatalogProduct 조회
+
+`GET /api/v1/catalog-products/{catalogProductId}`
+
+권한: 구매자·Seller·ADMIN
+
+#### 성공 응답: `200 OK`
+
+```json
+{
+  "catalogProductId": "uuid-product",
+  "name": "무선 헤드폰",
+  "description": "카탈로그 상품 설명",
+  "brand": "Example Brand",
+  "attributes": { "connectionType": "BLUETOOTH" },
+  "media": [],
+  "publicationStatus": "ACTIVE"
+}
+```
+
+ADMIN 응답에는 `categoryId`, 내부 ID, `publicationStatus`를 포함하고, 구매자·Seller 응답에는 내부 ID와 보관 상태를 포함하지 않는다.
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 404 | `CATALOG-019` | 미존재 또는 비관리자의 보관 상품 조회 | 상품을 찾을 수 없습니다. | 없음 | `lookupResult=NOT_FOUND` 또는 `ARCHIVED` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 500 | `CATALOG-020` | 조회 실패 | 상품을 조회하지 못했습니다. | 없음 | 저장소 원인과 requestId |
+
+### 3-3. CatalogProduct 메타데이터 수정
+
+`PATCH /api/v1/admin/catalog-products/{catalogProductId}`
+
+권한: ADMIN
+
+요청:
+
+```json
+{
+  "name": "무선 헤드폰 Pro",
+  "description": "수정된 설명",
+  "brand": "Example Brand",
+  "attributes": { "connectionType": "BLUETOOTH", "noiseCanceling": true }
+}
+```
+
+#### 성공 응답: `200 OK`
+
+생성 응답과 같은 CatalogProduct Response DTO를 반환한다.
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 400 | `CATALOG-013` | 수정 필드 또는 Merge Patch 검증 실패 | 상품 정보를 확인해 주세요. | 실패 필드와 reason | 내부 검증 원인 |
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 조회 원인과 ID |
+| 409 | `CATALOG-021` | `ARCHIVED` 상품 수정 | 보관된 상품은 변경할 수 없습니다. | 없음 | 현재 상태 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
+| 500 | `CATALOG-022` | 저장 실패 | 요청을 처리하지 못했습니다. | 없음 | 내부 원인과 requestId |
+
+### 3-4. 외부 식별자 수정
+
+`PATCH /api/v1/admin/catalog-products/{catalogProductId}/identifiers`
+
+권한: ADMIN
+
+요청:
+
+```json
+{
+  "gtin": "8801234567890",
+  "isbn": "9781234567890"
+}
+```
+
+#### 성공 응답: `200 OK`
+
+```json
+{
+  "catalogProductId": "uuid-product",
+  "identifiers": {
+    "gtin": "8801234567890",
+    "isbn": "9781234567890"
   }
 }
 ```
 
-`details.fields`에는 필드명, 수정 가능한 원인 코드, 사용자 안내 메시지만 포함한다. 입력한 전체 식별자 값, 내부 검증 로직, 외부 API 응답 원문은 포함하지 않으며 서버 로그의 `logDetails`에만 기록한다.
+전달하지 않은 식별자는 유지하며, 식별자를 `null`로 삭제할 수 없다.
 
-## 3. 동적 attributes
+#### 예외
 
-`CatalogProduct.attributes`는 카테고리별 고정 스키마가 없는 동적 JSON object다.
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 400 | `CATALOG-014` | 형식·체크디지트 실패 또는 모든 식별자 삭제 | 상품 식별자 입력을 확인해 주세요. | `details.fields` | 내부 검증 원인 |
+| 400 | `CATALOG-015` | ISBN 외부 검증 실패 | 상품 식별자 입력을 확인해 주세요. | 실패 필드와 reason | 외부 응답 원문은 로그에만 기록 |
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 조회 원인과 ID |
+| 409 | `CATALOG-017` | 식별자 중복 | 이미 등록된 상품 식별자입니다. | 식별자 유형만 | 충돌 식별자 |
+| 409 | `CATALOG-021` | `ARCHIVED` 상품 수정 | 보관된 상품은 변경할 수 없습니다. | 없음 | 현재 상태 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
 
-- 최상위 값은 객체여야 하며 공통 크기·깊이 제한만 적용한다.
-- 키의 의미·자료형·필수 여부·카테고리 적합성은 P2가 제한하지 않는다.
-- 여러 Variant가 공유하는 상품군 정보에 사용한다.
-- `weight`, `dimensions` 같은 Variant별 정보는 ProductVariant.attributes에 저장한다.
-- 새 Category를 제안할 때 attributes 스키마를 함께 제출하지 않는다.
+### 3-5. CatalogProduct 보관
 
-`PATCH`의 `attributes`는 JSON Merge Patch 방식으로 처리한다.
+`POST /api/v1/admin/catalog-products/{catalogProductId}/archive`
 
-| 요청 | 처리 |
-|---|---|
-| 일반 값 | 기존 값 수정 또는 새 키 추가 |
-| `null` | 해당 키 삭제 |
-| 키 생략 | 기존 값 유지 |
-| `{}` | 변경 없음 |
+권한: ADMIN
 
-중첩 객체에도 같은 규칙을 재귀적으로 적용한다. `null`을 실제 값으로 저장하는 것은 지원하지 않는다.
+#### 성공 응답: `200 OK`
 
-## 4. 수정·식별자 수정
-
-```http
-PATCH /api/v1/admin/catalog-products/{catalogProductId}
-PATCH /api/v1/admin/catalog-products/{catalogProductId}/identifiers
+```json
+{
+  "catalogProductId": "uuid-product",
+  "publicationStatus": "ARCHIVED",
+  "archivedAt": "2026-08-16T12:31:33Z"
+}
 ```
 
-- `ADMIN`만 호출할 수 있다.
-- 수정 가능한 메타데이터는 `name`, `description`, `brand`, `attributes`다.
-- 기본 범위에서는 Category 연결 변경을 일반 수정에 포함하지 않는다.
-- 외부 식별자 수정은 전달된 값만 변경하며 식별자 삭제는 지원하지 않는다.
-- 보관된 CatalogProduct는 일반 수정·식별자 수정 대상이 아니다.
-- Category·Variant·Offer·Inventory·publicationStatus를 일반 CatalogProduct 수정 본문으로 받지 않는다.
+#### 예외
 
-## 5. Media
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 조회 원인과 ID |
+| 409 | `CATALOG-023` | 이미 보관된 상품 재보관 | 이미 보관된 상품입니다. | 없음 | 현재 상태 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
+| 500 | `CATALOG-024` | 보관 상태 저장 실패 | 요청을 처리하지 못했습니다. | 없음 | 내부 원인과 requestId |
 
-상품 Media attachment는 P2가 대상 검증, 정렬, 대표 이미지, 보관 규칙을 소유한다. 실제 파일 저장·CDN·스토리지 삭제는 공통 `MediaStoragePort`에 위임한다.
+보관 시 하위 Variant·CatalogProduct Media를 물리 삭제하지 않고 공개·Seller 조회와 Offer 등록 대상에서 제외한다. 연결 Offer 비활성화는 P9가 수행한다.
 
-```http
-POST   /api/v1/admin/catalog-products/{catalogProductId}/media
-PATCH  /api/v1/admin/catalog-products/{catalogProductId}/media/{mediaId}
-DELETE /api/v1/admin/catalog-products/{catalogProductId}/media/{mediaId}
+## 4. CatalogProduct Media API
+
+CatalogProduct Media의 업로드 준비·파일 검증·저장소 계약은 P12가 소유한다. P2는 `READY` 상태 `uploadId`의 대상 연결, 정렬, 대표 지정, 보관을 소유한다.
+
+### 4-1. Media 연결
+
+`POST /api/v1/admin/catalog-products/{catalogProductId}/media`
+
+권한: ADMIN
+
+요청:
+
+```json
+{
+  "uploadId": "uuid-upload",
+  "sortOrder": 1,
+  "isPrimary": true
+}
 ```
 
-- `ADMIN`만 호출할 수 있다.
-- `isPrimary = true`인 Media는 상품당 최대 하나다.
-- `sortOrder`는 상품 내에서 유일해야 한다.
-- DELETE는 물리 삭제가 아니라 Media 보관이며 보관된 Media는 공개 조회에서 제외한다.
-- Review Media는 P10이 소유한다.
+#### 성공 응답: `201 Created`
 
-## 6. 보관과 조회
-
-```http
-POST /api/v1/admin/catalog-products/{catalogProductId}/archive
-GET  /api/v1/catalog-products/{catalogProductId}
-GET  /api/v1/admin/catalog-products/{catalogProductId}
+```json
+{
+  "mediaId": "uuid-media",
+  "uploadId": "uuid-upload",
+  "sortOrder": 1,
+  "isPrimary": true,
+  "status": "ACTIVE"
+}
 ```
 
-- 보관은 `publicationStatus = ARCHIVED`, `archivedAt = 현재 시각`으로 변경하며 물리 삭제하지 않는다.
-- 보관된 CatalogProduct의 하위 ProductVariant·Offer·Inventory와 CatalogProduct Media도 물리 삭제하지 않는다.
-- 하위 ProductVariant는 공개·Seller 조회와 Offer 등록 대상에서 제외한다.
-- 하위 Offer는 P9 규칙에 따라 비활성화한다.
-- Seller·구매자 조회에서 보관되거나 존재하지 않는 CatalogProduct는 `404 CATALOG_PRODUCT_NOT_FOUND`다.
-- 관리자 조회는 존재하는 CatalogProduct라면 `ACTIVE`·`ARCHIVED` 모두 `200`으로 반환한다.
-- 관리자 조회에서 실제로 존재하지 않는 CatalogProduct만 `404 CATALOG_PRODUCT_NOT_FOUND`다.
-- Seller·구매자 응답에는 내부 `catalogProductId`, `variantId`를 반환하지 않고 상품 표시 메타데이터만 반환한다. 관리자 응답에는 운영에 필요한 ID와 상태를 포함한다.
+#### 예외
 
-## 7. 예외
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 조회 원인과 ID |
+| 404 | `CATALOG-025` | uploadId 미존재 또는 소유자 불일치 | 이미지를 업로드할 수 없습니다. | 없음 | uploadId와 P12 조회 결과 |
+| 409 | `CATALOG-026` | uploadId가 `READY`가 아님 | 이미지 업로드를 완료해 주세요. | 현재 업로드 상태 | P12 상태 |
+| 409 | `CATALOG-027` | ACTIVE Media 20개 초과 | 상품 이미지 설정을 확인해 주세요. | `field=media` | 내부 제약 원인 |
+| 409 | `CATALOG-037` | 대표 Media 중복 | 상품 이미지 설정을 확인해 주세요. | `field=isPrimary` | 내부 제약 원인 |
+| 409 | `CATALOG-038` | sortOrder 중복 | 상품 이미지 설정을 확인해 주세요. | `field=sortOrder` | 내부 제약 원인 |
+| 409 | `CATALOG-021` | `ARCHIVED` 상품에 연결 | 보관된 상품은 변경할 수 없습니다. | 없음 | 현재 상태 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
 
-| HTTP | 코드 | 클라이언트 메시지 | 서버 상세 원인 |
-|---:|---|---|---|
-| 400 | `VALIDATION_ERROR` | 상품 정보를 확인해 주세요. | `name`, `description`, `brand`, `attributes`의 필드별 검증 결과 |
-| 400 | `PRODUCT_CODE_ERROR` | 상품 식별자 입력을 확인해 주세요. | `asin`, `gtin`, `upc`, `ean`, `isbn`별 형식·체크디지트·중복·외부 검증 결과 |
-| 401 | `AUTHENTICATION_REQUIRED` | 로그인이 필요합니다. | 인증 정보 없음·위조·만료 |
-| 403 | `ACCESS_DENIED` | 이 작업을 수행할 권한이 없습니다. | ADMIN 권한이 아닌 CatalogProduct 변경 요청 |
-| 404 | `CATEGORY_NOT_FOUND` | 카테고리를 찾을 수 없습니다. | 요청한 `categoryId`가 `NOT_FOUND` |
-| 404 | `CATALOG_PRODUCT_NOT_FOUND` | 상품을 찾을 수 없습니다. | CatalogProduct가 `NOT_FOUND` 또는 `ARCHIVED` |
-| 404 | `MEDIA_NOT_FOUND` | 이미지를 찾을 수 없습니다. | CatalogProduct Media가 `NOT_FOUND` 또는 `ARCHIVED` |
-| 409 | `CATALOG_PRODUCT_ARCHIVED` | 보관된 상품은 변경할 수 없습니다. | `publicationStatus = ARCHIVED` 상태에서 수정·식별자 수정 시도 |
-| 500 | `INTERNAL_SERVER_ERROR` | 요청을 처리하지 못했습니다. | 저장소·외부 ISBN 검증·예상하지 못한 서버 오류 |
+### 4-2. Media 수정
 
-식별자 검증 실패는 `message`를 추상적으로 유지하되, 응답 `details.fields`에 문제가 있는 식별자 필드와 `invalid_format`, `invalid_check_digit`, `duplicate`, `external_verification_failed` 등의 수정 가능한 원인을 포함한다. 서버는 `getDetailMessage()`에 실제 검증 결과와 내부 식별자를 기록하며, 외부 API 응답 원문·SQL·내부 상태는 클라이언트에 반환하지 않는다.
+`PATCH /api/v1/admin/catalog-products/{catalogProductId}/media/{mediaId}`
+
+권한: ADMIN
+
+요청:
+
+```json
+{
+  "sortOrder": 2,
+  "isPrimary": false
+}
+```
+
+#### 성공 응답: `200 OK`
+
+Media 연결 성공 응답과 같은 Media Response DTO를 반환한다.
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 상품 조회 원인 |
+| 404 | `CATALOG-028` | Media 미존재 또는 보관됨 | 이미지를 찾을 수 없습니다. | 없음 | Media 조회 원인 |
+| 409 | `CATALOG-037` | 대표 Media 중복 | 상품 이미지 설정을 확인해 주세요. | `field=isPrimary` | 내부 제약 원인 |
+| 409 | `CATALOG-038` | sortOrder 중복 | 상품 이미지 설정을 확인해 주세요. | `field=sortOrder` | 내부 제약 원인 |
+| 409 | `CATALOG-021` | 보관된 상품의 Media 수정 | 보관된 상품은 변경할 수 없습니다. | 없음 | 현재 상태 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
+
+### 4-3. Media 보관
+
+`DELETE /api/v1/admin/catalog-products/{catalogProductId}/media/{mediaId}`
+
+권한: ADMIN
+
+#### 성공 응답: `200 OK`
+
+```json
+{
+  "mediaId": "uuid-media",
+  "status": "ARCHIVED"
+}
+```
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 상품 조회 원인 |
+| 404 | `CATALOG-028` | Media 미존재 또는 이미 보관됨 | 이미지를 찾을 수 없습니다. | 없음 | Media 조회 원인 |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
+
+보관된 Media는 공개 조회에서 제외하며 물리 파일 삭제는 P12 저장소 정책에 위임한다.
