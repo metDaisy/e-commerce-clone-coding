@@ -27,6 +27,7 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCo
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -171,7 +172,7 @@ class CatalogProductServiceTest {
     given(unsupportedVerifier.support(CatalogProductIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogProductIdentifierType.ASIN)).willReturn(true);
     willThrow(new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-        Map.of("ASIN", "B000123456")))
+        AmaazonExceptionContext.logDetails(Map.of("ASIN", "B000123456"))))
         .given(asinVerifier)
         .verify(productId, "B000123456");
 

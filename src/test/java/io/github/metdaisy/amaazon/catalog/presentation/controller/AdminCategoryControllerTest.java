@@ -84,7 +84,7 @@ class AdminCategoryControllerTest extends RestControllerTest {
   void create_rejectsBlankName() throws Exception {
     mockMvc.perform(postJson(CATEGORIES_URL, new CategoryCreateRequest("", null)))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"));
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"));
 
     then(categoryCommandService).should(never()).create(any(CategoryCreateRequest.class));
   }

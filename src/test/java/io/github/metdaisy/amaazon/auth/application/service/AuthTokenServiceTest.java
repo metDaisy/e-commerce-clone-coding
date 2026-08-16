@@ -15,6 +15,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 
@@ -88,7 +89,9 @@ class AuthTokenServiceTest {
   void reissue_failure_invalidToken() {
     // given
     String token = "invalid-refresh-token";
-    doThrow(new AuthException(AuthErrorCode.TOKEN_EXPIRED, Map.of("token", token))).when(provider).validate(token);
+    doThrow(new AuthException(AuthErrorCode.TOKEN_EXPIRED,
+        AmaazonExceptionContext.logDetails(Map.of("token", token))))
+        .when(provider).validate(token);
 
     // when & then
     assertThatThrownBy(() -> authTokenService.reissue(token))

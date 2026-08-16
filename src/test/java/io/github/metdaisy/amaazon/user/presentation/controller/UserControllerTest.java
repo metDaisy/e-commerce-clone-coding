@@ -67,7 +67,7 @@ class UserControllerTest extends RestControllerTest {
       throws Exception {
     mockMvc.perform(postJson(USERS_URL + "/update", request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
         .andExpect(jsonPath("$.details." + field, hasItem(expectedMessage)));
 
     verify(userService, never()).updateProfile(any(UUID.class), any(UserUpdateRequest.class));
@@ -93,7 +93,7 @@ class UserControllerTest extends RestControllerTest {
 
     mockMvc.perform(get(USERS_URL + "/me"))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionType").value("USER-001"))
+        .andExpect(jsonPath("$.exceptionCode").value("USER-001"))
         .andExpect(jsonPath("$.message").value("해당 사용자를 찾을 수 없습니다."));
   }
 

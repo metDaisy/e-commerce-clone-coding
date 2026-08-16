@@ -10,6 +10,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryRespo
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import java.util.List;
 import java.util.Map;
@@ -49,11 +50,12 @@ class CategoryControllerTest extends RestControllerTest {
   void findAll_shouldReturnMappedCatalogError() throws Exception {
     UUID categoryId = UUID.randomUUID();
     given(service.findAll()).willThrow(new CatalogProductException(
-        CatalogProductErrorCode.CATEGORY_NOT_FOUND, Map.of("categoryId", categoryId)));
+        CatalogProductErrorCode.CATEGORY_NOT_FOUND,
+        AmaazonExceptionContext.logDetails(Map.of("categoryId", categoryId))));
 
     mockMvc.perform(get(CATEGORIES_URL))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionType").value("CATALOG-001"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-001"));
 
   }
 }
