@@ -26,7 +26,7 @@ flowchart LR
         Seller[seller]
         Common[common]
         Global[global]
-        Future[목표: cart / coupon / order / payment / delivery / admin]
+        Future[목표: cart / coupon / order / payment / delivery / offer / review / media / admin]
     end
 ```
 
@@ -77,21 +77,36 @@ docs/             요구사항, 설계, 상태 문서
 | `user` | 프로필, 역할, 활성 상태 | `common::*`, `auth::signup`, `auth::password` |
 | `catalog` | CatalogProduct·ProductVariant와 카테고리·태그, 카탈로그 조회 | `common::*` |
 | `seller` | Seller와 판매자 조회 | `common::*` |
-| `offer` | Offer·Inventory와 Marketplace 조회 | `common::*`, `catalog::api`, `seller::api` |
-| `review` | Review와 리뷰 Media | `common::*`, `catalog::api`, `order::api` |
+
+위 표는 기준 SHA에서 코드로 확인한 현재 모듈이다. Offer·Review·Cart·Coupon·Order·Payment·Delivery·P12 Media는 요구사항의 목표 경계이며 현재 구현 모듈로 간주하지 않는다.
 
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
 - `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
+- `UserRolesChangedEvent`: User가 역할 집합 변경 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
 - `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
-- `catalog::api`: Offer·Review 모듈이 CatalogProduct·ProductVariant 존재와 보관 상태를 검증하는 동기 seam.
-- `offer::api`: 고객용 Marketplace 조회가 공개 Offer·Inventory 요약을 조합하는 공개 seam.
-- `review::api`: 고객용 상품 상세가 Review 요약을 조합하는 공개 seam.
-- 역할은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구분한다. `PRODUCT_MANAGER`도 구매자 기능을 사용할 수 있지만 CatalogProduct·ProductVariant 생성·수정·보관 권한은 없다.
+- 역할 집합은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 추가 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구성한다. 역할은 독립적으로 보유할 수 있고 `USER`는 다른 역할을 추가해도 유지한다.
 - `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
 - `auth::password`: 회원가입 요청의 비밀번호 검증 규칙.
 - `global::jwt`: JWT 설정과 생성·검증 기능.
 - `global::blacklist`: 토큰 무효화 이벤트.
+
+목표 도메인을 구현할 때의 공개 계약 방향은 다음과 같다.
+
+- `catalog::api`: P9 Offer·P10 Review가 CatalogProduct·ProductVariant의 존재·활성·보관 상태를 검증하는 P2 공개 계약.
+- `offer::api`: P9가 고객용 Marketplace 조합에 제공하는 공개 Offer·Inventory 요약.
+- `review::api`: P10이 고객용 상품 상세에 제공하는 Review 요약.
+- `p12::media-api`와 `common::MediaStoragePort`: P2·P9·P10이 업로드 완료 상태와 저장소 기능만 사용하는 P12 공개 계약.
+
+## 목표 공통 Media Storage 경계
+
+Media 파일은 특정 도메인의 엔티티가 아니라 공통 인프라에 저장한다. 목표 P12 또는 `common` 공개 계약은 모듈이 의존할 수 있는 작은 `MediaStoragePort`를 제공하고, object storage·CDN·파일 삭제 구현은 각 환경의 infra adapter가 담당한다. 이 경계는 현재 구현 완료를 뜻하지 않는다.
+
+- P2는 CatalogProduct Media attachment의 대상 검증, `isPrimary`, `sortOrder`, 공개 여부와 보관 수명주기를 소유한다.
+- P9는 판매자별 Offer Media attachment의 대상 검증, 정렬, 공개 여부와 보관 수명주기를 소유한다.
+- P10은 Review Media attachment의 Review 연결, 최대 개수, 정렬과 Review 숨김 시 공개 처리 규칙을 소유한다.
+- P2와 P10은 서로의 Media 도메인·Repository·infra 구현을 참조하지 않는다. 두 모듈은 `MediaStoragePort`만 사용한다.
+- 공통 저장소의 `mediaId`, storage key, public URL은 저장 기술을 추상화한 값이며, Media attachment의 소유자와 허용 규칙은 각 도메인이 검증한다.
 
 ## 현재 회원가입 흐름
 
@@ -123,7 +138,7 @@ sequenceDiagram
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
 | P1 | `user` | 프로필, 권한, 주소, 포인트, 관심상품 |
-| P2 | `catalog` | 카테고리, CatalogProduct·ProductVariant, 상품용 Media, 판매자·관리자 카탈로그 조회 |
+| P2 | `catalog` | 카테고리, CatalogProduct·ProductVariant, CatalogProduct Media, 판매자·관리자 카탈로그 조회 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
 | P5 | `order`, `payment`, `delivery` | 금액 산출, 상태 머신, 결제와 환불, 배송 추적 |
@@ -133,19 +148,22 @@ sequenceDiagram
 | P9 | `offer` | Offer, Inventory, 가격·판매 상태, 고객용 Marketplace 검색·상세 |
 | P10 | `review` | Review와 리뷰 Media, 구매·배송 완료 자격 검증 |
 | P11 | `auth` | 로컬·소셜 인증수단, 회원가입 인증 흐름, 로그인·로그아웃, 토큰 |
+| P12 | `media` 또는 `common` 경계 | `MediaUpload` 업로드 세션·검증·보관과 `MediaStoragePort` 계약을 제공하고, Media attachment의 업무 규칙은 P2·P9·P10이 소유 |
 
 위 표는 목표 분리 단위다. 현재 구현 모듈과 일치하지 않는 목표 모듈은 구현 시 ADR로 분리 수준과 공개 seam을 확정한다. 요구사항의 P 번호가 반드시 하나의 코드 모듈을 뜻하지는 않는다.
 
 ## 데이터와 트랜잭션
 
 - 모든 모듈은 현재 하나의 PostgreSQL 스키마를 공유한다.
-- `V1__init_schema.sql`은 P1~P10 대상 테이블과 Spring Modulith 기반 테이블을 제공한다. 테이블 존재는 도메인 구현 완료를 의미하지 않는다.
+- `V1__init_schema.sql`은 P1~P10 대상 테이블, P11 인증 지원 테이블, 공통 이미지 저장 메타데이터와 Spring Modulith 기반 테이블을 제공한다. `SignUpSession`·`MediaUpload`의 요구사항 계약이 테이블로 존재한다는 뜻은 아니며, 테이블 존재도 도메인 구현 완료를 의미하지 않는다.
 - 스키마 변경은 새 Flyway 마이그레이션으로 적용한다.
 - 모듈 내부 원자성은 로컬 DB 트랜잭션으로 보장한다.
 - 도메인 간 식별자는 애플리케이션 이벤트 또는 공개 port로 검증하며 DB 외래 키를 만들지 않는다. 외래 키는 같은 도메인 내부 엔티티 관계에만 추가한다.
 - P2의 목표 모델은 상품 메타데이터인 `CatalogProduct`와 실제 판매 단위인 `ProductVariant`를 소유한다. P9는 Seller별 가격·판매 조건인 `Offer`와 수량 상태인 `Inventory`, 그리고 Catalog와 Offer를 조합한 고객용 Marketplace 조회를 소유한다. P10은 구매·배송 완료 자격이 필요한 Review와 리뷰 Media를 소유한다.
 - P7은 P2~P6 테이블의 소유 모듈이 아니다. 관리자 전용 API는 각 모듈의 공개 application interface를 호출하고, 관리자 권한·운영 진입점만 담당한다.
 - P8은 P2의 CatalogProduct·ProductVariant와 P9의 Offer·Inventory를 소유하지 않는다. 판매자는 P8의 Seller 자격으로 P9의 Offer를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
+- P11은 인증수단·가입 세션·토큰·로그인 세션을 소유하고, User 프로필·역할·활성 상태는 P1의 공개 계약으로 확인한다. 역할 변경 사실은 P1에서 발행하고 P11이 세션을 무효화한다.
+- P12는 `MediaUpload`의 검증·상태와 저장소 계약을 소유한다. P2·P9·P10은 완료된 업로드를 각자의 attachment 규칙으로 연결하며 P12가 업무 소유권을 대신 판단하지 않는다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.
 
@@ -154,6 +172,7 @@ sequenceDiagram
 - 외부 클라이언트: REST, 목표 재고 알림은 WebSocket.
 - 인증: Spring Security Form Login, OAuth2, JWT HttpOnly 쿠키.
 - 모듈 간 사실 통지: Spring Application Event.
+- 사용자 역할 집합 변경은 `UserRolesChangedEvent`로 통지하고, 이벤트 Outbox 기록은 역할 집합 변경과 같은 트랜잭션으로 저장한다.
 - 모듈 간 동기 조회: 필요성이 명확할 때만 작은 Named Interface seam.
 - 외부 결제·스토리지: 도메인 인터페이스 뒤의 adapter로 격리한다.
 - 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다.
@@ -163,6 +182,7 @@ sequenceDiagram
 - MVC 요청에서 발생한 예외는 `ApiExceptionHandler`와 `SecurityExceptionHandler`가 받아 `ExceptionStrategyFactory`에서 가장 구체적인 예외 전략을 찾는다.
 - 각 전략은 로그 정책, HTTP 상태와 `ExceptionResponse` 응답 본문을 결정한다. 도메인 예외는 `AmaazonErrorCode`의 코드·메시지·오류 유형을 사용한다.
 - Spring Security 필터 체인의 인증 실패는 `AuthenticationExceptionEntryPoint`가 `HandlerExceptionResolver`에 위임하여 같은 응답 흐름으로 전달한다. 접근 거부처럼 필터 체인에서 직접 처리하는 경우에도 외부 응답 형식이 달라지지 않도록 경계 테스트로 확인한다.
+- `AmaazonException`은 클라이언트용 `clientMessage`와 서버 내부용 `detailMessage`·`logDetails`를 분리한다. `ExceptionResponse`에는 클라이언트 메시지만 포함하고, `getDetailMessage()`를 로그에 기록한다. `toString()`은 예외 로깅에 사용하지 않는다.
 - 예외 원문, 토큰, 비밀번호와 내부 구현 정보는 클라이언트 응답에 노출하지 않는다.
 
 ## 검증 경계
