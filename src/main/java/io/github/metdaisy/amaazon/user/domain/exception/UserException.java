@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.user.domain.exception;
 
 import io.github.metdaisy.amaazon.common.exception.AmaazonException;
-import java.util.Map;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 
 public class UserException extends AmaazonException {
 
@@ -9,7 +9,7 @@ public class UserException extends AmaazonException {
     super(errorCode);
   }
 
-  public UserException(UserErrorCode errorCode, Map<String, Object> details) {
-    super(errorCode, details);
+  public UserException(UserErrorCode errorCode, AmaazonExceptionContext context) {
+    super(errorCode, context);
   }
 }

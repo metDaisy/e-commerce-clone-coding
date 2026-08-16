@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest
 import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
@@ -63,6 +64,7 @@ public class UserService {
 
   private User findById(UUID id) {
     return repository.findById(id)
-        .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND, Map.of("userId", id)));
+        .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND,
+            AmaazonExceptionContext.logDetails(Map.of("userId", id))));
   }
 }
