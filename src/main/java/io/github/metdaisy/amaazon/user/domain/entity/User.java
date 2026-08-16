@@ -2,6 +2,8 @@ package io.github.metdaisy.amaazon.user.domain.entity;
 
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import io.github.metdaisy.amaazon.user.domain.entity.constant.UserRole;
+import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
+import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -80,6 +82,13 @@ public class User extends MutableEntity {
 
   public void updateRole(UserRole role) {
     updateIfChanged(this.role, role, value -> this.role = value);
+  }
+
+  public void deactivate() {
+    if (!isEnabled) {
+      throw new UserException(UserErrorCode.USER_ALREADY_DISABLED);
+    }
+    this.isEnabled = false;
   }
 
 }

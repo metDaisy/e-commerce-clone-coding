@@ -3,15 +3,18 @@ package io.github.metdaisy.amaazon.user.application.service;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
 import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
+import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -23,6 +26,7 @@ public class UserService {
 
   private final UserRepository repository;
   private final UserMapper userMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public void create(FormSignUpTask task) {
@@ -51,6 +55,14 @@ public class UserService {
 
   public UserResponse findProfile(UUID id) {
     return userMapper.toDto(find(id));
+  }
+
+  @Transactional
+  public void deactivate(UUID id) {
+    User user = findById(id);
+    Instant deactivatedAt = Instant.now();
+    user.deactivate();
+    eventPublisher.publishEvent(new UserDeactivatedEvent(UUID.randomUUID(), id, deactivatedAt));
   }
 
   private void validatePhoneNumber(String phoneNumber) {
