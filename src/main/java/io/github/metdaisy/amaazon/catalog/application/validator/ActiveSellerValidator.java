@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.catalog.domain.port.out.CatalogSellerPort;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
@@ -33,7 +34,7 @@ public class ActiveSellerValidator {
     UUID managerId = principal.getId();
     if (!sellerPort.existsActiveSellerByUserId(managerId)) {
       throw new CatalogProductException(CatalogProductErrorCode.SELLER_APPROVAL_REQUIRED,
-          Map.of("managerId", managerId));
+          AmaazonExceptionContext.logDetails(Map.of("managerId", managerId)));
     }
   }
 }

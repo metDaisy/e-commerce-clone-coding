@@ -16,6 +16,7 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCo
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -90,6 +91,6 @@ public class CatalogProductService {
   private CatalogProduct findById(UUID id) {
     return repository.findById(id)
         .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
-            Map.of("catalogId", id)));
+            AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
   }
 }
