@@ -98,9 +98,9 @@
 | HTTP | exceptionCode | client message | system message | details |
 |---:|---|---|---|---|
 | 400 | `REVIEW-001` | 페이지 번호 또는 페이지 크기(1 이상 20 이하)가 올바르지 않습니다. | Review 목록 페이지 파라미터 검증 실패: `page={page}`, `size={size}` | `{"page":"0 이상 정수","size":"1~20 정수"}` |
-| 404 | `REVIEW-002` | 상품 정보를 찾을 수 없습니다. | Offer 조회 실패: `offerId={offerId}`, `lookupResult={NOT_FOUND}` | 없음 |
-| 500 | `SYSTEM-001` | 요청을 처리하지 못했습니다. | Review 목록 조회 중 예상하지 못한 오류: `offerId={offerId}`, `page={page}`, `size={size}` | 없음 |
-| 503 | `SERVICE-001` | 리뷰 서비스를 일시적으로 사용할 수 없습니다. | Review 목록 조회 의존 서비스 이용 불가: `offerId={offerId}`, `dependency={dependency}` | 없음 |
+| 404 | [OFFER-001](../p9/p9-offer.md) | — | — | — |
+| 500 | [SYSTEM-001](../index.md#예외-응답) | — | — | — |
+| 503 | `REVIEW-019` | 리뷰 서비스를 일시적으로 사용할 수 없습니다. | Review 목록 조회 의존 서비스 이용 불가: `offerId={offerId}`, `dependency={dependency}` | 없음 |
 
 `client message`와 `details`는 클라이언트 응답에 포함한다. `system message`는 서버 로그용이며 클라이언트에 반환하지 않는다. `system message`에는 요청으로 전달된 실제 값과 내부 원인을 기록할 수 있다.
 
@@ -147,11 +147,11 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `REVIEW-014` | 평점·본문·첨부 정보 검증 실패 | 평점, 본문 또는 첨부 정보가 올바르지 않습니다. | 실패한 필드와 허용 조건 | Review 등록 입력값 검증 실패: `orderItemId={orderItemId}` |
-| 401 | `AUTH-001` | 인증 정보 없음·위조·만료 | 로그인이 필요합니다. | 없음 | Review 등록 인증 실패: `orderItemId={orderItemId}` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | `REVIEW-003` | 배송 완료된 구매 항목이 아니거나 구매자가 아님 | 배송 완료된 구매 항목만 리뷰를 작성할 수 있습니다. | 없음 | Review 작성 자격 없음: `userId={userId}, orderItemId={orderItemId}, deliveryStatus={deliveryStatus}` |
-| 404 | [`ORDER-001`](../p5/p5-order.md) | OrderItem이 존재하지 않음 | 구매 항목을 찾을 수 없습니다. | 없음 | [P5 Order 정의](../p5/p5-order.md)를 따른다. |
+| 404 | [ORDER-001](../p5/p5-order.md) | — | — | — | — |
 | 409 | `REVIEW-004` | 동일 User·Offer Review가 이미 존재함 | 해당 상품에는 이미 리뷰를 작성했습니다. | 없음 | Review 중복: `userId={userId}, offerId={offerId}` |
-| 503 | `SERVICE-001` | Media 의존 서비스를 사용할 수 없음 | 리뷰 첨부 서비스를 일시적으로 사용할 수 없습니다. | 없음 | Review Media 의존 서비스 이용 불가: `orderItemId={orderItemId}` |
+| 503 | [MEDIA-009](../p12/p12-media.md) | — | — | — | — |
 
 ## 5. Review 수정
 
@@ -186,8 +186,8 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `REVIEW-015` | 평점·본문·첨부 정보 검증 실패 | 평점, 본문 또는 첨부 정보가 올바르지 않습니다. | 실패한 필드와 허용 조건 | Review 수정 입력값 검증 실패: `reviewId={reviewId}` |
-| 401 | `AUTH-001` | 인증 정보 없음·위조·만료 | 로그인이 필요합니다. | 없음 | Review 수정 인증 실패: `reviewId={reviewId}` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | `REVIEW-005` | 요청자가 Review 작성자가 아님 | 본인이 작성한 리뷰만 수정할 수 있습니다. | 없음 | Review 수정 권한 없음: `userId={userId}, reviewId={reviewId}` |
 | 404 | `REVIEW-006` | Review가 존재하지 않음 | 리뷰를 찾을 수 없습니다. | 없음 | Review 조회 실패: `reviewId={reviewId}` |
 | 409 | `REVIEW-007` | Review가 `HIDDEN` 상태임 | 숨김 처리된 리뷰는 수정할 수 없습니다. | 없음 | 숨김 Review 수정 시도: `reviewId={reviewId}, visibilityStatus={visibilityStatus}` |
-| 503 | `SERVICE-001` | Media 의존 서비스를 사용할 수 없음 | 리뷰 첨부 서비스를 일시적으로 사용할 수 없습니다. | 없음 | Review Media 의존 서비스 이용 불가: `reviewId={reviewId}` |
+| 503 | [MEDIA-009](../p12/p12-media.md) | — | — | — | — |

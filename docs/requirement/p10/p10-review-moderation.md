@@ -50,7 +50,7 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `REVIEW-016` | 숨김 요청 사유가 없거나 2,000자를 초과함 | 숨김 요청 사유를 입력해야 합니다. | `reason` 허용 길이 | Review 숨김 요청 사유 검증 실패: `reviewId={reviewId}, reasonLength={reasonLength}` |
-| 401 | `AUTH-001` | 인증 정보 없음·위조·만료 | 로그인이 필요합니다. | 없음 | Review 숨김 요청 인증 실패: `reviewId={reviewId}` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | `REVIEW-008` | 요청자가 Offer 판매자가 아님 | 해당 Offer의 판매자만 숨김을 요청할 수 있습니다. | 없음 | Review 숨김 요청 권한 없음: `userId={userId}, reviewId={reviewId}, sellerId={sellerId}` |
 | 404 | `REVIEW-006` | Review가 존재하지 않음 | 리뷰를 찾을 수 없습니다. | 없음 | Review 조회 실패: `reviewId={reviewId}` |
 | 409 | `REVIEW-010` | 처리 대기 중인 숨김 요청이 이미 존재함 | 처리 대기 중인 숨김 요청이 이미 있습니다. | 없음 | Review 숨김 요청 중복: `reviewId={reviewId}, moderationId={moderationId}` |
@@ -85,7 +85,7 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `REVIEW-017` | 심사 의견이 2,000자를 초과함 | 심사 의견이 올바르지 않습니다. | `decisionComment` 허용 길이 | Review 숨김 승인 의견 검증 실패: `moderationId={moderationId}, commentLength={commentLength}` |
-| 401 | `AUTH-001` | 인증 정보 없음·위조·만료 | 로그인이 필요합니다. | 없음 | Review 숨김 승인 인증 실패: `moderationId={moderationId}` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | `REVIEW-009` | 요청자가 관리자가 아님 | 관리자만 리뷰 숨김 요청을 심사할 수 있습니다. | 없음 | Review 숨김 승인 권한 없음: `userId={userId}, moderationId={moderationId}` |
 | 404 | `REVIEW-012` | ReviewModeration이 존재하지 않음 | 숨김 요청을 찾을 수 없습니다. | 없음 | ReviewModeration 조회 실패: `moderationId={moderationId}` |
 | 409 | `REVIEW-013` | 이미 승인·거절된 요청임 | 이미 처리된 숨김 요청입니다. | 없음 | ReviewModeration 중복 처리: `moderationId={moderationId}, status={status}` |
@@ -120,7 +120,7 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `REVIEW-018` | 심사 의견이 2,000자를 초과함 | 심사 의견이 올바르지 않습니다. | `decisionComment` 허용 길이 | Review 숨김 거절 의견 검증 실패: `moderationId={moderationId}, commentLength={commentLength}` |
-| 401 | `AUTH-001` | 인증 정보 없음·위조·만료 | 로그인이 필요합니다. | 없음 | Review 숨김 거절 인증 실패: `moderationId={moderationId}` |
+| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | `REVIEW-009` | 요청자가 관리자가 아님 | 관리자만 리뷰 숨김 요청을 심사할 수 있습니다. | 없음 | Review 숨김 거절 권한 없음: `userId={userId}, moderationId={moderationId}` |
 | 404 | `REVIEW-012` | ReviewModeration이 존재하지 않음 | 숨김 요청을 찾을 수 없습니다. | 없음 | ReviewModeration 조회 실패: `moderationId={moderationId}` |
 | 409 | `REVIEW-013` | 이미 승인·거절된 요청임 | 이미 처리된 숨김 요청입니다. | 없음 | ReviewModeration 중복 처리: `moderationId={moderationId}, status={status}` |
