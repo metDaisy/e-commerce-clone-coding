@@ -11,6 +11,7 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 - OAuth 공급자 식별자와 User 연결, 신규 소셜 회원가입 완료 전의 Guest Token
 - Access·Refresh Token 발급·회전·폐기와 기기별·전체 세션 무효화
 - Account의 `Login & security` 기능에 필요한 비밀번호 검증·변경·이메일 변경
+- P1 보호 API에 사용하는 로컬 비밀번호·OAuth 재인증과 30분 재사용 `ReauthenticationGrant` 쿠키
 - 역할 변경·계정 비활성화에 따른 기존 인증 세션 무효화
 
 ### 범위 밖
@@ -28,6 +29,7 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 | 로컬·소셜 인증수단 | P11 Auth | [Credential API](p11-credential.md) |
 | 가입 세션·OTP·Guest Token | P11 Auth | [Sign-up API](p11-signup.md) |
 | Access·Refresh Token·로그인 세션 | P11 Auth | [Session API](p11-session.md) |
+| 보호 API 재인증·ReauthenticationGrant | P11 Auth | [Credential API](p11-credential.md) |
 | 역할 변경 요청·관리자 진입점 | P7 Admin·P1 User | [P7 Access](../p7/p7-access.md) |
 | 역할 변경 이벤트 저장·재전달 | P6 Infrastructure | [P6 Infrastructure](../p6/p6-infrastructure.md) |
 | 이메일 발송·OAuth 연동 Adapter | P11 infra | 외부 Provider 계약 |
@@ -46,6 +48,8 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 | `인증된 사용자` | 유효한 Access Token으로 식별되고 P1 User가 활성 상태인 User. |
 | `로그인 세션` | 한 기기에서 발급된 Access Token·Refresh Token의 묶음. |
 | `Guest` | 정식 User가 아니며 Guest Token으로 소셜 가입 완료만 수행할 수 있는 주체. |
+| `ReauthenticationGrant` | 최근 인증수단 확인을 완료했다는 30분·목적 제한 증명. `__Host-REAUTH` 쿠키로 전달하며 Access Token을 대체하지 않는다. |
+| `재인증` | 이미 로그인한 User가 민감 작업 전에 로컬 비밀번호 또는 연결된 OAuth 인증수단으로 신원을 다시 증명하는 과정. |
 | `P11 Auth` | 인증수단·토큰·세션의 원본과 보안 규칙을 소유하는 도메인. |
 
 용어 기준은 [도메인 용어집](../../domain-glossary.md)이다. 용어 의미를 변경할 때는 용어집과 P1·P3·P7 문서를 함께 검토한다.
@@ -80,6 +84,15 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 5. 비활성 User는 로그인·Token 갱신·인증이 필요한 기능을 사용할 수 없다.
 6. 로그인 성공 후 게스트 Cart가 있으면 P11은 P3의 공개 병합 계약을 호출한다. Cart 원본과 병합 규칙은 P3가 소유한다.
 
+### 민감 작업 재인증
+
+1. P1의 `GET /api/v1/me`, `PATCH /api/v1/me`, `POST /api/v1/me/deactivate`는 유효한 Access Token 외에 공통 계정 관리 재인증을 요구한다.
+2. 로컬 UserCredential이 있으면 기존 비밀번호를 검증하고, OAuth 전용 User는 연결된 SocialCredential의 OAuth 공급자 재인증을 완료한다.
+3. Access Token이 유효하다는 사실, 애플리케이션 세션이 유지된다는 사실, OAuth providerId가 존재한다는 사실만으로는 재인증을 충족하지 않는다.
+4. 재인증 성공 시 P11은 `USER_ACCOUNT_MANAGEMENT` 목적의 `__Host-REAUTH` 쿠키를 발급한다. 쿠키는 30분 동안 세 P1 보호 API에 재사용할 수 있다.
+5. OAuth 공급자 재인증이 실패하거나 연결된 인증수단이 없으면 쿠키를 발급하지 않는다. 소셜 User가 비밀번호 방식으로 보호 API를 사용하려면 먼저 P11에서 로컬 인증수단을 추가해야 한다.
+6. P11은 비밀번호·OAuth access token·공급자 응답·쿠키 원문을 P1에 전달하거나 로그·이벤트에 기록하지 않는다.
+
 ### 역할 변경과 인증 무효화
 
 1. 역할 집합의 원본과 변경 사실은 P1 User가 소유한다. P7은 관리자 역할 변경 진입점을 제공한다.
@@ -99,6 +112,7 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 - 만료된 가입 세션·OTP·Token은 성공 처리에 사용할 수 없다.
 - Access Token의 `roles`는 발급 시점의 역할 집합을 쉼표로 구분한 문자열이며, 역할 변경 후 기존 Token을 재사용하지 않는다.
 - Guest Token은 소셜 회원가입 완료 API 외의 API 권한을 갖지 않는다.
+- `ReauthenticationGrant`는 목적·User·만료 시각에 묶이고, 만료 전에는 P1의 세 보호 API에 재사용할 수 있다.
 - 로그아웃·전체 로그아웃·역할 변경에 따른 무효화는 반복 처리해도 같은 최종 상태가 된다.
 
 ### 상태 전이
@@ -135,7 +149,7 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 
 ## 6. API 문서와의 관계
 
-- 인증수단 API는 [Credential API](p11-credential.md), 가입 흐름 API는 [Sign-up API](p11-signup.md), 로그인 세션 API는 [Session API](p11-session.md)에서 정의한다.
+- 인증수단·재인증 API는 [Credential API](p11-credential.md), 가입 흐름 API는 [Sign-up API](p11-signup.md), 로그인 세션 API는 [Session API](p11-session.md)에서 정의한다.
 - 이 정책과 API 문서가 충돌하면 이 문서를 기준으로 API 문서를 수정한다.
 - 공통 오류 응답 필드와 공통 `AUTH-001`·`AUTH-002` 의미는 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
 - P11 API는 토큰 원문·비밀번호·OTP를 성공 응답이나 예외의 `details`에 포함하지 않는다.

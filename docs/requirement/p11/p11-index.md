@@ -9,7 +9,7 @@ P11은 사용자의 인증수단과 인증 세션을 관리한다. User 프로�
 | 문서 | 역할 | 포함 내용 |
 |---|---|---|
 | [P11 Policy](p11-policy.md) | 정책 | 범위·책임, 인증수단, 가입·로그인·세션 규칙, 불변식, 상태 전이, 도메인 간 규칙 |
-| [Credential API](p11-credential.md) | 인증수단 모델·API | UserCredential·SocialCredential, 비밀번호 검증·수정 |
+| [Credential API](p11-credential.md) | 인증수단 모델·API | UserCredential·SocialCredential, 비밀번호 검증·수정·민감 작업 재인증 |
 | [Sign-up API](p11-signup.md) | 가입 세션 모델·API | 로컬·소셜 가입, 이메일 OTP, Guest Token |
 | [Session API](p11-session.md) | 로그인 세션 모델·API | 로그인, Access·Refresh Token, 로그아웃·세션 무효화 |
 
@@ -18,7 +18,7 @@ P11은 사용자의 인증수단과 인증 세션을 관리한다. User 프로�
 | 책임 | 담당 도메인·모듈 | 참조 문서 |
 |---|---|---|
 | `User` 프로필·역할·활성 상태 원본 | P1 User | [P1 Policy](../p1/p1-policy.md), [User API](../p1/p1-user.md) |
-| 이메일·비밀번호·OAuth 식별자 원본 | P11 Auth | [P11 Policy](p11-policy.md), [Credential API](p11-credential.md) |
+| 이메일·비밀번호·OAuth 식별자·재인증 원본 | P11 Auth | [P11 Policy](p11-policy.md), [Credential API](p11-credential.md) |
 | 가입 세션·OTP·Guest Token | P11 Auth | [P11 Policy](p11-policy.md), [Sign-up API](p11-signup.md) |
 | Access·Refresh Token과 로그인 세션 무효화 | P11 Auth | [P11 Policy](p11-policy.md), [Session API](p11-session.md) |
 | 역할 변경 사실과 관리자 진입점 | P1 User·P7 Admin | [P7 Access](../p7/p7-access.md) |

@@ -24,6 +24,10 @@ _Avoid_: guest user, Guest Token으로 보호 API에 접근함
 로그인하고 요청을 실제로 제출하는 개인 계정이다. `userId`는 인증 주체를 식별하며, Seller와 동일한 개념이 아니다. 모든 User는 기본 구매자 역할 `USER`를 가지며 `PRODUCT_MANAGER`, `ADMIN`을 추가로 보유할 수 있다.
 _Avoid_: Seller, 판매자 계정
 
+**Reauthentication Grant**:
+이미 로그인한 User가 민감한 User 작업 전에 로컬 비밀번호 또는 연결된 OAuth 인증수단으로 신원을 다시 증명했다는 단기·목적 제한 증명이다. Access Token과 동일한 개념이 아니며 재인증 후 일정 시간 동안 P1 보호 API에 재사용할 수 있다.
+_Avoid_: Access Token만으로 민감 작업을 허용, OAuth 전용 User에게 존재하지 않는 비밀번호 요구
+
 **Address**:
 User가 소유하고 직접 관리하는 배송지 리소스다. Address는 User에 종속되지만 자체 CRUD 생명주기와 기본 배송지 불변식을 가지며, User 프로필 응답에 중첩하지 않는다. 주문은 결제 시점에 Address 값을 별도 스냅샷으로 보존한다.
 _Avoid_: 주문이 현재 Address를 실시간 참조함, User 프로필의 단순 문자열 주소

@@ -18,7 +18,7 @@ P1은 사용자의 프로필·역할·활성 상태와 사용자가 소유하는
 |---|---|---|
 | User 프로필·역할·활성 상태 원본 | P1 User | [P1 Policy](p1-policy.md), [User API](p1-user.md) |
 | Address 원본·소유권·기본 배송지 상태 | P1 User | [P1 Policy](p1-policy.md), [Address API](p1-address.md) |
-| 이메일·비밀번호·OAuth 인증수단·토큰·세션 | P11 Auth | [P11 Index](../p11/p11-index.md) |
+| 이메일·비밀번호·OAuth 인증수단·재인증·토큰·세션 | P11 Auth | [P11 Index](../p11/p11-index.md), [Credential API](../p11/p11-credential.md) |
 | 관리자 역할 변경·계정 운영 진입점 | P7 Admin | [P7 Access](../p7/p7-access.md), [P7 Admin](../p7/p7-admin.md) |
 | Seller 프로필과 판매자 상태 | P8 Seller | [P8 Seller Policy](../p8/p8-policy.md) |
 | 주문 배송지 선택과 결제 시점 주소 스냅샷 | P5 Order | [P5 Policy](../p5/p5-policy.md), [P5 Order](../p5/p5-order.md) |

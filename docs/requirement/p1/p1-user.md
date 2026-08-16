@@ -1,6 +1,6 @@
 # P1 User API
 
-이 문서는 `User` 데이터 모델과 프로필·계정 상태 API를 정의한다. 업무 정책은 [P1 User Policy](p1-policy.md), 주소 모델과 주소 API는 [Address API](p1-address.md), 공통 응답·예외 형식은 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
+이 문서는 `User` 데이터 모델과 프로필·계정 상태 API를 정의한다. 업무 정책은 [P1 User Policy](p1-policy.md), 주소 모델과 주소 API는 [Address API](p1-address.md), 재인증 쿠키는 [P11 Credential API](../p11/p11-credential.md), 공통 응답·예외 형식은 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
 
 ## 1. 데이터 모델과 API 관계
 
@@ -42,11 +42,27 @@
 
 모든 API는 로그인한 User를 `principal`로 식별한다. `ADMIN`의 전체 사용자 운영 API와 역할 변경 API는 P7 문서에서 정의한다.
 
+### 3-0. 보호 API의 재인증
+
+다음 API는 유효한 Access Token만으로 접근할 수 없으며, 해당 작업을 위한 P11 재인증이 성공해야 한다.
+
+| API | 재인증 목적 | P1 요청에 필요한 값 |
+|---|---|---|
+| `GET /api/v1/me` | `USER_ACCOUNT_MANAGEMENT` | 유효한 `__Host-REAUTH` 쿠키 |
+| `PATCH /api/v1/me` | `USER_ACCOUNT_MANAGEMENT` | 유효한 `__Host-REAUTH` 쿠키 |
+| `POST /api/v1/me/deactivate` | `USER_ACCOUNT_MANAGEMENT` | 유효한 `__Host-REAUTH` 쿠키 |
+
+- 클라이언트는 재인증 성공 후 P11이 발급한 `__Host-REAUTH` 쿠키를 자동으로 전송한다. P1 API마다 비밀번호를 다시 보내지 않는다.
+- 쿠키는 재인증 성공 시점부터 30분 동안 세 P1 보호 API에 재사용할 수 있다. 만료·변조·무효화된 쿠키는 거절하고 다시 재인증을 요구한다.
+- 쿠키는 `Secure; HttpOnly; SameSite=Strict; Path=/` 속성을 사용한다. 쿠키 기반 상태 변경 요청에는 CSRF 방어를 적용한다.
+- P1은 비밀번호 원문이나 OAuth 공급자 응답을 받거나 저장하지 않는다. 재인증의 검증과 Grant 발급은 P11이 소유한다.
+- 로컬 인증수단이 있는 User는 기존 비밀번호를 입력한다. OAuth 전용 User는 연결된 OAuth 공급자의 새 인증을 완료한다. 세부 절차는 [P11 Credential API](../p11/p11-credential.md#3-3-민감-작업-재인증)를 따른다.
+
 ### 3-1. 내 프로필 조회
 
 `GET /api/v1/me`
 
-권한: 로그인 사용자
+권한: 로그인 사용자 + 유효한 `__Host-REAUTH` 쿠키
 
 #### 성공 응답: `200 OK`
 
@@ -70,6 +86,7 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
 | 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
 | 404 | `USER-001` | 인증 주체의 User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 
@@ -77,7 +94,7 @@
 
 `PATCH /api/v1/me`
 
-권한: 로그인 사용자
+권한: 로그인 사용자 + 유효한 `__Host-REAUTH` 쿠키
 
 요청:
 
@@ -100,6 +117,7 @@
 |---:|---|---|---|---|---|
 | 400 | `USER-007` | 이름·연락처가 없거나 형식이 잘못됨 | 입력값을 확인해 주세요. | 실패한 필드와 수정 방법 | 검증 필드와 내부 검증 원인 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
 | 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
 | 404 | `USER-001` | User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 | 409 | `USER-002` | 이름이 다른 User에 이미 연결됨 | 이미 사용 중인 이름입니다. | `field=name` | 중복 User 식별자와 충돌 원인 |
@@ -109,7 +127,7 @@
 
 `POST /api/v1/me/deactivate`
 
-권한: 로그인 사용자
+권한: 로그인 사용자 + 유효한 `__Host-REAUTH` 쿠키
 
 요청 본문: 없음
 
@@ -122,6 +140,7 @@
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
+| 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
 | 404 | `USER-001` | User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 
 비활성화 후 로그인·토큰 무효화는 [P11 Session Policy](../p11/p11-policy.md)의 정책을 따른다. 비활성화된 개인정보 마스킹 시점은 P1 보존 정책의 후속 결정으로 정의한다.
