@@ -39,7 +39,7 @@ class UserQueryApiTest {
     User user = User.createUser(UUID.randomUUID(), "tester", "01012345678");
     UserDto userDto = new UserDto(userId, List.of("USER"), true);
 
-    given(repository.findById(userId)).willReturn(Optional.of(user));
+    given(repository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(mapper.toDto(user)).willReturn(userDto);
 
     Optional<UserDto> result = userQueryApi.findById(userId);
@@ -52,7 +52,7 @@ class UserQueryApiTest {
   @DisplayName("사용자 조회 실패: 사용자가 없으면 빈 Optional을 반환한다")
   void findById_failure_whenUserDoesNotExist() {
     UUID userId = UUID.randomUUID();
-    given(repository.findById(userId)).willReturn(Optional.empty());
+    given(repository.findWithRolesById(userId)).willReturn(Optional.empty());
 
     Optional<UserDto> result = userQueryApi.findById(userId);
 

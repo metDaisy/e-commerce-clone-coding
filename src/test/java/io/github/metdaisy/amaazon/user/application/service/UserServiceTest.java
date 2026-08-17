@@ -58,7 +58,7 @@ class UserServiceTest {
     User user = User.createUser(userId, "tester", "01012345678");
     UserResponse expected = new UserResponse(
         userId, "tester", "01012345678", List.of(UserRole.USER), true, null, null);
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(userMapper.toDto(user)).willReturn(expected);
 
     // when
@@ -66,7 +66,7 @@ class UserServiceTest {
 
     // then
     assertThat(result).isSameAs(expected);
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findWithRolesById(userId);
     then(userMapper).should().toDto(user);
   }
 
@@ -128,7 +128,7 @@ class UserServiceTest {
     UUID userId = UUID.randomUUID();
     User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest("변경이름", "01033334444");
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(false);
 
     UserResponse expected = new UserResponse(
@@ -143,7 +143,7 @@ class UserServiceTest {
     assertThat(user)
         .extracting(User::getName, User::getPhoneNumber)
         .containsExactly(request.name(), request.phoneNumber());
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findWithRolesById(userId);
     then(userRepository).should().existsByPhoneNumber(request.phoneNumber());
     then(userMapper).should().toDto(user);
   }
@@ -154,7 +154,7 @@ class UserServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     UserUpdateRequest request = new UserUpdateRequest(null, null);
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.empty());
 
     // when
     Throwable thrown = catchThrowable(() -> userService.update(userId, request));
@@ -172,7 +172,7 @@ class UserServiceTest {
     UUID userId = UUID.randomUUID();
     User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest(null, "01033334444");
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(true);
 
     // when

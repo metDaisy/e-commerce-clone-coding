@@ -82,9 +82,9 @@ void create_passesRequestToService() throws Exception {
 Use an integration test only when collaboration is the behavior: migrations, persistence,
 transactions, security, module seams, or an end-to-end flow.
 
-- Extend `BaseIntegrationTest` for application/database tests; extend `BaseWebIntegrationTest` for
-  HTTP tests. They provide the test profile, PostgreSQL Testcontainers, Flyway, rollback support,
-  and the relevant JPA or MockMvc helpers.
+- Extend `BaseIntegrationTest` for HTTP-to-database integration tests. It provides the test
+  profile, PostgreSQL Testcontainers, Flyway, rollback support, JPA helpers, MockMvc, and
+  ObjectMapper.
 - Use real internal beans and PostgreSQL; mock only an external boundary outside the scenario. Do
   not replace PostgreSQL with H2 or create the schema manually.
 - Isolate fixtures and assert an observable HTTP response, persisted state, event, rollback, or
@@ -95,17 +95,30 @@ transactions, security, module seams, or an end-to-end flow.
 
 ## 6. Repository tests
 
-Repository tests run against PostgreSQL and prove queries declared in `domain/repository`.
+Repository tests verify the JPA Repository contract, not a specific database. The test database and
+dialect are infrastructure details, so test scenarios must remain database-independent.
 
-- Do not test inherited `DomainRepository` operations: `save`, `saveAll`, `delete`, `findById`,
-  `existsById`, and `getReferenceById`.
-- Test each declared derived, `@Query`, locking, fetch-graph, pagination/scroll, or
-  specification-backed query.
-- Test inherited `delete` only for an entity with logical deletion such as `@SQLDelete`. Verify
-  the stored archival/disabled state; `@SQLDelete` does not filter later reads automatically.
+- The test target is the JPA adapter under `infra/repository` (for example, `UserJpaRepository`),
+  while `domain/repository` defines the contract.
+- Every `DomainRepository` implementation must test `save`, `findById`, and `delete`; test `saveAll`
+  when bulk persistence is used or part of the contract.
+- `save(...)` tests must consider the entity's validation and persistence constraints. Cover both a
+  valid entity and invalid cases such as null, length, format, enum, or relationship violations;
+  flush the persistence context so the rejection is actually observed.
+- Test declared derived, `@Query`, locking, fetch-graph, pagination/scroll, and specification
+  queries.
+- Assert persisted/query results, and verify the expected query count after every Repository read.
+  Traverse and assert every entity field and association before checking the count; a `LAZY`
+  association may produce an additional query. Use an explicit fetch query when the association
+  must be loaded together with the entity. Do not assert vendor-specific SQL, dialect, schema,
+  column types, or native-query syntax.
+- Keep database-specific native-query tests separate. For logical deletion such as `@SQLDelete`,
+  verify the persisted disabled/archived state.
 
-Every repository test extends `BaseRepositoryTest`; do not repeat its slice annotations or test
-configuration.
+Place the test beside the adapter under `src/test/.../infra/repository`, name it after the adapter
+(for example, `UserJpaRepositoryTest`), and extend `BaseRepositoryTest`. Do not repeat its slice
+annotations or test configuration. `BaseRepositoryTest` may change its test database
+implementation without changing the repository test scenarios.
 
 ```java
 @DisplayName("카테고리 저장소")
@@ -129,14 +142,11 @@ class CategoryJpaRepositoryTest extends BaseRepositoryTest {
 }
 ```
 
-Use inherited `em` only to create fixtures (`persistAndFlush`), force writes (`em.flush()`), clear
-the persistence context, or inspect a logical-delete row with `em.createNativeQuery(...)`. Do not
-assert a fetch query from already-managed entities.
-
-`clear()` clears both `em` and `QueryInspector`: persist fixtures, call `clear()` immediately
-before one repository method, access each association whose fetch behavior is under test, then
-call `ensureQueryCount(expectedCount)` before any further SQL. The count must match exactly.
-`queryInspector.getQueries()` and `logQueries()` diagnose a failed count; they do not replace it.
+Create fixtures with `persistAndFlush`, call `clear()` before the Repository method, and assert the
+result from a fresh JPA query. Fetch behavior must be checked on the freshly queried entity, not on
+an entity already managed by the persistence context. `clear()` also resets `QueryInspector`; call
+`ensureQueryCount(expectedCount)` after all entity fields and associations have been traversed. It
+must be the final assertion involving persistence. Query-inspector logs are diagnostic only.
 
 ## 7. Choose the smallest test
 
