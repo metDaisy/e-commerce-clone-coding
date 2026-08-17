@@ -51,7 +51,7 @@
 
 1. 이메일 인증 또는 OAuth 인증이 완료되기 전에는 정식 User를 생성하지 않는다. 만료 가능한 가입 세션은 P11 Auth가 소유한다.
 2. P11 Auth는 인증 완료 후 이름과 선택적 연락처를 포함한 프로필 생성 요청을 User에 전달한다. P1은 이메일·비밀번호·OAuth 비밀값을 저장하거나 검증하지 않는다.
-3. User 생성 시 `isEnabled=true`, `roles="USER"`, 포인트 잔액 `0`을 적용한다. User 생성과 초기 포인트 생성은 하나의 트랜잭션으로 처리한다.
+3. User 생성 시 도메인 역할 집합 `{USER}`와 `isEnabled=true`, 포인트 잔액 `0`을 적용한다. API·Auth DTO 응답에서는 `roles=["USER"]`로, JWT claim·이벤트 payload에서는 `roles="USER"`로 표현한다. User 생성과 초기 포인트 생성은 하나의 트랜잭션으로 처리한다.
 4. 이름은 필수이며 API 입력은 공백만으로 구성될 수 없다. 연락처는 선택값이며 입력하면 유효한 전화번호 형식이어야 하고 User 사이에서 중복될 수 없다.
 5. `loginEmail`은 P11의 `UserCredential`에 존재할 때만 공개할 수 있다. 소셜 전용 User에는 `loginEmail`을 반환하지 않거나 `null`로 반환한다.
 6. 프로필 수정은 이름과 연락처만 변경한다. 이메일 변경·비밀번호 변경·인증수단 연결은 P11 Auth의 별도 계약을 사용한다.
@@ -69,7 +69,7 @@
 ### 역할과 권한
 
 1. `USER`는 모든 계정이 기본으로 보유하며 삭제할 수 없다.
-2. `PRODUCT_MANAGER`와 `ADMIN`은 서로 독립적인 추가 역할이다. 한 User가 여러 역할을 동시에 보유할 수 있으며, 표현 형식은 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한다.
+2. `PRODUCT_MANAGER`와 `ADMIN`은 서로 독립적인 추가 역할이다. 한 User가 여러 역할을 동시에 보유할 수 있으며, 도메인에서는 역할 집합으로 관리하고 API·Auth DTO 응답에서는 JSON 배열로 반환한다. JWT claim·이벤트 payload에서는 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한다.
 3. 역할 집합 변경은 P7의 관리자 정책 또는 P8 Seller 생명주기에서 요청한다. P1은 유효성·불변식에 따라 저장하고 결과 사실을 이벤트로 공개한다.
 4. 실제 역할 집합이 변경된 경우에만 `UserRolesChangedEvent`를 발행한다. 같은 역할을 다시 추가·삭제하는 요청은 상태를 변경하지 않는다.
 5. 역할 집합 변경과 Outbox 기록은 같은 트랜잭션에 속한다. 이벤트 payload에는 비밀번호·토큰·세션 비밀값을 포함하지 않는다.
@@ -100,7 +100,7 @@
 ### 불변식
 
 - `User.id`와 `Address.id`는 각각 전역적으로 유일하다.
-- `User.roles`는 쉼표로 구분한 역할 문자열이며 항상 `USER`를 포함한다. 역할 코드는 중복되거나 공백을 포함할 수 없다.
+- `User.roles`는 도메인에서 중복 없는 역할 집합이며 항상 `USER`를 포함한다. API·Auth DTO 응답은 JSON 배열이며, JWT claim·이벤트 payload는 쉼표로 구분한 문자열이다. 역할 코드는 중복되거나 공백을 포함할 수 없다.
 - 비활성화는 물리 삭제가 아니며 `isEnabled=false`로 표현한다.
 - 연락처가 있으면 User 간 유일해야 한다.
 - `Address.userId`는 하나의 User만 가리키며, User당 Address 수는 5개 이하이다.

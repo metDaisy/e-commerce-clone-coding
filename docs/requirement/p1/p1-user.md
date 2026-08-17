@@ -16,12 +16,12 @@
 
 ### 2-1. `User`
 
-| 필드 | 타입 | 필수 | 설명 |
+| 필드 | 도메인 타입 (API 응답 타입) | 필수 | 설명 |
 |---|---|---:|---|
-| `userId` | UUID | 예 | 사용자 식별자 |
+| `id` | UUID | 예 | 사용자 식별자 |
 | `name` | String | 예 | 사용자 표시 이름. 공백만 입력할 수 없다. |
-| `phone` | String | 아니오 | 선택 연락처. 입력 시 유효한 전화번호 형식이며 User 간 중복 불가 |
-| `roles` | String | 예 | 쉼표(`,`)로 구분한 역할 집합. 예: `USER,PRODUCT_MANAGER`. 항상 `USER` 포함 |
+| `phoneNumber` | String | 아니오 | 선택 연락처. 입력 시 유효한 전화번호 형식이며 User 간 중복 불가 |
+| `roles` | `Set<UserRole>` (`List<UserRole>`) | 예 | 도메인에서는 중복 없는 역할 집합이며, API 응답에서는 JSON 배열로 반환한다. 예: `["USER","PRODUCT_MANAGER"]`. 항상 `USER` 포함 |
 | `isEnabled` | Boolean | 예 | 로그인·기능 사용 가능 여부. 비활성화 시 `false` |
 | `createdAt` | Instant | 예 | User 생성 시각. ISO-8601 UTC |
 | `updatedAt` | Instant | 예 | User 마지막 변경 시각. ISO-8601 UTC |
@@ -30,10 +30,23 @@
 
 `pointBalance`는 가입 시 `0`으로 초기화되는 내부 사용자 잔액이다. P1은 이 API에서 잔액을 수정하거나 결제·적립 정책을 재정의하지 않는다.
 
+#### `roles` 표현 경계
+
+`roles`는 동일한 역할 정보를 경계에 따라 다르게 표현한다.
+
+| 경계 | 표현 | 규칙 |
+|---|---|---|
+| User 도메인 | `Set<UserRole>` | 한 User가 여러 역할을 가질 수 있다. 중복은 불가능하며 `USER`를 항상 포함한다. |
+| 저장 모델 | User별 역할 행의 집합 | 역할마다 하나의 행으로 저장하며 User와 역할의 조합은 중복될 수 없다. |
+| User API·Auth DTO 응답 | `List<UserRole>` | `["USER","PRODUCT_MANAGER"]`처럼 JSON 배열 또는 컬렉션으로 반환한다. 배열의 순서는 권한 의미가 아니다. |
+| JWT·이벤트 내부 계약 | `String` | JWT claim과 이벤트 payload에서만 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한다. 문자열의 순서는 권한 의미가 아니다. |
+
+따라서 `User.java`에서 `Set<UserRole>`을 사용하는 것은 도메인 모델의 표현이고, API·Auth DTO의 `roles`는 `List<UserRole>`로 반환한다. JWT claim과 이벤트 payload만 내부 호환 계약상 CSV 문자열로 유지한다. API 요청에서 `roles`를 보내거나 프로필 수정으로 변경할 수는 없다.
+
 ### 2-2. 관계와 제약
 
 - `User.id`는 전역적으로 유일하다.
-- `User.roles`는 쉼표로 구분한 역할 문자열이며 항상 `USER`를 포함한다. 역할 코드 사이에는 공백을 넣지 않는다.
+- `User.roles`는 도메인에서 중복 없는 역할 집합이며 항상 `USER`를 포함한다. API·Auth DTO 응답에서는 JSON 배열로, JWT claim과 이벤트 payload에서는 쉼표로 구분한 문자열로 표현한다.
 - 비활성화는 물리 삭제가 아니며 `isEnabled=false`로 표현한다.
 - 연락처가 있으면 User 간 유일해야 한다.
 - User가 소유한 Address의 모델과 제약은 [Address API](p1-address.md)에서 정의한다.
@@ -68,11 +81,11 @@
 
 ```json
 {
-  "userId": "11111111-1111-1111-1111-111111111111",
+  "id": "11111111-1111-1111-1111-111111111111",
   "name": "홍길동",
-  "phone": "01012345678",
+  "phoneNumber": "01012345678",
   "loginEmail": "user@example.com",
-  "roles": "USER",
+  "roles": ["USER"],
   "isEnabled": true,
   "createdAt": "2026-08-16T12:00:00Z",
   "updatedAt": "2026-08-16T12:00:00Z"
@@ -101,11 +114,11 @@
 ```json
 {
   "name": "김길동",
-  "phone": "01098765432"
+  "phoneNumber": "01098765432"
 }
 ```
 
-`name`과 `phone` 중 하나 이상을 보내야 하며, `userId`, `roles`, `isEnabled`, `loginEmail`, `pointBalance`는 수정할 수 없다.
+`name`과 `phoneNumber` 중 하나 이상을 보내야 하며, `id`, `roles`, `isEnabled`, `loginEmail`, `pointBalance`는 수정할 수 없다.
 
 #### 성공 응답: `200 OK`
 
@@ -121,7 +134,7 @@
 | 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
 | 404 | `USER-001` | User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 | 409 | `USER-002` | 이름이 다른 User에 이미 연결됨 | 이미 사용 중인 이름입니다. | `field=name` | 중복 User 식별자와 충돌 원인 |
-| 409 | `USER-003` | 연락처가 다른 User에 이미 연결됨 | 이미 사용 중인 연락처입니다. | `field=phone` | 중복 User 식별자와 충돌 원인 |
+| 409 | `USER-003` | 연락처가 다른 User에 이미 연결됨 | 이미 사용 중인 연락처입니다. | `field=phoneNumber` | 중복 User 식별자와 충돌 원인 |
 
 ### 3-3. 계정 비활성화
 

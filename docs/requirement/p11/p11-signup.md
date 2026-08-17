@@ -102,7 +102,7 @@
   "userId": "uuid",
   "name": "홍길동",
   "loginEmail": "user@example.com",
-  "roles": "USER",
+  "roles": ["USER"],
   "createdAt": "2026-08-09T12:00:00Z"
 }
 ```
@@ -186,7 +186,7 @@
 {
   "userId": "uuid",
   "name": "홍길동",
-  "roles": "USER",
+  "roles": ["USER"],
   "createdAt": "2026-08-09T12:00:00Z"
 }
 ```

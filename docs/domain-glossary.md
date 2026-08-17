@@ -40,7 +40,7 @@
 | Refresh Token | 새 Access Token 발급에 사용하는 장기 JWT. 목표 만료시간은 7일이다. |
 | Reauthentication Grant | 이미 로그인한 User가 민감 작업 전에 인증수단을 다시 확인했다는 단기·목적 제한 증명. Access Token과 다르며 재인증 후 일정 시간 동안 P1 보호 API에 재사용한다. |
 | Blacklist | 로그아웃, 자격 증명 변경, 계정 비활성화 후 기존 JWT를 즉시 거부하기 위한 토큰·사용자 무효화 기록 |
-| Role | User가 독립적으로 보유하는 접근 권한. `USER`는 모든 계정이 기본 보유하는 구매자 역할, `PRODUCT_MANAGER`는 `ACTIVE` Seller가 있을 때 추가되는 판매자 역할, `ADMIN`은 플랫폼 운영 역할이다. 역할은 동시에 여러 개 보유할 수 있으며 API·이벤트 payload에서는 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한 문자열로 표현한다. |
+| Role | User가 독립적으로 보유하는 접근 권한. `USER`는 모든 계정이 기본 보유하는 구매자 역할, `PRODUCT_MANAGER`는 `ACTIVE` Seller가 있을 때 추가되는 판매자 역할, `ADMIN`은 플랫폼 운영 역할이다. 역할은 동시에 여러 개 보유할 수 있으며 User API 응답에서는 JSON 배열로, JWT·이벤트 payload에서는 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한 문자열로 표현한다. |
 | Seller | User에 최대 하나 연결되는 승인된 판매자 프로필. `ACTIVE`, `SUSPENDED` 상태를 가지며 `PRODUCT_MANAGER` 역할과 `ACTIVE` 상태가 모두 충족될 때 판매자 API를 사용할 수 있다. Seller 상태 변경은 `SellerStatusHistory`에 기록하고 역할 집합의 `PRODUCT_MANAGER` 추가·삭제와 함께 처리한다. |
 | SellerApplication | User가 Seller가 되기 위해 제출한 신청 원본. `PENDING`, `APPROVED`, `REJECTED` 상태를 가지며 승인 전에는 Seller 프로필을 생성하지 않는다. |
 | SellerApplicationReview | SellerApplication의 승인·거절 심사 결과와 처리자를 보존하는 불변 이력. |

@@ -24,7 +24,7 @@
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---:|---|
 | `userId` | UUID | 예 | 역할 변경 대상 User |
-| `roles` | String | 예 | 쉼표로 구분한 가산형 역할 집합. 예: `USER,PRODUCT_MANAGER` |
+| `roles` | List<UserRole> | 예 | JSON 배열로 반환하는 가산형 역할 집합. 예: `["USER","PRODUCT_MANAGER"]` |
 | `updatedAt` | TIMESTAMP | 예 | 역할 집합 변경 시각 |
 
 역할 원본 필드와 `UserRolesChangedEvent` payload는 [P1 User](../p1/p1-user.md)를 따른다.
@@ -69,7 +69,7 @@
 ```json
 {
   "userId": "uuid",
-  "roles": "USER,PRODUCT_MANAGER",
+  "roles": ["USER", "PRODUCT_MANAGER"],
   "updatedAt": "2026-08-16T12:00:00Z"
 }
 ```

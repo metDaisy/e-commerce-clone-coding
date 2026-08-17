@@ -50,7 +50,7 @@ Access Token은 목표 만료시간 30분, Refresh Token은 7일이다. 두 Toke
 ```json
 {
   "userId": "uuid",
-  "roles": "USER"
+  "roles": ["USER"]
 }
 ```
 
@@ -75,7 +75,7 @@ Access Token은 목표 만료시간 30분, Refresh Token은 7일이다. 두 Toke
 ```json
 {
   "userId": "uuid",
-  "roles": "USER"
+  "roles": ["USER"]
 }
 ```
 

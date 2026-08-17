@@ -19,7 +19,7 @@
 - `PRODUCT_MANAGER`는 `ACTIVE Seller`가 있을 때 추가하고, Seller가 정지·승인 취소되면 제거한다. 이때 `USER`는 유지한다.
 - `ADMIN`은 플랫폼 운영 역할이며 다른 역할과 함께 보유할 수 있다.
 - 관리자 역할 API는 역할 교체가 아니라 역할 추가·삭제 API로 제공한다.
-- JWT와 인증 응답은 단일 `role` 대신 전체 `roles` 배열을 사용한다.
+- User 도메인은 `Set<UserRole>`로 역할을 관리한다. User API와 Auth DTO 응답은 `roles`를 `List<UserRole>` JSON 배열로 표현한다. JWT·이벤트 payload는 기존 내부 계약과의 호환을 위해 `USER,PRODUCT_MANAGER` 형식의 쉼표 구분 문자열을 유지한다.
 - 역할 집합이 실제로 변경되면 `UserRolesChangedEvent`를 발행하고, 기존 로그인 세션을 모두 무효화한다.
 
 ## Consequences
