@@ -10,12 +10,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
+import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
+import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
+import io.github.metdaisy.amaazon.user.domain.entity.constant.UserRole;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -40,8 +44,31 @@ class UserServiceTest {
   @Mock
   private ApplicationEventPublisher eventPublisher;
 
+  @Mock
+  private UserMapper userMapper;
+
   @InjectMocks
   private UserService userService;
+
+  @Test
+  @DisplayName("프로필 조회 성공: 인증된 User의 프로필 정보만 반환한다")
+  void findProfile_success() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.createUser(userId, "tester", "01012345678");
+    UserResponse expected = new UserResponse(
+        userId, "tester", "01012345678", List.of(UserRole.USER), true, null, null);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userMapper.toDto(user)).willReturn(expected);
+
+    // when
+    UserResponse result = userService.findProfile(userId);
+
+    // then
+    assertThat(result).isSameAs(expected);
+    then(userRepository).should().findById(userId);
+    then(userMapper).should().toDto(user);
+  }
 
   @Test
   @DisplayName("사용자 생성 성공: 신규 전화번호로 사용자를 저장한다")
@@ -104,16 +131,21 @@ class UserServiceTest {
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(false);
 
+    UserResponse expected = new UserResponse(
+        userId, request.name(), request.phoneNumber(), List.of(UserRole.USER), true, null, null);
+    given(userMapper.toDto(user)).willReturn(expected);
+
     // when
-    User result = userService.update(userId, request);
+    UserResponse result = userService.update(userId, request);
 
     // then
-    assertThat(result).isSameAs(user);
-    assertThat(result)
+    assertThat(result).isSameAs(expected);
+    assertThat(user)
         .extracting(User::getName, User::getPhoneNumber)
         .containsExactly(request.name(), request.phoneNumber());
     then(userRepository).should().findById(userId);
     then(userRepository).should().existsByPhoneNumber(request.phoneNumber());
+    then(userMapper).should().toDto(user);
   }
 
   @Test
@@ -179,7 +211,6 @@ class UserServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     User user = mock(User.class);
-    given(user.isEnabled()).willReturn(false);
     willThrow(new UserException(UserErrorCode.USER_ALREADY_DISABLED)).given(user).deactivate();
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 

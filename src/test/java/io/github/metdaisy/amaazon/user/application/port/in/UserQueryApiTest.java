@@ -17,6 +17,7 @@ import io.github.metdaisy.amaazon.user.application.dto.UserDto;
 import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("사용자 조회 API 테스트")
@@ -36,7 +37,7 @@ class UserQueryApiTest {
   void findById() {
     UUID userId = UUID.randomUUID();
     User user = User.createUser(UUID.randomUUID(), "tester", "01012345678");
-    UserDto userDto = new UserDto(userId, "USER", true);
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
 
     given(repository.findById(userId)).willReturn(Optional.of(user));
     given(mapper.toDto(user)).willReturn(userDto);
