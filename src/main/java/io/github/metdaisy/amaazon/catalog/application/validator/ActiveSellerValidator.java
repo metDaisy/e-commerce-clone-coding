@@ -24,7 +24,8 @@ public class ActiveSellerValidator {
   public void validate(JoinPoint point, ActiveSeller activeSeller) {
     AmaazonPrincipal principal = (AmaazonPrincipal) SecurityContextHolder.getContext()
         .getAuthentication().getPrincipal();
-    if ("ADMIN".equals(principal.getRole())) {
+    if (principal.getAuthorities().stream()
+        .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()))) {
       return;
     }
     validateSeller(principal);
