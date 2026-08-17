@@ -10,7 +10,6 @@ public record UserResponse(
     UUID id,
     String name,
     String phoneNumber,
-    String loginEmail,
     List<UserRole> roles,
     boolean isEnabled,
     Instant createdAt,

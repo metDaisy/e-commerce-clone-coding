@@ -1,12 +1,11 @@
 package io.github.metdaisy.amaazon.user.application.service;
 
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest;
 import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
-import io.github.metdaisy.amaazon.user.application.port.out.UserLoginEmailQuery;
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
@@ -27,7 +26,6 @@ public class UserService {
 
   private final UserRepository repository;
   private final UserMapper userMapper;
-  private final UserLoginEmailQuery userLoginEmailQuery;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -38,17 +36,12 @@ public class UserService {
   }
 
   @Transactional
-  public User update(UUID id, UserUpdateRequest request) {
+  public UserResponse update(UUID id, UserUpdateRequest request) {
     User user = findById(id);
     user.updateName(request.name());
     validatePhoneNumber(request.phoneNumber());
     user.updatePhoneNumber(request.phoneNumber());
-    return user;
-  }
-
-  @Transactional
-  public UserResponse updateProfile(UUID id, UserUpdateRequest request) {
-    return toProfileResponse(update(id, request));
+    return toProfileResponse(user);
   }
 
   public User find(UUID id) {
@@ -83,7 +76,6 @@ public class UserService {
   }
 
   private UserResponse toProfileResponse(User user) {
-    String loginEmail = userLoginEmailQuery.findByUserId(user.getId()).orElse(null);
-    return userMapper.toDto(user, loginEmail);
+    return userMapper.toDto(user);
   }
 }

@@ -10,5 +10,5 @@ import org.mapstruct.Mapping;
 public interface UserMapper {
 
   @Mapping(target = "isEnabled", source = "user.enabled")
-  UserResponse toDto(User user, String loginEmail);
+  UserResponse toDto(User user);
 }
