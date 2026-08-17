@@ -88,7 +88,7 @@ class SocialLoginSuccessHandlerTest {
     UUID userId = UUID.randomUUID();
     given(authentication.getName()).willReturn(userId.toString());
 
-    JwtLoginDto loginDto = new JwtLoginDto(userId, "access", "refresh");
+    JwtLoginDto loginDto = new JwtLoginDto(userId, List.of("USER"), "access", "refresh");
     given(authTokenService.create(userId, "device-123")).willReturn(loginDto);
     given(authCookieProvider.createRefreshTokenCookie("refresh"))
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "refresh").build());

@@ -25,6 +25,7 @@ import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,8 @@ class AuthControllerTest extends RestControllerTest {
     String refreshToken = "valid-refresh-token";
     String newRefreshToken = "new-refresh-token";
     String accessToken = "new-access-token";
-    JwtLoginDto loginDto = new JwtLoginDto(USER_ID, accessToken, newRefreshToken);
+    JwtLoginDto loginDto = new JwtLoginDto(
+        USER_ID, List.of("USER"), accessToken, newRefreshToken);
     given(authTokenService.reissue(refreshToken)).willReturn(loginDto);
     given(authCookieProvider.createRefreshTokenCookie(newRefreshToken)).willReturn(
         ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, newRefreshToken)
@@ -72,6 +74,8 @@ class AuthControllerTest extends RestControllerTest {
             .cookie(new Cookie(AuthWebConstants.REFRESH_TOKEN, refreshToken)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
+        .andExpect(jsonPath("$.roles").isArray())
+        .andExpect(jsonPath("$.roles[0]").value("USER"))
         .andExpect(jsonPath("$.accessToken").value(accessToken))
         .andExpect(header().string(HttpHeaders.SET_COOKIE,
             containsString(AuthWebConstants.REFRESH_TOKEN + "=" + newRefreshToken)));

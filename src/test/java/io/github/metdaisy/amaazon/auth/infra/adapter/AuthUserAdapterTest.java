@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import io.github.metdaisy.amaazon.user.application.dto.UserDto;
 import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -28,7 +29,7 @@ class AuthUserAdapterTest {
   void loadUser_success() {
     // given
     UUID userId = UUID.randomUUID();
-    UserDto userDto = new UserDto(userId, "USER", true);
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
     given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
 
     // when
@@ -37,7 +38,7 @@ class AuthUserAdapterTest {
     // then
     assertThat(result).isPresent();
     assertThat(result.get().id()).isEqualTo(userId);
-    assertThat(result.get().role()).isEqualTo("USER");
+    assertThat(result.get().roles()).containsExactly("USER");
     assertThat(result.get().isEnabled()).isTrue();
   }
 

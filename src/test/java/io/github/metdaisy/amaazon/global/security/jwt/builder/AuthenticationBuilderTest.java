@@ -2,11 +2,13 @@ package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import java.util.Date;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
@@ -19,7 +21,7 @@ class AuthenticationBuilderTest {
     // given
     ParsedToken parsedToken = new ParsedToken(
         "jti-1",
-        "user-uuid-123",
+        "2bb8df7f-9478-4d51-b055-496016dd421f",
         new Date(),
         new Date(System.currentTimeMillis() + 3600000),
         "USER",
@@ -31,8 +33,12 @@ class AuthenticationBuilderTest {
 
     // then
     assertThat(authentication).isNotNull();
-    assertThat(authentication.getName()).isEqualTo("user-uuid-123");
+    assertThat(authentication.getName()).isEqualTo("2bb8df7f-9478-4d51-b055-496016dd421f");
     assertThat(authentication.getCredentials()).isEqualTo(tokenString);
+    assertThat(authentication.getPrincipal()).isInstanceOf(AmaazonPrincipal.class);
+    assertThat(authentication.getPrincipal()).isNotInstanceOf(UserDetails.class);
+    assertThat(((AmaazonPrincipal) authentication.getPrincipal()).getId().toString())
+        .isEqualTo("2bb8df7f-9478-4d51-b055-496016dd421f");
     assertThat(authentication.getAuthorities()).hasSize(1);
     assertThat(authentication.getAuthorities().iterator().next().getAuthority()).isEqualTo("ROLE_USER");
   }
@@ -43,7 +49,7 @@ class AuthenticationBuilderTest {
     // given
     ParsedToken parsedToken = new ParsedToken(
         "jti-2",
-        "admin-uuid-456",
+        "2bb8df7f-9478-4d51-b055-496016dd421f",
         new Date(),
         new Date(System.currentTimeMillis() + 3600000),
         "USER,ADMIN",

@@ -10,6 +10,7 @@ import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -38,7 +39,7 @@ class FormUserDetailsServiceTest {
     UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
     UUID userId = credential.getId();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
+    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
 
     UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");
@@ -76,7 +77,7 @@ class FormUserDetailsServiceTest {
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
     UUID userId = credential.getId();
     // isEnabled = false
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", false);
+    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), false);
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
 
     UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");

@@ -15,6 +15,7 @@ import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
 import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import jakarta.servlet.http.Cookie;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class FormLoginSuccessHandlerTest {
     UUID userId = UUID.randomUUID();
     given(authentication.getName()).willReturn(userId.toString());
 
-    JwtLoginDto loginDto = new JwtLoginDto(userId, "access", "refresh");
+    JwtLoginDto loginDto = new JwtLoginDto(userId, List.of("USER"), "access", "refresh");
     given(tokenService.create(userId, "device-123")).willReturn(loginDto);
     given(cookieProvider.createRefreshTokenCookie("refresh"))
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "refresh").build());
@@ -85,7 +86,7 @@ class FormLoginSuccessHandlerTest {
     UUID userId = UUID.randomUUID();
     given(authentication.getName()).willReturn(userId.toString());
 
-    JwtLoginDto loginDto = new JwtLoginDto(userId, "access", "refresh");
+    JwtLoginDto loginDto = new JwtLoginDto(userId, List.of("USER"), "access", "refresh");
     given(tokenService.create(userId, "device-123")).willReturn(loginDto);
     given(cookieProvider.createRefreshTokenCookie("refresh"))
         .willReturn(ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, "refresh").build());

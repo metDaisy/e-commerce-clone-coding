@@ -10,6 +10,7 @@ import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -74,7 +75,7 @@ class SocialUserDetailsServiceTest {
     given(repository.findByProviderIdAndProvider(any(), any()))
         .willReturn(Optional.of(credential));
 
-    AuthUserDto userDto = new AuthUserDto(userId, "ROLE_USER", true);
+    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
     given(userPort.loadUser(any())).willReturn(Optional.of(userDto));
 
     // when

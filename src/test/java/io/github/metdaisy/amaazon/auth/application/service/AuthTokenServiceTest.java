@@ -20,6 +20,7 @@ import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,8 +61,9 @@ class AuthTokenServiceTest {
     String token = "valid-refresh-token";
     String jti = "test-jti";
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
-    JwtLoginDto loginDto = new JwtLoginDto(userId, "new-access-token", "new-refresh-token");
+    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
+    JwtLoginDto loginDto = new JwtLoginDto(
+        userId, List.of("USER"), "new-access-token", "new-refresh-token");
 
     RefreshToken refreshToken = RefreshToken.of(userId, "device-1", jti, Instant.now().plusSeconds(3600));
 
@@ -104,7 +106,7 @@ class AuthTokenServiceTest {
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
+    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
     given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
     given(provider.generateAccessToken(userId, "USER")).willReturn("access-token");
     given(provider.generateRefreshToken(userId)).willReturn("refresh-token");
