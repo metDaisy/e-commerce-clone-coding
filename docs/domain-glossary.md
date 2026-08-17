@@ -28,6 +28,7 @@
 |---|---|
 | User | 이름, 연락처, 역할, 활성 상태 등 고객 프로필의 주체. 이메일·비밀번호·OAuth 공급자 세부정보는 소유하지 않으며 각각 인증수단이 소유한다. |
 | UserCredential | 이메일과 비밀번호 해시로 구성된 로컬 로그인 수단. 현재 설계에서는 User에게 선택적으로 하나가 연결된다. |
+| loginEmail | 로컬 `UserCredential`이 소유하는 로그인 이메일. User 필드나 P1 User API 응답에는 포함하지 않으며, 재인증된 사용자가 P11 Auth의 인증수단 요약에서만 조회한다. |
 | SocialCredential | OAuth 공급자와 공급자 사용자 ID로 식별하는 소셜 로그인 수단. 신규 소셜 사용자는 OAuth 인증 후 회원가입 화면에서 추가 정보를 입력하고 가입을 완료하며, 이때 생성된다. `UserCredential`은 생성하지 않는다. 한 User가 여러 공급자 수단을 가질 수 있다. |
 | provider | 이 프로젝트가 정의한 OAuth 공급자 식별 enum. 요구사항 값은 `GOOGLE`, `NAVER`, `KAKAO`, `GITHUB`이며 Amazon의 표준 회원 필드가 아니다. |
 | providerId | OAuth 공급자가 반환하는 외부 사용자 식별자. 이메일이 아닌 `provider`별 불투명 식별자를 저장한다. |

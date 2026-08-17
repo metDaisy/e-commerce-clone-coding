@@ -26,7 +26,7 @@
 | `createdAt` | Instant | 예 | User 생성 시각. ISO-8601 UTC |
 | `updatedAt` | Instant | 예 | User 마지막 변경 시각. ISO-8601 UTC |
 
-`loginEmail`은 User 필드가 아니다. 로컬 인증수단이 있는 경우에 한해 P11 Auth의 공개 계약으로 nullable하게 제공할 수 있으며, 비밀번호·OAuth 식별자·토큰은 반환하지 않는다.
+`loginEmail`은 User 필드가 아니라 P11 Auth가 소유하는 로컬 인증수단 정보다. P1 User API는 이를 반환하지 않으며, 비밀번호·OAuth 식별자·토큰은 어떤 프로필 API에도 반환하지 않는다.
 
 `pointBalance`는 가입 시 `0`으로 초기화되는 내부 사용자 잔액이다. P1은 이 API에서 잔액을 수정하거나 결제·적립 정책을 재정의하지 않는다.
 
@@ -71,6 +71,17 @@
 - P1은 비밀번호 원문이나 OAuth 공급자 응답을 받거나 저장하지 않는다. 재인증의 검증과 Grant 발급은 P11이 소유한다.
 - 로컬 인증수단이 있는 User는 기존 비밀번호를 입력한다. OAuth 전용 User는 연결된 OAuth 공급자의 새 인증을 완료한다. 세부 절차는 [P11 Credential API](../p11/p11-credential.md#3-3-민감-작업-재인증)를 따른다.
 
+### 3-0-1. CSR 프로필 화면 조합
+
+SPA CSR 클라이언트는 프로필 화면을 표시할 때 다음 공개 API를 병렬 호출해 UI 전용 `MyProfileView`를 조합한다.
+
+- P1 `GET /api/v1/me`: User가 소유하는 프로필·역할·활성 상태
+- P11 `GET /api/v1/auth/me/credential-summary`: Auth가 소유하는 로컬 로그인 이메일 요약
+
+두 요청 모두 로그인 사용자와 `USER_ACCOUNT_MANAGEMENT` 목적의 유효한 `__Host-REAUTH` 쿠키가 필요하다. 어느 한 요청이라도 재인증 실패 또는 만료로 실패하면 부분 프로필을 표시하지 않고 재인증 흐름으로 보낸다.
+
+P1 User는 응답을 보강하려고 Auth를 동기 조회하지 않는다. 여러 클라이언트가 같은 조합을 반복하거나 조합·권한 정책이 복잡해질 때에만 별도 BFF/Account composition API 도입을 검토한다. 결정 배경은 [ADR-0014](../../adr/0014-csr-profile-composition-and-auth-user-query-direction.md)를 따른다.
+
 ### 3-1. 내 프로필 조회
 
 `GET /api/v1/me`
@@ -84,7 +95,6 @@
   "id": "11111111-1111-1111-1111-111111111111",
   "name": "홍길동",
   "phoneNumber": "01012345678",
-  "loginEmail": "user@example.com",
   "roles": ["USER"],
   "isEnabled": true,
   "createdAt": "2026-08-16T12:00:00Z",
@@ -92,7 +102,7 @@
 }
 ```
 
-소셜 전용 User의 `loginEmail`은 `null`이거나 필드 미포함이며, 비밀번호·토큰·OAuth 원본 응답은 포함하지 않는다.
+소셜 전용 User도 이 응답 형식은 같으며, 비밀번호·토큰·OAuth 원본 응답은 포함하지 않는다. 로컬 로그인 이메일은 P11의 인증수단 요약 API에서만 `null`로 반환할 수 있다.
 
 #### 예외
 
@@ -118,7 +128,7 @@
 }
 ```
 
-`name`과 `phoneNumber` 중 하나 이상을 보내야 하며, `id`, `roles`, `isEnabled`, `loginEmail`, `pointBalance`는 수정할 수 없다.
+`name`과 `phoneNumber` 중 하나 이상을 보내야 하며, `id`, `roles`, `isEnabled`, `pointBalance`는 수정할 수 없다. 로그인 이메일 등 인증수단 변경은 P11 Auth API에서만 처리한다.
 
 #### 성공 응답: `200 OK`
 

@@ -36,5 +36,6 @@ ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정�
 | ADR-0011 | Offer 비활성화와 관리자 재활성화 승인 | Accepted | [0011-offer-deactivation-and-reactivation-approval.md](0011-offer-deactivation-and-reactivation-approval.md) |
 | ADR-0012 | 관리자 심사 통합 조회 모델과 도메인 요청 원본 분리 | Superseded | [0012-admin-review-projection.md](0012-admin-review-projection.md) |
 | ADR-0013 | 도메인별 관리자 심사 요청 직접 조회 | Accepted | [0013-direct-admin-review-queries.md](0013-direct-admin-review-queries.md) |
+| ADR-0014 | CSR 프로필 조합과 User·Auth 조회 책임 분리 | Accepted | [0014-csr-profile-composition-and-auth-user-query-direction.md](0014-csr-profile-composition-and-auth-user-query-direction.md) |
 
 ADR이 추가되면 번호, 제목, 상태, 대체 관계를 이 목록에 기록한다.

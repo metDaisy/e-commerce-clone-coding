@@ -108,6 +108,13 @@ Media 파일은 특정 도메인의 엔티티가 아니라 공통 인프라에 �
 - P2와 P10은 서로의 Media 도메인·Repository·infra 구현을 참조하지 않는다. 두 모듈은 `MediaStoragePort`만 사용한다.
 - 공통 저장소의 `mediaId`, storage key, public URL은 저장 기술을 추상화한 값이며, Media attachment의 소유자와 허용 규칙은 각 도메인이 검증한다.
 
+## User와 Auth의 프로필 조회 조합
+
+- P1 User는 프로필·역할·활성 상태만 소유하고, P11 Auth가 소유하는 `loginEmail`을 P1 응답에 포함하지 않는다.
+- P11 `GET /api/v1/auth/me/credential-summary`는 재인증된 사용자에게만 nullable `loginEmail`을 제공한다. 비밀번호·OAuth 식별자·토큰은 반환하지 않는다.
+- SPA CSR 클라이언트는 P1 프로필 조회와 P11 인증수단 요약 조회를 병렬 호출해 화면 모델을 조합한다. 어느 한 요청의 재인증이 실패하면 부분 결과를 표시하지 않고 재인증을 유도한다.
+- Auth는 현재 역할·활성 상태 확인을 위해 User의 작은 공개 seam을 동기 조회할 수 있다. User는 단순한 프로필 보강을 위해 Auth를 동기 조회하지 않는다. 복수 클라이언트의 조합이 반복될 때에만 BFF/Account composition API를 도입한다. 자세한 결정은 [ADR-0014](adr/0014-csr-profile-composition-and-auth-user-query-direction.md)를 따른다.
+
 ## 현재 회원가입 흐름
 
 ```mermaid
