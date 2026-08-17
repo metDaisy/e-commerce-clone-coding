@@ -32,7 +32,7 @@ public class FormUserDetailsService implements UserDetailsService {
         .orElseThrow(() -> new UserCredentialAuthenticationException(email));
     return userPort.loadUser(credential.getId())
         .map(userDto -> new FormUserDetails(userDto.id(),
-            userDto.role(),
+            userDto.rolesCsv(),
             credential.getPasswordHash(),
             userDto.isEnabled(),
             credential.isLocked(maxAttempt, Instant.now())))

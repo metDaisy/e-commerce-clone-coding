@@ -30,7 +30,7 @@ public class SocialUserDetailsService extends DefaultOAuth2UserService {
     String providerId = (String) attributes.get("providerId");
     return repository.findByProviderIdAndProvider(providerId, provider)
         .flatMap(credential -> userPort.loadUser(credential.getUserId()))
-        .map(userDto -> SocialUserDetails.create(userDto.id(), userDto.role(), attributes,
+        .map(userDto -> SocialUserDetails.create(userDto.id(), userDto.rolesCsv(), attributes,
             userDto.isEnabled()))
         .orElse(SocialUserDetails.createGuest(attributes));
   }

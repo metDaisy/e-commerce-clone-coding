@@ -16,7 +16,7 @@ public class AuthUserAdapter implements AuthUserPort {
 
   @Override
   public Optional<AuthUserDto> loadUser(UUID userId) {
-    return api.findById(userId).map(dto -> new AuthUserDto(dto.id(), dto.role(), dto.isEnabled()));
+    return api.findById(userId).map(dto -> new AuthUserDto(dto.id(), dto.roles(), dto.isEnabled()));
   }
 
   @Override
