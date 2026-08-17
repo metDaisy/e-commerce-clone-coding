@@ -5,6 +5,7 @@ import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
+import io.github.metdaisy.amaazon.user.application.port.out.UserLoginEmailQuery;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
@@ -26,6 +27,7 @@ public class UserService {
 
   private final UserRepository repository;
   private final UserMapper userMapper;
+  private final UserLoginEmailQuery userLoginEmailQuery;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -46,7 +48,7 @@ public class UserService {
 
   @Transactional
   public UserResponse updateProfile(UUID id, UserUpdateRequest request) {
-    return userMapper.toDto(update(id, request));
+    return toProfileResponse(update(id, request));
   }
 
   public User find(UUID id) {
@@ -54,7 +56,7 @@ public class UserService {
   }
 
   public UserResponse findProfile(UUID id) {
-    return userMapper.toDto(find(id));
+    return toProfileResponse(find(id));
   }
 
   @Transactional
@@ -78,5 +80,10 @@ public class UserService {
     return repository.findById(id)
         .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("userId", id))));
+  }
+
+  private UserResponse toProfileResponse(User user) {
+    String loginEmail = userLoginEmailQuery.findByUserId(user.getId()).orElse(null);
+    return userMapper.toDto(user, loginEmail);
   }
 }
