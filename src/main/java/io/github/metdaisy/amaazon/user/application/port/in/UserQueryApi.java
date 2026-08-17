@@ -20,7 +20,7 @@ public class UserQueryApi {
   private final UserApiMapper mapper;
 
   public Optional<UserDto> findById(UUID userId) {
-    return repository.findById(userId).map(mapper::toDto);
+    return repository.findWithRolesById(userId).map(mapper::toDto);
   }
 
   public boolean existsByUserId(UUID userId) {

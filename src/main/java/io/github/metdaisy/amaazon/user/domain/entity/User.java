@@ -43,7 +43,7 @@ public class User extends MutableEntity {
   private String phoneNumber;
 
   @NotNull
-  @ElementCollection(fetch = FetchType.EAGER)
+  @ElementCollection(fetch = FetchType.LAZY)
   @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
   @Column(name = "role", nullable = false, length = 30)
   @Enumerated(value = EnumType.STRING)

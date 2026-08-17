@@ -37,7 +37,7 @@ public class UserService {
 
   @Transactional
   public UserResponse update(UUID id, UserUpdateRequest request) {
-    User user = findById(id);
+    User user = findWithRolesById(id);
     user.updateName(request.name());
     validatePhoneNumber(request.phoneNumber());
     user.updatePhoneNumber(request.phoneNumber());
@@ -49,7 +49,7 @@ public class UserService {
   }
 
   public UserResponse findProfile(UUID id) {
-    return toProfileResponse(find(id));
+    return toProfileResponse(findWithRolesById(id));
   }
 
   @Transactional
@@ -71,6 +71,12 @@ public class UserService {
 
   private User findById(UUID id) {
     return repository.findById(id)
+        .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND,
+            AmaazonExceptionContext.logDetails(Map.of("userId", id))));
+  }
+
+  private User findWithRolesById(UUID id) {
+    return repository.findWithRolesById(id)
         .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("userId", id))));
   }
