@@ -4,18 +4,18 @@
 
 ## 스냅샷
 
-- 확인일: 2026-08-16
-- Git 브랜치: `main`
-- 구현 기준 Git SHA: `3d52f273ae6498e525a24a2981851e95982f9cd0`
+- 확인일: 2026-08-18
+- Git 브랜치: `p1/issue40`
+- 구현 기준 Git SHA: `b63cf130d8b26467751a36ebd9c85129522513a0`
 - 기준 상태: HEAD의 커밋된 코드·테스트·설정·Flyway만 반영했으며, 현재 작업 트리의 uncommitted 구현 변경은 포함하지 않았다.
-- 이번 문서 동기화일: 2026-08-16. 관리자 API 경로와 P11 민감 작업 재인증 요구사항 정의를 반영했으며, 미커밋 구현 변경은 반영하지 않았다.
+- 이번 문서 동기화일: 2026-08-18. P1 사용자 역할 다중화·비활성화 API, 예외 응답 구조 개선, Flyway V2/V3 마이그레이션을 반영했으며, 미커밋 구현 변경은 반영하지 않았다.
 - 이번 확인에서는 Gradle 테스트를 실행하지 않았다. 아래 내용은 정적 코드·설정·마이그레이션 확인 결과이며 테스트 통과를 의미하지 않는다.
 
 ## 전체 진행 요약
 
 | 단계 | 상태 | 근거와 범위 |
 |---|---|---|
-| P1 User | 부분 구현 | `user` 모듈의 사용자 프로필 API와 `auth` 연계 회원가입이 존재한다. 주소록·포인트·관심상품 등 요구사항 전체는 구현되지 않았다. |
+| P1 User | 부분 구현 | `user` 모듈의 사용자 프로필 API와 `auth` 연계 회원가입이 존재한다. 역할이 단일 값에서 `Set<UserRole>`로 정규화되었으며, 계정 비활성화 API가 추가되었다. 주소록·포인트·관심상품 등 요구사항 전체는 구현되지 않았다. |
 | P2 Catalog | 부분 구현 | 관리자용 카탈로그 상품 생성·수정·archive·식별자 업데이트, 공개 카테고리 트리 조회, ADMIN 전용 카테고리 생성·수정이 구현되어 있다. CatalogProduct 상세, Variant와 상품용 Media 구현은 확인되지 않았다. |
 | P3 Cart | 스키마만 존재 | 장바구니 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P4 Coupon | 스키마만 존재 | 쿠폰 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
@@ -33,7 +33,7 @@
 현재 소스 모듈은 `auth`, `user`, `catalog`, `seller`, `common`, `global`이다. `offer` 디렉터리는 존재하지만 구현 파일은 확인되지 않았다.
 
 - `auth`: 로컬·소셜 Credential, 회원가입, 비밀번호 검증·변경, Access/Refresh/Guest JWT, 로그아웃·토큰/사용자 블랙리스트, 로그인 실패 누적·잠금, 인증 이벤트와 보안 핸들러
-- `user`: 사용자 프로필·역할, 회원가입 이벤트 수신, 프로필 조회·수정
+- `user`: 사용자 프로필·역할 (`Set<UserRole>`), 회원가입 이벤트 수신, 프로필 조회·수정, 계정 비활성화와 `UserDeactivatedEvent`
 - `catalog`: `CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`와 저장소·서비스, 관리자용 상품 생성·수정·archive·식별자 검증, 카테고리 명령·조회
 - `seller`: `Seller`, `SellerStatus`, 저장소, `SellerQueryApi`, 카탈로그 모듈용 어댑터
 - `common`: 공통 인증 주체·예외·DTO·JPA 저장소·MapStruct 설정
@@ -51,8 +51,9 @@ Spring Modulith `package-info.java`의 `allowedDependencies`와 Named Interface�
 | POST | `/api/v1/auth/refresh` | 구현 |
 | POST | `/api/v1/auth/password/verify` | 구현 |
 | POST | `/api/v1/auth/update` | 구현 |
-| GET | `/api/v1/users/me` | 구현 |
-| POST | `/api/v1/users/update` | 구현 |
+| GET | `/api/v1/me` | 구현 |
+| PATCH | `/api/v1/me` | 구현 |
+| POST | `/api/v1/me/deactivate` | 구현 |
 | POST | `/api/v1/admin/catalog-products` | 구현 · `ADMIN` 전용 |
 | PATCH | `/api/v1/admin/catalog-products/{id}` | 구현 · `ADMIN` 전용 |
 | PATCH | `/api/v1/admin/catalog-products/{id}/identifiers` | 구현 · `ADMIN` 전용, 상품 식별자(ASIN/GTIN/UPC/EAN/ISBN) 검증 업데이트 |
@@ -72,8 +73,10 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 
 ## 데이터베이스
 
-- Flyway 마이그레이션은 `V1__init_schema.sql` 하나이며 `application.yml`에서 활성화되어 있다.
+- Flyway 마이그레이션은 `V1__init_schema.sql`, `V2__normalize_user_roles.sql`, `V3__fix_event_publication_completion_attempts.sql` 세 파일이며 `application.yml`에서 활성화되어 있다.
 - V1에는 사용자·인증·주소·포인트·관심상품, 카탈로그·Variant·Offer·Inventory·이미지·태그·리뷰, 장바구니, 쿠폰, 주문·결제·배송, Outbox·Saga·이벤트 발행, 판매자 테이블이 정의되어 있다. 이는 P11 인증 지원과 P12 공통 이미지 메타데이터의 저장 기반을 포함하지만, P11·P12 요구사항 API 전체를 의미하지 않는다.
+- V2는 `users.role` 단일 열을 `user_roles` 다중 역할 테이블로 정규화하고 기존 데이터를 마이그레이션한다.
+- V3는 `event_publication.completion_attempts` 기본값을 0으로 명시한다.
 - 현재 Java 엔티티가 확인되는 영역은 사용자·인증·카탈로그·판매자이며, 나머지 테이블은 스키마만 존재한다.
 - `catalog_products`와 `CatalogProduct`는 현재 구현 대상이며, `product_variants`, `offers`, `inventories`는 현재 구현되지 않았다.
 - 테이블 존재만으로 도메인 로직·상태 전이·동시성 제어·API 완료를 의미하지 않는다.
@@ -87,7 +90,7 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 ## 테스트와 자동화
 
 - JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
-- 카테고리·카탈로그 관리자 컨트롤러와 서비스·리포지토리 테스트 소스가 존재한다. 이번 문서 동기화에서는 Gradle 테스트를 실행하지 않았으므로 현재 통과·실패 수는 기록하지 않는다.
+- 카테고리·카탈로그 관리자 컨트롤러와 서비스·리포지토리 테스트 소스가 존재한다. P1 사용자 도메인·서비스·컨트롤러·통합 테스트가 강화되었다. 이번 문서 동기화에서는 Gradle 테스트를 실행하지 않았으므로 현재 통과·실패 수는 기록하지 않는다.
 - JaCoCo와 80% 라인 커버리지 검증 설정, Checkstyle 및 custom `checkstyle-rules` 모듈이 빌드에 포함되어 있다.
 - CI에는 build, JaCoCo 리포트, Codecov, CodeQL, OpenGrep, CodeRabbit 관련 설정이 있다.
 
@@ -95,8 +98,10 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 
 1. 요구사항에 정의된 P2 Catalog 상세·Variant 기능과 P9 Offer·Inventory·Marketplace 기능이 현재 코드에 없다.
 2. 관리자 상품 생성·수정·archive·식별자 업데이트 API가 구현되었으며 ASIN/GTIN/UPC/EAN/ISBN 검증 어댑터가 추가되었다.
-3. V1 스키마의 P3~P10 테이블 대부분에 대응하는 도메인 모듈과 API가 없고, P12 `MediaUpload` 세션·검증 API도 없다.
-4. 카테고리 생성·수정 API는 `/api/v1/admin/categories`에 구현되었으며, 기본 요구사항에는 카테고리 삭제 API를 두지 않는다.
-5. P11 민감 작업 재인증은 요구사항·정책만 정의된 상태이며 구현은 남아 있다.
-6. P2 Catalog 상세·Variant와 이후 P9 Offer·Marketplace, P10 Review, P12 Media 흐름을 구현한다.
-7. 구현 범위가 확장되면 해당 모듈의 테스트와 Modulith 경계 검증을 함께 추가한다.
+3. P1 사용자 역할이 `Set<UserRole>`로 정규화되었으며, 계정 비활성화 API(`POST /api/v1/me/deactivate`)와 `UserDeactivatedEvent`가 추가되었다. 프로필 조회 경로가 `/api/v1/users/me`에서 `/api/v1/me`로 변경되었다.
+4. V1 스키마의 P3~P10 테이블 대부분에 대응하는 도메인 모듈과 API가 없고, P12 `MediaUpload` 세션·검증 API도 없다.
+5. 카테고리 생성·수정 API는 `/api/v1/admin/categories`에 구현되었으며, 기본 요구사항에는 카테고리 삭제 API를 두지 않는다.
+6. P11 민감 작업 재인증은 요구사항·정책만 정의된 상태이며 구현은 남아 있다.
+7. 예외 응답 구조에 `AmaazonExceptionContext`와 시스템 메시지, `FORBIDDEN` 응답 타입이 추가되었다.
+8. P2 Catalog 상세·Variant와 이후 P9 Offer·Marketplace, P10 Review, P12 Media 흐름을 구현한다.
+9. 구현 범위가 확장되면 해당 모듈의 테스트와 Modulith 경계 검증을 함께 추가한다.
