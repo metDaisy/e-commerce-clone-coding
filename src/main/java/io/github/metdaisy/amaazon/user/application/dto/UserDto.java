@@ -7,4 +7,7 @@ import org.springframework.modulith.NamedInterface;
 @NamedInterface("user-api")
 public record UserDto(UUID id, List<String> roles, boolean isEnabled) {
 
+  public String rolesCsv() {
+    return String.join(",", roles);
+  }
 }

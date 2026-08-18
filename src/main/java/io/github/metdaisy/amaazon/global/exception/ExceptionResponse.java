@@ -115,7 +115,7 @@ public record ExceptionResponse(
   }
 
   public static ExceptionResponse from(DisabledException ex, HttpStatus status) {
-    return of(status, "AUTH-002", "비활성화된 계정입니다.", null);
+    return of(status, "USER-004", "비활성화된 계정입니다.", null);
   }
 
   public static ExceptionResponse from(AuthenticationException ex, HttpStatus status) {

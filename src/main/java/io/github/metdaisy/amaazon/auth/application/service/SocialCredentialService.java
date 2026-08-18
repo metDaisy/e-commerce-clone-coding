@@ -1,11 +1,11 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SocialCredentialService {
 
   private final SocialCredentialRepository repository;
-  private final AuthUserPort userPort;
+  private final UserQueryApi userQueryApi;
 
   @Transactional
   public void create(UUID userId, String provider, String providerId) {
@@ -27,7 +27,7 @@ public class SocialCredentialService {
   }
 
   private void validateUserId(UUID userId) {
-    if (!userPort.existsUser(userId)) {
+    if (!userQueryApi.existsEnabledUser(userId)) {
       throw new AuthException(AuthErrorCode.USER_NOT_FOUND,
           AmaazonExceptionContext.logDetails(Map.of("userId", userId)));
     }
