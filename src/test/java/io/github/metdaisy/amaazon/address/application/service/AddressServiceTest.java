@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
+import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.mapper.AddressMapper;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
@@ -19,6 +20,7 @@ import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -157,6 +159,110 @@ class AddressServiceTest {
     // then
     assertThat(result).containsExactly(response);
     then(repository).should().findByUserId(any(UUID.class));
+  }
+
+  @Test
+  @DisplayName("주소 수정 성공: 전달된 필드만 수정하고 나머지는 유지한다")
+  void update_success_whenPartialFieldsAreSent() {
+    // given
+    Address address = Address.create(USER_ID, "tester", "01012345678", "06236", "서울", false);
+    AddressUpdateRequest request = new AddressUpdateRequest(
+        "updated tester", null, null, "부산광역시 해운대구");
+    AddressResponse expected = response(address);
+    given(repository.findById(address.getId())).willReturn(Optional.of(address));
+    given(addressMapper.toDto(address)).willReturn(expected);
+
+    // when
+    AddressResponse result = addressService.update(USER_ID, address.getId(), request);
+
+    // then
+    assertThat(result).isSameAs(expected);
+    assertThat(address)
+        .extracting(Address::getRecipientName, Address::getRecipientPhone,
+            Address::getPostalCode, Address::getAddressLine)
+        .containsExactly("updated tester", "01012345678", "06236", "부산광역시 해운대구");
+    then(repository).should(never()).save(any(Address.class));
+  }
+
+  @Test
+  @DisplayName("주소 수정 성공: 모든 필드가 null이어도 기존 값을 유지한다")
+  void update_success_whenNoFieldsAreSent() {
+    // given
+    Address address = Address.create(USER_ID, "tester", "01012345678", "06236", "서울", false);
+    AddressResponse expected = response(address);
+    given(repository.findById(address.getId())).willReturn(Optional.of(address));
+    given(addressMapper.toDto(address)).willReturn(expected);
+
+    // when
+    AddressResponse result = addressService.update(USER_ID, address.getId(),
+        new AddressUpdateRequest(null, null, null, null));
+
+    // then
+    assertThat(result).isSameAs(expected);
+    assertThat(address)
+        .extracting(Address::getRecipientName, Address::getRecipientPhone,
+            Address::getPostalCode, Address::getAddressLine)
+        .containsExactly("tester", "01012345678", "06236", "서울");
+    then(repository).should(never()).save(any(Address.class));
+  }
+
+  @Test
+  @DisplayName("주소 수정 실패: 다른 User의 Address면 ADDRESS-008을 던진다")
+  void update_failure_whenAddressBelongsToAnotherUser() {
+    // given
+    UUID ownerId = UUID.randomUUID();
+    Address address = Address.create(ownerId, "tester", "01012345678", "06236", "서울", false);
+    given(repository.findById(address.getId())).willReturn(Optional.of(address));
+
+    // when
+    Throwable thrown = catchThrowable(() -> addressService.update(USER_ID, address.getId(),
+        new AddressUpdateRequest("updated", null, null, null)));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(AddressException.class)
+        .hasFieldOrPropertyWithValue("code", AddressErrorCode.ADDRESS_ACCESS_DENIED.getCode());
+    then(repository).should(never()).save(any(Address.class));
+  }
+
+  @Test
+  @DisplayName("주소 삭제 성공: 기본 배송지를 삭제하면 최신 주소를 기본 배송지로 승격한다")
+  void delete_success_whenPrimaryAddressIsDeleted() {
+    // given
+    Address primary = Address.create(USER_ID, "primary", "01012345678", "06236", "서울", true);
+    Address nextPrimary = Address.create(USER_ID, "next", "01012345678", "06237", "부산", false);
+    given(repository.findById(primary.getId())).willReturn(Optional.of(primary));
+    given(repository.findByUserId(USER_ID)).willReturn(List.of(nextPrimary));
+
+    // when
+    addressService.delete(USER_ID, primary.getId());
+
+    // then
+    then(repository).should().delete(primary);
+    assertThat(nextPrimary.isPrimary()).isTrue();
+    then(repository).should(never()).save(any(Address.class));
+  }
+
+  @Test
+  @DisplayName("기본 배송지 지정 성공: 기존 기본 배송지를 해제하고 Address를 지정한다")
+  void makePrimary_success() {
+    // given
+    Address address = Address.create(USER_ID, "tester", "01012345678", "06236", "서울", false);
+    AddressResponse expected = response(address);
+    given(repository.existsById(address.getId())).willReturn(true);
+    given(repository.existsByIdAndUserId(address.getId(), USER_ID)).willReturn(true);
+    given(repository.makePrimaryByIdAndUserId(address.getId(), USER_ID)).willReturn(1);
+    given(repository.findById(address.getId())).willReturn(Optional.of(address));
+    given(addressMapper.toDto(address)).willReturn(expected);
+
+    // when
+    AddressResponse result = addressService.makePrimary(USER_ID, address.getId());
+
+    // then
+    assertThat(result).isSameAs(expected);
+    then(repository).should().clearPrimaryByUserId(USER_ID);
+    then(repository).should().makePrimaryByIdAndUserId(address.getId(), USER_ID);
+    then(repository).should(never()).save(any(Address.class));
   }
 
   private static AddressCreateRequest validRequest(boolean isPrimary) {

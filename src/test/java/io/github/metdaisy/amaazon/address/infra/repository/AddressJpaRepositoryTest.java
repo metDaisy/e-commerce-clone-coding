@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.address.infra.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
@@ -43,12 +43,20 @@ class AddressJpaRepositoryTest extends BaseRepositoryTest {
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("invalidAddresses")
   @DisplayName("주소 저장 실패: 필수 값이 없거나 길이를 초과하면 저장하지 않는다")
-  void save_rejectsInvalidAddress(String caseName, Address invalidAddress) {
-    // when & then
-    assertThatThrownBy(() -> {
+  void save_rejectsInvalidAddress(String caseName, Address invalidAddress,
+      String expectedField, String expectedConstraint) {
+    // when
+    ConstraintViolationException exception = catchThrowableOfType(() -> {
       repository.save(invalidAddress);
       em.flush();
-    }).isInstanceOf(ConstraintViolationException.class);
+    }, ConstraintViolationException.class);
+
+    // then
+    assertThat(exception.getConstraintViolations()).singleElement().satisfies(violation -> {
+      assertThat(violation.getPropertyPath().toString()).isEqualTo(expectedField);
+      assertThat(violation.getConstraintDescriptor().getAnnotation().annotationType()
+          .getSimpleName()).isEqualTo(expectedConstraint);
+    });
   }
 
   @Test
@@ -106,14 +114,61 @@ class AddressJpaRepositoryTest extends BaseRepositoryTest {
     ensureQueryCount(1);
   }
 
+  @Test
+  @DisplayName("기본 배송지 지정: 기존 기본 배송지를 해제하고 대상 주소를 기본값으로 변경한다")
+  void makePrimaryByIdAndUserId_updatesOnlyTargetAddress() {
+    // given
+    Address oldPrimary = persistAndFlush(address(true));
+    Address target = persistAndFlush(
+        Address.create(USER_ID, "target", "01012345678", "06237", "부산", false));
+    clear();
+
+    // when
+    int clearedCount = repository.clearPrimaryByUserId(USER_ID);
+    int updatedCount = repository.makePrimaryByIdAndUserId(target.getId(), USER_ID);
+    flushAndClear();
+
+    // then
+    List<Address> addresses = repository.findByUserId(USER_ID);
+    assertThat(clearedCount).isEqualTo(1);
+    assertThat(updatedCount).isEqualTo(1);
+    assertThat(addresses).extracting(Address::getId)
+        .containsExactly(target.getId(), oldPrimary.getId());
+    assertThat(addresses).extracting(Address::isPrimary)
+        .containsExactly(true, false);
+    addresses.forEach(this::assertAddressLoaded);
+    ensureQueryCount(1);
+  }
+
   private static List<Arguments> invalidAddresses() {
     return List.of(
-        Arguments.of("소유 User 누락", Address.create(null, "tester", "01012345678", "06236", "서울", false)),
-        Arguments.of("수령인 이름 누락", Address.create(USER_ID, null, "01012345678", "06236", "서울", false)),
+        Arguments.of("소유 User 누락",
+            Address.create(null, "tester", "01012345678", "06236", "서울", false),
+            "userId", "NotNull"),
+        Arguments.of("수령인 이름 누락",
+            Address.create(USER_ID, null, "01012345678", "06236", "서울", false),
+            "recipientName", "NotNull"),
+        Arguments.of("수령인 이름 길이 초과",
+            Address.create(USER_ID, "a".repeat(101), "01012345678", "06236", "서울", false),
+            "recipientName", "Size"),
+        Arguments.of("수령인 연락처 누락",
+            Address.create(USER_ID, "tester", null, "06236", "서울", false),
+            "recipientPhone", "NotNull"),
         Arguments.of("수령인 연락처 길이 초과",
-            Address.create(USER_ID, "tester", "1".repeat(21), "06236", "서울", false)),
+            Address.create(USER_ID, "tester", "1".repeat(21), "06236", "서울", false),
+            "recipientPhone", "Size"),
+        Arguments.of("우편번호 누락",
+            Address.create(USER_ID, "tester", "01012345678", null, "서울", false),
+            "postalCode", "NotNull"),
+        Arguments.of("우편번호 길이 초과",
+            Address.create(USER_ID, "tester", "01012345678", "1".repeat(21), "서울", false),
+            "postalCode", "Size"),
+        Arguments.of("주소 본문 누락",
+            Address.create(USER_ID, "tester", "01012345678", "06236", null, false),
+            "addressLine", "NotNull"),
         Arguments.of("주소 본문 길이 초과",
-            Address.create(USER_ID, "tester", "01012345678", "06236", "a".repeat(256), false)));
+            Address.create(USER_ID, "tester", "01012345678", "06236", "a".repeat(256), false),
+            "addressLine", "Size"));
   }
 
   private static Address address(boolean isPrimary) {

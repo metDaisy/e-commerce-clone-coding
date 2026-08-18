@@ -4,12 +4,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
+import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.service.AddressService;
 import java.util.List;
@@ -72,6 +76,70 @@ class AddressControllerTest extends RestControllerTest {
     then(addressService).should().create(USER_ID, request);
   }
 
+  @Test
+  @DisplayName("주소 수정 성공: 인증 주체 ID와 Address ID를 서비스에 전달한다")
+  void update_success() throws Exception {
+    // given
+    UUID addressId = response().id();
+    AddressUpdateRequest request = new AddressUpdateRequest(
+        "updated tester", null, null, "부산광역시 해운대구");
+    AddressResponse response = response();
+    given(addressService.update(USER_ID, addressId, request)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(patch(ADDRESS_URL + "/" + addressId)
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(addressId.toString()));
+    then(addressService).should().update(USER_ID, addressId, request);
+  }
+
+  @ParameterizedTest(name = "[{index}] {0}")
+  @MethodSource("invalidUpdateRequests")
+  @DisplayName("주소 수정 실패: 공백 또는 최대 길이를 초과하면 Web 계층에서 400을 반환한다")
+  void update_failure_whenRequestIsInvalid(String caseName, AddressUpdateRequest request)
+      throws Exception {
+    // given
+    UUID addressId = response().id();
+
+    // when & then
+    mockMvc.perform(patch(ADDRESS_URL + "/" + addressId)
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"));
+    then(addressService).should(never()).update(any(UUID.class), any(UUID.class),
+        any(AddressUpdateRequest.class));
+  }
+
+  @Test
+  @DisplayName("주소 삭제 성공: 인증 주체 ID와 Address ID를 서비스에 전달하고 204를 반환한다")
+  void delete_success() throws Exception {
+    // given
+    UUID addressId = response().id();
+
+    // when & then
+    mockMvc.perform(delete(ADDRESS_URL + "/" + addressId))
+        .andExpect(status().isNoContent());
+    then(addressService).should().delete(USER_ID, addressId);
+  }
+
+  @Test
+  @DisplayName("기본 배송지 지정 성공: 인증 주체 ID와 Address ID를 서비스에 전달한다")
+  void makePrimary_success() throws Exception {
+    // given
+    UUID addressId = response().id();
+    AddressResponse response = response();
+    given(addressService.makePrimary(USER_ID, addressId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(post(ADDRESS_URL + "/" + addressId + "/default"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(addressId.toString()));
+    then(addressService).should().makePrimary(USER_ID, addressId);
+  }
+
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("invalidRequests")
   @DisplayName("주소 등록 실패: 필수 값 또는 길이가 유효하지 않으면 Web 계층에서 400을 반환한다")
@@ -92,6 +160,22 @@ class AddressControllerTest extends RestControllerTest {
             new AddressCreateRequest("tester", " ", "06236", "서울", false)),
         Arguments.of("주소 본문 길이 초과",
             new AddressCreateRequest("tester", "01012345678", "06236", "a".repeat(256), false)));
+  }
+
+  private static Stream<Arguments> invalidUpdateRequests() {
+    return Stream.of(
+        Arguments.of("수령인 이름 공백", new AddressUpdateRequest(" ", null, null, null)),
+        Arguments.of("수령인 이름 길이 초과",
+            new AddressUpdateRequest("a".repeat(101), null, null, null)),
+        Arguments.of("수령인 연락처 공백", new AddressUpdateRequest(null, " ", null, null)),
+        Arguments.of("수령인 연락처 길이 초과",
+            new AddressUpdateRequest(null, "1".repeat(21), null, null)),
+        Arguments.of("우편번호 공백", new AddressUpdateRequest(null, null, " ", null)),
+        Arguments.of("우편번호 길이 초과",
+            new AddressUpdateRequest(null, null, "1".repeat(21), null)),
+        Arguments.of("주소 본문 공백", new AddressUpdateRequest(null, null, null, " ")),
+        Arguments.of("주소 본문 길이 초과",
+            new AddressUpdateRequest(null, null, null, "a".repeat(256))));
   }
 
   private static AddressResponse response() {
