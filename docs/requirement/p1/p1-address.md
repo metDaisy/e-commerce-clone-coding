@@ -24,6 +24,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 |---|---|---:|---|
 | `addressId` | UUID | 예 | 주소 식별자 |
 | `userId` | UUID | 예 | 소유 User 식별자 |
+| `alias` | String | 예 | 사용자가 지정하는 주소 별칭. 예: 집, 회사 |
 | `recipientName` | String | 예 | 수령인 이름 |
 | `recipientPhone` | String | 예 | 수령인 연락처 |
 | `postalCode` | String | 예 | 우편번호 |
@@ -34,19 +35,20 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 ### 2-2. 관계와 제약
 
-- 하나의 User는 0~5개의 Address를 가진다. Address는 정확히 하나의 User에 속한다.
+- 하나의 User는 제한 없이 Address를 가진다. Address는 정확히 하나의 User에 속한다.
+- 동일 User는 동일한 주소를 중복 등록할 수 없다. 주소 동일성은 `postalCode`와 `addressLine`의 앞뒤 공백을 제거한 값 조합으로 판단하며, 수령인·연락처·별칭은 판단에 포함하지 않는다.
 - 한 User의 `isPrimary=true` Address는 0~1개다.
 - 기본 배송지 지정은 기존 기본값 해제와 신규 기본값 지정을 하나의 트랜잭션으로 수행한다.
 - 기본 배송지 삭제 시 가장 최근 Address를 기본값으로 승격한다. Address가 없으면 기본값도 없다.
 - 첫 번째 Address를 자동으로 기본 배송지로 만들지 않는다. 등록 요청에서 `isPrimary=true`를 명시하거나 기본 지정 API를 호출해야 한다.
-- 주소 목록은 User당 최대 5개이므로 전체 목록을 한 번에 반환한다.
+- 주소 목록은 공통 페이지 기반 응답을 사용한다. 기본 `page=0`, `size=20`, 최대 `size=100`이며 정렬은 `isPrimary DESC`, `createdAt DESC`, `addressId DESC`다.
 
 ### 2-3. 예외 코드
 
 | exceptionCode | 의미 | HTTP |
 |---|---|---:|
 | `ADDRESS-004` | 요청한 Address를 찾을 수 없음 | 404 |
-| `ADDRESS-006` | User가 보유할 수 있는 주소 수 5개를 초과함 | 400 |
+| `ADDRESS-005` | User가 동일한 주소를 이미 보유함 | 400 |
 | `ADDRESS-008` | 다른 User의 Address에 접근함 | 403 |
 
 공통 입력 검증 예외인 `INVALID_INPUT`은 [공통 API 계약](../index.md#예외-응답)을 참조한다. 주소 전용 예외 코드는 `ADDRESS-` 접두사를 사용한다.
@@ -59,19 +61,23 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 
 ### 3-1. 내 주소 목록 조회
 
-`GET /api/v1/me/addresses`
+`GET /api/v1/me/addresses?page=0&size=20`
 
 권한: 로그인 사용자
+
+`page`는 0부터 시작하고 `size`는 기본 20, 최대 100이다. 응답은 공통 페이지 형식의 `data`, `page`, `size`, `totalElements`, `totalPages`를 사용한다.
 
 정렬: `isPrimary DESC`, `createdAt DESC`, `addressId DESC`
 
 #### 성공 응답: `200 OK`
 
 ```json
-[
-  {
+{
+  "data": [
+    {
     "id": "22222222-2222-2222-2222-222222222222",
     "userId": "11111111-1111-1111-1111-111111111111",
+    "alias": "집",
     "recipientName": "홍길동",
     "recipientPhone": "01012345678",
     "postalCode": "06236",
@@ -79,8 +85,13 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
     "isPrimary": true,
     "createdAt": "2026-08-16T12:00:00Z",
     "updatedAt": "2026-08-16T12:00:00Z"
-  }
-]
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
 ```
 
 #### 예외
@@ -100,6 +111,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 
 ```json
 {
+  "alias": "집",
   "recipientName": "홍길동",
   "recipientPhone": "01012345678",
   "postalCode": "06236",
@@ -119,7 +131,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | [`INVALID_INPUT`](../index.md#예외-응답) | 필수 필드 누락·형식 오류 | 잘못된 입력값입니다. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
-| 400 | `ADDRESS-006` | User의 주소가 이미 5개 | 등록할 수 있는 주소 수를 초과했습니다. | `max=5` | User 식별자와 현재 주소 수 |
+| 400 | `ADDRESS-005` | User가 동일한 주소를 이미 보유 | 이미 등록된 주소입니다. | `postalCode`, `addressLine` | User 식별자와 중복 주소 식별자 |
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
 | 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 
@@ -133,6 +145,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 
 ```json
 {
+  "alias": "회사",
   "recipientName": "김길동",
   "recipientPhone": "01098765432",
   "postalCode": "06237",
@@ -140,7 +153,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 }
 ```
 
-보낸 필드만 수정하며 `addressId`, `userId`, `createdAt`은 수정할 수 없다. 기본 배송지 여부는 [기본 배송지 지정](#3-5-기본-배송지-지정) API로 변경한다.
+보낸 필드만 수정하며 `addressId`, `userId`, `createdAt`은 수정할 수 없다. `alias`는 수정할 수 있으며, `postalCode`와 `addressLine`을 함께 수정해 다른 Address와 동일해지는 경우 `ADDRESS-005`를 반환한다. 기본 배송지 여부는 [기본 배송지 지정](#3-5-기본-배송지-지정) API로 변경한다.
 
 #### 성공 응답: `200 OK`
 
@@ -151,6 +164,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | [`INVALID_INPUT`](../index.md#예외-응답) | 수정 필드의 형식·제약조건 검증 실패 | 잘못된 입력값입니다. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
+| 400 | `ADDRESS-005` | 수정 후 동일한 주소가 이미 존재 | 이미 등록된 주소입니다. | `postalCode`, `addressLine` | User 식별자와 중복 주소 식별자 |
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
 | 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 주소를 변경할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
 | 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
