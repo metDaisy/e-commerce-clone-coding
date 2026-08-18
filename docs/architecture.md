@@ -22,6 +22,7 @@ flowchart LR
         Web
         Auth[auth]
         User[user]
+        Address[address]
         Catalog[catalog]
         Seller[seller]
         Common[common]
@@ -41,6 +42,7 @@ flowchart LR
 src/main/java/io/github/metdaisy/amaazon/
   auth/       인증 수단, 로그인, JWT 연계
   user/       사용자 프로필과 역할
+  address/    사용자 배송지 원본과 기본 배송지
   catalog/    카탈로그 상품과 카테고리
   seller/     판매자 조회와 판매자 검증 seam
   common/     모듈 공통 타입과 기반 인터페이스

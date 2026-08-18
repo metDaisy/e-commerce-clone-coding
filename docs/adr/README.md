@@ -37,5 +37,6 @@ ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정�
 | ADR-0012 | 관리자 심사 통합 조회 모델과 도메인 요청 원본 분리 | Superseded | [0012-admin-review-projection.md](0012-admin-review-projection.md) |
 | ADR-0013 | 도메인별 관리자 심사 요청 직접 조회 | Accepted | [0013-direct-admin-review-queries.md](0013-direct-admin-review-queries.md) |
 | ADR-0014 | CSR 프로필 조합과 User·Auth 조회 책임 분리 | Accepted | [0014-csr-profile-composition-and-auth-user-query-direction.md](0014-csr-profile-composition-and-auth-user-query-direction.md) |
+| ADR-0015 | Address를 User와 별도 모듈로 분리 | Accepted | [0015-separate-address-module.md](0015-separate-address-module.md) |
 
 ADR이 추가되면 번호, 제목, 상태, 대체 관계를 이 목록에 기록한다.

@@ -41,6 +41,19 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 - 첫 번째 Address를 자동으로 기본 배송지로 만들지 않는다. 등록 요청에서 `isPrimary=true`를 명시하거나 기본 지정 API를 호출해야 한다.
 - 주소 목록은 변경 빈도가 낮고 사용자당 최대 5개이므로 page 기반 응답을 사용한다.
 
+### 2-3. 예외 코드
+
+| exceptionCode | 의미 | HTTP |
+|---|---|---:|
+| `INVALID_INPUT` | 요청 필드가 누락되었거나 형식·제약조건 검증에 실패함. 공통 입력 검증 예외다. | 400 |
+| `ADDRESS-004` | 요청한 Address를 찾을 수 없음 | 404 |
+| `ADDRESS-005` | Address 필드가 없거나 유효하지 않음 | 400 |
+| `ADDRESS-006` | User가 보유할 수 있는 주소 수 5개를 초과함 | 400 |
+| `ADDRESS-008` | 다른 User의 Address에 접근함 | 403 |
+| `ADDRESS-009` | 주소 목록의 페이지 조건이 유효하지 않음 | 400 |
+
+`INVALID_INPUT`의 공통 응답 형식은 [공통 API 계약](../index.md#예외-응답)을 따른다. 주소 전용 예외 코드는 `ADDRESS-` 접두사를 사용한다.
+
 ## 3. API 정의
 
 모든 API는 로그인한 User를 `principal`로 식별한다. `addressId`가 존재하더라도 소유 User가 다르면 접근을 허용하지 않는다.
@@ -59,7 +72,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 {
   "data": [
     {
-      "addressId": "22222222-2222-2222-2222-222222222222",
+      "id": "22222222-2222-2222-2222-222222222222",
       "userId": "11111111-1111-1111-1111-111111111111",
       "recipientName": "홍길동",
       "recipientPhone": "01012345678",
@@ -81,9 +94,9 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | `USER-009` | `page` 또는 `size`가 범위를 벗어남 | 페이지 조건을 확인해 주세요. | 실패한 페이지 필드 | 페이지 조건과 requestId |
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
+| 400 | `ADDRESS-009` | `page` 또는 `size`가 범위를 벗어남 | 페이지 조건을 확인해 주세요. | 실패한 페이지 필드 | 페이지 조건과 requestId |
+| 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
 
 페이지 기본값·최대 크기·공통 예외 필드는 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
 
@@ -115,10 +128,10 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | `USER-005` | 필수 필드 누락·형식 오류 | 주소 정보를 확인해 주세요. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
-| 400 | `USER-006` | User의 주소가 이미 5개 | 등록할 수 있는 주소 수를 초과했습니다. | `max=5` | User 식별자와 현재 주소 수 |
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
+| 400 | `INVALID_INPUT` | 필수 필드 누락·형식 오류 | 잘못된 입력값입니다. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
+| 400 | `ADDRESS-006` | User의 주소가 이미 5개 | 등록할 수 있는 주소 수를 초과했습니다. | `max=5` | User 식별자와 현재 주소 수 |
+| 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
 
 ### 3-3. 주소 수정
 
@@ -147,11 +160,11 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | `USER-005` | 수정 필드가 없거나 형식 오류 | 주소 정보를 확인해 주세요. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 403 | `USER-008` | 다른 User의 Address에 접근 | 주소를 변경할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
-| 404 | `USER-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
+| 400 | `ADDRESS-005` | 수정 필드가 없거나 형식 오류 | 주소 정보를 확인해 주세요. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
+| 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 주소를 변경할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
+| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
 
 ### 3-4. 주소 삭제
 
@@ -167,10 +180,10 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 403 | `USER-008` | 다른 User의 Address에 접근 | 주소를 삭제할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
-| 404 | `USER-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
+| 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 주소를 삭제할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
+| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
 
 ### 3-5. 기본 배송지 지정
 
@@ -188,7 +201,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 403 | `USER-008` | 다른 User의 Address에 접근 | 기본 배송지를 지정할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
-| 404 | `USER-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
+| 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 기본 배송지를 지정할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
+| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
