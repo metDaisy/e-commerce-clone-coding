@@ -17,5 +17,5 @@ public interface UserRepository extends DomainRepository<User> {
 
   boolean existsByPhoneNumberAndIsEnabledTrueAndIdNot(String phoneNumber, UUID userId);
 
-  boolean existsById(UUID userId);
+  boolean existsByIdAndIsEnabledTrue(UUID userId);
 }
