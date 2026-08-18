@@ -82,6 +82,15 @@ SPA CSR 클라이언트는 프로필 화면을 표시할 때 다음 공개 API�
 
 P1 User는 응답을 보강하려고 Auth를 동기 조회하지 않는다. 여러 클라이언트가 같은 조합을 반복하거나 조합·권한 정책이 복잡해질 때에만 별도 BFF/Account composition API 도입을 검토한다. 결정 배경은 [ADR-0014](../../adr/0014-csr-profile-composition-and-auth-user-query-direction.md)를 따른다.
 
+<a id="user-disabled-error"></a>
+### 3-0-2. 비활성 User 공통 예외
+
+User가 비활성화 상태인 경우 User 정보를 조회하거나 변경할 수 없으며 다음 공통 예외를 반환한다.
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 403 | `USER-004` | User가 비활성 상태임 | 계정을 사용할 수 없습니다. | 없음 | User 식별자와 requestId |
+
 ### 3-1. 내 프로필 조회
 
 `GET /api/v1/me`
@@ -110,7 +119,7 @@ P1 User는 응답을 보강하려고 Auth를 동기 조회하지 않는다. 여�
 |---:|---|---|---|---|---|
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
+| 403 | [`USER-004`](#user-disabled-error) | — | — | — | — |
 | 404 | `USER-001` | 인증 주체의 User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 
 ### 3-2. 내 프로필 수정
@@ -141,7 +150,7 @@ P1 User는 응답을 보강하려고 Auth를 동기 조회하지 않는다. 여�
 | 400 | `USER-007` | 이름·연락처가 없거나 형식이 잘못됨 | 입력값을 확인해 주세요. | 실패한 필드와 수정 방법 | 검증 필드와 내부 검증 원인 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
-| 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
+| 403 | [`USER-004`](#user-disabled-error) | — | — | — | — |
 | 404 | `USER-001` | User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
 | 409 | `USER-002` | 이름이 다른 활성 User에 이미 연결됨 | 이미 사용 중인 이름입니다. | `field=name` | 중복 User 식별자와 충돌 원인 및 요청 userId |
 | 409 | `USER-003` | 연락처가 다른 활성 User에 이미 연결됨 | 이미 사용 중인 연락처입니다. | `field=phoneNumber` | 중복 User 식별자와 충돌 원인 및 요청 userId |

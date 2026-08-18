@@ -59,7 +59,7 @@ Access Token은 목표 만료시간 30분, Refresh Token은 7일이다. 두 Toke
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 401 | `AUTH-011` | 이메일·비밀번호 불일치 | 이메일 또는 비밀번호를 확인해 주세요. | 없음 | 인증 실패와 requestId |
-| 403 | `AUTH-002` | User가 비활성 상태 | 계정을 사용할 수 없습니다. | 없음 | User 식별자와 requestId |
+| 403 | [`USER-004`](../p1/p1-user.md#user-disabled-error) | — | — | — | — |
 | 423 | `AUTH-013` | Credential 잠금 | 잠시 후 다시 시도해 주세요. | `untilLocked` | User 식별자와 잠금 원인 |
 
 ### 3-2. Access Token 갱신
@@ -85,7 +85,7 @@ Access Token은 목표 만료시간 30분, Refresh Token은 7일이다. 두 Toke
 |---:|---|---|---|---|---|
 | 401 | `AUTH-020` | Refresh Token이 없음·유효하지 않음 | 다시 로그인해 주세요. | 없음 | 검증 원인과 requestId |
 | 401 | `AUTH-021` | 회전된 이전 Token 재사용 | 다시 로그인해 주세요. | 없음 | User·기기·jti와 보안 이벤트 |
-| 403 | `AUTH-002` | User가 비활성 상태 | 계정을 사용할 수 없습니다. | 없음 | User 식별자와 requestId |
+| 403 | [`USER-004`](../p1/p1-user.md#user-disabled-error) | — | — | — | — |
 
 ### 3-3. 현재 기기 로그아웃
 

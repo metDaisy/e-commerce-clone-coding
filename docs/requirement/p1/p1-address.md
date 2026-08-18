@@ -39,7 +39,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 - 기본 배송지 지정은 기존 기본값 해제와 신규 기본값 지정을 하나의 트랜잭션으로 수행한다.
 - 기본 배송지 삭제 시 가장 최근 Address를 기본값으로 승격한다. Address가 없으면 기본값도 없다.
 - 첫 번째 Address를 자동으로 기본 배송지로 만들지 않는다. 등록 요청에서 `isPrimary=true`를 명시하거나 기본 지정 API를 호출해야 한다.
-- 주소 목록은 변경 빈도가 낮고 사용자당 최대 5개이므로 page 기반 응답을 사용한다.
+- 주소 목록은 User당 최대 5개이므로 전체 목록을 한 번에 반환한다.
 
 ### 2-3. 예외 코드
 
@@ -50,7 +50,6 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 | `ADDRESS-005` | Address 필드가 없거나 유효하지 않음 | 400 |
 | `ADDRESS-006` | User가 보유할 수 있는 주소 수 5개를 초과함 | 400 |
 | `ADDRESS-008` | 다른 User의 Address에 접근함 | 403 |
-| `ADDRESS-009` | 주소 목록의 페이지 조건이 유효하지 않음 | 400 |
 
 `INVALID_INPUT`의 공통 응답 형식은 [공통 API 계약](../index.md#예외-응답)을 따른다. 주소 전용 예외 코드는 `ADDRESS-` 접두사를 사용한다.
 
@@ -58,9 +57,11 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 
 모든 API는 로그인한 User를 `principal`로 식별한다. `addressId`가 존재하더라도 소유 User가 다르면 접근을 허용하지 않는다.
 
+User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며 [P1 User의 `USER-004`](p1-user.md#user-disabled-error)를 반환한다.
+
 ### 3-1. 내 주소 목록 조회
 
-`GET /api/v1/me/addresses?page=0&size=20`
+`GET /api/v1/me/addresses`
 
 권한: 로그인 사용자
 
@@ -69,36 +70,27 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 #### 성공 응답: `200 OK`
 
 ```json
-{
-  "data": [
-    {
-      "id": "22222222-2222-2222-2222-222222222222",
-      "userId": "11111111-1111-1111-1111-111111111111",
-      "recipientName": "홍길동",
-      "recipientPhone": "01012345678",
-      "postalCode": "06236",
-      "addressLine": "서울특별시 강남구 테헤란로 1",
-      "isPrimary": true,
-      "createdAt": "2026-08-16T12:00:00Z",
-      "updatedAt": "2026-08-16T12:00:00Z"
-    }
-  ],
-  "page": 0,
-  "size": 20,
-  "totalElements": 1,
-  "totalPages": 1
-}
+[
+  {
+    "id": "22222222-2222-2222-2222-222222222222",
+    "userId": "11111111-1111-1111-1111-111111111111",
+    "recipientName": "홍길동",
+    "recipientPhone": "01012345678",
+    "postalCode": "06236",
+    "addressLine": "서울특별시 강남구 테헤란로 1",
+    "isPrimary": true,
+    "createdAt": "2026-08-16T12:00:00Z",
+    "updatedAt": "2026-08-16T12:00:00Z"
+  }
+]
 ```
 
 #### 예외
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | `ADDRESS-009` | `page` 또는 `size`가 범위를 벗어남 | 페이지 조건을 확인해 주세요. | 실패한 페이지 필드 | 페이지 조건과 requestId |
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
-| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
-
-페이지 기본값·최대 크기·공통 예외 필드는 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
+| 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 
 ### 3-2. 주소 등록
 
@@ -131,7 +123,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 | 400 | `INVALID_INPUT` | 필수 필드 누락·형식 오류 | 잘못된 입력값입니다. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
 | 400 | `ADDRESS-006` | User의 주소가 이미 5개 | 등록할 수 있는 주소 수를 초과했습니다. | `max=5` | User 식별자와 현재 주소 수 |
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
-| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 
 ### 3-3. 주소 수정
 
@@ -163,7 +155,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 | 400 | `ADDRESS-005` | 수정 필드가 없거나 형식 오류 | 주소 정보를 확인해 주세요. | 실패 필드와 수정 방법 | 검증 필드와 내부 원인 |
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
 | 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 주소를 변경할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 | 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
 
 ### 3-4. 주소 삭제
@@ -182,7 +174,7 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 |---:|---|---|---|---|---|
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
 | 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 주소를 삭제할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 | 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |
 
 ### 3-5. 기본 배송지 지정
@@ -203,5 +195,5 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 |---:|---|---|---|---|---|
 | 401 | [AUTH-001](../index.md#공통-인증-권한) | — | — | — | — |
 | 403 | `ADDRESS-008` | 다른 User의 Address에 접근 | 기본 배송지를 지정할 권한이 없습니다. | 없음 | 요청 User와 소유 User 식별자 |
-| 403 | [AUTH-002](../index.md#공통-인증-권한) | — | — | — | — |
+| 403 | [`USER-004`](p1-user.md#user-disabled-error) | — | — | — | — |
 | 404 | `ADDRESS-004` | Address가 존재하지 않음 | 주소를 찾을 수 없습니다. | `addressId` | 조회 조건과 requestId |

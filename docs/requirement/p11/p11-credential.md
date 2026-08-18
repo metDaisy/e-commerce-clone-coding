@@ -82,7 +82,7 @@ P1 User 프로필 화면이 Auth 소유 정보를 표시할 때 사용하는 공
 |---:|---|---|---|---|---|
 | 401 | `AUTH-001` | Access Token이 없거나 유효하지 않음 | 로그인이 필요합니다. | 없음 | 인증 실패와 requestId |
 | 401 | `AUTH-026` | 재인증 Grant 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 Grant 검증 원인 |
-| 403 | `AUTH-002` | 비활성화되었거나 접근할 수 없는 User | 접근할 수 없습니다. | 없음 | 권한 검증 원인과 requestId |
+| 403 | [`USER-004`](../p1/p1-user.md#user-disabled-error) | — | — | — | — |
 
 ### 3-1. 기존 비밀번호 검증
 

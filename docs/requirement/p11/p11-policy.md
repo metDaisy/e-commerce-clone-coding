@@ -151,5 +151,5 @@ P11은 사용자의 신원을 증명하는 인증수단과 로그인 세션을 �
 
 - 인증수단·재인증 API는 [Credential API](p11-credential.md), 가입 흐름 API는 [Sign-up API](p11-signup.md), 로그인 세션 API는 [Session API](p11-session.md)에서 정의한다.
 - 이 정책과 API 문서가 충돌하면 이 문서를 기준으로 API 문서를 수정한다.
-- 공통 오류 응답 필드와 공통 `AUTH-001`·`AUTH-002` 의미는 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
+- 공통 오류 응답 필드와 `AUTH-001`의 의미는 [공통 API 계약](../index.md#공통-api-계약)을 따른다. User 활성 상태 오류는 [P1 User의 `USER-004`](../p1/p1-user.md#user-disabled-error)를 따른다.
 - P11 API는 토큰 원문·비밀번호·OTP를 성공 응답이나 예외의 `details`에 포함하지 않는다.
