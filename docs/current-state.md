@@ -5,17 +5,17 @@
 ## 스냅샷
 
 - 확인일: 2026-08-18
-- Git 브랜치: `p1/issue46`
-- 구현 기준 Git SHA: `7ef5a39`
-- 기준 상태: HEAD의 커밋된 코드·테스트·설정·Flyway를 반영했다. 현재 작업 트리에는 이 문서의 동기화 변경만 있다.
-- 이번 문서 동기화일: 2026-08-18. P1 Address 목록·등록 API, User당 주소 최대 5개 제한, 비활성 User 오류 `USER-004`, Auth의 `UserQueryApi` 직접 참조와 `UserDto` 통합을 반영했다.
-- 이번 확인에서 Auth 관련 테스트 85개와 Address 관련 테스트 24개가 통과했으며 `ModularityTest`, `checkstyleMain`, `checkstyleTest`도 통과했다. 전체 `check` 결과를 의미하지는 않는다.
+- Git 브랜치: `p1/issue47`
+- 구현 기준 Git SHA: `58d090e`
+- 기준 상태: HEAD의 커밋된 코드·테스트·설정·Flyway를 반영했으며 현재 작업 트리에는 이 문서의 동기화 변경만 있다.
+- 이번 문서 동기화일: 2026-08-18. P1 Address 목록·등록·수정·삭제·기본 배송지 지정 API, User당 주소 최대 5개 제한, 비활성 User 오류 `USER-004`, 주소 bulk update와 요청 constraint 검증을 반영했다.
+- 이번 확인에서 Address 관련 테스트 52개와 `ModularityTest`가 통과했으며 `checkstyleMain`, `checkstyleTest`도 통과했다. 전체 `check` 결과를 의미하지는 않는다.
 
 ## 전체 진행 요약
 
 | 단계 | 상태 | 근거와 범위 |
 |---|---|---|
-| P1 User & Address | 부분 구현 | `user` 모듈의 프로필 조회·수정·비활성화 API와 `auth` 연계 회원가입, `address` 모듈의 주소 목록·등록 API가 존재한다. 역할이 단일 값에서 `Set<UserRole>`로 정규화되었고, 활성 User 간 이름·연락처 중복 검사와 비활성 User 식별자 재사용, User당 Address 최대 5개 제한이 구현되었다. 주소 수정·삭제·기본 배송지 지정과 P1 재인증은 아직 구현되지 않았다. |
+| P1 User & Address | 부분 구현 | `user` 모듈의 프로필 조회·수정·비활성화 API와 `auth` 연계 회원가입, `address` 모듈의 주소 목록·등록·수정·삭제·기본 배송지 지정 API가 구현되어 있다. 역할이 단일 값에서 `Set<UserRole>`로 정규화되었고, 활성 User 간 이름·연락처 중복 검사와 비활성 User 식별자 재사용, User당 Address 최대 5개 제한이 구현되었다. P1 재인증은 아직 구현되지 않았다. |
 | P2 Catalog | 부분 구현 | 관리자용 카탈로그 상품 생성·수정·archive·식별자 업데이트, 공개 카테고리 트리 조회, ADMIN 전용 카테고리 생성·수정이 구현되어 있다. CatalogProduct 상세, Variant와 상품용 Media 구현은 확인되지 않았다. |
 | P3 Cart | 스키마만 존재 | 장바구니 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P4 Coupon | 스키마만 존재 | 쿠폰 테이블은 V1에 있으나 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
@@ -34,7 +34,7 @@
 
 - `auth`: 로컬·소셜 Credential, 회원가입, 비밀번호 검증·변경, Access/Refresh/Guest JWT, 로그아웃·토큰/사용자 블랙리스트, 로그인 실패 누적·잠금, 인증 이벤트와 보안 핸들러
 - `user`: 사용자 프로필·역할 (도메인 `Set<UserRole>`, API 응답 `List<UserRole>`), 회원가입 이벤트 수신, 프로필 조회·수정, 활성 User 식별자 중복 검사, 계정 비활성화와 `UserDeactivatedEvent`, 공개 `UserQueryApi`
-- `address`: User 소유 주소 목록·등록, 기본 배송지 정렬·변경, 활성 User 검증, User당 주소 최대 5개 제한
+- `address`: User 소유 주소 목록·등록·수정·삭제, 기본 배송지 지정과 삭제 시 승격, 활성 User 검증, User당 주소 최대 5개 제한
 - `catalog`: `CatalogProduct`, `Category`, `Tag`, `CatalogProductTag`와 저장소·서비스, 관리자용 상품 생성·수정·archive·식별자 검증, 카테고리 명령·조회
 - `seller`: `Seller`, `SellerStatus`, 저장소, `SellerQueryApi`, 카탈로그 모듈용 어댑터
 - `common`: 공통 인증 주체·예외·DTO·JPA 저장소·MapStruct 설정
@@ -57,6 +57,9 @@ Spring Modulith `package-info.java`의 `allowedDependencies`와 Named Interface�
 | POST | `/api/v1/me/deactivate` | 구현 |
 | GET | `/api/v1/me/addresses` | 구현 · User당 최대 5개 전체 목록 반환 |
 | POST | `/api/v1/me/addresses` | 구현 · User당 최대 5개 제한 |
+| PATCH | `/api/v1/me/addresses/{addressId}` | 구현 · 부분 수정 및 요청 constraint 검증 |
+| DELETE | `/api/v1/me/addresses/{addressId}` | 구현 · 기본 배송지 삭제 시 최신 주소 승격 |
+| POST | `/api/v1/me/addresses/{addressId}/default` | 구현 · bulk update로 기본 배송지 지정 |
 | POST | `/api/v1/admin/catalog-products` | 구현 · `ADMIN` 전용 |
 | PATCH | `/api/v1/admin/catalog-products/{id}` | 구현 · `ADMIN` 전용 |
 | PATCH | `/api/v1/admin/catalog-products/{id}/identifiers` | 구현 · `ADMIN` 전용, 상품 식별자(ASIN/GTIN/UPC/EAN/ISBN) 검증 업데이트 |
@@ -96,7 +99,7 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 ## 테스트와 자동화
 
 - JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
-- 카테고리·카탈로그 관리자 컨트롤러와 서비스·리포지토리 테스트 소스가 존재한다. P1 User·Address의 서비스·컨트롤러·Repository·HTTP 통합 테스트가 강화되었으며, 활성 User 중복·비활성 User 식별자 재사용·저장 제약조건·역할 Fetch 조회·주소 최대 개수·비활성 User 접근을 검증한다. 이번 확인에서 Auth 테스트 85개와 Address 테스트 24개, Modulith 경계 테스트가 통과했다.
+- 카테고리·카탈로그 관리자 컨트롤러와 서비스·리포지토리 테스트 소스가 존재한다. P1 User·Address의 서비스·컨트롤러·Repository·HTTP 통합 테스트가 강화되었으며, 활성 User 중복·비활성 User 식별자 재사용·저장 제약조건·역할 Fetch 조회·주소 최대 개수·주소 요청 constraint·비활성 User 접근을 검증한다. 이번 확인에서 Address 테스트 52개와 Modulith 경계 테스트가 통과했다.
 - JaCoCo와 80% 라인 커버리지 검증 설정, Checkstyle 및 custom `checkstyle-rules` 모듈이 빌드에 포함되어 있다.
 - CI에는 build, JaCoCo 리포트, Codecov, CodeQL, OpenGrep, CodeRabbit 관련 설정이 있다.
 
@@ -109,6 +112,6 @@ Form Login, OAuth2 callback, logout은 Spring Security filter·handler에서 처
 5. 카테고리 생성·수정 API는 `/api/v1/admin/categories`에 구현되었으며, 기본 요구사항에는 카테고리 삭제 API를 두지 않는다.
 6. P11 민감 작업 재인증은 요구사항·정책만 정의된 상태이며 구현은 남아 있다.
 7. 예외 응답 구조에 `AmaazonExceptionContext`와 시스템 메시지, `FORBIDDEN` 응답 타입이 추가되었다.
-8. P1 Address 수정·삭제·기본 배송지 지정 API가 아직 구현되지 않았다.
+8. P1 Address 목록·등록·수정·삭제·기본 배송지 지정 API가 구현되었으며, 다음 범위는 P1 재인증이다.
 9. P2 Catalog 상세·Variant와 이후 P9 Offer·Marketplace, P10 Review, P12 Media 흐름을 구현한다.
 10. 구현 범위가 확장되면 해당 모듈의 테스트와 Modulith 경계 검증을 함께 추가한다.
