@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.web.servlet.ResultActions;
 
 @DisplayName("User HTTP 통합 테스트")
 class UserIntegrationTest extends BaseIntegrationTest {
@@ -69,6 +70,142 @@ class UserIntegrationTest extends BaseIntegrationTest {
     flushAndClear();
 
     // then
+    User updatedUser = userRepository.findById(USER_ID).orElseThrow();
+    assertThat(updatedUser)
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly(request.name(), request.phoneNumber());
+  }
+
+  @Test
+  @DisplayName("프로필 수정 성공: 연락처를 생략하면 이름만 변경한다")
+  void updateProfile_updatesOnlyNameWhenPhoneNumberIsOmitted() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    clear();
+    UserUpdateRequest request = new UserUpdateRequest("updated", null);
+
+    // when
+    mockMvc.perform(patch(PROFILE_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value(request.name()))
+        .andExpect(jsonPath("$.phoneNumber").value("01012345678"));
+    flushAndClear();
+
+    // then
+    User updatedUser = userRepository.findById(USER_ID).orElseThrow();
+    assertThat(updatedUser)
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly(request.name(), "01012345678");
+  }
+
+  @Test
+  @DisplayName("프로필 수정 성공: 이름을 생략하면 연락처만 변경한다")
+  void updateProfile_updatesOnlyPhoneNumberWhenNameIsOmitted() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    clear();
+    UserUpdateRequest request = new UserUpdateRequest(null, "01098765432");
+
+    // when
+    mockMvc.perform(patch(PROFILE_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("tester"))
+        .andExpect(jsonPath("$.phoneNumber").value(request.phoneNumber()));
+    flushAndClear();
+
+    // then
+    User updatedUser = userRepository.findById(USER_ID).orElseThrow();
+    assertThat(updatedUser)
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly("tester", request.phoneNumber());
+  }
+
+  @Test
+  @DisplayName("프로필 수정 실패: 다른 User가 사용 중인 이름이면 409를 반환한다")
+  void updateProfile_rejectsDuplicateName() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    persistAndFlush(User.createUser(UUID.randomUUID(), "duplicate", "01011112222"));
+    clear();
+    UserUpdateRequest request = new UserUpdateRequest("duplicate", null);
+
+    // when
+    ResultActions result = mockMvc.perform(patch(PROFILE_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)));
+
+    // then
+    result
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.exceptionCode").value("USER-002"));
+    flushAndClear();
+
+    // then
+    User unchangedUser = userRepository.findById(USER_ID).orElseThrow();
+    assertThat(unchangedUser)
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly("tester", "01012345678");
+  }
+
+  @Test
+  @DisplayName("프로필 수정 실패: 다른 User가 사용 중인 연락처면 409를 반환한다")
+  void updateProfile_rejectsDuplicatePhoneNumber() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    persistAndFlush(User.createUser(UUID.randomUUID(), "other", "01098765432"));
+    clear();
+    UserUpdateRequest request = new UserUpdateRequest(null, "01098765432");
+
+    // when
+    ResultActions result = mockMvc.perform(patch(PROFILE_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)));
+
+    // then
+    result
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.exceptionCode").value("USER-003"));
+    flushAndClear();
+
+    // then
+    User unchangedUser = userRepository.findById(USER_ID).orElseThrow();
+    assertThat(unchangedUser)
+        .extracting(User::getName, User::getPhoneNumber)
+        .containsExactly("tester", "01012345678");
+  }
+
+  @Test
+  @DisplayName("프로필 수정 성공: 비활성 User의 이름과 연락처는 재사용할 수 있다")
+  void updateProfile_allowsIdentifiersUsedByDisabledUser() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    User disabledUser = User.createUser(UUID.randomUUID(), "disabled", "01098765432");
+    persistAndFlush(disabledUser);
+    disabledUser.deactivate();
+    flushAndClear();
+    UserUpdateRequest request = new UserUpdateRequest("disabled", "01098765432");
+
+    // when
+    ResultActions result = mockMvc.perform(patch(PROFILE_URL)
+        .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)));
+
+    // then
+    result
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value(request.name()))
+        .andExpect(jsonPath("$.phoneNumber").value(request.phoneNumber()));
+    flushAndClear();
+
     User updatedUser = userRepository.findById(USER_ID).orElseThrow();
     assertThat(updatedUser)
         .extracting(User::getName, User::getPhoneNumber)

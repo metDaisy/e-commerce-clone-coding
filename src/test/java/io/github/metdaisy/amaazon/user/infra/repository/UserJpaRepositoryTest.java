@@ -6,17 +6,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.entity.constant.UserRole;
+import jakarta.persistence.PersistenceException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @DisplayName("User JPA 저장소 슬라이스 테스트")
 class UserJpaRepositoryTest extends BaseRepositoryTest {
@@ -60,6 +61,59 @@ class UserJpaRepositoryTest extends BaseRepositoryTest {
             User.createUser(UUID.randomUUID(), "12345678901", "01011112222")),
         Arguments.of("전화번호 11자 초과",
             User.createUser(UUID.randomUUID(), "tester", "010111122223")));
+  }
+
+  @ParameterizedTest(name = "[{index}] {0}")
+  @MethodSource("duplicateActiveUsers")
+  @DisplayName("활성 사용자 저장 실패: 이름과 전화번호는 활성 User 간 중복될 수 없다")
+  void save_rejectsDuplicateActiveIdentifier(String caseName, User existingUser,
+      User duplicateUser) {
+    // given
+    persistAndFlush(existingUser);
+
+    // when & then
+    assertThatThrownBy(() -> {
+      repository.save(duplicateUser);
+      em.flush();
+    }).isInstanceOf(PersistenceException.class);
+  }
+
+  private static Stream<Arguments> duplicateActiveUsers() {
+    return Stream.of(
+        Arguments.of("이름 중복",
+            User.createUser(UUID.randomUUID(), "tester", "01011112222"),
+            User.createUser(UUID.randomUUID(), "tester", "01033334444")),
+        Arguments.of("전화번호 중복",
+            User.createUser(UUID.randomUUID(), "tester", "01011112222"),
+            User.createUser(UUID.randomUUID(), "another", "01011112222")));
+  }
+
+  @ParameterizedTest(name = "[{index}] {0}")
+  @MethodSource("disabledUsersWithReusableIdentifiers")
+  @DisplayName("사용자 저장 성공: 비활성 User의 이름과 전화번호는 재사용할 수 있다")
+  void save_allowsIdentifiersUsedByDisabledUser(String caseName, User disabledUser,
+      User activeUser) {
+    // given
+    disabledUser.deactivate();
+    persistAndFlush(disabledUser);
+
+    // when
+    repository.save(activeUser);
+    em.flush();
+    clear();
+
+    // then
+    assertThat(repository.findById(activeUser.getId())).isPresent();
+  }
+
+  private static Stream<Arguments> disabledUsersWithReusableIdentifiers() {
+    return Stream.of(
+        Arguments.of("이름 재사용",
+            User.createUser(UUID.randomUUID(), "tester", "01011112222"),
+            User.createUser(UUID.randomUUID(), "tester", "01033334444")),
+        Arguments.of("전화번호 재사용",
+            User.createUser(UUID.randomUUID(), "tester", "01011112222"),
+            User.createUser(UUID.randomUUID(), "another", "01011112222")));
   }
 
   @Test
@@ -132,15 +186,15 @@ class UserJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
-  @DisplayName("전화번호 존재 여부 조회: 저장된 전화번호를 찾으면 true를 반환한다")
-  void existsByPhoneNumber_returnsTrueWhenPhoneNumberExists() {
+  @DisplayName("활성 연락처 존재 여부 조회: 활성 User의 전화번호를 찾으면 true를 반환한다")
+  void existsByPhoneNumberAndIsEnabledTrue_returnsTrueWhenPhoneNumberExists() {
     // given
     User user = User.createUser(UUID.randomUUID(), "tester", "01011112222");
     persistAndFlush(user);
     clear();
 
     // when
-    boolean exists = repository.existsByPhoneNumber(user.getPhoneNumber());
+    boolean exists = repository.existsByPhoneNumberAndIsEnabledTrue(user.getPhoneNumber());
     ensureQueryCount(1);
 
     // then
@@ -148,14 +202,98 @@ class UserJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
-  @DisplayName("전화번호 존재 여부 조회: 저장되지 않은 전화번호를 찾으면 false를 반환한다")
-  void existsByPhoneNumber_returnsFalseWhenPhoneNumberDoesNotExist() {
+  @DisplayName("활성 연락처 존재 여부 조회: 저장되지 않은 전화번호를 찾으면 false를 반환한다")
+  void existsByPhoneNumberAndIsEnabledTrue_returnsFalseWhenPhoneNumberDoesNotExist() {
     // given
     persistAndFlush(User.createUser(UUID.randomUUID(), "tester", "01011112222"));
     clear();
 
     // when
-    boolean exists = repository.existsByPhoneNumber("01033334444");
+    boolean exists = repository.existsByPhoneNumberAndIsEnabledTrue("01033334444");
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
+  @DisplayName("활성 연락처 존재 여부 조회: 비활성 User의 전화번호는 false를 반환한다")
+  void existsByPhoneNumberAndIsEnabledTrue_returnsFalseForDisabledUser() {
+    // given
+    User user = User.createUser(UUID.randomUUID(), "tester", "01011112222");
+    persistAndFlush(user);
+    user.deactivate();
+    flushAndClear();
+
+    // when
+    boolean exists = repository.existsByPhoneNumberAndIsEnabledTrue(user.getPhoneNumber());
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
+  @DisplayName("활성 이름 중복 조회: 다른 활성 User가 같은 이름을 사용하면 true를 반환한다")
+  void existsByNameAndIsEnabledTrueAndIdNot_returnsTrueWhenAnotherUserHasName() {
+    // given
+    UUID currentUserId = UUID.randomUUID();
+    persistAndFlush(User.createUser(currentUserId, "tester", "01011112222"));
+    clear();
+
+    // when
+    boolean exists = repository.existsByNameAndIsEnabledTrueAndIdNot("tester", UUID.randomUUID());
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isTrue();
+  }
+
+  @Test
+  @DisplayName("활성 이름 중복 조회: 현재 User의 이름만 존재하면 false를 반환한다")
+  void existsByNameAndIsEnabledTrueAndIdNot_returnsFalseWhenSameUserHasName() {
+    // given
+    UUID userId = UUID.randomUUID();
+    persistAndFlush(User.createUser(userId, "tester", "01011112222"));
+    clear();
+
+    // when
+    boolean exists = repository.existsByNameAndIsEnabledTrueAndIdNot("tester", userId);
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
+  @DisplayName("활성 연락처 중복 조회: 현재 User의 연락처만 존재하면 false를 반환한다")
+  void existsByPhoneNumberAndIsEnabledTrueAndIdNot_returnsFalseWhenSameUserHasPhoneNumber() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.createUser(userId, "tester", "01011112222");
+    persistAndFlush(user);
+    clear();
+
+    // when
+    boolean exists = repository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(
+        user.getPhoneNumber(), userId);
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
+  @DisplayName("활성 이름 중복 조회: 비활성 User의 이름은 false를 반환한다")
+  void existsByNameAndIsEnabledTrue_returnsFalseForDisabledUser() {
+    // given
+    User user = User.createUser(UUID.randomUUID(), "tester", "01011112222");
+    persistAndFlush(user);
+    user.deactivate();
+    flushAndClear();
+
+    // when
+    boolean exists = repository.existsByNameAndIsEnabledTrue(user.getName());
     ensureQueryCount(1);
 
     // then

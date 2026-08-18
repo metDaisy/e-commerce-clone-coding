@@ -75,7 +75,9 @@ class UserServiceTest {
   void create_success() {
     // given
     FormSignUpTask task = createTask("01012345678");
-    given(userRepository.existsByPhoneNumber(task.phoneNumber())).willReturn(false);
+    given(userRepository.existsByNameAndIsEnabledTrue(task.name())).willReturn(false);
+    given(userRepository.existsByPhoneNumberAndIsEnabledTrue(task.phoneNumber()))
+        .willReturn(false);
 
     // when
     userService.create(task);
@@ -83,6 +85,8 @@ class UserServiceTest {
     // then
     ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
     then(userRepository).should().save(userCaptor.capture());
+    then(userRepository).should().existsByNameAndIsEnabledTrue(task.name());
+    then(userRepository).should().existsByPhoneNumberAndIsEnabledTrue(task.phoneNumber());
     assertThat(userCaptor.getValue())
         .extracting(User::getId, User::getName, User::getPhoneNumber)
         .containsExactly(task.id(), task.name(), task.phoneNumber());
@@ -100,7 +104,8 @@ class UserServiceTest {
     userService.create(task);
 
     // then
-    then(userRepository).should(never()).existsByPhoneNumber(any());
+    then(userRepository).should().existsByNameAndIsEnabledTrue(task.name());
+    then(userRepository).should(never()).existsByPhoneNumberAndIsEnabledTrue(any());
     then(userRepository).should().save(any(User.class));
   }
 
@@ -109,7 +114,8 @@ class UserServiceTest {
   void create_failure_whenPhoneNumberAlreadyExists() {
     // given
     FormSignUpTask task = createTask("01012345678");
-    given(userRepository.existsByPhoneNumber(task.phoneNumber())).willReturn(true);
+    given(userRepository.existsByNameAndIsEnabledTrue(task.name())).willReturn(false);
+    given(userRepository.existsByPhoneNumberAndIsEnabledTrue(task.phoneNumber())).willReturn(true);
 
     // when
     Throwable thrown = catchThrowable(() -> userService.create(task));
@@ -118,6 +124,27 @@ class UserServiceTest {
     assertThat(thrown)
         .isInstanceOf(UserException.class)
         .hasFieldOrPropertyWithValue("code", UserErrorCode.PHONE_ALREADY_EXISTS.getCode());
+    assertThat(((UserException) thrown).getSystemMessage()).contains(task.id().toString());
+    then(userRepository).should().existsByPhoneNumberAndIsEnabledTrue(task.phoneNumber());
+    then(userRepository).should(never()).save(any(User.class));
+  }
+
+  @Test
+  @DisplayName("사용자 생성 실패: 중복 이름이면 예외와 요청 userId를 기록한다")
+  void create_failure_whenNameAlreadyExists() {
+    // given
+    FormSignUpTask task = createTask("01012345678");
+    given(userRepository.existsByNameAndIsEnabledTrue(task.name())).willReturn(true);
+
+    // when
+    Throwable thrown = catchThrowable(() -> userService.create(task));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(UserException.class)
+        .hasFieldOrPropertyWithValue("code", UserErrorCode.NAME_ALREADY_EXISTS.getCode());
+    assertThat(((UserException) thrown).getSystemMessage()).contains(task.id().toString());
+    then(userRepository).should(never()).existsByPhoneNumberAndIsEnabledTrue(any());
     then(userRepository).should(never()).save(any(User.class));
   }
 
@@ -129,7 +156,10 @@ class UserServiceTest {
     User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest("변경이름", "01033334444");
     given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(false);
+    given(userRepository.existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId))
+        .willReturn(false);
+    given(userRepository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId))
+        .willReturn(false);
 
     UserResponse expected = new UserResponse(
         userId, request.name(), request.phoneNumber(), List.of(UserRole.USER), true, null, null);
@@ -144,8 +174,61 @@ class UserServiceTest {
         .extracting(User::getName, User::getPhoneNumber)
         .containsExactly(request.name(), request.phoneNumber());
     then(userRepository).should().findWithRolesById(userId);
-    then(userRepository).should().existsByPhoneNumber(request.phoneNumber());
+    then(userRepository).should().existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId);
+    then(userRepository).should()
+        .existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId);
     then(userMapper).should().toDto(user);
+  }
+
+  @Test
+  @DisplayName("사용자 수정 성공: 이름만 전달하면 연락처는 기존 값을 유지한다")
+  void update_success_whenOnlyNameIsProvided() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.createUser(userId, "기존이름", "01011112222");
+    UserUpdateRequest request = new UserUpdateRequest("변경이름", null);
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
+    given(userRepository.existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId))
+        .willReturn(false);
+    UserResponse expected = new UserResponse(
+        userId, request.name(), user.getPhoneNumber(), List.of(UserRole.USER), true, null, null);
+    given(userMapper.toDto(user)).willReturn(expected);
+
+    // when
+    UserResponse result = userService.update(userId, request);
+
+    // then
+    assertThat(result).isSameAs(expected);
+    assertThat(user).extracting(User::getName, User::getPhoneNumber)
+        .containsExactly(request.name(), "01011112222");
+    then(userRepository).should().existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId);
+    then(userRepository).should(never()).existsByPhoneNumberAndIsEnabledTrueAndIdNot(any(), any());
+  }
+
+  @Test
+  @DisplayName("사용자 수정 성공: 연락처만 전달하면 이름은 기존 값을 유지한다")
+  void update_success_whenOnlyPhoneNumberIsProvided() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.createUser(userId, "기존이름", "01011112222");
+    UserUpdateRequest request = new UserUpdateRequest(null, "01033334444");
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
+    given(userRepository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId))
+        .willReturn(false);
+    UserResponse expected = new UserResponse(
+        userId, user.getName(), request.phoneNumber(), List.of(UserRole.USER), true, null, null);
+    given(userMapper.toDto(user)).willReturn(expected);
+
+    // when
+    UserResponse result = userService.update(userId, request);
+
+    // then
+    assertThat(result).isSameAs(expected);
+    assertThat(user).extracting(User::getName, User::getPhoneNumber)
+        .containsExactly("기존이름", request.phoneNumber());
+    then(userRepository).should()
+        .existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId);
+    then(userRepository).should(never()).existsByNameAndIsEnabledTrueAndIdNot(any(), any());
   }
 
   @Test
@@ -173,7 +256,8 @@ class UserServiceTest {
     User user = User.createUser(userId, "기존이름", "01011112222");
     UserUpdateRequest request = new UserUpdateRequest(null, "01033334444");
     given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
-    given(userRepository.existsByPhoneNumber(request.phoneNumber())).willReturn(true);
+    given(userRepository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId))
+        .willReturn(true);
 
     // when
     Throwable thrown = catchThrowable(() -> userService.update(userId, request));
@@ -182,6 +266,34 @@ class UserServiceTest {
     assertThat(thrown)
         .isInstanceOf(UserException.class)
         .hasFieldOrPropertyWithValue("code", UserErrorCode.PHONE_ALREADY_EXISTS.getCode());
+    assertThat(((UserException) thrown).getSystemMessage()).contains(userId.toString());
+    then(userRepository).should()
+        .existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId);
+  }
+
+  @Test
+  @DisplayName("사용자 수정 실패: 이미 사용 중인 이름이면 예외를 던진다")
+  void update_failure_whenNameAlreadyExists() {
+    // given
+    UUID userId = UUID.randomUUID();
+    User user = User.createUser(userId, "기존이름", "01011112222");
+    UserUpdateRequest request = new UserUpdateRequest("중복이름", null);
+    given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
+    given(userRepository.existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId))
+        .willReturn(true);
+
+    // when
+    Throwable thrown = catchThrowable(() -> userService.update(userId, request));
+
+    // then
+    assertThat(thrown)
+        .isInstanceOf(UserException.class)
+        .hasFieldOrPropertyWithValue("code", UserErrorCode.NAME_ALREADY_EXISTS.getCode());
+    assertThat(((UserException) thrown).getSystemMessage()).contains(userId.toString());
+    assertThat(user).extracting(User::getName, User::getPhoneNumber)
+        .containsExactly("기존이름", "01011112222");
+    then(userRepository).should().existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId);
+    then(userRepository).should(never()).existsByPhoneNumberAndIsEnabledTrueAndIdNot(any(), any());
   }
 
   @Test
