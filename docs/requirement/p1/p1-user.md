@@ -19,8 +19,8 @@
 | 필드 | 도메인 타입 (API 응답 타입) | 필수 | 설명 |
 |---|---|---:|---|
 | `id` | UUID | 예 | 사용자 식별자 |
-| `name` | String | 예 | 사용자 표시 이름. 공백만 입력할 수 없다. |
-| `phoneNumber` | String | 아니오 | 선택 연락처. 입력 시 유효한 전화번호 형식이며 User 간 중복 불가 |
+| `name` | String | 예 | 사용자 표시 이름. 공백만 입력할 수 없으며 활성 User 간 중복 불가 |
+| `phoneNumber` | String | 아니오 | 선택 연락처. 입력 시 유효한 전화번호 형식이며 활성 User 간 중복 불가 |
 | `roles` | `Set<UserRole>` (`List<UserRole>`) | 예 | 도메인에서는 중복 없는 역할 집합이며, API 응답에서는 JSON 배열로 반환한다. 예: `["USER","PRODUCT_MANAGER"]`. 항상 `USER` 포함 |
 | `isEnabled` | Boolean | 예 | 로그인·기능 사용 가능 여부. 비활성화 시 `false` |
 | `createdAt` | Instant | 예 | User 생성 시각. ISO-8601 UTC |
@@ -48,7 +48,7 @@
 - `User.id`는 전역적으로 유일하다.
 - `User.roles`는 도메인에서 중복 없는 역할 집합이며 항상 `USER`를 포함한다. API·Auth DTO 응답에서는 JSON 배열로, JWT claim과 이벤트 payload에서는 쉼표로 구분한 문자열로 표현한다.
 - 비활성화는 물리 삭제가 아니며 `isEnabled=false`로 표현한다.
-- 연락처가 있으면 User 간 유일해야 한다.
+- 이름과 연락처는 활성 User 간 유일해야 한다. 비활성 User의 이름과 연락처는 재사용할 수 있다.
 - User가 소유한 Address의 모델과 제약은 [Address API](p1-address.md)에서 정의한다.
 
 ## 3. API 정의
@@ -143,8 +143,10 @@ P1 User는 응답을 보강하려고 Auth를 동기 조회하지 않는다. 여�
 | 401 | [AUTH-026](../p11/p11-credential.md#3-3-민감-작업-재인증) | 재인증 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 쿠키 검증 원인 |
 | 403 | [AUTH-002](../p11/p11-session.md) | — | — | — | — |
 | 404 | `USER-001` | User가 존재하지 않음 | 사용자를 찾을 수 없습니다. | 없음 | User 조회 원인과 requestId |
-| 409 | `USER-002` | 이름이 다른 User에 이미 연결됨 | 이미 사용 중인 이름입니다. | `field=name` | 중복 User 식별자와 충돌 원인 |
-| 409 | `USER-003` | 연락처가 다른 User에 이미 연결됨 | 이미 사용 중인 연락처입니다. | `field=phoneNumber` | 중복 User 식별자와 충돌 원인 |
+| 409 | `USER-002` | 이름이 다른 활성 User에 이미 연결됨 | 이미 사용 중인 이름입니다. | `field=name` | 중복 User 식별자와 충돌 원인 및 요청 userId |
+| 409 | `USER-003` | 연락처가 다른 활성 User에 이미 연결됨 | 이미 사용 중인 연락처입니다. | `field=phoneNumber` | 중복 User 식별자와 충돌 원인 및 요청 userId |
+
+중복 예외의 `name`·`phoneNumber` 원문은 기록하지 않는다. 서버 내부 기록에는 요청 User의 `userId`와 공통 `requestId`를 남긴다.
 
 ### 3-3. 계정 비활성화
 
