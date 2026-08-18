@@ -25,4 +25,10 @@ public interface AddressJpaRepository extends JpaRepository<Address, UUID>, Addr
   @Query("update Address a set a.isPrimary = false where a.userId = :userId "
       + "and a.isPrimary = true")
   int clearPrimaryByUserId(@Param("userId") UUID userId);
+
+  @Override
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("update Address a set a.isPrimary = true "
+      + "where a.id = :id and a.userId = :userId")
+  int makePrimaryByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 }

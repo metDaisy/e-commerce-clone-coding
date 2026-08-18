@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.address.application.service;
 
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
+import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.mapper.AddressMapper;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
@@ -49,6 +50,82 @@ public class AddressService {
     Address address = Address.create(userId, request.recipientName(), request.recipientPhone(),
         request.postalCode(), request.addressLine(), request.isPrimary());
     return addressMapper.toDto(repository.save(address));
+  }
+
+  @Transactional
+  public AddressResponse update(UUID userId, UUID addressId, AddressUpdateRequest request) {
+    validateEnabledUser(userId);
+    Address address = findOwnedAddress(userId, addressId);
+    address.updateRecipientName(request.recipientName());
+    address.updateRecipientPhone(request.recipientPhone());
+    address.updatePostalCode(request.postalCode());
+    address.updateAddressLine(request.addressLine());
+    return addressMapper.toDto(address);
+  }
+
+  @Transactional
+  public void delete(UUID userId, UUID addressId) {
+    validateEnabledUser(userId);
+    Address address = findOwnedAddress(userId, addressId);
+    boolean wasPrimary = address.isPrimary();
+    repository.delete(address);
+
+    if (wasPrimary) {
+      repository.findByUserId(userId).stream()
+          .findFirst()
+          .ifPresent(Address::makePrimary);
+    }
+  }
+
+  @Transactional
+  public AddressResponse makePrimary(UUID userId, UUID addressId) {
+    validateEnabledUser(userId);
+    validateAddressOwnership(userId, addressId);
+    repository.clearPrimaryByUserId(userId);
+    int updatedCount = repository.makePrimaryByIdAndUserId(addressId, userId);
+    if (updatedCount == 0) {
+      throw new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId,
+              "addressId", addressId)));
+    }
+    Address address = repository.findById(addressId)
+        .orElseThrow(() -> new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
+            AmaazonExceptionContext.logDetails(Map.of(
+                "userId", userId,
+                "addressId", addressId))));
+    return addressMapper.toDto(address);
+  }
+
+  private void validateAddressOwnership(UUID userId, UUID addressId) {
+    if (!repository.existsById(addressId)) {
+      throw new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId,
+              "addressId", addressId)));
+    }
+    if (!repository.existsByIdAndUserId(addressId, userId)) {
+      throw new AddressException(AddressErrorCode.ADDRESS_ACCESS_DENIED,
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId,
+              "addressId", addressId)));
+    }
+  }
+
+  private Address findOwnedAddress(UUID userId, UUID addressId) {
+    Address address = repository.findById(addressId)
+        .orElseThrow(() -> new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
+            AmaazonExceptionContext.logDetails(Map.of(
+                "userId", userId,
+                "addressId", addressId))));
+    if (!userId.equals(address.getUserId())) {
+      throw new AddressException(AddressErrorCode.ADDRESS_ACCESS_DENIED,
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId,
+              "addressId", addressId,
+              "ownerUserId", address.getUserId())));
+    }
+    return address;
   }
 
   private void validateEnabledUser(UUID userId) {

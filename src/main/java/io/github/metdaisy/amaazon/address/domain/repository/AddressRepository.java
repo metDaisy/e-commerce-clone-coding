@@ -11,5 +11,9 @@ public interface AddressRepository extends DomainRepository<Address> {
 
   long countByUserId(UUID userId);
 
+  boolean existsByIdAndUserId(UUID id, UUID userId);
+
   int clearPrimaryByUserId(UUID userId);
+
+  int makePrimaryByIdAndUserId(UUID id, UUID userId);
 }

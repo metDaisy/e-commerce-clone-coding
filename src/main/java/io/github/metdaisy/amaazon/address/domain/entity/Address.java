@@ -64,7 +64,19 @@ public class Address extends MutableEntity {
     this.isPrimary = true;
   }
 
-  public void unmakePrimary() {
-    this.isPrimary = false;
+  public void updateRecipientName(String recipientName) {
+    updateIfChanged(this.recipientName, recipientName, value -> this.recipientName = value);
+  }
+
+  public void updateRecipientPhone(String recipientPhone) {
+    updateIfChanged(this.recipientPhone, recipientPhone, value -> this.recipientPhone = value);
+  }
+
+  public void updatePostalCode(String postalCode) {
+    updateIfChanged(this.postalCode, postalCode, value -> this.postalCode = value);
+  }
+
+  public void updateAddressLine(String addressLine) {
+    updateIfChanged(this.addressLine, addressLine, value -> this.addressLine = value);
   }
 }
