@@ -234,6 +234,53 @@ class UserJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
+  @DisplayName("활성 사용자 존재 여부 조회: 활성 User의 ID를 찾으면 true를 반환한다")
+  void existsByIdAndIsEnabledTrue_returnsTrueForEnabledUser() {
+    // given
+    User user = User.createUser(UUID.randomUUID(), "tester", "01011112222");
+    persistAndFlush(user);
+    clear();
+
+    // when
+    boolean exists = repository.existsByIdAndIsEnabledTrue(user.getId());
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isTrue();
+  }
+
+  @Test
+  @DisplayName("활성 사용자 존재 여부 조회: 비활성 User의 ID는 false를 반환한다")
+  void existsByIdAndIsEnabledTrue_returnsFalseForDisabledUser() {
+    // given
+    User user = User.createUser(UUID.randomUUID(), "tester", "01011112222");
+    persistAndFlush(user);
+    user.deactivate();
+    flushAndClear();
+
+    // when
+    boolean exists = repository.existsByIdAndIsEnabledTrue(user.getId());
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
+  @DisplayName("활성 사용자 존재 여부 조회: 저장되지 않은 ID는 false를 반환한다")
+  void existsByIdAndIsEnabledTrue_returnsFalseForUnknownUser() {
+    // given
+    clear();
+
+    // when
+    boolean exists = repository.existsByIdAndIsEnabledTrue(UUID.randomUUID());
+    ensureQueryCount(1);
+
+    // then
+    assertThat(exists).isFalse();
+  }
+
+  @Test
   @DisplayName("활성 이름 중복 조회: 다른 활성 User가 같은 이름을 사용하면 true를 반환한다")
   void existsByNameAndIsEnabledTrueAndIdNot_returnsTrueWhenAnotherUserHasName() {
     // given

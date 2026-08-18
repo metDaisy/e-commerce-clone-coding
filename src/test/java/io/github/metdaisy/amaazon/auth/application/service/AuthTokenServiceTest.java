@@ -8,9 +8,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
@@ -18,6 +16,8 @@ import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
+import io.github.metdaisy.amaazon.user.application.dto.UserDto;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,7 +40,7 @@ class AuthTokenServiceTest {
   private RefreshTokenRepository repository;
 
   @Mock
-  private AuthUserPort userPort;
+  private UserQueryApi userQueryApi;
 
   @Mock
   private JwtTokenProvider provider;
@@ -61,7 +61,7 @@ class AuthTokenServiceTest {
     String token = "valid-refresh-token";
     String jti = "test-jti";
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
     JwtLoginDto loginDto = new JwtLoginDto(
         userId, List.of("USER"), "new-access-token", "new-refresh-token");
 
@@ -70,7 +70,7 @@ class AuthTokenServiceTest {
     doNothing().when(provider).validate(token);
     given(provider.parseJti(token)).willReturn(jti);
     given(repository.findByToken(jti)).willReturn(Optional.of(refreshToken));
-    given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
+    given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
     given(provider.generateAccessToken(userId, "USER")).willReturn("new-access-token");
     given(provider.generateRefreshToken(userId)).willReturn("new-refresh-token");
     given(provider.parseJti("new-refresh-token")).willReturn("new-jti");
@@ -98,7 +98,7 @@ class AuthTokenServiceTest {
     // when & then
     assertThatThrownBy(() -> authTokenService.reissue(token))
         .isInstanceOf(AuthException.class)
-        .hasMessageContaining("만료된 토큰입니다");
+        .hasMessageContaining("유효하지 않은 Refresh Token입니다");
   }
 
   @Test
@@ -106,8 +106,8 @@ class AuthTokenServiceTest {
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
-    given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
+    given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
     given(provider.generateAccessToken(userId, "USER")).willReturn("access-token");
     given(provider.generateRefreshToken(userId)).willReturn("refresh-token");
     given(provider.parseJti("refresh-token")).willReturn("jti");

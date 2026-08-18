@@ -7,11 +7,11 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +28,7 @@ class SocialCredentialServiceTest {
   @Mock
   private SocialCredentialRepository repository;
   @Mock
-  private AuthUserPort userPort;
+  private UserQueryApi userQueryApi;
 
   @InjectMocks
   private SocialCredentialService socialCredentialService;
@@ -38,7 +38,7 @@ class SocialCredentialServiceTest {
   void create_success() {
     // given
     UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(true);
+    given(userQueryApi.existsEnabledUser(userId)).willReturn(true);
 
     // when
     socialCredentialService.create(userId, "google", "provider-123");
@@ -57,7 +57,7 @@ class SocialCredentialServiceTest {
   @DisplayName("create - 실패: 사용자가 존재하지 않음")
   void create_failure_user_not_found() {
     UUID userId = UUID.randomUUID();
-    given(userPort.existsUser(userId)).willReturn(false);
+    given(userQueryApi.existsEnabledUser(userId)).willReturn(false);
 
     assertThatThrownBy(() -> socialCredentialService.create(userId, "google", "provider-123"))
         .isInstanceOf(AuthException.class)

@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.user.application.port.in;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
 import java.util.Optional;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.github.metdaisy.amaazon.user.application.dto.UserDto;
 import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
+import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
 import java.util.List;
 
@@ -61,13 +63,24 @@ class UserQueryApiTest {
 
   @ParameterizedTest(name = "[{index}] 저장소 조회 결과={0}")
   @ValueSource(booleans = {true, false})
-  @DisplayName("사용자 존재 여부 조회: 저장소 결과를 그대로 반환한다")
-  void existsByUserId(boolean expected) {
+  @DisplayName("활성 사용자 존재 여부 조회: 저장소 결과를 그대로 반환한다")
+  void existsEnabledUser(boolean expected) {
     UUID userId = UUID.randomUUID();
-    given(repository.existsById(userId)).willReturn(expected);
+    given(repository.existsByIdAndIsEnabledTrue(userId)).willReturn(expected);
 
-    boolean exists = userQueryApi.existsByUserId(userId);
+    boolean exists = userQueryApi.existsEnabledUser(userId);
     assertThat(exists).isEqualTo(expected);
+  }
+
+  @Test
+  @DisplayName("활성 사용자 요구 실패: 비활성 User면 USER_DISABLED 예외를 던진다")
+  void requireEnabled_throwsWhenUserIsDisabled() {
+    UUID userId = UUID.randomUUID();
+    given(repository.existsByIdAndIsEnabledTrue(userId)).willReturn(false);
+
+    assertThatThrownBy(() -> userQueryApi.requireEnabled(userId))
+        .isInstanceOf(UserException.class)
+        .hasFieldOrPropertyWithValue("code", "USER-004");
   }
 }
 

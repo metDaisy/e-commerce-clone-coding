@@ -6,10 +6,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.SocialCredential;
 import io.github.metdaisy.amaazon.auth.domain.repository.SocialCredentialRepository;
+import io.github.metdaisy.amaazon.user.application.dto.UserDto;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -39,7 +39,7 @@ class SocialUserDetailsServiceTest {
   private SocialCredentialRepository repository;
 
   @Mock
-  private AuthUserPort userPort;
+  private UserQueryApi userQueryApi;
 
   @InjectMocks
   private SocialUserDetailsService service;
@@ -75,8 +75,8 @@ class SocialUserDetailsServiceTest {
     given(repository.findByProviderIdAndProvider(any(), any()))
         .willReturn(Optional.of(credential));
 
-    AuthUserDto userDto = new AuthUserDto(userId, List.of("USER"), true);
-    given(userPort.loadUser(any())).willReturn(Optional.of(userDto));
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
+    given(userQueryApi.findById(any())).willReturn(Optional.of(userDto));
 
     // when
     OAuth2User result = service.loadUser(request);
