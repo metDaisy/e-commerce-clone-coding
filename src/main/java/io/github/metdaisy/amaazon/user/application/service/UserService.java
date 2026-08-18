@@ -30,7 +30,8 @@ public class UserService {
 
   @Transactional
   public void create(FormSignUpTask task) {
-    validatePhoneNumber(task.phoneNumber());
+    validateNameForSignup(task.id(), task.name());
+    validatePhoneNumberForSignup(task.id(), task.phoneNumber());
     User user = User.createUser(task.id(), task.name(), task.phoneNumber());
     repository.save(user);
   }
@@ -38,14 +39,16 @@ public class UserService {
   @Transactional
   public UserResponse update(UUID id, UserUpdateRequest request) {
     User user = findWithRolesById(id);
-    user.updateName(request.name());
-    validatePhoneNumber(request.phoneNumber());
-    user.updatePhoneNumber(request.phoneNumber());
-    return toProfileResponse(user);
-  }
 
-  public User find(UUID id) {
-    return findById(id);
+    if (StringUtils.hasText(request.name())) {
+      validateNameForUpdate(id, request.name());
+      user.updateName(request.name());
+    }
+    if (StringUtils.hasText(request.phoneNumber())) {
+      validatePhoneNumberForUpdate(id, request.phoneNumber());
+      user.updatePhoneNumber(request.phoneNumber());
+    }
+    return toProfileResponse(user);
   }
 
   public UserResponse findProfile(UUID id) {
@@ -60,12 +63,18 @@ public class UserService {
     eventPublisher.publishEvent(new UserDeactivatedEvent(UUID.randomUUID(), id, deactivatedAt));
   }
 
-  private void validatePhoneNumber(String phoneNumber) {
+  private void validateNameForSignup(UUID userId, String name) {
+    if (repository.existsByNameAndIsEnabledTrue(name)) {
+      throw duplicateException(UserErrorCode.NAME_ALREADY_EXISTS, userId);
+    }
+  }
+
+  private void validatePhoneNumberForSignup(UUID userId, String phoneNumber) {
     if (!StringUtils.hasText(phoneNumber)) {
       return;
     }
-    if (repository.existsByPhoneNumber(phoneNumber)) {
-      throw new UserException(UserErrorCode.PHONE_ALREADY_EXISTS);
+    if (repository.existsByPhoneNumberAndIsEnabledTrue(phoneNumber)) {
+      throw duplicateException(UserErrorCode.PHONE_ALREADY_EXISTS, userId);
     }
   }
 
@@ -73,6 +82,22 @@ public class UserService {
     return repository.findById(id)
         .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("userId", id))));
+  }
+
+  private void validateNameForUpdate(UUID userId, String name) {
+    if (repository.existsByNameAndIsEnabledTrueAndIdNot(name, userId)) {
+      throw duplicateException(UserErrorCode.NAME_ALREADY_EXISTS, userId);
+    }
+  }
+
+  private void validatePhoneNumberForUpdate(UUID userId, String phoneNumber) {
+    if (repository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(phoneNumber, userId)) {
+      throw duplicateException(UserErrorCode.PHONE_ALREADY_EXISTS, userId);
+    }
+  }
+
+  private UserException duplicateException(UserErrorCode errorCode, UUID userId) {
+    return new UserException(errorCode, AmaazonExceptionContext.logDetails(Map.of("userId", userId)));
   }
 
   private User findWithRolesById(UUID id) {

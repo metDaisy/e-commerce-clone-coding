@@ -9,7 +9,13 @@ public interface UserRepository extends DomainRepository<User> {
 
   Optional<User> findWithRolesById(UUID userId);
 
-  boolean existsByPhoneNumber(String phoneNumber);
+  boolean existsByNameAndIsEnabledTrue(String name);
+
+  boolean existsByPhoneNumberAndIsEnabledTrue(String phoneNumber);
+
+  boolean existsByNameAndIsEnabledTrueAndIdNot(String name, UUID userId);
+
+  boolean existsByPhoneNumberAndIsEnabledTrueAndIdNot(String phoneNumber, UUID userId);
 
   boolean existsById(UUID userId);
 }
