@@ -30,18 +30,19 @@ Address는 User에 종속되지만 별도의 생성·수정·삭제 생명주기
 | `postalCode` | String | 예 | 우편번호 |
 | `addressLine` | String | 예 | 기본 주소 본문 |
 | `isPrimary` | Boolean | 예 | 기본 배송지 여부 |
+| `lastUsedAt` | Instant | 아니오 | 주소를 최근 배송지로 사용한 시각. ISO-8601 UTC |
 | `createdAt` | Instant | 예 | 주소 생성 시각. ISO-8601 UTC |
 | `updatedAt` | Instant | 예 | 주소 마지막 변경 시각. ISO-8601 UTC |
 
 ### 2-2. 관계와 제약
 
 - 하나의 User는 제한 없이 Address를 가진다. Address는 정확히 하나의 User에 속한다.
-- 동일 User는 동일한 주소를 중복 등록할 수 없다. 주소 동일성은 `postalCode`와 `addressLine`의 앞뒤 공백을 제거한 값 조합으로 판단하며, 수령인·연락처·별칭은 판단에 포함하지 않는다.
+- 동일 User는 동일한 주소를 중복 등록할 수 없다. 주소 동일성은 Front에서 앞뒤 공백을 제거한 `postalCode`와 `addressLine` 값 조합으로 판단하며, 수령인·연락처·별칭은 판단에 포함하지 않는다.
 - 한 User의 `isPrimary=true` Address는 0~1개다.
 - 기본 배송지 지정은 기존 기본값 해제와 신규 기본값 지정을 하나의 트랜잭션으로 수행한다.
-- 기본 배송지 삭제 시 가장 최근 Address를 기본값으로 승격한다. Address가 없으면 기본값도 없다.
+- 기본 배송지 삭제 시 `lastUsedAt`이 가장 최근인 Address를 기본값으로 승격한다. `lastUsedAt`이 없는 주소끼리는 `createdAt`, `addressId` 내림차순으로 선택한다. Address가 없으면 기본값도 없다.
 - 첫 번째 Address를 자동으로 기본 배송지로 만들지 않는다. 등록 요청에서 `isPrimary=true`를 명시하거나 기본 지정 API를 호출해야 한다.
-- 주소 목록은 공통 페이지 기반 응답을 사용한다. 기본 `page=0`, `size=20`, 최대 `size=100`이며 정렬은 `isPrimary DESC`, `createdAt DESC`, `addressId DESC`다.
+- 주소 목록은 공통 페이지 기반 응답을 사용한다. 기본 `page=0`, `size=20`, 최대 `size=100`이며 정렬은 `isPrimary DESC`, `lastUsedAt DESC NULLS LAST`, `createdAt DESC`, `addressId DESC`다.
 
 ### 2-3. 예외 코드
 
@@ -67,7 +68,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 
 `page`는 0부터 시작하고 `size`는 기본 20, 최대 100이다. 응답은 공통 페이지 형식의 `data`, `page`, `size`, `totalElements`, `totalPages`를 사용한다.
 
-정렬: `isPrimary DESC`, `createdAt DESC`, `addressId DESC`
+정렬: `isPrimary DESC`, `lastUsedAt DESC NULLS LAST`, `createdAt DESC`, `addressId DESC`
 
 #### 성공 응답: `200 OK`
 
@@ -83,6 +84,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
     "postalCode": "06236",
     "addressLine": "서울특별시 강남구 테헤란로 1",
     "isPrimary": true,
+    "lastUsedAt": "2026-08-17T12:00:00Z",
     "createdAt": "2026-08-16T12:00:00Z",
     "updatedAt": "2026-08-16T12:00:00Z"
     }
@@ -178,7 +180,7 @@ User가 비활성화 상태면 주소를 조회하거나 변경할 수 없으며
 
 #### 성공 응답: `204 No Content`
 
-기본 배송지를 삭제하면 가장 최근 Address를 기본 배송지로 승격한다.
+기본 배송지를 삭제하면 `lastUsedAt`이 가장 최근인 Address를 기본 배송지로 승격한다. `lastUsedAt`이 없는 주소끼리는 `createdAt`, `addressId` 내림차순으로 선택한다.
 
 #### 예외
 

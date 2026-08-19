@@ -220,3 +220,31 @@ SPA·CSR에서는 별도 진입 endpoint를 만들지 않고 기존 화면 API �
 세션 정리는 `userId`가 아닌 `tokenHash` 기준으로 수행하므로 다른 기기의 주문 세션에는 영향을 주지 않는다.
 
 </details>
+
+<details>
+
+<summary><h2>2026-08-19</h2></summary>
+
+```java
+// AddressService.java
+  @Transactional
+  public void delete(UUID userId, UUID addressId) {
+    validateEnabledUser(userId); // ...(1)
+    Address address = findOwnedAddress(userId, addressId); // ...(2)
+    boolean wasPrimary = address.isPrimary();
+    repository.delete(address); // ...(3)
+
+    if (wasPrimary) {
+      repository.findFirstByUserIdOrderByLastUsedAtDescCreatedAtDescIdDesc(userId) // ...(4)
+          .ifPresent(nextAddress -> repository.makePrimaryByIdAndUserId(nextAddress.getId(), userId)); // ...(5)
+    }
+  }
+```
+
+위 코드는 `AddressService` address 삭제를 수행한다.  
+최대 5번의 query 가 실행된다.  
+(3) 삭제는 hibernate 기본 설정에 의해 flush 가 된다.  
+(5) query 는 쓰기 지연없이 db로 query 가 보내진다.  
+즉 5번의 query 가 생성되며 2번의 flush 가 실행된다.  
+
+</details>
