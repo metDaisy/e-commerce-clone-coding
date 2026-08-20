@@ -1,19 +1,23 @@
 package io.github.metdaisy.amaazon.address.presentation.controller;
 
-import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
+import io.github.metdaisy.amaazon.address.application.dto.request.AddressPageRequest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.service.AddressService;
+import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
+import io.github.metdaisy.amaazon.common.dto.PageResponse;
+import io.github.metdaisy.amaazon.common.dto.PageResult;
 import jakarta.validation.Valid;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,14 +27,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/me/addresses")
+@RequireEnabledUser
 @RequiredArgsConstructor
 public class AddressController {
 
   private final AddressService service;
+
   @GetMapping
-  public ResponseEntity<List<AddressResponse>> findAll(
-      @AuthenticationPrincipal AmaazonPrincipal principal) {
-    return ResponseEntity.ok(service.findAll(principal.getId()));
+  public ResponseEntity<PageResponse<AddressResponse>> findAll(
+      @AuthenticationPrincipal AmaazonPrincipal principal,
+      @Valid @ModelAttribute AddressPageRequest request) {
+    PageResult<AddressResponse> result = service.findAll(principal.getId(),
+        request.toPageQuery());
+    return ResponseEntity.ok(new PageResponse<>(result.content(), result.page(), result.size(),
+        result.totalElements(), result.totalPages()));
   }
 
   @PostMapping

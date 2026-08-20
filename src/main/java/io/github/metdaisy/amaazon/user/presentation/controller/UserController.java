@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.user.application.dto.request.UserUpdateRequest
 import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.service.UserService;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/me")
+@RequireEnabledUser
 @RequiredArgsConstructor
 public class UserController {
 
