@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
-@NamedInterface("user-api")
+@NamedInterface("api")
 @Component
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
