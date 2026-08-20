@@ -1,6 +1,5 @@
 package io.github.metdaisy.amaazon.address.application.service;
 
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
@@ -9,9 +8,10 @@ import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressErrorCode;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressException;
 import io.github.metdaisy.amaazon.address.domain.repository.AddressRepository;
-import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
+import io.github.metdaisy.amaazon.common.dto.PageQuery;
+import io.github.metdaisy.amaazon.common.dto.PageResult;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.Map;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,79 +22,55 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AddressService {
 
-  private static final int MAX_ADDRESS_COUNT = 5;
   private final AddressRepository repository;
-  private final AddressMapper addressMapper;
-  private final UserQueryApi userQueryApi;
+  private final AddressMapper mapper;
 
-  public List<AddressResponse> findAll(UUID userId) {
-    validateEnabledUser(userId);
-    return repository.findByUserId(userId).stream().map(addressMapper::toDto).toList();
+  public PageResult<AddressResponse> findAll(UUID userId, PageQuery pageQuery) {
+    PageResult<Address> page = repository.findPageByUserId(userId, pageQuery);
+    return new PageResult<>(page.content().stream().map(mapper::toDto).toList(),
+        page.page(), page.size(), page.totalElements(), page.totalPages());
   }
 
   @Transactional
   public AddressResponse create(UUID userId, AddressCreateRequest request) {
-    validateEnabledUser(userId);
-    long addressCount = repository.countByUserId(userId);
-    if (addressCount >= MAX_ADDRESS_COUNT) {
-      throw new AddressException(AddressErrorCode.ADDRESS_LIMIT_EXCEEDED,
-          AmaazonExceptionContext.logDetails(Map.of(
-              "userId", userId,
-              "addressCount", addressCount,
-              "max", MAX_ADDRESS_COUNT)));
+    if (repository.existsByUserIdAndPostalCodeAndAddressLine(userId, request.postalCode(),
+        request.addressLine())) {
+      throw duplicateAddressException(userId, request.postalCode(), request.addressLine());
     }
-
     if (request.isPrimary()) {
       repository.clearPrimaryByUserId(userId);
     }
-    Address address = Address.create(userId, request.recipientName(), request.recipientPhone(),
-        request.postalCode(), request.addressLine(), request.isPrimary());
-    return addressMapper.toDto(repository.save(address));
+    Address address = mapper.toEntity(userId, request);
+    repository.save(address);
+    return mapper.toDto(address);
   }
 
   @Transactional
   public AddressResponse update(UUID userId, UUID addressId, AddressUpdateRequest request) {
-    validateEnabledUser(userId);
     Address address = findOwnedAddress(userId, addressId);
-    address.updateRecipientName(request.recipientName());
-    address.updateRecipientPhone(request.recipientPhone());
-    address.updatePostalCode(request.postalCode());
-    address.updateAddressLine(request.addressLine());
-    return addressMapper.toDto(address);
+    String postalCode = request.postalCode() == null
+        ? address.getPostalCode() : request.postalCode();
+    String addressLine = request.addressLine() == null
+        ? address.getAddressLine() : request.addressLine();
+    if (repository.existsByUserIdAndPostalCodeAndAddressLineAndIdNot(userId, postalCode,
+        addressLine, addressId)) {
+      throw duplicateAddressException(userId, postalCode, addressLine);
+    }
+    mapper.update(address, request);
+    return mapper.toDto(address);
   }
 
   @Transactional
   public void delete(UUID userId, UUID addressId) {
-    validateEnabledUser(userId);
-    Address address = findOwnedAddress(userId, addressId);
-    boolean wasPrimary = address.isPrimary();
-    repository.delete(address);
-
-    if (wasPrimary) {
-      repository.findByUserId(userId).stream()
-          .findFirst()
-          .ifPresent(Address::makePrimary);
-    }
+    validateAddressOwnership(userId, addressId);
+    repository.deleteAndUpdatePrimary(userId, addressId);
   }
 
   @Transactional
   public AddressResponse makePrimary(UUID userId, UUID addressId) {
-    validateEnabledUser(userId);
     validateAddressOwnership(userId, addressId);
-    repository.clearPrimaryByUserId(userId);
-    int updatedCount = repository.makePrimaryByIdAndUserId(addressId, userId);
-    if (updatedCount == 0) {
-      throw new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
-          AmaazonExceptionContext.logDetails(Map.of(
-              "userId", userId,
-              "addressId", addressId)));
-    }
-    Address address = repository.findById(addressId)
-        .orElseThrow(() -> new AddressException(AddressErrorCode.ADDRESS_NOT_FOUND,
-            AmaazonExceptionContext.logDetails(Map.of(
-                "userId", userId,
-                "addressId", addressId))));
-    return addressMapper.toDto(address);
+    Address target = repository.makePrimary(userId, addressId);
+    return mapper.toDto(target);
   }
 
   private void validateAddressOwnership(UUID userId, UUID addressId) {
@@ -128,8 +104,13 @@ public class AddressService {
     return address;
   }
 
-  private void validateEnabledUser(UUID userId) {
-    userQueryApi.requireEnabled(userId);
+  private AddressException duplicateAddressException(UUID userId, String postalCode,
+      String addressLine) {
+    return new AddressException(AddressErrorCode.ADDRESS_DUPLICATED,
+        AmaazonExceptionContext.logDetails(Map.of(
+            "userId", userId,
+            "postalCode", postalCode,
+            "addressLine", addressLine)));
   }
 
 }

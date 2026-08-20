@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record AddressCreateRequest(
+    @NotBlank(message = "주소 별칭을 입력해주세요.")
+    @Size(max = 100, message = "주소 별칭은 100자 이하로 입력해주세요.")
+    String alias,
     @NotBlank(message = "수령인 이름을 입력해주세요.")
     @Size(max = 100, message = "수령인 이름은 100자 이하로 입력해주세요.")
     String recipientName,

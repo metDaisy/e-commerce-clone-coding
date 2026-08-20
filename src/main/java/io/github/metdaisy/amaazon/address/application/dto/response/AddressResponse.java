@@ -6,11 +6,13 @@ import java.util.UUID;
 public record AddressResponse(
     UUID id,
     UUID userId,
+    String alias,
     String recipientName,
     String recipientPhone,
     String postalCode,
     String addressLine,
     boolean isPrimary,
+    Instant lastUsedAt,
     Instant createdAt,
     Instant updatedAt) {
 }

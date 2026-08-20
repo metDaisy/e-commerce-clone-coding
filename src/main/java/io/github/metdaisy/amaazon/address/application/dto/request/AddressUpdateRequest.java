@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record AddressUpdateRequest(
+    @Size(max = 100, message = "주소 별칭은 100자 이하로 입력해주세요.")
+    @Pattern(regexp = ".*\\S.*", message = "must not be blank when provided")
+    String alias,
     @Size(max = 100, message = "수령인 이름은 100자 이하로 입력해주세요.")
     @Pattern(regexp = ".*\\S.*", message = "must not be blank when provided")
     String recipientName,
