@@ -75,7 +75,7 @@ docs/             요구사항, 설계, 상태 문서
 |---|---|---|
 | `common` | 공통 인증 주체, 저장소·매퍼·예외 기반 타입 | 없음 |
 | `global` | Spring 설정, 공통 보안/JWT, 캐시, 웹 필터, Outbox 기반 | `common::*` |
-| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::user-api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
+| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
 | `user` | 프로필, 역할, 활성 상태 | `common::*`, `auth::signup`, `auth::password` |
 | `catalog` | CatalogProduct·ProductVariant와 카테고리·태그, 카탈로그 조회 | `common::*` |
 | `seller` | Seller와 판매자 조회 | `common::*` |
@@ -84,7 +84,7 @@ docs/             요구사항, 설계, 상태 문서
 
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
-- `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
+- `user::api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
 - `UserRolesChangedEvent`, `UserDeactivatedEvent`: User가 역할 변경·계정 비활성화 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
 - `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
 - 역할 집합은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 추가 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구성한다. 역할은 독립적으로 보유할 수 있고 `USER`는 다른 역할을 추가해도 유지한다.

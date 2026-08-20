@@ -39,7 +39,7 @@
 ## Follow-up
 
 - User 역할 저장 구조와 Flyway 마이그레이션을 설계한다.
-- `user-api`, 인증 DTO, JWT 생성·검증, Security 권한 검사를 `roles` 집합 기준으로 변경한다.
+- `user::api`, 인증 DTO, JWT 생성·검증, Security 권한 검사를 `roles` 집합 기준으로 변경한다.
 - P7 역할 추가·삭제 API와 Seller 상태 전이 테스트를 추가한다.
 
 ## Evidence
