@@ -241,10 +241,28 @@ SPA·CSR에서는 별도 진입 endpoint를 만들지 않고 기존 화면 API �
   }
 ```
 
-위 코드는 `AddressService` address 삭제를 수행한다.  
-최대 5번의 query 가 실행된다.  
-(3) 삭제는 hibernate 기본 설정에 의해 flush 가 된다.  
-(5) query 는 쓰기 지연없이 db로 query 가 보내진다.  
-즉 5번의 query 가 생성되며 2번의 flush 가 실행된다.  
+위 코드는 `AddressService`의 주소 삭제를 수행한다.  
+삭제 대상이 기본 배송지이고 승격할 주소가 존재하면 최대 5개의 SQL이 실행된다.  
+사용자 활성 여부 확인 SELECT, 삭제 대상 Address SELECT, DELETE, 다음 Address SELECT, 기본 배송지 UPDATE 순서다.  
+`repository.delete(address)`는 즉시 DELETE SQL을 실행하지 않고 삭제를 예약한다.  
+이후 (4)의 Address 조회 전에 Hibernate의 AUTO flush가 발생하면서 DELETE SQL이 실행된다.  
+(5)는 `@Modifying(flushAutomatically = true)` bulk update이므로 실행 전에 flush를 호출하고, 이후 UPDATE SQL을 즉시 실행한다.  
+query 5번과 flush 2번이 발생하고 있어 이게 과연 최선인지 혹은 개선할 수 있는지 고민하고 있다.  
+
+</details>
+
+<details>
+
+<summary><h2>2026-08-20</h2></summary>
+
+`2026-08-19` 를 개선했다.  
+query dsl 로 이 문제를 해결했다.  
+`AddressQuerydslRepository` 를 정의했다.  
+삭제한 `Address` 와 primary 가 될 `Address` 2개의 데이터만 가져왔다.  
+`EntityManager` 로 삭제 query 를 생성하고 나머지 하나는 기본 배송지로 수정했다.  
+현 프로젝트의 정책상 다중 접속을 허용하고 있기 때문에 동시성 문제를 고려하여 `userId` 에 해당하는 모든 `Address` 들을 비관적 락을 걸었다.  
+`AddressService.makePrimary(...)` 도 이와 비슷하게 문제를 해결했다.  
+`userId` 에 해당하는 모든 `Address` 에 비관적 락을 걸고 기본 배송지로 설정할 `Address` 와 기존 기본 배송지를 가져왔다.  
+락은 transaction 이 끝나면 풀린다.  
 
 </details>
