@@ -356,6 +356,31 @@ class AddressJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
+  @DisplayName("주소 일괄 삭제: 기본 배송지가 없는 상태에서 비기본 주소를 삭제해도 기본 배송지를 만들지 않는다")
+  void deleteAndUpdatePrimary_keepsNoPrimaryAddress() {
+    // given
+    Address target = persistAndFlush(address(false));
+    Address remaining = persistAndFlush(
+        Address.create(USER_ID, "회사", "office", "01098765432", "06237", "부산광역시",
+            false));
+    clear();
+
+    // when
+    repository.deleteAndUpdatePrimary(USER_ID, target.getId());
+    em.flush();
+
+    // then
+    ensureQueryCount(3);
+    clear();
+    List<Address> addresses = repository.findByUserId(USER_ID);
+    assertThat(addresses).hasSize(1);
+    assertThat(addresses.get(0).getId()).isEqualTo(remaining.getId());
+    assertThat(addresses.get(0).isPrimary()).isFalse();
+    assertAddressLoaded(addresses.get(0));
+    ensureQueryCount(1);
+  }
+
+  @Test
   @DisplayName("기본 배송지 해제: User의 기본 배송지를 한 번에 해제한다")
   void clearPrimaryByUserId_updatesPrimaryAddress() {
     // given

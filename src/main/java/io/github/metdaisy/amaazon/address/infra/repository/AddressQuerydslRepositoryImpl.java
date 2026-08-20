@@ -35,9 +35,10 @@ public class AddressQuerydslRepositoryImpl implements AddressQuerydslRepository 
         .fetch();
 
     Address target = addresses.get(0);
+    boolean wasPrimary = target.isPrimary();
     em.remove(target);
     em.flush();
-    if (addresses.size() == 2) {
+    if (wasPrimary && addresses.size() == 2) {
       addresses.get(1).setPrimary(true);
     }
   }
