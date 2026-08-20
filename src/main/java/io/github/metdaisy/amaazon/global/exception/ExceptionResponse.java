@@ -17,6 +17,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -36,6 +37,10 @@ public record ExceptionResponse(
   }
 
   public static ExceptionResponse from(MethodArgumentNotValidException ex, HttpStatus status) {
+    return from((BindException) ex, status);
+  }
+
+  public static ExceptionResponse from(BindException ex, HttpStatus status) {
     Map<String, List<String>> details = ex.getBindingResult().getFieldErrors().stream()
         .collect(Collectors.groupingBy(
             FieldError::getField,
