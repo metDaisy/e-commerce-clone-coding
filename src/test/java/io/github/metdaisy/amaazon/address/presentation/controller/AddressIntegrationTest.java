@@ -13,8 +13,9 @@ import io.github.metdaisy.amaazon.support.BaseIntegrationTest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
+import io.github.metdaisy.amaazon.address.infra.repository.AddressJpaRepository;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
-import io.github.metdaisy.amaazon.address.domain.repository.AddressRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +25,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.web.servlet.ResultActions;
 
 @DisplayName("Address HTTP 통합 테스트")
 class AddressIntegrationTest extends BaseIntegrationTest {
@@ -34,7 +34,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
       UUID.fromString("2bb8df7f-9478-4d51-b055-496016dd421f");
 
   @Autowired
-  private AddressRepository addressRepository;
+  private AddressJpaRepository addressRepository;
 
   @Test
   @DisplayName("주소 목록 조회 성공: HTTP 요청으로 DB의 주소 목록을 정렬해 반환한다")
@@ -42,16 +42,28 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     // given
     persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
     persistAndFlush(address(false));
-    persistAndFlush(address(true));
+    persistAndFlush(Address.create(USER_ID, "기본", "primary", "01098765432", "06237", "부산",
+        true));
+    Address recentlyUsed = Address.create(USER_ID, "회사", "office", "01098765432", "06237",
+        "부산광역시 해운대구", false);
+    recentlyUsed.markUsed(Instant.parse("2026-08-17T12:00:00Z"));
+    persistAndFlush(recentlyUsed);
+    persistAndFlush(Address.create(USER_ID, "추가", "extra", "01098765432", "06238", "대구",
+        false));
     clear();
 
     // when & then
-    mockMvc.perform(get(ADDRESS_URL)
+    mockMvc.perform(get(ADDRESS_URL).param("page", "0").param("size", "4")
             .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID))))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$").isArray())
-        .andExpect(jsonPath("$.length()").value(2))
-        .andExpect(jsonPath("$[0].isPrimary").value(true));
+        .andExpect(jsonPath("$.data").isArray())
+        .andExpect(jsonPath("$.data.length()").value(4))
+        .andExpect(jsonPath("$.totalElements").value(4))
+        .andExpect(jsonPath("$.totalPages").value(1))
+        .andExpect(jsonPath("$.data[0].isPrimary").value(true))
+        .andExpect(jsonPath("$.data[1].alias").value("회사"))
+        .andExpect(jsonPath("$.data[2].alias").value("추가"))
+        .andExpect(jsonPath("$.data[3].alias").value("집"));
   }
 
   @Test
@@ -79,7 +91,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(user);
     clear();
     AddressCreateRequest request = new AddressCreateRequest(
-        "tester", "01098765432", "06237", "서울특별시 강남구", false);
+        "집", "tester", "01098765432", "06237", "서울특별시 강남구", false);
 
     // when & then
     mockMvc.perform(post(ADDRESS_URL)
@@ -90,7 +102,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.exceptionCode").value("USER-004"));
     flushAndClear();
 
-    assertThat(addressRepository.countByUserId(USER_ID)).isZero();
+    assertThat(addressRepository.findByUserId(USER_ID)).isEmpty();
   }
 
   @Test
@@ -101,7 +113,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     Address oldPrimary = persistAndFlush(address(true));
     clear();
     AddressCreateRequest request = new AddressCreateRequest(
-        "new tester", "01098765432", "06237", "서울특별시 강남구 테헤란로", true);
+        "회사", "new tester", "01098765432", "06237", "서울특별시 강남구 테헤란로", true);
 
     // when
     mockMvc.perform(post(ADDRESS_URL)
@@ -125,30 +137,49 @@ class AddressIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  @DisplayName("주소 등록 실패: 주소가 5개면 400 ADDRESS-006을 반환하고 저장하지 않는다")
-  void create_rejectsMoreThanFiveAddresses() throws Exception {
+  @DisplayName("주소 등록 성공: User의 주소가 5개를 초과해도 저장한다")
+  void create_allowsMoreThanFiveAddresses() throws Exception {
     // given
     persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
-    for (int index = 0; index < 5; index++) {
-      persistAndFlush(Address.create(USER_ID, "tester" + index, "01012345678", "06236",
+    for (int index = 0; index < 6; index++) {
+      persistAndFlush(Address.create(USER_ID, "주소" + index, "tester" + index, "01012345678", "06236",
           "서울특별시 강남구 " + index, false));
     }
     clear();
     AddressCreateRequest request = new AddressCreateRequest(
-        "new tester", "01098765432", "06237", "서울특별시 강남구 테헤란로", false);
+        "새 주소", "new tester", "01098765432", "06237", "서울특별시 강남구 테헤란로", false);
 
     // when
-    ResultActions result = mockMvc.perform(post(ADDRESS_URL)
+    mockMvc.perform(post(ADDRESS_URL)
         .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
         .contentType(MediaType.APPLICATION_JSON)
-        .content(objectMapper.writeValueAsString(request)));
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated());
 
     // then
-    result
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionCode").value("ADDRESS-006"));
     flushAndClear();
-    assertThat(addressRepository.countByUserId(USER_ID)).isEqualTo(5);
+    assertThat(addressRepository.findByUserId(USER_ID)).hasSize(7);
+  }
+
+  @Test
+  @DisplayName("주소 등록 실패: 동일한 주소면 400 ADDRESS-005를 반환하고 저장하지 않는다")
+  void create_rejectsDuplicatedAddress() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    persistAndFlush(address(false));
+    clear();
+    AddressCreateRequest request = new AddressCreateRequest(
+        "다른 별칭", "other", "01098765432", "06236", "서울특별시 강남구", false);
+
+    // when & then
+    mockMvc.perform(post(ADDRESS_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("ADDRESS-005"));
+    flushAndClear();
+    assertThat(addressRepository.findByUserId(USER_ID)).hasSize(1);
   }
 
   @Test
@@ -158,7 +189,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
     clear();
     AddressCreateRequest request = new AddressCreateRequest(
-        null, "01098765432", "06237", "서울특별시 강남구 테헤란로", false);
+        null, "tester", "01098765432", "06237", "서울특별시 강남구 테헤란로", false);
 
     // when & then
     mockMvc.perform(post(ADDRESS_URL)
@@ -177,7 +208,7 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     Address address = persistAndFlush(address(false));
     clear();
     AddressUpdateRequest request = new AddressUpdateRequest(
-        "updated tester", null, null, "부산광역시 해운대구");
+        null, "updated tester", null, null, "부산광역시 해운대구");
 
     // when & then
     mockMvc.perform(patch(ADDRESS_URL + "/" + address.getId())
@@ -197,13 +228,41 @@ class AddressIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  @DisplayName("주소 수정 실패: 다른 주소와 중복되면 400 ADDRESS-005를 반환하고 수정하지 않는다")
+  void update_rejectsDuplicatedAddress() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
+    Address address = persistAndFlush(address(false));
+    Address duplicatedAddress = persistAndFlush(
+        Address.create(USER_ID, "회사", "office", "01098765432", "06237", "부산", false));
+    clear();
+    AddressUpdateRequest request = new AddressUpdateRequest(
+        null, null, null, duplicatedAddress.getPostalCode(), duplicatedAddress.getAddressLine());
+
+    // when & then
+    mockMvc.perform(patch(ADDRESS_URL + "/" + address.getId())
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID)))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("ADDRESS-005"));
+    flushAndClear();
+
+    // then
+    Address unchanged = addressRepository.findById(address.getId()).orElseThrow();
+    assertThat(unchanged.getPostalCode()).isEqualTo("06236");
+    assertThat(unchanged.getAddressLine()).isEqualTo("서울특별시 강남구");
+  }
+
+  @Test
   @DisplayName("주소 삭제 성공: 기본 배송지를 삭제하면 가장 최근 주소를 기본 배송지로 승격한다")
   void delete_primaryAddress_promotesLatestAddress() throws Exception {
     // given
     persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
     Address primary = persistAndFlush(address(true));
     Address latest = persistAndFlush(
-        Address.create(USER_ID, "latest", "01012345678", "06237", "부산광역시 해운대구", false));
+        Address.create(USER_ID, "회사", "latest", "01012345678", "06237", "부산광역시 해운대구",
+            false));
     clear();
 
     // when
@@ -225,7 +284,8 @@ class AddressIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(User.createUser(USER_ID, "tester", "01012345678"));
     Address oldPrimary = persistAndFlush(address(true));
     Address target = persistAndFlush(
-        Address.create(USER_ID, "target", "01012345678", "06237", "부산광역시 해운대구", false));
+        Address.create(USER_ID, "회사", "target", "01012345678", "06237", "부산광역시 해운대구",
+            false));
     clear();
 
     // when
@@ -242,7 +302,8 @@ class AddressIntegrationTest extends BaseIntegrationTest {
   }
 
   private Address address(boolean isPrimary) {
-    return Address.create(USER_ID, "tester", "01012345678", "06236", "서울특별시 강남구", isPrimary);
+    return Address.create(USER_ID, "집", "tester", "01012345678", "06236", "서울특별시 강남구",
+        isPrimary);
   }
 
   private Authentication authenticationAs(UUID userId) {

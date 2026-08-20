@@ -111,7 +111,7 @@ class JwtTokenProviderTest {
   @DisplayName("Authentication 조회 - 성공: 유효한 토큰으로 Authentication 이 생성된다")
   @Test
   void getAuthentication_success() throws Exception {
-    String subject = "user-uuid-123";
+    String subject = UUID.randomUUID().toString();
     String role = "USER";
     String jti = UUID.randomUUID().toString();
     Date now = new Date();

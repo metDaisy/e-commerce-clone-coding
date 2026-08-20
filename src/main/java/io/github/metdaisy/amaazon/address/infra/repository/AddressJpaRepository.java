@@ -21,8 +21,6 @@ public interface AddressJpaRepository extends JpaRepository<Address, UUID>, Addr
   @Override
   Optional<Address> findById(UUID id);
 
-  long countByUserId(UUID userId);
-
   Sort ADDRESS_SORT = Sort.by(
       Sort.Order.desc("isPrimary"),
       Sort.Order.desc("lastUsedAt").nullsLast(),

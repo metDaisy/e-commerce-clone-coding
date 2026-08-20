@@ -16,6 +16,8 @@ import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateR
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.service.AddressService;
+import io.github.metdaisy.amaazon.common.dto.PageQuery;
+import io.github.metdaisy.amaazon.common.dto.PageResult;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatchers;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -44,7 +47,8 @@ class AddressControllerTest extends RestControllerTest {
   void findAll_success() throws Exception {
     // given
     AddressResponse response = response();
-    given(addressService.findAll(USER_ID)).willReturn(List.of(response));
+    given(addressService.findAll(ArgumentMatchers.eq(USER_ID), any(PageQuery.class)))
+        .willReturn(new PageResult<>(List.of(response), 0, 20, 1, 1));
 
     // when
     MockHttpServletRequestBuilder request = get(ADDRESS_URL);
@@ -52,11 +56,22 @@ class AddressControllerTest extends RestControllerTest {
     // then
     mockMvc.perform(request)
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value(response.id().toString()))
-        .andExpect(jsonPath("$[0].userId").value(USER_ID.toString()))
-        .andExpect(jsonPath("$[0].recipientName").value("tester"))
-        .andExpect(jsonPath("$[0].isPrimary").value(true));
-    then(addressService).should().findAll(USER_ID);
+        .andExpect(jsonPath("$.data[0].id").value(response.id().toString()))
+        .andExpect(jsonPath("$.data[0].userId").value(USER_ID.toString()))
+        .andExpect(jsonPath("$.data[0].alias").value("집"))
+        .andExpect(jsonPath("$.data[0].recipientName").value("tester"))
+        .andExpect(jsonPath("$.data[0].isPrimary").value(true));
+    then(addressService).should().findAll(ArgumentMatchers.eq(USER_ID), any(PageQuery.class));
+  }
+
+  @Test
+  @DisplayName("주소 목록 조회 실패: 페이지 크기가 100을 초과하면 400 INVALID_INPUT을 반환한다")
+  void findAll_rejectsPageSizeOverMax() throws Exception {
+    // when & then
+    mockMvc.perform(get(ADDRESS_URL).param("size", "101"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"));
+    then(addressService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -64,7 +79,7 @@ class AddressControllerTest extends RestControllerTest {
   void create_success() throws Exception {
     // given
     AddressCreateRequest request = new AddressCreateRequest(
-        "tester", "01012345678", "06236", "서울특별시 강남구", true);
+        "집", "tester", "01012345678", "06236", "서울특별시 강남구", true);
     AddressResponse response = response();
     given(addressService.create(USER_ID, request)).willReturn(response);
 
@@ -82,7 +97,7 @@ class AddressControllerTest extends RestControllerTest {
     // given
     UUID addressId = response().id();
     AddressUpdateRequest request = new AddressUpdateRequest(
-        "updated tester", null, null, "부산광역시 해운대구");
+        null, "updated tester", null, null, "부산광역시 해운대구");
     AddressResponse response = response();
     given(addressService.update(USER_ID, addressId, request)).willReturn(response);
 
@@ -154,33 +169,42 @@ class AddressControllerTest extends RestControllerTest {
 
   private static Stream<Arguments> invalidRequests() {
     return Stream.of(
+        Arguments.of("주소 별칭 누락",
+            new AddressCreateRequest(null, "tester", "01012345678", "06236", "서울", false)),
         Arguments.of("수령인 이름 누락",
-            new AddressCreateRequest(null, "01012345678", "06236", "서울", false)),
+            new AddressCreateRequest("집", null, "01012345678", "06236", "서울", false)),
         Arguments.of("수령인 연락처 공백",
-            new AddressCreateRequest("tester", " ", "06236", "서울", false)),
+            new AddressCreateRequest("집", "tester", " ", "06236", "서울", false)),
         Arguments.of("주소 본문 길이 초과",
-            new AddressCreateRequest("tester", "01012345678", "06236", "a".repeat(256), false)));
+            new AddressCreateRequest("집", "tester", "01012345678", "06236", "a".repeat(256),
+                false)),
+        Arguments.of("주소 별칭 길이 초과",
+            new AddressCreateRequest("a".repeat(101), "tester", "01012345678", "06236", "서울",
+                false)));
   }
 
   private static Stream<Arguments> invalidUpdateRequests() {
     return Stream.of(
-        Arguments.of("수령인 이름 공백", new AddressUpdateRequest(" ", null, null, null)),
+        Arguments.of("주소 별칭 공백", new AddressUpdateRequest(" ", null, null, null, null)),
+        Arguments.of("주소 별칭 길이 초과",
+            new AddressUpdateRequest("a".repeat(101), null, null, null, null)),
+        Arguments.of("수령인 이름 공백", new AddressUpdateRequest(null, " ", null, null, null)),
         Arguments.of("수령인 이름 길이 초과",
-            new AddressUpdateRequest("a".repeat(101), null, null, null)),
-        Arguments.of("수령인 연락처 공백", new AddressUpdateRequest(null, " ", null, null)),
+            new AddressUpdateRequest(null, "a".repeat(101), null, null, null)),
+        Arguments.of("수령인 연락처 공백", new AddressUpdateRequest(null, null, " ", null, null)),
         Arguments.of("수령인 연락처 길이 초과",
-            new AddressUpdateRequest(null, "1".repeat(21), null, null)),
-        Arguments.of("우편번호 공백", new AddressUpdateRequest(null, null, " ", null)),
+            new AddressUpdateRequest(null, null, "1".repeat(21), null, null)),
+        Arguments.of("우편번호 공백", new AddressUpdateRequest(null, null, null, " ", null)),
         Arguments.of("우편번호 길이 초과",
-            new AddressUpdateRequest(null, null, "1".repeat(21), null)),
-        Arguments.of("주소 본문 공백", new AddressUpdateRequest(null, null, null, " ")),
+            new AddressUpdateRequest(null, null, null, "1".repeat(21), null)),
+        Arguments.of("주소 본문 공백", new AddressUpdateRequest(null, null, null, null, " ")),
         Arguments.of("주소 본문 길이 초과",
-            new AddressUpdateRequest(null, null, null, "a".repeat(256))));
+            new AddressUpdateRequest(null, null, null, null, "a".repeat(256))));
   }
 
   private static AddressResponse response() {
     UUID addressId = UUID.fromString("22222222-2222-2222-2222-222222222222");
-    return new AddressResponse(addressId, USER_ID, "tester", "01012345678", "06236",
-        "서울특별시 강남구", true, null, null);
+    return new AddressResponse(addressId, USER_ID, "집", "tester", "01012345678", "06236",
+        "서울특별시 강남구", true, null, null, null);
   }
 }

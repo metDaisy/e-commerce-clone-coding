@@ -36,6 +36,7 @@ public class AddressQuerydslRepositoryImpl implements AddressQuerydslRepository 
 
     Address target = addresses.get(0);
     em.remove(target);
+    em.flush();
     if (addresses.size() == 2) {
       addresses.get(1).setPrimary(true);
     }
@@ -52,11 +53,12 @@ public class AddressQuerydslRepositoryImpl implements AddressQuerydslRepository 
         .orderBy(new CaseBuilder().when(address.id.eq(addressId)).then(0).otherwise(1).asc())
         .limit(2)
         .fetch();
-    Address target = addresses.get(0);
-    target.setPrimary(true);
     if (addresses.size() == 2) {
       addresses.get(1).setPrimary(false);
+      em.flush();
     }
+    Address target = addresses.get(0);
+    target.setPrimary(true);
     return target;
   }
 
