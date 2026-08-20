@@ -266,3 +266,30 @@ query dsl 로 이 문제를 해결했다.
 락은 transaction 이 끝나면 풀린다.  
 
 </details>
+
+<details>
+
+<summary><h2>2026-08-21</h2></summary>
+
+java code 에서 query 실행 순서는 실제로 db 에 적용되는 순서와 다를 수 있다.  
+예를 들어 삭제, 수정을 순서대로 실행했다고 해서 db 에 순서대로 적용된다는 보장을 못한다.  
+왜냐 hibernate 가 query 실행을 최적화하기 때문이다.  
+그래서 순서가 중요하다면 중간에 flush 를 해야 한다.  
+
+```sql
+CREATE UNIQUE INDEX uq_addresses_one_primary
+    ON addresses (user_id) WHERE is_primary = TRUE;
+```
+address 의 기본 배송지를 하나만 허용하게 하는 제약조건이다.  
+기본 배송지가 자주 바뀔 수 있다면 index 만드는 비용을 고려해서 적절하지 않다고 생각했다.  
+
+```sql
+ALTER TABLE addresses
+ADD CONSTRAINT uq_addresses_one_primary
+UNIQUE (user_id, true);
+```
+그래서 위와 같은 unique 제약 조건을 생각했지만 문법적으로 오류가 있다.  
+UNIQUE 제약조건에는 컬럼명만 사용할 수 있어서 true 같은 상수나 조건식을 넣을 수 없다.  
+```UNIQUE(user_id) WHERE is_primary = TRUE``` 처럼 일반 제약조건으로 표현할 수 없다.  
+
+</details>

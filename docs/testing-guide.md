@@ -106,9 +106,12 @@ dialect are infrastructure details, so test scenarios must remain database-indep
   valid entity and invalid cases such as null, length, format, enum, or relationship violations;
   flush the persistence context so the rejection is actually observed.
 - Test declared derived, `@Query`, locking, fetch-graph, pagination/scroll, and specification
-  queries.
-- Assert persisted/query results, and verify the expected query count after every Repository read.
-  Traverse and assert every entity field and association before checking the count; a `LAZY`
+  queries. For page- or cursor-based queries, make at least two requests with different pages or
+  cursors in the same test and verify that each result is different and does not overlap the others;
+  check the query count for each request separately.
+- Assert persisted/query results, and verify the expected query count for every Repository operation
+  that is executed. This includes expected zero-query validation failures. For a fresh entity read,
+  traverse and assert every entity field and association before checking the count; a `LAZY`
   association may produce an additional query. Use an explicit fetch query when the association
   must be loaded together with the entity. Do not assert vendor-specific SQL, dialect, schema,
   column types, or native-query syntax.
@@ -144,9 +147,11 @@ class CategoryJpaRepositoryTest extends BaseRepositoryTest {
 
 Create fixtures with `persistAndFlush`, call `clear()` before the Repository method, and assert the
 result from a fresh JPA query. Fetch behavior must be checked on the freshly queried entity, not on
-an entity already managed by the persistence context. `clear()` also resets `QueryInspector`; call
-`ensureQueryCount(expectedCount)` after all entity fields and associations have been traversed. It
-must be the final assertion involving persistence. Query-inspector logs are diagnostic only.
+an entity already managed by the persistence context. `BaseRepositoryTest` also calls `clear()` before
+each test as a safety net. `clear()` also resets `QueryInspector`; call
+`ensureQueryCount(expectedCount)` immediately after the relevant fields and associations have been
+traversed. It does not need to be the final assertion in the test; later assertions must not trigger
+additional persistence operations. Query-inspector logs are diagnostic only.
 
 ## 7. Choose the smallest test
 
