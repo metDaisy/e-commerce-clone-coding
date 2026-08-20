@@ -6,12 +6,16 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "addresses")
@@ -20,6 +24,11 @@ public class Address extends MutableEntity {
   @NotNull
   @Column(name = "user_id", nullable = false)
   private UUID userId;
+
+  @NotNull
+  @Size(max = 100)
+  @Column(name = "alias", nullable = false, length = 100)
+  private String alias;
 
   @NotNull
   @Size(max = 100)
@@ -45,9 +54,14 @@ public class Address extends MutableEntity {
   @Column(name = "is_primary", nullable = false)
   private boolean isPrimary;
 
-  private Address(UUID userId, String recipientName, String recipientPhone, String postalCode,
-      String addressLine, boolean isPrimary) {
+  @Column(name = "last_used_at")
+  private Instant lastUsedAt;
+
+  @Builder
+  private Address(UUID userId, String alias, String recipientName, String recipientPhone,
+      String postalCode, String addressLine, boolean isPrimary) {
     this.userId = userId;
+    this.alias = alias;
     this.recipientName = recipientName;
     this.recipientPhone = recipientPhone;
     this.postalCode = postalCode;
@@ -55,28 +69,23 @@ public class Address extends MutableEntity {
     this.isPrimary = isPrimary;
   }
 
-  public static Address create(UUID userId, String recipientName, String recipientPhone,
-      String postalCode, String addressLine, boolean isPrimary) {
-    return new Address(userId, recipientName, recipientPhone, postalCode, addressLine, isPrimary);
+  public static Address create(UUID userId, String alias, String recipientName,
+      String recipientPhone, String postalCode, String addressLine, boolean isPrimary) {
+    return Address.builder()
+        .userId(userId)
+        .alias(alias)
+        .recipientName(recipientName)
+        .recipientPhone(recipientPhone)
+        .postalCode(postalCode)
+        .addressLine(addressLine)
+        .isPrimary(isPrimary)
+        .build();
   }
 
-  public void makePrimary() {
-    this.isPrimary = true;
+  public void markUsed(Instant usedAt) {
+    if (usedAt != null) {
+      this.lastUsedAt = usedAt;
+    }
   }
 
-  public void updateRecipientName(String recipientName) {
-    updateIfChanged(this.recipientName, recipientName, value -> this.recipientName = value);
-  }
-
-  public void updateRecipientPhone(String recipientPhone) {
-    updateIfChanged(this.recipientPhone, recipientPhone, value -> this.recipientPhone = value);
-  }
-
-  public void updatePostalCode(String postalCode) {
-    updateIfChanged(this.postalCode, postalCode, value -> this.postalCode = value);
-  }
-
-  public void updateAddressLine(String addressLine) {
-    updateIfChanged(this.addressLine, addressLine, value -> this.addressLine = value);
-  }
 }

@@ -1,19 +1,26 @@
 package io.github.metdaisy.amaazon.address.domain.repository;
 
 import io.github.metdaisy.amaazon.common.jpa.repository.DomainRepository;
+import io.github.metdaisy.amaazon.common.dto.PageQuery;
+import io.github.metdaisy.amaazon.common.dto.PageResult;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
-import java.util.List;
 import java.util.UUID;
 
 public interface AddressRepository extends DomainRepository<Address> {
 
-  List<Address> findByUserId(UUID userId);
+  PageResult<Address> findPageByUserId(UUID userId, PageQuery pageQuery);
 
-  long countByUserId(UUID userId);
+  void deleteAndUpdatePrimary(UUID userId, UUID addressId);
+
+  boolean existsByUserIdAndPostalCodeAndAddressLine(UUID userId, String postalCode,
+      String addressLine);
+
+  boolean existsByUserIdAndPostalCodeAndAddressLineAndIdNot(UUID userId, String postalCode,
+      String addressLine, UUID id);
 
   boolean existsByIdAndUserId(UUID id, UUID userId);
 
   int clearPrimaryByUserId(UUID userId);
 
-  int makePrimaryByIdAndUserId(UUID id, UUID userId);
+  Address makePrimary(UUID userId, UUID addressId);
 }
