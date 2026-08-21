@@ -67,7 +67,7 @@ P7이 다음 HTTP 진입점을 제공한다. 성공 응답은 Category Response 
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 500 | `CATEGORY-010` | Category 트리 조회 실패 | 카테고리를 조회하지 못했습니다. | 없음 | 저장소 원인과 requestId |
+| 500 | [SYSTEM-001](../index.md#예외-응답) | Category 트리 조회 실패 | 요청을 처리하지 못했습니다. | 없음 | 저장소 원인과 requestId |
 
 ### 3-2. Category 생성
 

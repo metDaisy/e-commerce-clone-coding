@@ -29,7 +29,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 - Database: PostgreSQL, Flyway
 - Frontend: React, TypeScript, Vite
 - Test: JUnit 5, Spring Boot Test, Testcontainers
-- Quality: Checkstyle, JaCoCo, CodeQL, CodeRabbit
+- Quality: Checkstyle, JaCoCo, Codecov, CodeRabbit
 
 ## 프로젝트 구조
 
