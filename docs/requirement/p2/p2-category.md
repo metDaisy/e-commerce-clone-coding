@@ -17,7 +17,7 @@ P2가 Category 원본과 검증을 소유하고, P7이 관리자용 HTTP 진입�
 
 | 필드 | 타입 | 필수 | 설명 |
 |---|---|---:|---|
-| `categoryId` | UUID | 예 | Category 식별자. 서버 생성 |
+| `id` | UUID | 예 | Category 식별자. 서버 생성 |
 | `name` | String | 예 | 공백이 아닌 표시 이름 |
 | `parentId` | UUID | 아니오 | 부모 Category. 루트는 `null` |
 | `depth` | Integer | 예 | 루트 1, 부모 깊이 + 1 |
@@ -51,7 +51,7 @@ P7이 다음 HTTP 진입점을 제공한다. 성공 응답은 Category Response 
 {
   "categories": [
     {
-      "categoryId": "uuid-electronics",
+      "id": "uuid-electronics",
       "name": "전자기기",
       "parentId": null,
       "depth": 1,
@@ -61,7 +61,7 @@ P7이 다음 HTTP 진입점을 제공한다. 성공 응답은 Category Response 
 }
 ```
 
-정렬은 `depth ASC`, 같은 부모 안에서는 `name ASC`, `categoryId ASC`를 사용한다.
+정렬은 `depth ASC`, 같은 부모 안에서는 `name ASC`, `id ASC`를 사용한다.
 
 #### 예외
 
@@ -90,7 +90,7 @@ P7이 다음 HTTP 진입점을 제공한다. 성공 응답은 Category Response 
 
 ```json
 {
-  "categoryId": "uuid-graphics-card",
+  "id": "uuid-graphics-card",
   "name": "그래픽카드",
   "parentId": "uuid-computer",
   "depth": 3
@@ -132,7 +132,7 @@ Category와 부모 연결은 하나의 트랜잭션으로 생성한다.
 
 ```json
 {
-  "categoryId": "uuid-computer",
+  "id": "uuid-computer",
   "name": "컴퓨터 부품",
   "parentId": "uuid-electronics",
   "depth": 2
