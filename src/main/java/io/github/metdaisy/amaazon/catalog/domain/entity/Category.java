@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
@@ -82,7 +82,7 @@ public class Category extends MutableEntity {
     Category current = parent;
     while (current != null) {
       if (current == this || (getId() != null && getId().equals(current.getId()))) {
-        throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
+        throw new CategoryException(CategoryErrorCode.CATEGORY_CYCLE_DETECTED,
           AmaazonExceptionContext.logDetails(Map.of("categoryId", getId())));
       }
       current = current.parent;

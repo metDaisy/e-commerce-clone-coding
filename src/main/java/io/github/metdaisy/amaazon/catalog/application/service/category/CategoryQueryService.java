@@ -3,8 +3,8 @@ package io.github.metdaisy.amaazon.catalog.application.service.category;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
@@ -30,7 +30,7 @@ public class CategoryQueryService {
 
   public Category getProxy(UUID id) {
     if (!repository.existsById(id)) {
-      throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_NOT_FOUND,
+      throw new CategoryException(CategoryErrorCode.CATEGORY_NOT_FOUND,
           AmaazonExceptionContext.logDetails(Map.of("categoryId", id)));
     }
     return repository.getReferenceById(id);
