@@ -109,7 +109,7 @@ sort=RELEVANCE|LATEST|PRICE_ASC|PRICE_DESC|RATING_DESC
 |---:|---|---|---|---|---|
 | 400 | `MARKETPLACE-001` | 가격·평점·페이지 필터 형식 오류 | 검색 조건을 확인해 주세요. | 실패 query field | Marketplace search query 검증 실패 |
 | 400 | `MARKETPLACE-002` | 커서 서명·필터·정렬 검증 실패 | 검색 페이지를 다시 요청해 주세요. | 없음 | Marketplace cursor 검증 실패 |
-| 404 | [CATALOG-003](../p2/p2-category.md) | — | — | — | — |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | — | — | — | — |
 
 유효한 검색 조건에 상품이 없는 경우 `200 OK`와 빈 `data`를 반환한다.
 

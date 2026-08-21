@@ -16,7 +16,7 @@ flowchart LR
     Front -->|REST / HttpOnly Cookie| Web[Spring MVC + Security]
     Front -.->|목표: 재고 WebSocket| Web
     Web --> DB[(PostgreSQL)]
-    Web -->|OAuth2| Providers[Google / Naver / Kakao / GitHub]
+    Web -.->|목표·관련 구성: OAuth2| Providers[Google / Naver / Kakao / GitHub]
 
     subgraph Backend[Spring Boot Modular Monolith]
         Web
@@ -27,7 +27,7 @@ flowchart LR
         Seller[seller]
         Common[common]
         Global[global]
-        Future[목표: cart / coupon / order / payment / delivery / offer / review / media / admin]
+        Future[목표: cart / coupon / order / payment / delivery / offer / review / media / 운영 진입점]
     end
 ```
 
@@ -74,24 +74,25 @@ docs/             요구사항, 설계, 상태 문서
 | 모듈 | 책임 | 허용 의존성 |
 |---|---|---|
 | `common` | 공통 인증 주체, 저장소·매퍼·예외 기반 타입 | 없음 |
-| `global` | Spring 설정, 공통 보안/JWT, 캐시, 웹 필터, Outbox 기반 | `common::*` |
-| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
-| `user` | 프로필, 역할, 활성 상태 | `common::*`, `auth::signup`, `auth::password` |
-| `catalog` | CatalogProduct·ProductVariant와 카테고리·태그, 카탈로그 조회 | `common::*` |
+| `global` | Spring 설정, 공통 보안/JWT, 캐시, 웹 필터, Outbox 기반 | `common::*`, `user::api` |
+| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::*`, `global::jwt`, `global::blacklist`, `global::login-policy` |
+| `user` | 프로필, 역할, 활성 상태 | `common::*` |
+| `address` | User 소유 배송지와 기본 배송지 불변식 | `common::*` |
+| `catalog` | Category·CatalogProduct·Tag와 카탈로그 명령·조회 | `common::*`, `seller::api` |
 | `seller` | Seller와 판매자 조회 | `common::*` |
 
-위 표는 기준 SHA에서 코드로 확인한 현재 모듈이다. Offer·Review·Cart·Coupon·Order·Payment·Delivery·P12 Media는 요구사항의 목표 경계이며 현재 구현 모듈로 간주하지 않는다.
+위 표는 현재 `package-info.java`의 허용 의존성을 반영한다. ProductVariant·Offer·Review·Cart·Coupon·Order·Payment·Delivery·P12 Media는 SQL 또는 요구사항에 나타나지만 현재 Java 구현 모듈로 간주하지 않는다.
 
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
-- `user::api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
-- `UserRolesChangedEvent`, `UserDeactivatedEvent`: User가 역할 변경·계정 비활성화 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
+- `user::api`: 인증·웹 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
+- `user::signup`: `FormSignUpTask`를 통해 Auth가 User 프로필 생성을 요청하는 현재 회원가입 seam.
+- `user::deactivation`: User가 계정 비활성화 사실을 발행하고 Auth가 해당 User의 JWT를 무효화하는 공개 이벤트 계약.
 - `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
 - 역할 집합은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 추가 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구성한다. 역할은 독립적으로 보유할 수 있고 `USER`는 다른 역할을 추가해도 유지한다.
-- `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
-- `auth::password`: 회원가입 요청의 비밀번호 검증 규칙.
 - `global::jwt`: JWT 설정과 생성·검증 기능.
 - `global::blacklist`: 토큰 무효화 이벤트.
+- `global::login-policy`: 로그인 실패 횟수와 잠금 기간 설정.
 
 목표 도메인을 구현할 때의 공개 계약 방향은 다음과 같다.
 
@@ -113,7 +114,7 @@ Media 파일은 특정 도메인의 엔티티가 아니라 공통 인프라에 �
 ## User와 Auth의 프로필 조회 조합
 
 - P1 User는 프로필·역할·활성 상태만 소유하고, P11 Auth가 소유하는 `loginEmail`을 P1 응답에 포함하지 않는다.
-- P11 `GET /api/v1/auth/me/credential-summary`는 재인증된 사용자에게만 nullable `loginEmail`을 제공한다. 비밀번호·OAuth 식별자·토큰은 반환하지 않는다.
+- 목표 P11 `GET /api/v1/auth/me/credential-summary`는 재인증된 사용자에게만 nullable `loginEmail`을 제공한다. 현재 구현에서 이 Route는 확인되지 않는다.
 - SPA CSR 클라이언트는 P1 프로필 조회와 P11 인증수단 요약 조회를 병렬 호출해 화면 모델을 조합한다. 어느 한 요청의 재인증이 실패하면 부분 결과를 표시하지 않고 재인증을 유도한다.
 - Auth는 현재 역할·활성 상태 확인을 위해 User의 작은 공개 seam을 동기 조회할 수 있다. User는 단순한 프로필 보강을 위해 Auth를 동기 조회하지 않는다. 복수 클라이언트의 조합이 반복될 때에만 BFF/Account composition API를 도입한다. 자세한 결정은 [ADR-0014](adr/0014-csr-profile-composition-and-auth-user-query-direction.md)를 따른다.
 
@@ -131,22 +132,22 @@ sequenceDiagram
     Client->>AuthController: POST /auth/signup
     AuthController->>AuthService: SignUpRequest
     AuthService->>AuthService: 이메일·비밀번호 검증 및 해시
-    AuthService->>UserEventHandler: SignUpTask 발행
+    AuthService->>UserEventHandler: FormSignUpTask 발행
     UserEventHandler->>UserService: 프로필 생성
     UserService->>DB: users 저장
     AuthService->>DB: user_credentials 저장
 ```
 
-- 평문 비밀번호는 `auth` 요청과 검증·해시 범위에 머물며 `SignUpTask`에는 포함되지 않는다.
+- 평문 비밀번호는 `auth` 요청과 검증·해시 범위에 머물며 `FormSignUpTask`에는 포함되지 않는다.
 - Spring의 기본 `@EventListener`는 동기 실행이므로 현재 프로필과 인증수단 생성은 발행자 트랜잭션에 결합되어 있다.
-- `SignUpTask`는 완료 사실보다 프로필 생성을 지시하는 명령 성격이 강하다. 이를 유지할지 동기 인터페이스 seam으로 바꿀지는 ADR로 확정해야 한다.
-- `auth`와 `user`가 서로의 Named Interface에 의존하므로 새 의존성을 추가하기 전에 순환을 더 키우지 않는지 확인해야 한다.
+- `FormSignUpTask`는 완료 사실보다 프로필 생성을 지시하는 명령 성격이 강하다. 현재 Spring `@EventListener`로 동기 처리된다.
+- 현재 의존성 방향은 Auth → User 공개 seam이다. User가 Auth를 동기 참조하는 허용 의존성은 `package-info.java`에서 확인되지 않는다.
 
 ## 목표 도메인 모듈
 
 | 단계 | 목표 모듈 | 핵심 책임 |
 |---|---|---|
-| P1 | `user` | 프로필, 권한, 주소, 포인트, 관심상품 |
+| P1 | `user` + `address` | 프로필, 권한, 주소, 포인트, 관심상품 |
 | P2 | `catalog` | 카테고리, CatalogProduct·ProductVariant, CatalogProduct Media, 판매자·관리자 카탈로그 조회 |
 | P3 | `cart` | 활성 장바구니, 항목과 수량, 결제 전 재검증 |
 | P4 | `coupon` | 쿠폰 발행·보유·사용·만료 |
@@ -171,7 +172,7 @@ sequenceDiagram
 - P2의 목표 모델은 상품 메타데이터인 `CatalogProduct`와 실제 판매 단위인 `ProductVariant`를 소유한다. P9는 Seller별 가격·판매 조건인 `Offer`와 수량 상태인 `Inventory`, 그리고 Catalog와 Offer를 조합한 고객용 Marketplace 조회를 소유한다. P10은 구매·배송 완료 자격이 필요한 Review와 리뷰 Media를 소유한다.
 - P7은 P2~P6 테이블의 소유 모듈이 아니다. 관리자 전용 API는 각 모듈의 공개 application interface를 호출하고, 관리자 권한·운영 진입점만 담당한다.
 - P8은 P2의 CatalogProduct·ProductVariant와 P9의 Offer·Inventory를 소유하지 않는다. 판매자는 P8의 Seller 자격으로 P9의 Offer를 관리하고, 주문 데이터는 P5의 공개 interface로 조회한다.
-- P11은 인증수단·가입 세션·토큰·로그인 세션을 소유하고, User 프로필·역할·활성 상태는 P1의 공개 계약으로 확인한다. 역할 변경 사실은 P1에서 발행하고 P11이 세션을 무효화한다.
+- P11은 인증수단·가입 세션·토큰·로그인 세션을 소유하고, User 프로필·역할·활성 상태는 P1의 공개 계약으로 확인한다. 현재는 User 비활성화 사실을 P1에서 발행하고 P11이 세션을 무효화하며, 역할 변경 사실 통지는 목표 계약이다.
 - P12는 `MediaUpload`의 검증·상태와 저장소 계약을 소유한다. P2·P9·P10은 완료된 업로드를 각자의 attachment 규칙으로 연결하며 P12가 업무 소유권을 대신 판단하지 않는다.
 - 목표 Outbox는 비즈니스 변경과 이벤트 레코드를 같은 트랜잭션에 기록한다.
 - 목표 Saga는 각 단계와 보상을 독립 트랜잭션, 재시도 가능, 멱등하게 처리한다.
@@ -179,9 +180,9 @@ sequenceDiagram
 ## 통신 원칙
 
 - 외부 클라이언트: REST, 목표 재고 알림은 WebSocket.
-- 인증: Spring Security Form Login, OAuth2, JWT HttpOnly 쿠키.
+- 인증: 현재 Spring Security Form Login과 JWT HttpOnly 쿠키를 사용하며, OAuth2 관련 구성은 목표·확장 범위로 둔다.
 - 모듈 간 사실 통지: Spring Application Event.
-- 사용자 역할 집합 변경은 `UserRolesChangedEvent`로 통지하고, 이벤트 Outbox 기록은 역할 집합 변경과 같은 트랜잭션으로 저장한다.
+- 현재 코드에서 확인된 User 공개 사실 이벤트는 `UserDeactivatedEvent`이며, Auth는 이를 받아 JWT 무효화를 수행한다. 역할 변경 이벤트와 Outbox 결합은 목표 계약으로 남아 있다.
 - 모듈 간 동기 조회: 필요성이 명확할 때만 작은 Named Interface seam.
 - 외부 결제·스토리지: 도메인 인터페이스 뒤의 adapter로 격리한다.
 - 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다. User 비활성화 이벤트의 업무 식별자는 `eventId`이며, Auth는 해당 이벤트를 사용자 단위 세션 무효화로 처리한다.
