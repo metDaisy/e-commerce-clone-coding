@@ -67,12 +67,12 @@ P7은 `Category` 원본을 소유하지 않고 P2의 공개 Category application
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | [CATALOG-001](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-002](../p2/p2-category.md) | — | — | — | — |
-| 404 | [CATALOG-003](../p2/p2-category.md) | — | — | — | — |
-| 409 | [CATALOG-004](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-005](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-006](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-001](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-002](../p2/p2-category.md) | — | — | — | — |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | — | — | — | — |
+| 409 | [CATEGORY-004](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-005](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-006](../p2/p2-category.md) | — | — | — | — |
 
 ### 3-2. Category 수정
 
@@ -109,10 +109,10 @@ P7은 `Category` 원본을 소유하지 않고 P2의 공개 Category application
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 404 | [CATALOG-003](../p2/p2-category.md) | — | — | — | — |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | — | — | — | — |
 | 400 | `ADMIN-020` | 수정 필드가 없음 | 수정할 값을 입력해 주세요. | 없음 | 요청 본문 |
-| 400 | [CATALOG-001](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-005](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-006](../p2/p2-category.md) | — | — | — | — |
-| 400 | [CATALOG-002](../p2/p2-category.md) | — | — | — | — |
-| 409 | [CATALOG-004](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-001](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-005](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-006](../p2/p2-category.md) | — | — | — | — |
+| 400 | [CATEGORY-002](../p2/p2-category.md) | — | — | — | — |
+| 409 | [CATEGORY-004](../p2/p2-category.md) | — | — | — | — |

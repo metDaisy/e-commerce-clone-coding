@@ -102,6 +102,6 @@ sort=LATEST|NAME_ASC|NAME_DESC
 | 400 | `CATALOG-040` | 페이지·정렬·필터 형식 오류 | 검색 조건을 확인해 주세요. | 실패 query field | Seller Catalog query 검증 실패 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | [SELLER-001](../p8/p8-seller-profile.md) | — | — | — | — |
-| 404 | [CATALOG-003](../p2/p2-category.md) | — | — | — | — |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | — | — | — | — |
 
 유효한 Category지만 상품이 없는 조건은 `200 OK`와 빈 `data`를 반환한다.

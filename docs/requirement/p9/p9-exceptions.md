@@ -20,7 +20,7 @@ P9 리소스 API의 예외 매트릭스는 각 API 문서에 정의한다. 이 �
 | `OFFER-012` | 400 | Offer Media 입력 검증 실패 | [P9 Offer API](p9-offer.md) |
 | `INVENTORY-001` | 400 | 재고 조정 요청 필드 검증 실패 | [P9 Inventory API](p9-inventory.md) |
 | `INVENTORY-002` | 400 | 조정 후 재고가 음수 | [P9 Inventory API](p9-inventory.md) |
-| [CATALOG-003](../p2/p2-category.md) | 404 | P2 Category 원본 예외 참조 | [P2 Category](../p2/p2-category.md) |
+| [CATEGORY-003](../p2/p2-category.md) | 404 | P2 Category 원본 예외 참조 | [P2 Category](../p2/p2-category.md) |
 | [CATALOG-019](../p2/p2-catalog-product.md) | 404 | P2 CatalogProduct 원본 예외 참조 | [P2 CatalogProduct](../p2/p2-catalog-product.md) |
 | [CATALOG-031](../p2/p2-product-variant.md) | 404 | P2 ProductVariant 원본 예외 참조 | [P2 ProductVariant](../p2/p2-product-variant.md) |
 | [CATALOG-033](../p2/p2-product-variant.md) | 409 | P2 ProductVariant 원본 예외 참조 | [P2 ProductVariant](../p2/p2-product-variant.md) |

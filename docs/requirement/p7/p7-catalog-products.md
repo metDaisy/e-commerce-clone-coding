@@ -106,4 +106,4 @@ sort=LATEST|NAME_ASC|NAME_DESC
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `ADMIN-004` | page·size·sort 값이 유효하지 않음 | 목록 조회 조건을 확인해 주세요. | 실패 query | 입력값과 검증 원인 |
-| 404 | [CATALOG-003](../p2/p2-category.md) | — | — | — | — |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | — | — | — | — |

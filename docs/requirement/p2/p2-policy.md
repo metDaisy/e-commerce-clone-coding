@@ -57,7 +57,7 @@ P2는 판매자별 판매 조건, 재고, 리뷰, 주문을 소유하지 않는�
 ### 불변식
 
 - Category 루트는 `parentId = null`, `depth = 1`; 전체 계층의 최대 깊이는 3이다.
-- 같은 부모 아래 Category 이름은 유일하다. 자기 자신·하위 Category를 부모로 지정할 수 없고, 연결은 순환을 만들 수 없다.
+- 모든 Category의 `name`은 부모와 상관없이 전역적으로 유일하다. 자기 자신·하위 Category를 부모로 지정할 수 없고, 연결은 순환을 만들 수 없다.
 - 하나의 CatalogProduct는 Category 하나에만 연결되고, ProductVariant는 CatalogProduct 하나에만 속한다.
 - `isPrimary = true`인 CatalogProduct Media는 상품당 최대 하나이며, `ACTIVE` Media는 상품당 최대 20개다.
 - Media `sortOrder`는 같은 CatalogProduct 안에서 유일하다.
@@ -96,4 +96,4 @@ CatalogProduct 보관은 하위 Variant를 공개·Offer 등록 대상에서 제
 
 - 정책과 API 문서가 충돌하면 이 문서의 정책을 기준으로 API 문서를 수정한다.
 - 공통 오류 응답 필드는 [공통 API 계약](../index.md#공통-api-계약)을 따른다.
-- P2 고유 `exceptionCode`는 `CATALOG-001`부터 이 문서군에서 증가시키며 이미 사용한 번호를 재사용하지 않는다.
+- P2 고유 `exceptionCode`는 도메인별 prefix를 사용한다. Category는 `CATEGORY-*`, CatalogProduct·ProductVariant 등 Catalog 도메인은 `CATALOG-*`를 사용하며, 이미 사용한 번호를 재사용하지 않는다.
