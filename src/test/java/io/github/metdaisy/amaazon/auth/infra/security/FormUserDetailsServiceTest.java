@@ -4,12 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.UserCredential;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import io.github.metdaisy.amaazon.user.application.dto.UserDto;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 class FormUserDetailsServiceTest {
 
   @Mock
-  private AuthUserPort userPort;
+  private UserQueryApi userQueryApi;
 
   @Mock
   private UserCredentialRepository repository;
@@ -38,8 +39,8 @@ class FormUserDetailsServiceTest {
     UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
     UUID userId = credential.getId();
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", true);
-    given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
+    UserDto userDto = new UserDto(userId, List.of("USER"), true);
+    given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
 
     UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");
 
@@ -63,7 +64,7 @@ class FormUserDetailsServiceTest {
   void loadUserByUsername_userNotFound() {
     UserCredential credential = UserCredential.of("test@test.com", "password");
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
-    given(userPort.loadUser(credential.getId())).willReturn(Optional.empty());
+    given(userQueryApi.findById(credential.getId())).willReturn(Optional.empty());
 
     assertThatThrownBy(() -> formUserDetailsService.loadUserByUsername("test@test.com"))
         .isInstanceOf(AuthException.class);
@@ -76,8 +77,8 @@ class FormUserDetailsServiceTest {
     given(repository.findByEmail("test@test.com")).willReturn(Optional.of(credential));
     UUID userId = credential.getId();
     // isEnabled = false
-    AuthUserDto userDto = new AuthUserDto(userId, "USER", false);
-    given(userPort.loadUser(userId)).willReturn(Optional.of(userDto));
+    UserDto userDto = new UserDto(userId, List.of("USER"), false);
+    given(userQueryApi.findById(userId)).willReturn(Optional.of(userDto));
 
     UserDetails result = formUserDetailsService.loadUserByUsername("test@test.com");
 

@@ -13,7 +13,7 @@ public class AccessDeniedExceptionStrategy extends AbstractExceptionResponseStra
 
   @Override
   protected ExceptionResponse createErrorResponse(AccessDeniedException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

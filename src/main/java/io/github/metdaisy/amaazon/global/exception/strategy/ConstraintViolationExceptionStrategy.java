@@ -38,7 +38,7 @@ public class ConstraintViolationExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(ConstraintViolationException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

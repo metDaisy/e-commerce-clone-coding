@@ -1,16 +1,16 @@
 package io.github.metdaisy.amaazon.support;
 
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import io.github.metdaisy.amaazon.global.exception.ApiExceptionHandler;
 import io.github.metdaisy.amaazon.global.exception.SecurityExceptionHandler;
 import io.github.metdaisy.amaazon.global.exception.strategy.ExceptionStrategyFactory;
+import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import io.github.metdaisy.amaazon.global.web.config.WebMvcConfig;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
+import io.github.metdaisy.amaazon.global.web.interceptor.EnabledUserInterceptor;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,13 +21,17 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
 @Import({ApiExceptionHandler.class, SecurityExceptionHandler.class, ExceptionStrategyFactory.class,
-    WebMvcConfig.class})
+    WebMvcConfig.class, EnabledUserInterceptor.class})
 public abstract class RestControllerTest {
+
+  @MockitoBean
+  protected UserQueryApi userQueryApi;
 
   protected static final String API_PREFIX = WebConstants.SERVLET_PREFIX;
   protected static final UUID USER_ID =
@@ -50,10 +54,9 @@ public abstract class RestControllerTest {
   }
 
   protected void authenticateAs(UUID userId) {
-    AmaazonPrincipal principal = mock(AmaazonPrincipal.class);
-    given(principal.getId()).willReturn(userId);
+    JwtPrincipal principal = new JwtPrincipal(userId.toString(), "USER");
     SecurityContextHolder.getContext().setAuthentication(
-        new UsernamePasswordAuthenticationToken(principal, null));
+        new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
   }
 
   protected MockHttpServletRequestBuilder postJson(String url, Object body) throws Exception {

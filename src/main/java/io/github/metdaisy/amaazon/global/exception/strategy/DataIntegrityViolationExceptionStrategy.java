@@ -24,7 +24,7 @@ public class DataIntegrityViolationExceptionStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(DataIntegrityViolationException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

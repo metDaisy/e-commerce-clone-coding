@@ -33,7 +33,7 @@ User가 소유하고 직접 관리하는 배송지 리소스다. Address는 User
 _Avoid_: 주문이 현재 Address를 실시간 참조함, User 프로필의 단순 문자열 주소
 
 **Role Set**:
-User가 동시에 보유하는 접근 권한의 집합이다. `USER`는 기본 구매자 역할이고, 활성 Seller가 있으면 `PRODUCT_MANAGER`를 추가하며, 플랫폼 운영자는 `ADMIN`을 추가한다. 역할 추가·삭제는 기존 역할을 교체하지 않는다. API와 이벤트 payload에서는 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한 문자열로 표현한다.
+User가 동시에 보유하는 접근 권한의 집합이다. `USER`는 기본 구매자 역할이고, 활성 Seller가 있으면 `PRODUCT_MANAGER`를 추가하며, 플랫폼 운영자는 `ADMIN`을 추가한다. 역할 추가·삭제는 기존 역할을 교체하지 않는다. User API 응답에서는 JSON 배열로, JWT와 이벤트 payload에서는 `USER,PRODUCT_MANAGER`처럼 쉼표로 구분한 문자열로 표현한다.
 _Avoid_: single role, role replacement
 
 **Seller**:

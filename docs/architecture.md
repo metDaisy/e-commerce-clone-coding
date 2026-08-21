@@ -22,6 +22,7 @@ flowchart LR
         Web
         Auth[auth]
         User[user]
+        Address[address]
         Catalog[catalog]
         Seller[seller]
         Common[common]
@@ -41,6 +42,7 @@ flowchart LR
 src/main/java/io/github/metdaisy/amaazon/
   auth/       인증 수단, 로그인, JWT 연계
   user/       사용자 프로필과 역할
+  address/    사용자 배송지 원본과 기본 배송지
   catalog/    카탈로그 상품과 카테고리
   seller/     판매자 조회와 판매자 검증 seam
   common/     모듈 공통 타입과 기반 인터페이스
@@ -73,7 +75,7 @@ docs/             요구사항, 설계, 상태 문서
 |---|---|---|
 | `common` | 공통 인증 주체, 저장소·매퍼·예외 기반 타입 | 없음 |
 | `global` | Spring 설정, 공통 보안/JWT, 캐시, 웹 필터, Outbox 기반 | `common::*` |
-| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::user-api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
+| `auth` | 로컬·소셜 인증수단, 토큰, 블랙리스트, 회원가입 진입점 | `common::*`, `user::api`, `global::jwt`, `global::blacklist`, `global::login-policy` |
 | `user` | 프로필, 역할, 활성 상태 | `common::*`, `auth::signup`, `auth::password` |
 | `catalog` | CatalogProduct·ProductVariant와 카테고리·태그, 카탈로그 조회 | `common::*` |
 | `seller` | Seller와 판매자 조회 | `common::*` |
@@ -82,8 +84,8 @@ docs/             요구사항, 설계, 상태 문서
 
 현재 공개된 주요 `@NamedInterface`는 다음과 같다.
 
-- `user::user-api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
-- `UserRolesChangedEvent`: User가 역할 집합 변경 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
+- `user::api`: 인증 모듈이 사용자 존재 여부, 역할, 활성 상태를 조회하는 동기 seam.
+- `UserRolesChangedEvent`, `UserDeactivatedEvent`: User가 역할 변경·계정 비활성화 사실을 발행하고 Auth가 전체 로그인 세션을 무효화하는 공개 이벤트 계약.
 - `seller::api`: 카탈로그 모듈이 판매자 존재 여부와 활성 상태를 조회하는 동기 seam.
 - 역할 집합은 `USER`(기본 구매자), `PRODUCT_MANAGER`(활성 Seller를 가진 User의 추가 판매자 역할), `ADMIN`(플랫폼 운영자)으로 구성한다. 역할은 독립적으로 보유할 수 있고 `USER`는 다른 역할을 추가해도 유지한다.
 - `auth::signup`: `SignUpTask`를 통해 프로필 생성을 요청하는 현재 회원가입 seam.
@@ -107,6 +109,13 @@ Media 파일은 특정 도메인의 엔티티가 아니라 공통 인프라에 �
 - P10은 Review Media attachment의 Review 연결, 최대 개수, 정렬과 Review 숨김 시 공개 처리 규칙을 소유한다.
 - P2와 P10은 서로의 Media 도메인·Repository·infra 구현을 참조하지 않는다. 두 모듈은 `MediaStoragePort`만 사용한다.
 - 공통 저장소의 `mediaId`, storage key, public URL은 저장 기술을 추상화한 값이며, Media attachment의 소유자와 허용 규칙은 각 도메인이 검증한다.
+
+## User와 Auth의 프로필 조회 조합
+
+- P1 User는 프로필·역할·활성 상태만 소유하고, P11 Auth가 소유하는 `loginEmail`을 P1 응답에 포함하지 않는다.
+- P11 `GET /api/v1/auth/me/credential-summary`는 재인증된 사용자에게만 nullable `loginEmail`을 제공한다. 비밀번호·OAuth 식별자·토큰은 반환하지 않는다.
+- SPA CSR 클라이언트는 P1 프로필 조회와 P11 인증수단 요약 조회를 병렬 호출해 화면 모델을 조합한다. 어느 한 요청의 재인증이 실패하면 부분 결과를 표시하지 않고 재인증을 유도한다.
+- Auth는 현재 역할·활성 상태 확인을 위해 User의 작은 공개 seam을 동기 조회할 수 있다. User는 단순한 프로필 보강을 위해 Auth를 동기 조회하지 않는다. 복수 클라이언트의 조합이 반복될 때에만 BFF/Account composition API를 도입한다. 자세한 결정은 [ADR-0014](adr/0014-csr-profile-composition-and-auth-user-query-direction.md)를 따른다.
 
 ## 현재 회원가입 흐름
 
@@ -175,7 +184,7 @@ sequenceDiagram
 - 사용자 역할 집합 변경은 `UserRolesChangedEvent`로 통지하고, 이벤트 Outbox 기록은 역할 집합 변경과 같은 트랜잭션으로 저장한다.
 - 모듈 간 동기 조회: 필요성이 명확할 때만 작은 Named Interface seam.
 - 외부 결제·스토리지: 도메인 인터페이스 뒤의 adapter로 격리한다.
-- 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다.
+- 이벤트 소비자는 동일 이벤트가 여러 번 전달되어도 결과가 중복되지 않아야 한다. User 비활성화 이벤트의 업무 식별자는 `eventId`이며, Auth는 해당 이벤트를 사용자 단위 세션 무효화로 처리한다.
 
 ## 예외 처리
 

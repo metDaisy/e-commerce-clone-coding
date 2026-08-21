@@ -1,15 +1,16 @@
 package io.github.metdaisy.amaazon.auth.application.service;
 
-import io.github.metdaisy.amaazon.auth.application.dto.AuthUserDto;
 import io.github.metdaisy.amaazon.auth.application.dto.JwtLoginDto;
 import io.github.metdaisy.amaazon.auth.application.event.JwtTokenCompromisedEvent;
-import io.github.metdaisy.amaazon.auth.application.port.out.AuthUserPort;
 import io.github.metdaisy.amaazon.auth.domain.entity.RefreshToken;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.repository.RefreshTokenRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.provider.JwtTokenProvider;
+import io.github.metdaisy.amaazon.user.application.dto.UserDto;
+import io.github.metdaisy.amaazon.user.application.port.in.UserQueryApi;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthTokenService {
 
   private final RefreshTokenRepository repository;
-  private final AuthUserPort userPort;
+  private final UserQueryApi userQueryApi;
   private final JwtTokenProvider provider;
   private final JwtTokenExpiration jwtTokenExpiration;
   private final ApplicationEventPublisher eventPublisher;
@@ -36,19 +37,19 @@ public class AuthTokenService {
     String jti = provider.parseJti(token);
     RefreshToken tokenEntity = repository.findByToken(jti)
         .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_NOT_FOUND,
-            Map.of("refreshToken", token)));
+            AmaazonExceptionContext.logDetails(Map.of("refreshToken", token))));
     validateTokenEntity(tokenEntity, jti);
-    AuthUserDto userDto = userPort.loadUser(tokenEntity.getUserId())
+    UserDto userDto = userQueryApi.findById(tokenEntity.getUserId())
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("userId", tokenEntity.getUserId())));
+            AmaazonExceptionContext.logDetails(Map.of("userId", tokenEntity.getUserId()))));
     return issueTokens(userDto, tokenEntity::reissue);
   }
 
   @Transactional
   public JwtLoginDto create(UUID userId, String device) {
-    AuthUserDto userDto = userPort.loadUser(userId)
+    UserDto userDto = userQueryApi.findById(userId)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_NOT_FOUND,
-            Map.of("userId", userId)));
+            AmaazonExceptionContext.logDetails(Map.of("userId", userId))));
     return issueTokens(userDto, (jti, expiredAt) -> {
       RefreshToken tokenEntity = RefreshToken.of(userId, device, jti, expiredAt);
       repository.save(tokenEntity);
@@ -66,20 +67,24 @@ public class AuthTokenService {
     if (tokenEntity.isCompromised(jti)) {
       eventPublisher.publishEvent(new JwtTokenCompromisedEvent(userId, Instant.now()));
       throw new AuthException(AuthErrorCode.TOKEN_COMPROMISED,
-          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId, "jti", jti, "device", tokenEntity.getDeviceId(),
+              "reason", "TOKEN_COMPROMISED")));
     }
     if (!tokenEntity.isCurrentToken(jti)) {
       throw new AuthException(AuthErrorCode.TOKEN_EXPIRED,
-          Map.of("userId", userId, "jti", jti, "device", tokenEntity.getDeviceId()));
+          AmaazonExceptionContext.logDetails(Map.of(
+              "userId", userId, "jti", jti, "device", tokenEntity.getDeviceId(),
+              "reason", "TOKEN_EXPIRED")));
     }
   }
 
-  private JwtLoginDto issueTokens(AuthUserDto userDto, BiConsumer<String, Instant> tokenAction) {
-    String accessToken = provider.generateAccessToken(userDto.id(), userDto.role());
+  private JwtLoginDto issueTokens(UserDto userDto, BiConsumer<String, Instant> tokenAction) {
+    String accessToken = provider.generateAccessToken(userDto.id(), userDto.rolesCsv());
     String refreshToken = provider.generateRefreshToken(userDto.id());
     String jti = provider.parseJti(refreshToken);
     Instant expiredAt = Instant.now().plus(jwtTokenExpiration.refreshExpiration());
     tokenAction.accept(jti, expiredAt);
-    return new JwtLoginDto(userDto.id(), accessToken, refreshToken);
+    return new JwtLoginDto(userDto.id(), userDto.roles(), accessToken, refreshToken);
   }
 }

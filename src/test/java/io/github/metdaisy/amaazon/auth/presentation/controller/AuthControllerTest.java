@@ -25,6 +25,7 @@ import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,8 @@ class AuthControllerTest extends RestControllerTest {
     String refreshToken = "valid-refresh-token";
     String newRefreshToken = "new-refresh-token";
     String accessToken = "new-access-token";
-    JwtLoginDto loginDto = new JwtLoginDto(USER_ID, accessToken, newRefreshToken);
+    JwtLoginDto loginDto = new JwtLoginDto(
+        USER_ID, List.of("USER"), accessToken, newRefreshToken);
     given(authTokenService.reissue(refreshToken)).willReturn(loginDto);
     given(authCookieProvider.createRefreshTokenCookie(newRefreshToken)).willReturn(
         ResponseCookie.from(AuthWebConstants.REFRESH_TOKEN, newRefreshToken)
@@ -72,6 +74,8 @@ class AuthControllerTest extends RestControllerTest {
             .cookie(new Cookie(AuthWebConstants.REFRESH_TOKEN, refreshToken)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
+        .andExpect(jsonPath("$.roles").isArray())
+        .andExpect(jsonPath("$.roles[0]").value("USER"))
         .andExpect(jsonPath("$.accessToken").value(accessToken))
         .andExpect(header().string(HttpHeaders.SET_COOKIE,
             containsString(AuthWebConstants.REFRESH_TOKEN + "=" + newRefreshToken)));
@@ -100,7 +104,7 @@ class AuthControllerTest extends RestControllerTest {
     mockMvc.perform(post(AUTH_URL + "/refresh")
             .cookie(new Cookie(AuthWebConstants.REFRESH_TOKEN, refreshToken)))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionType").value("AUTH-003"))
+        .andExpect(jsonPath("$.exceptionCode").value("AUTH-003"))
         .andExpect(jsonPath("$.message").value("refreshToken DB 에서 해당 토큰을 찾을 수 없습니다."));
 
     verify(authCookieProvider, never()).createRefreshTokenCookie(any());
@@ -126,7 +130,7 @@ class AuthControllerTest extends RestControllerTest {
 
     mockMvc.perform(postJson(AUTH_URL + "/password/verify", request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
         .andExpect(jsonPath("$.details.password", hasItem(expectedMessage)));
 
     verify(authService, never()).verifyPassword(any(), any());
@@ -141,7 +145,7 @@ class AuthControllerTest extends RestControllerTest {
 
     mockMvc.perform(postJson(AUTH_URL + "/password/verify", request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("AUTH-009"))
+        .andExpect(jsonPath("$.exceptionCode").value("AUTH-009"))
         .andExpect(jsonPath("$.message").value("비밀번호가 일치하지 않습니다."));
   }
 
@@ -165,7 +169,7 @@ class AuthControllerTest extends RestControllerTest {
       throws Exception {
     mockMvc.perform(postJson(AUTH_URL + "/update", request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
         .andExpect(jsonPath("$.details." + field, hasItem(expectedMessage)));
 
     verify(authService, never()).update(any(), any());
@@ -190,7 +194,7 @@ class AuthControllerTest extends RestControllerTest {
       throws Exception {
     mockMvc.perform(postJson(AUTH_URL + "/signup", request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
         .andExpect(jsonPath("$.details." + field, hasItem(expectedMessage)));
 
     verify(authService, never()).create(any());
@@ -205,7 +209,7 @@ class AuthControllerTest extends RestControllerTest {
 
     mockMvc.perform(postJson(AUTH_URL + "/signup", request))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.exceptionType").value("AUTH-004"))
+        .andExpect(jsonPath("$.exceptionCode").value("AUTH-004"))
         .andExpect(jsonPath("$.message").value("이미 가입된 이메일입니다."));
   }
 

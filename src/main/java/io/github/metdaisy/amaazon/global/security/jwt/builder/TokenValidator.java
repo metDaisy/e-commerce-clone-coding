@@ -1,16 +1,16 @@
 package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
-import java.util.Date;
-import java.util.Map;
-import org.springframework.stereotype.Component;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jwt.SignedJWT;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
 import java.util.Date;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 /**
  * JWT 토큰의 유효성을 검증하는 검증기입니다. 서명 검증, 만료 시간 검증, 클레임 검증을 담당합니다.
@@ -44,7 +44,8 @@ public class TokenValidator {
    */
   public void validateExpiration(ParsedToken token) {
     if (token.expirationTime() == null) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "토큰 유효기간을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("토큰 유효기간을 찾을 수 없습니다."));
     }
     if (token.expirationTime().before(new Date())) {
       throw new JwtException(JwtErrorCode.TOKEN_EXPIRED);
@@ -56,7 +57,8 @@ public class TokenValidator {
       return SignedJWT.parse(token);
     } catch (Exception e) {
       log.error("JWT 토큰 파싱 실패", e);
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("token", token));
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.logDetails(Map.of("token", token)));
     }
   }
 
@@ -72,7 +74,8 @@ public class TokenValidator {
     try {
       Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
       if (expirationTime == null) {
-        throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "claim 파싱을 할 수 없습니다.");
+        throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+            AmaazonExceptionContext.systemMessage("claim 파싱을 할 수 없습니다."));
       }
       if (expirationTime.before(new Date())) {
         throw new JwtException(JwtErrorCode.TOKEN_EXPIRED);
@@ -81,7 +84,8 @@ public class TokenValidator {
       throw e;
     } catch (Exception e) {
       log.error("JWT 만료 시간 검증 실패", e);
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "만료 시간 파싱 실패");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("만료 시간 파싱 실패"));
     }
   }
 }

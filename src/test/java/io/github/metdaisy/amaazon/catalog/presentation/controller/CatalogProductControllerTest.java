@@ -71,7 +71,7 @@ class CatalogProductControllerTest extends RestControllerTest {
 
     mockMvc.perform(postJson(PRODUCTS_URL, request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"));
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"));
 
     then(service).should(never()).create(any(CatalogProductCreateRequest.class));
   }
@@ -113,7 +113,7 @@ class CatalogProductControllerTest extends RestControllerTest {
             .contentType("application/json")
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionType").value("INVALID_INPUT"));
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"));
 
     then(service).should(never()).update(any(UUID.class), any(CatalogProductUpdateRequest.class));
   }

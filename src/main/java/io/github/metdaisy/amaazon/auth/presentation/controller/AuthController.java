@@ -9,6 +9,7 @@ import io.github.metdaisy.amaazon.auth.presentation.constant.AuthWebConstants;
 import io.github.metdaisy.amaazon.auth.presentation.controller.dto.request.PasswordValidationRequest;
 import io.github.metdaisy.amaazon.auth.presentation.provider.AuthCookieProvider;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -47,6 +48,7 @@ public class AuthController {
   }
 
   @PostMapping("/password/verify")
+  @RequireEnabledUser
   public ResponseEntity<Void> verifyPassword(
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @RequestBody @Valid PasswordValidationRequest request) {
@@ -55,6 +57,7 @@ public class AuthController {
   }
 
   @PostMapping("/update")
+  @RequireEnabledUser
   public ResponseEntity<Void> update(
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @RequestBody @Valid UserCredentialUpdateRequest request) {

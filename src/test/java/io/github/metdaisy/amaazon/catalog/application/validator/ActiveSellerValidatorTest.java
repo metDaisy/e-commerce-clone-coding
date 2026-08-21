@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.then;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.port.out.CatalogSellerPort;
-import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
+import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import java.util.UUID;
 import org.aspectj.lang.JoinPoint;
 import org.junit.jupiter.api.AfterEach;
@@ -25,9 +25,6 @@ class ActiveSellerValidatorTest {
 
   @Mock
   private CatalogSellerPort sellerPort;
-
-  @Mock
-  private AmaazonPrincipal principal;
 
   @Mock
   private JoinPoint joinPoint;
@@ -77,11 +74,8 @@ class ActiveSellerValidatorTest {
   }
 
   private void authenticateAs(String role, UUID id) {
-    given(principal.getRole()).willReturn(role);
-    if (!"ADMIN".equals(role)) {
-      given(principal.getId()).willReturn(id);
-    }
+    JwtPrincipal principal = new JwtPrincipal(id.toString(), role);
     SecurityContextHolder.getContext().setAuthentication(
-        new UsernamePasswordAuthenticationToken(principal, null));
+        new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
   }
 }

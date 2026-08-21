@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.core.convert.converter.Converter;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 
 public enum OAuth2Provider implements Converter<Map<String, Object>, Map<String, Object>> {
     GOOGLE {
@@ -70,6 +71,6 @@ public enum OAuth2Provider implements Converter<Map<String, Object>, Map<String,
                 .filter(provider -> provider.getProvider().equalsIgnoreCase(registrationId))
                 .findFirst()
                 .orElseThrow(() -> new AuthException(AuthErrorCode.UNSUPPORTED_PROVIDER,
-                        Map.of("provider", registrationId)));
+                        AmaazonExceptionContext.logDetails(Map.of("provider", registrationId))));
     }
 }

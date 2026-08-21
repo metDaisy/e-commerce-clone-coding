@@ -3,6 +3,7 @@ package io.github.metdaisy.amaazon.catalog.domain.entity;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ProductPublicationStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -118,7 +119,7 @@ public class CatalogProduct extends MutableEntity {
   public void validateActive() {
     if (publicationStatus.equals(ProductPublicationStatus.ARCHIVED)) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_PRODUCT_ARCHIVED,
-          Map.of("catalogId", getId()));
+          AmaazonExceptionContext.logDetails(Map.of("catalogId", getId())));
     }
   }
 

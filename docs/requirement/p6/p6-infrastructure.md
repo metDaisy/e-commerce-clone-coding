@@ -109,6 +109,7 @@ Order PENDING
 | `OrderCanceledEvent` | Order | Coupon, Point | 쿠폰·포인트 복원 후속 작업 |
 | `DeliveryCompletedEvent` | Delivery | Point, Review | 적립·리뷰 자격 활성화 |
 | `UserRolesChangedEvent` | User | Auth | 역할 변경 후 세션 무효화 |
+| `UserDeactivatedEvent` | User | Auth | 계정 비활성화 후 세션 무효화 |
 
 - 각 소비자는 자기 모듈의 로컬 트랜잭션만 처리한다.
 - 보상 이벤트도 일반 이벤트와 동일하게 publication 재처리·멱등성 규칙을 적용한다.

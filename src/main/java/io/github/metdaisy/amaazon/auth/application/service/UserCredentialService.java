@@ -5,6 +5,7 @@ import io.github.metdaisy.amaazon.auth.domain.exception.AuthErrorCode;
 import io.github.metdaisy.amaazon.auth.domain.exception.AuthException;
 import io.github.metdaisy.amaazon.auth.domain.exception.UserCredentialAuthenticationException;
 import io.github.metdaisy.amaazon.auth.domain.repository.UserCredentialRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.config.LoginPolicyProperties;
 import java.time.Instant;
 import java.util.Map;
@@ -37,14 +38,15 @@ public class UserCredentialService {
     validateEmail(email);
     UserCredential credential = repository.findById(id)
         .orElseThrow(() -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
-            Map.of("userId", id)));
+            AmaazonExceptionContext.logDetails(Map.of("userId", id))));
     credential.updateEmail(email);
     credential.updatePassword(passwordEncoder.encode(password));
   }
 
   public void verifyPassword(UUID id, String password) {
     UserCredential credential = repository.findById(id).orElseThrow(
-        () -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND, Map.of("userId", id)));
+        () -> new AuthException(AuthErrorCode.USER_CREDENTIAL_NOT_FOUND,
+            AmaazonExceptionContext.logDetails(Map.of("userId", id))));
     credential.validatePassword(encoded -> passwordEncoder.matches(password, encoded));
   }
 
@@ -67,7 +69,8 @@ public class UserCredentialService {
       return;
     }
     if (repository.existsByEmail(email)) {
-      throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS, Map.of("email", email));
+      throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS,
+          AmaazonExceptionContext.logDetails(Map.of("email", email)));
     }
   }
 }

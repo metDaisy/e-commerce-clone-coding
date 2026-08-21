@@ -164,7 +164,7 @@ P2 심화 문서:
 
 - 인증이 필요한 API는 HttpOnly Secure 쿠키의 Access Token을 사용한다.
 - Access Token이 없거나 유효하지 않으면 `401 AUTH-001`이다.
-- 비활성 계정으로 인증된 요청은 `403 AUTH-002`이다. 관리자 권한 부족은 [P7 Admin](p7/p7-admin.md)의 `ADMIN-001`을 따른다.
+- 비활성 User로 인증된 요청은 [P1 User의 `USER-004`](p1/p1-user.md#user-disabled-error)를 따른다. 관리자 권한 부족은 [P7 Admin](p7/p7-admin.md)의 `ADMIN-001`을 따른다.
 - 자기 소유 리소스가 아니면 리소스 존재 여부를 노출하지 않고 `403`으로 처리할 수 있다.
 
 ### 공통 트랜잭션·멱등성

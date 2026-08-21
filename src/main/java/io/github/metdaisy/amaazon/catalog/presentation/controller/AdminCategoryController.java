@@ -4,6 +4,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreate
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryCommandService;
+import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/categories")
+@RequireEnabledUser
 @RequiredArgsConstructor
 public class AdminCategoryController {
 

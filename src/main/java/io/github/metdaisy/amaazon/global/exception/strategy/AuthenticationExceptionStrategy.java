@@ -13,7 +13,7 @@ public class AuthenticationExceptionStrategy extends AbstractExceptionResponseSt
 
   @Override
   protected ExceptionResponse createErrorResponse(AuthenticationException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override

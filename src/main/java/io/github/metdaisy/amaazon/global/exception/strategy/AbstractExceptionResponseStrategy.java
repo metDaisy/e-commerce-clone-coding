@@ -24,7 +24,8 @@ public abstract class AbstractExceptionResponseStrategy<T extends Exception>
 
   protected void logExceptionMessage(T exception) {
     if (hasExceptionMessage()) {
-      log.warn(exception.toString());
+      log.warn("exceptionType={}, systemMessage={}",
+          exception.getClass().getSimpleName(), exception.getMessage());
     }
   }
 

@@ -50,6 +50,40 @@ Grant는 User·목적·만료 시각에 묶이며 만료 전에는 세 P1 보호
 
 ## 3. API 정의
 
+### 3-0. 내 인증수단 요약 조회
+
+`GET /api/v1/auth/me/credential-summary`
+
+권한: 로그인 사용자 + `USER_ACCOUNT_MANAGEMENT` 목적의 유효한 `__Host-REAUTH` 쿠키
+
+P1 User 프로필 화면이 Auth 소유 정보를 표시할 때 사용하는 공개 계약이다. SPA CSR 클라이언트는 P1 `GET /api/v1/me`와 이 API를 병렬 호출해 UI 전용 화면 모델을 조합한다. P1 User는 이 정보를 얻기 위해 Auth를 동기 조회하지 않는다.
+
+#### 성공 응답: `200 OK`
+
+```json
+{
+  "loginEmail": "user@example.com"
+}
+```
+
+로컬 `UserCredential`이 없는 소셜 전용 User는 다음처럼 반환한다.
+
+```json
+{
+  "loginEmail": null
+}
+```
+
+비밀번호, 해시, OAuth 공급자·식별자, 토큰, 재인증 Grant 값은 반환하지 않는다.
+
+#### 예외
+
+| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
+|---:|---|---|---|---|---|
+| 401 | `AUTH-001` | Access Token이 없거나 유효하지 않음 | 로그인이 필요합니다. | 없음 | 인증 실패와 requestId |
+| 401 | `AUTH-026` | 재인증 Grant 쿠키가 없거나 만료·변조·무효화됨 | 추가 인증이 필요합니다. | `purpose=USER_ACCOUNT_MANAGEMENT` | User와 Grant 검증 원인 |
+| 403 | [`USER-004`](../p1/p1-user.md#user-disabled-error) | — | — | — | — |
+
 ### 3-1. 기존 비밀번호 검증
 
 `POST /api/v1/auth/password/verify`

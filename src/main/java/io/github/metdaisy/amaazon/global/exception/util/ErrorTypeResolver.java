@@ -10,6 +10,7 @@ public class ErrorTypeResolver {
     return switch (errorType) {
       case BAD_REQUEST, UNSUPPORTED -> HttpStatus.BAD_REQUEST;
       case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+      case FORBIDDEN -> HttpStatus.FORBIDDEN;
       case NOT_FOUND -> HttpStatus.NOT_FOUND;
       case CONFLICT -> HttpStatus.CONFLICT;
       case INTERNAL_SERVER_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR;

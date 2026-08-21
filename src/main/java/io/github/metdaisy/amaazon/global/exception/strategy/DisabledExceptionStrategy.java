@@ -20,11 +20,11 @@ public class DisabledExceptionStrategy extends AbstractExceptionResponseStrategy
 
   @Override
   protected ExceptionResponse createErrorResponse(DisabledException exception) {
-    return ExceptionResponse.from(exception);
+    return ExceptionResponse.from(exception, getHttpStatus(exception));
   }
 
   @Override
   protected HttpStatus getHttpStatus(DisabledException exception) {
-    return HttpStatus.NOT_FOUND;
+    return HttpStatus.FORBIDDEN;
   }
 }

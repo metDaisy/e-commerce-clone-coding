@@ -30,7 +30,8 @@ public class NoResourceFoundExceptionStrategy extends AbstractExceptionResponseS
 
   @Override
   protected ExceptionResponse createErrorResponse(NoResourceFoundException exception) {
-    return new ExceptionResponse("NOT_FOUND", "요청하신 리소스를 찾을 수 없습니다.", null);
+    return ExceptionResponse.of(
+        getHttpStatus(exception), "NOT_FOUND", "요청하신 리소스를 찾을 수 없습니다.", null);
   }
 
   @Override

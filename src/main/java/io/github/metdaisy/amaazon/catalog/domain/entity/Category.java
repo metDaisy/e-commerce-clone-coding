@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -82,7 +83,7 @@ public class Category extends MutableEntity {
     while (current != null) {
       if (current == this || (getId() != null && getId().equals(current.getId()))) {
         throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
-            Map.of("categoryId", getId()));
+          AmaazonExceptionContext.logDetails(Map.of("categoryId", getId())));
       }
       current = current.parent;
     }

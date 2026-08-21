@@ -23,8 +23,11 @@ public class TaskRejectedExceptionStrategy extends AbstractExceptionResponseStra
 
   @Override
   protected ExceptionResponse createErrorResponse(TaskRejectedException exception) {
-    return new ExceptionResponse("SERVICE_UNAVAILABLE",
-        "현재 수집 작업이 많아 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.", null);
+    return ExceptionResponse.of(
+        getHttpStatus(exception),
+        "SERVICE_UNAVAILABLE",
+        "현재 수집 작업이 많아 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        null);
   }
 
   @Override

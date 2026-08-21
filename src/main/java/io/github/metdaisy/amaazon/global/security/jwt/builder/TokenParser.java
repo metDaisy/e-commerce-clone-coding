@@ -1,11 +1,12 @@
 package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
-import java.time.Instant;
-import java.util.Map;
 import com.nimbusds.jwt.SignedJWT;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
+import java.time.Instant;
+import java.util.Map;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,7 +26,8 @@ public class TokenParser {
       return ParsedToken.from(signedJWT.getJWTClaimsSet());
     } catch (Exception e) {
       log.error("JWT 토큰 파싱 실패", e);
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, Map.of("token", token));
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.logDetails(Map.of("token", token)));
     }
   }
 
@@ -34,7 +36,8 @@ public class TokenParser {
    */
   public String parseJti(ParsedToken token) {
     if (token.jti() == null) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "JTI를 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("JTI를 찾을 수 없습니다."));
     }
     return token.jti();
   }
@@ -44,7 +47,8 @@ public class TokenParser {
    */
   public Instant parseIssueTime(ParsedToken token) {
     if (token.issueTime() == null) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "IssuedAt을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("IssuedAt을 찾을 수 없습니다."));
     }
     return token.issueTime().toInstant();
   }
@@ -54,11 +58,13 @@ public class TokenParser {
    */
   public String parseClaim(ParsedToken token, String key) {
     if (token.otherClaims() == null) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, key + " 클레임을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage(key + " 클레임을 찾을 수 없습니다."));
     }
     Object claim = token.otherClaims().get(key);
     if (claim == null) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, key + " 클레임을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage(key + " 클레임을 찾을 수 없습니다."));
     }
     return claim.toString();
   }

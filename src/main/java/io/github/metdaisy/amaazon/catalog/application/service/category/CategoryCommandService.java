@@ -8,6 +8,7 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,7 +48,8 @@ public class CategoryCommandService {
 
   private Category findById(UUID id) {
     return repository.findById(id).orElseThrow(() -> new CatalogProductException(
-        CatalogProductErrorCode.CATEGORY_NOT_FOUND, Map.of("categoryId", id)));
+        CatalogProductErrorCode.CATEGORY_NOT_FOUND,
+        AmaazonExceptionContext.logDetails(Map.of("categoryId", id))));
   }
 
   private Category findParent(UUID parentId) {
@@ -57,7 +59,7 @@ public class CategoryCommandService {
   private void validateDepth(int depth) {
     if (depth > 3) {
       throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_DEPTH_EXCEEDED,
-          Map.of("depth", depth));
+          AmaazonExceptionContext.logDetails(Map.of("depth", depth)));
     }
   }
 
@@ -66,7 +68,8 @@ public class CategoryCommandService {
     while (current != null) {
       if (Objects.equals(current.getId(), category.getId())) {
         throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
-            Map.of("categoryId", category.getId(), "parentId", parent.getId()));
+            AmaazonExceptionContext.logDetails(Map.of(
+                "categoryId", category.getId(), "parentId", parent.getId())));
       }
       current = current.getParent();
     }

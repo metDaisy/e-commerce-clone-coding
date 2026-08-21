@@ -1,7 +1,9 @@
 package io.github.metdaisy.amaazon.global.security.jwt.builder;
 
+import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtErrorCode;
 import io.github.metdaisy.amaazon.global.security.jwt.exception.JwtException;
+import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import io.github.metdaisy.amaazon.global.security.jwt.model.ParsedToken;
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,8 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 
 /**
@@ -26,11 +26,12 @@ public class AuthenticationBuilder {
   public Authentication buildAuthentication(ParsedToken token, String tokenString) {
     String authClaim = token.role();
     if (!StringUtils.hasText(authClaim)) {
-      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED, "payload에서 role을 찾을 수 없습니다.");
+      throw new JwtException(JwtErrorCode.TOKEN_PARSE_FAILED,
+          AmaazonExceptionContext.systemMessage("payload에서 role을 찾을 수 없습니다."));
     }
 
     Collection<? extends GrantedAuthority> authorities = parseAuthorities(authClaim);
-    UserDetails principal = new User(token.subject(), "", authorities);
+    JwtPrincipal principal = new JwtPrincipal(token.subject(), authClaim);
     return new UsernamePasswordAuthenticationToken(principal, tokenString, authorities);
   }
 

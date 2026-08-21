@@ -7,12 +7,12 @@ import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProduc
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/catalog-products")
+@RequireEnabledUser
 @RequiredArgsConstructor
 public class CatalogProductController {
 
