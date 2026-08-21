@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -42,6 +43,7 @@ public class Category extends MutableEntity {
 
   @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY,
       cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("name asc, id asc")
   private List<Category> children = new ArrayList<>();
 
   private Category(String name, Category parent, Integer depth, List<Category> children) {
