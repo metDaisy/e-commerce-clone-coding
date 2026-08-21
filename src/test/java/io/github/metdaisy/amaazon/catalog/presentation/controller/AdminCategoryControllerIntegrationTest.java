@@ -88,7 +88,7 @@ class AdminCategoryControllerIntegrationTest extends BaseIntegrationTest {
             .content(objectMapper.writeValueAsString(
                 new CategoryCreateRequest("Electronics", null))))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-012"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-004"));
     // then
     assertThat(categoryRepository.count()).isEqualTo(1);
   }

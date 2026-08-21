@@ -59,7 +59,7 @@ class CategoryControllerTest extends RestControllerTest {
     // when & then
     mockMvc.perform(get(CATEGORIES_URL))
         .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-001"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-003"));
 
   }
 }

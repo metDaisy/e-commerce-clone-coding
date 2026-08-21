@@ -145,7 +145,7 @@ class AdminCategoryControllerTest extends RestControllerTest {
     // when & then
     mockMvc.perform(postJson(CATEGORIES_URL, request))
         .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-012"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-004"));
   }
 
 }

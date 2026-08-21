@@ -247,6 +247,32 @@ class CategoryJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
+  @DisplayName("카테고리 전체 조회: depth·부모·이름·ID 순서로 정렬한다")
+  void findAll_returnsCategoriesInDocumentedOrder() {
+    // given
+    Category zetaRoot = persistAndFlush(Category.of("Zeta", null));
+    persistAndFlush(Category.of("Alpha", null));
+    persistAndFlush(Category.of("Zebra", zetaRoot));
+    Category alphaChild = persistAndFlush(Category.of("Alpha Child", zetaRoot));
+    persistAndFlush(Category.of("Nested", alphaChild));
+    clear();
+
+    // when
+    List<Category> categories = repository.findAll();
+
+    // then
+    assertThat(categories).extracting(Category::getName)
+        .containsExactly("Alpha", "Zeta", "Alpha Child", "Zebra", "Nested");
+    Category loadedZetaRoot = categories.stream()
+        .filter(category -> category.getName().equals("Zeta"))
+        .findFirst()
+        .orElseThrow();
+    assertThat(loadedZetaRoot.getChildren()).extracting(Category::getName)
+        .containsExactly("Alpha Child", "Zebra");
+    ensureQueryCount(1);
+  }
+
+  @Test
   @DisplayName("카테고리 전체 조회: 여러 단계의 모든 필드와 children을 재귀적으로 접근해도 한 번 조회한다")
   void findAll_fetchesAllFieldsOfMultipleLevelHierarchyInOneQuery() {
     // given
