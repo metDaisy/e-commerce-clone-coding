@@ -67,7 +67,7 @@
 
 - 클라이언트는 재인증 성공 후 P11이 발급한 `__Host-REAUTH` 쿠키를 자동으로 전송한다. P1 API마다 비밀번호를 다시 보내지 않는다.
 - 쿠키는 재인증 성공 시점부터 30분 동안 세 P1 보호 API에 재사용할 수 있다. 만료·변조·무효화된 쿠키는 거절하고 다시 재인증을 요구한다.
-- 쿠키는 `Secure; HttpOnly; SameSite=Strict; Path=/` 속성을 사용한다. 쿠키 기반 상태 변경 요청에는 CSRF 방어를 적용한다.
+- 쿠키는 `Secure; HttpOnly; SameSite=Strict; Path=/` 속성을 사용한다. P1 보호 API는 Access Token을 `Authorization: Bearer` 헤더로 인증하고 `__Host-REAUTH` 쿠키는 보조적인 재인증 Grant로만 사용하므로, P1은 CSRF 토큰을 요구하지 않는다. 향후 쿠키만으로 인증하는 구조나 BFF를 도입하면 상태 변경 요청에 CSRF 토큰 또는 동등한 Origin/Fetch Metadata 검증을 적용한다.
 - P1은 비밀번호 원문이나 OAuth 공급자 응답을 받거나 저장하지 않는다. 재인증의 검증과 Grant 발급은 P11이 소유한다.
 - 로컬 인증수단이 있는 User는 기존 비밀번호를 입력한다. OAuth 전용 User는 연결된 OAuth 공급자의 새 인증을 완료한다. 세부 절차는 [P11 Credential API](../p11/p11-credential.md#3-3-민감-작업-재인증)를 따른다.
 
