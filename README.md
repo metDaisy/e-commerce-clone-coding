@@ -12,7 +12,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 
 실제 서비스의 용어와 흐름을 참고하되, 구현 난이도를 관리하기 위해 기본 요구사항과 심화사항을 분리합니다. 현재 목표는 기본 요구사항을 먼저 구현하고, 이후 구조를 크게 바꾸지 않고 심화사항으로 확장하는 것입니다.
 
-주요 도메인은 다음과 같습니다.
+주요 목표 도메인은 다음과 같습니다. 현재 구현 여부는 [현재 구현 상태](./docs/current-state.md)에서 확인합니다.
 
 - 회원가입·로그인·소셜 인증 및 사용자 프로필
 - CatalogProduct, ProductVariant, Offer, Inventory 기반 상품·재고 관리
@@ -21,7 +21,7 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 - Outbox·Saga 기반 이벤트 처리
 - 관리자 운영 기능 및 판매자 마켓플레이스 기능
 
-구매자와 판매자는 별도 로그인 계정이 아닙니다. 하나의 `User`가 구매자 역할을 가지면서 `Seller`을 통해 판매자로 활성화될 수 있습니다. 플랫폼 운영 권한은 `ADMIN` 역할로 구분합니다.
+구매자와 판매자는 별도 로그인 계정이 아닙니다. 하나의 `User`가 기본 `USER` 역할을 가지며 `Seller` 프로필과 `PRODUCT_MANAGER` 역할을 통해 판매 기능을 사용할 수 있습니다. 현재 판매자 자격 검증은 `PRODUCT_MANAGER` 역할과 `ACTIVE` 상태를 모두 요구하고, 플랫폼 운영 권한은 `ADMIN` 역할로 구분합니다.
 
 ## 기술 스택
 
@@ -36,8 +36,9 @@ Amazon과 유사한 구매·판매 흐름을 학습하기 위한 이커머스 �
 ```text
 src/main/java/io/github/metdaisy/amaazon/
 ├── auth/       # 로컬·소셜 인증
-├── user/       # 사용자·프로필·주소·역할·활성 상태
-├── catalog/    # CatalogProduct 중심 상품 기능
+├── user/       # 사용자·프로필·역할·활성 상태
+├── address/    # 사용자 배송지
+├── catalog/    # Category·Tag·CatalogProduct
 ├── seller/     # 판매자
 ├── common/     # 공통 타입·예외·영속화 기반
 └── global/     # 보안·웹·애플리케이션 설정
@@ -55,7 +56,7 @@ docs/          # 요구사항·아키텍처·ADR·개발 가이드
 | 문서 | 설명 |
 |---|---|
 | [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P12 도메인 요구사항 |
-| [Domain ERD](./docs/domain-erd.md) | SQL과 독립적인 도메인 객체·업무 관계 |
+| [Domain ERD](./docs/domain-erd.md) | 현재·목표 도메인 객체와 업무 관계. 구현 여부는 Current State 기준 |
 | [Architecture](./docs/architecture.md) | 모듈 경계와 의존성 규칙 |
 | [Domain Glossary](./docs/domain-glossary.md) | 도메인 용어와 상태값 기준 |
 | [ADR](./docs/adr/) | 주요 설계 결정과 선택 이유 |
@@ -66,7 +67,7 @@ docs/          # 요구사항·아키텍처·ADR·개발 가이드
 
 ## 데이터베이스
 
-기본 PostgreSQL 스키마는 [V1__init_schema.sql](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되어 있습니다.
+기본 PostgreSQL 스키마는 [V1__init_schema.sql](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되고, 이후 변경은 V2~V5 Flyway 마이그레이션으로 누적됩니다.
 
 - SQL 스키마는 테이블·컬럼·제약 조건·외래 키를 설명합니다.
 - Domain ERD는 도메인 객체와 업무 관계를 설명하며 SQL 테이블과 일대일 대응하지 않을 수 있습니다.
