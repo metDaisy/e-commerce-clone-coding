@@ -16,13 +16,10 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductExcepti
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
-import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +69,7 @@ public class CatalogProductService {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
     validateIdentifiers(id, identifiers);
-    mapper.update(catalog, toStringMap(identifiers));
+    mapper.update(catalog, identifiers);
     return mapper.toIdentifierResponse(catalog);
   }
 
@@ -87,7 +84,15 @@ public class CatalogProductService {
   private void verifyIdentifier(UUID id, CatalogProductIdentifierType type, String value) {
     for (CatalogProductIdentifierVerifier verifier : verifiers) {
       if (verifier.support(type)) {
-        verifier.verify(id, value);
+        try {
+          verifier.verify(id, value);
+        } catch (CatalogProductException exception) {
+          if (CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode().equals(exception.getCode())) {
+            throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_DUPLICATE,
+                AmaazonExceptionContext.logDetails(Map.of("identifierType", type.name())));
+          }
+          throw exception;
+        }
         return;
       }
     }
@@ -107,17 +112,6 @@ public class CatalogProductService {
         .stream()
         .filter(entry -> StringUtils.hasText(entry.getValue()))
         .forEach(entry -> verifyIdentifier(id, entry.getKey(), entry.getValue()));
-  }
-
-  private Map<String, String> toStringMap(Map<CatalogProductIdentifierType, String> identifiers) {
-    if (identifiers == null || identifiers.isEmpty()) {
-      return Collections.emptyMap();
-    }
-    return identifiers.entrySet().stream()
-        .filter(entry -> StringUtils.hasText(entry.getValue()))
-        .collect(Collectors.toMap(
-            entry -> entry.getKey().name().toLowerCase(Locale.ROOT),
-            Entry::getValue));
   }
 
 }

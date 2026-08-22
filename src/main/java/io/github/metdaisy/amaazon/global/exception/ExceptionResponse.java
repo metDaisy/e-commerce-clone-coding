@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -19,8 +20,10 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -49,6 +52,17 @@ public record ExceptionResponse(
                     : error.getDefaultMessage(),
                 Collectors.toList()
             )
+        ));
+    return of(status, "INVALID_INPUT", "잘못된 입력값입니다.", details);
+  }
+
+  public static ExceptionResponse from(HandlerMethodValidationException ex, HttpStatus status) {
+    Map<String, List<String>> details = ex.getParameterValidationResults().stream()
+        .flatMap(result -> result.getResolvableErrors().stream()
+            .map(error -> Map.entry(validationFieldName(result), validationMessage(error))))
+        .collect(Collectors.groupingBy(
+            Map.Entry::getKey,
+            Collectors.mapping(Map.Entry::getValue, Collectors.toList())
         ));
     return of(status, "INVALID_INPUT", "잘못된 입력값입니다.", details);
   }
@@ -142,5 +156,25 @@ public record ExceptionResponse(
 
   private static Object detailsOrNull(Map<String, Object> details) {
     return details.isEmpty() ? null : details;
+  }
+
+  private static String validationFieldName(ParameterValidationResult result) {
+    String parameterName = result.getMethodParameter().getParameterName();
+    if (parameterName == null) {
+      parameterName = "arg" + result.getMethodParameter().getParameterIndex();
+    }
+    if (result.getContainerKey() != null) {
+      return parameterName + "[" + result.getContainerKey() + "]";
+    }
+    if (result.getContainerIndex() != null) {
+      return parameterName + "[" + result.getContainerIndex() + "]";
+    }
+    return parameterName;
+  }
+
+  private static String validationMessage(MessageSourceResolvable error) {
+    return error.getDefaultMessage() == null
+        ? "유효하지 않은 입력값입니다."
+        : error.getDefaultMessage();
   }
 }

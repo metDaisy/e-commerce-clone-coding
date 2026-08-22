@@ -7,15 +7,21 @@ import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProduc
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.springframework.util.StringUtils;
 
 @Mapper(config = GlobalMapperConfig.class, uses = TagMapper.class)
 public interface CatalogProductMapper {
@@ -41,7 +47,13 @@ public interface CatalogProductMapper {
   @Mapping(target = "upc")
   @Mapping(target = "ean")
   @Mapping(target = "isbn")
-  void update(@MappingTarget CatalogProduct catalog, Map<String, String> identifiers);
+  void updateIdentifierFields(@MappingTarget CatalogProduct catalog,
+      Map<String, String> identifiers);
+
+  default void update(@MappingTarget CatalogProduct catalog,
+      Map<CatalogProductIdentifierType, String> identifiers) {
+    updateIdentifierFields(catalog, toIdentifierMap(identifiers));
+  }
 
   @AfterMapping
   default void updateUpdatedAt(@MappingTarget CatalogProduct catalog,
@@ -53,5 +65,23 @@ public interface CatalogProductMapper {
   default void updateUpdatedAt(@MappingTarget CatalogProduct catalog,
       Map<String, String> identifiers) {
     catalog.setUpdatedAt(Instant.now());
+  }
+
+  @AfterMapping
+  default void mapIdentifiers(CatalogProductCreateRequest request,
+      @MappingTarget CatalogProduct catalog) {
+    update(catalog, request.identifiers());
+  }
+
+  private Map<String, String> toIdentifierMap(
+      Map<CatalogProductIdentifierType, String> identifiers) {
+    if (identifiers == null || identifiers.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    return identifiers.entrySet().stream()
+        .filter(entry -> StringUtils.hasText(entry.getValue()))
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().name().toLowerCase(Locale.ROOT),
+            Entry::getValue));
   }
 }
