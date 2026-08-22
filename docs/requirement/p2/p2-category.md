@@ -43,22 +43,20 @@ P7이 다음 HTTP 진입점을 제공한다. 성공 응답은 Category Response 
 
 `GET /api/v1/categories`
 
-권한: 구매자·Seller·ADMIN
+권한: 공개
 
 #### 성공 응답: `200 OK`
 
 ```json
-{
-  "categories": [
-    {
-      "id": "uuid-electronics",
-      "name": "전자기기",
-      "parentId": null,
-      "depth": 1,
-      "children": []
-    }
-  ]
-}
+[
+  {
+    "id": "uuid-electronics",
+    "name": "전자기기",
+    "parentId": null,
+    "depth": 1,
+    "children": []
+  }
+]
 ```
 
 정렬은 `depth ASC`, 같은 부모 안에서는 `name ASC`, `id ASC`를 사용한다.
