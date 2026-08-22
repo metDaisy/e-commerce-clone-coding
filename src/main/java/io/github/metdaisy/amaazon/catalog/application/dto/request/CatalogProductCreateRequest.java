@@ -1,5 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.application.dto.request;
 
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -13,7 +14,8 @@ public record CatalogProductCreateRequest(
     @NotBlank String description,
     @Size(max = 255) String brand,
     Set<String> tags,
-    Map<String, Object> attributes
+    Map<String, Object> attributes,
+    Map<CatalogProductIdentifierType, @Size(max = 50) String> identifiers
 ) {
 
 }

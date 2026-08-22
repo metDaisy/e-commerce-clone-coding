@@ -10,4 +10,9 @@ public class AsinVerificationAdapter extends AbstractIdentifierVerificationAdapt
   public AsinVerificationAdapter(CatalogProductRepository repository) {
     super(repository, CatalogProductIdentifierType.ASIN);
   }
+
+  @Override
+  protected boolean isValidFormat(String identifierValue) {
+    return identifierValue.matches("[A-Za-z0-9]{10}");
+  }
 }

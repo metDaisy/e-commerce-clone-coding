@@ -110,10 +110,10 @@ public class CatalogProduct extends MutableEntity {
     this.upc = upc;
     this.ean = ean;
     this.isbn = isbn;
-    this.attributes = attributes;
+    this.attributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
     this.publicationStatus = ProductPublicationStatus.ACTIVE;
     this.archivedAt = null;
-    this.tags = tags;
+    this.tags = tags == null ? new ArrayList<>() : tags;
   }
 
   public void validateActive() {

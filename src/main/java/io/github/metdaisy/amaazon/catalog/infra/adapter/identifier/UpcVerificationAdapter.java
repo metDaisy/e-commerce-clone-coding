@@ -10,4 +10,9 @@ public class UpcVerificationAdapter extends AbstractIdentifierVerificationAdapte
   public UpcVerificationAdapter(CatalogProductRepository repository) {
     super(repository, CatalogProductIdentifierType.UPC);
   }
+
+  @Override
+  protected boolean isValidFormat(String identifierValue) {
+    return isValidNumericIdentifier(identifierValue, 12);
+  }
 }

@@ -1,18 +1,15 @@
 package io.github.metdaisy.amaazon.catalog.application.validator;
 
 import io.github.metdaisy.amaazon.catalog.domain.port.out.CatalogSellerPort;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import java.util.Map;
-import java.util.UUID;
 
 @Aspect
 @Component
@@ -20,6 +17,7 @@ import java.util.UUID;
 public class ActiveSellerValidator {
 
   private final CatalogSellerPort sellerPort;
+
   @Before("@annotation(activeSeller)")
   public void validate(JoinPoint point, ActiveSeller activeSeller) {
     AmaazonPrincipal principal = (AmaazonPrincipal) SecurityContextHolder.getContext()
@@ -34,8 +32,7 @@ public class ActiveSellerValidator {
   private void validateSeller(AmaazonPrincipal principal) {
     UUID managerId = principal.getId();
     if (!sellerPort.existsActiveSellerByUserId(managerId)) {
-      throw new CatalogProductException(CatalogProductErrorCode.SELLER_APPROVAL_REQUIRED,
-          AmaazonExceptionContext.logDetails(Map.of("managerId", managerId)));
+      throw new AccessDeniedException("활성 판매자 승인이 필요합니다.");
     }
   }
 }

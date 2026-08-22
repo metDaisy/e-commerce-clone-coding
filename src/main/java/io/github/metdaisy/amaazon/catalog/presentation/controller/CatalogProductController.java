@@ -1,14 +1,16 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -44,8 +46,10 @@ public class CatalogProductController {
 
   @PatchMapping("/{id}/identifiers")
   public ResponseEntity<CatalogProductIdentifierUpdateResponse> verifyIdentifierCode(
-      @PathVariable UUID id, @RequestBody CatalogProductIdentifierUpdateRequest request) {
-    return ResponseEntity.status(HttpStatus.OK).body(service.updateIdentifier(id, request));
+      @PathVariable UUID id,
+      @RequestBody @Valid
+      Map<CatalogProductIdentifierType, @Size(max = 50) String> identifiers) {
+    return ResponseEntity.status(HttpStatus.OK).body(service.updateIdentifier(id, identifiers));
   }
 
   @PostMapping("/{id}/archive")

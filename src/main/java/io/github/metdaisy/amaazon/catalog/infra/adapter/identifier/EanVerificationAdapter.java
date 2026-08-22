@@ -10,4 +10,9 @@ public class EanVerificationAdapter extends AbstractIdentifierVerificationAdapte
   public EanVerificationAdapter(CatalogProductRepository repository) {
     super(repository, CatalogProductIdentifierType.EAN);
   }
+
+  @Override
+  protected boolean isValidFormat(String identifierValue) {
+    return isValidNumericIdentifier(identifierValue, 8, 13);
+  }
 }

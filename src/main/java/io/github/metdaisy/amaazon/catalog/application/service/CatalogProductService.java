@@ -1,15 +1,14 @@
 package io.github.metdaisy.amaazon.catalog.application.service;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
+import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
-import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
@@ -17,12 +16,17 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductExcepti
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional(readOnly = true)
@@ -37,6 +41,7 @@ public class CatalogProductService {
 
   @Transactional
   public CatalogProductResponse create(CatalogProductCreateRequest request) {
+    validateIdentifiers(null, request.identifiers());
     Category category = categoryQueryService.getProxy(request.categoryId());
     CatalogProduct catalogProduct = mapper.toEntity(category, request);
     List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
@@ -63,11 +68,11 @@ public class CatalogProductService {
 
   @Transactional
   public CatalogProductIdentifierUpdateResponse updateIdentifier(UUID id,
-      CatalogProductIdentifierUpdateRequest request) {
+      Map<CatalogProductIdentifierType, String> identifiers) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
-    request.toMap().forEach((type, value) -> verifyIdentifier(id, type, value));
-    mapper.update(catalog, request);
+    validateIdentifiers(id, identifiers);
+    mapper.update(catalog, toStringMap(identifiers));
     return mapper.toIdentifierResponse(catalog);
   }
 
@@ -93,4 +98,26 @@ public class CatalogProductService {
         .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
   }
+
+  private void validateIdentifiers(UUID id, Map<CatalogProductIdentifierType, String> identifiers) {
+    if (identifiers == null || identifiers.isEmpty()) {
+      return;
+    }
+    identifiers.entrySet()
+        .stream()
+        .filter(entry -> StringUtils.hasText(entry.getValue()))
+        .forEach(entry -> verifyIdentifier(id, entry.getKey(), entry.getValue()));
+  }
+
+  private Map<String, String> toStringMap(Map<CatalogProductIdentifierType, String> identifiers) {
+    if (identifiers == null || identifiers.isEmpty()) {
+      return Collections.emptyMap();
+    }
+    return identifiers.entrySet().stream()
+        .filter(entry -> StringUtils.hasText(entry.getValue()))
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().name().toLowerCase(Locale.ROOT),
+            Entry::getValue));
+  }
+
 }

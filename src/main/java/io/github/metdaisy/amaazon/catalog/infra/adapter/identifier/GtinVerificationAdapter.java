@@ -10,4 +10,9 @@ public class GtinVerificationAdapter extends AbstractIdentifierVerificationAdapt
   public GtinVerificationAdapter(CatalogProductRepository repository) {
     super(repository, CatalogProductIdentifierType.GTIN);
   }
+
+  @Override
+  protected boolean isValidFormat(String identifierValue) {
+    return isValidNumericIdentifier(identifierValue, 8, 12, 13, 14);
+  }
 }
