@@ -75,10 +75,16 @@ class CategoryControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
-  @DisplayName("공개 카테고리 조회 실패: 인증되지 않은 요청은 401을 반환한다")
-  void findAll_rejectsUnauthenticatedRequest() throws Exception {
+  @DisplayName("공개 카테고리 조회 성공: 인증되지 않은 요청도 200을 반환한다")
+  void findAll_allowsUnauthenticatedRequest() throws Exception {
+    // given
+    persistAndFlush(Category.of("Electronics", null));
+    clear();
+
+    // when & then
     mockMvc.perform(get(CATEGORIES_URL))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("Electronics"));
   }
 
   @Test
