@@ -1,25 +1,25 @@
 package io.github.metdaisy.amaazon.address.infra.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
-import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
+import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import io.github.metdaisy.amaazon.common.dto.PageQuery;
 import io.github.metdaisy.amaazon.common.dto.PageResult;
-import io.github.metdaisy.amaazon.address.domain.entity.Address;
+import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 @DisplayName("Address JPA 저장소 슬라이스 테스트")
 class AddressJpaRepositoryTest extends BaseRepositoryTest {
@@ -75,13 +75,15 @@ class AddressJpaRepositoryTest extends BaseRepositoryTest {
   void save_rejectsInvalidAddress(String caseName, Address invalidAddress,
       String expectedField, String expectedConstraint) {
     // when
-    ConstraintViolationException exception = catchThrowableOfType(() -> {
+    Throwable thrown = catchThrowable(() -> {
       repository.save(invalidAddress);
       em.flush();
-    }, ConstraintViolationException.class);
+    });
     ensureQueryCount(0);
 
     // then
+    assertThat(thrown).isInstanceOf(ConstraintViolationException.class);
+    ConstraintViolationException exception = (ConstraintViolationException) thrown;
     assertThat(exception.getConstraintViolations()).singleElement().satisfies(violation -> {
       assertThat(violation.getPropertyPath().toString()).isEqualTo(expectedField);
       assertThat(violation.getConstraintDescriptor().getAnnotation().annotationType()
@@ -473,7 +475,8 @@ class AddressJpaRepositoryTest extends BaseRepositoryTest {
 
   private void assertAddressFields(Address address, boolean expectedPrimary) {
     assertThat(address)
-        .extracting(Address::getId, Address::getUserId, Address::getAlias, Address::getRecipientName,
+        .extracting(Address::getId, Address::getUserId, Address::getAlias,
+            Address::getRecipientName,
             Address::getRecipientPhone, Address::getPostalCode, Address::getAddressLine,
             Address::isPrimary)
         .containsExactly(address.getId(), USER_ID, "집", "tester", "01012345678", "06236",

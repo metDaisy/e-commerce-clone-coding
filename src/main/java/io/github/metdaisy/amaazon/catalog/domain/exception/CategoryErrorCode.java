@@ -17,10 +17,7 @@ public enum CategoryErrorCode implements AmaazonErrorCode {
   CATEGORY_NAME_DUPLICATE("CATEGORY-004", "Category name already exists.",
       "Category 이름 전역 중복", AmaazonErrorType.CONFLICT),
   CATEGORY_CYCLE_DETECTED("CATEGORY-005", "Category hierarchy cannot contain a cycle.",
-      "Category hierarchy 순환 감지", AmaazonErrorType.BAD_REQUEST),
-  CATEGORY_UPDATE_EMPTY("CATEGORY-010", "At least one category field must be provided.",
-      "Category 수정 필드 없음", AmaazonErrorType.BAD_REQUEST),
-  ;
+      "Category hierarchy 순환 감지", AmaazonErrorType.BAD_REQUEST);
 
   private final String code;
   private final String message;

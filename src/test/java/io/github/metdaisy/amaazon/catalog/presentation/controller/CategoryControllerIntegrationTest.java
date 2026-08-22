@@ -51,6 +51,37 @@ class CategoryControllerIntegrationTest extends BaseIntegrationTest {
   }
 
   @Test
+  @DisplayName("공개 카테고리 조회 성공: 깊이와 이름 순서에 따라 계층 응답을 반환한다")
+  void findAll_returnsCategoriesInHierarchyOrder() throws Exception {
+    // given
+    persistAndFlush(User.createUser(USER_ID, "catreader", "01077778888"));
+    persistAndFlush(Category.of("Books", null));
+    Category electronics = persistAndFlush(Category.of("Electronics", null));
+    persistAndFlush(Category.of("Keyboards", electronics));
+    persistAndFlush(Category.of("Laptops", electronics));
+    clear();
+
+    // when & then
+    mockMvc.perform(get(CATEGORIES_URL)
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAs(USER_ID))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("Books"))
+        .andExpect(jsonPath("$[0].depth").value(1))
+        .andExpect(jsonPath("$[1].name").value("Electronics"))
+        .andExpect(jsonPath("$[1].children[0].name").value("Keyboards"))
+        .andExpect(jsonPath("$[1].children[1].name").value("Laptops"))
+        .andExpect(jsonPath("$[1].children[0].parentId")
+            .value(electronics.getId().toString()));
+  }
+
+  @Test
+  @DisplayName("공개 카테고리 조회 실패: 인증되지 않은 요청은 401을 반환한다")
+  void findAll_rejectsUnauthenticatedRequest() throws Exception {
+    mockMvc.perform(get(CATEGORIES_URL))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   @DisplayName("카테고리 전체 조회 성공: 저장된 카테고리가 없으면 HTTP 200과 빈 목록을 반환한다")
   void findAll_returnsEmptyListWhenNoCategoryExists() throws Exception {
     // given

@@ -8,12 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,18 +44,15 @@ class CategoryControllerTest extends RestControllerTest {
   }
 
   @Test
-  @DisplayName("카테고리 목록 조회 실패: 서비스의 카테고리 없음 오류를 404로 변환한다")
-  void findAll_shouldReturnMappedCatalogError() throws Exception {
+  @DisplayName("카테고리 목록 조회 실패: 트리 조회 오류를 500으로 반환한다")
+  void findAll_shouldReturnMappedQueryError() throws Exception {
     // given
-    UUID categoryId = UUID.randomUUID();
-    given(service.findAll()).willThrow(new CategoryException(
-        CategoryErrorCode.CATEGORY_NOT_FOUND,
-        AmaazonExceptionContext.logDetails(Map.of("categoryId", categoryId))));
+    given(service.findAll()).willThrow(new IllegalStateException("database unavailable"));
 
     // when & then
     mockMvc.perform(get(CATEGORIES_URL))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionCode").value("CATEGORY-003"));
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.exceptionCode").value("SYSTEM-001"));
 
   }
 }
