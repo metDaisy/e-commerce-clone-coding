@@ -18,7 +18,7 @@
 
 1. Current behavior: code, tests, and Flyway migrations.
 2. Target behavior: `docs/requirement/index.md` and its P1-P12 documents.
-3. Treat `current-state.md` as current only when its SHA matches HEAD; issue status describes intent, not completion. Report conflicts instead of guessing.
+3. Treat `current-state.md` as a snapshot of its recorded inspection SHA; that SHA is the clean `HEAD` inspected before the documentation-only update and need not equal the later documentation commit. Cherry-pick, rebase, merge, or other history rewriting may make an older recorded SHA non-ancestor; reconcile against the current inspected `HEAD` and report the history drift instead of guessing. Issue status describes intent, not completion.
 
 ## Discovery
 
