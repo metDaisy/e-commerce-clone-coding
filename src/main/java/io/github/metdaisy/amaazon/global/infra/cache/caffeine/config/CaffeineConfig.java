@@ -18,6 +18,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.metdaisy.amaazon.global.security.jwt.config.CaffeineCacheAsyncConfig;
 import io.github.metdaisy.amaazon.global.security.jwt.config.JwtTokenExpiration;
 import io.github.metdaisy.amaazon.global.security.jwt.registry.CaffeineBlacklistRegistry;
+import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 
 @Configuration
 @ConditionalOnProperty(value = "amaazon.cache.type", havingValue = "caffeine")
@@ -46,7 +47,7 @@ public class CaffeineConfig {
         .expireAfterWrite(jwtTokenExpiration.accessExpiration())
         .executor(caffeineWorker)
         .recordStats());
-    manager.registerCustomCache("categories", Caffeine.newBuilder()
+    manager.registerCustomCache(CacheConstants.CATEGORIES, Caffeine.newBuilder()
         .maximumSize(1)
         .expireAfterAccess(Duration.ofHours(1))
         .executor(caffeineWorker)

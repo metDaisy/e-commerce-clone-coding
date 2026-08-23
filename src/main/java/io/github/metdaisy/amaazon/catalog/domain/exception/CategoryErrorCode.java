@@ -12,7 +12,7 @@ public enum CategoryErrorCode implements AmaazonErrorCode {
       "Category name 검증 실패", AmaazonErrorType.BAD_REQUEST),
   CATEGORY_DEPTH_EXCEEDED("CATEGORY-002", "Category depth must not exceed three levels.",
       "Category depth 제한 초과", AmaazonErrorType.BAD_REQUEST),
-  CATEGORY_NOT_FOUND("CATEGORY-003", "product category 를 찾을 수 없습니다.", "Category 조회 실패",
+  CATEGORY_NOT_FOUND("CATEGORY-003", "카테고리를 찾을 수 없습니다.", "Category 조회 실패",
       AmaazonErrorType.NOT_FOUND),
   CATEGORY_NAME_DUPLICATE("CATEGORY-004", "Category name already exists.",
       "Category 이름 전역 중복", AmaazonErrorType.CONFLICT),

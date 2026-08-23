@@ -9,6 +9,7 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public class CategoryCommandService {
   private final CategoryMapper mapper;
 
   @Transactional
-  @CacheEvict(cacheNames = "categories", allEntries = true)
+  @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
   public CategoryResponse create(CategoryCreateRequest request) {
     Category parent = findParent(request.parentId());
     validateUniqueName(request.name(), null);
@@ -37,7 +38,7 @@ public class CategoryCommandService {
   }
 
   @Transactional
-  @CacheEvict(cacheNames = "categories", allEntries = true)
+  @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
   public CategoryResponse update(UUID id, CategoryUpdateRequest request) {
     Category category = findById(id);
     Category parent = findParent(request.parentId());
@@ -75,6 +76,10 @@ public class CategoryCommandService {
   }
 
   private void updateHierarchy(Category category, Category newParent) {
+    if (newParent != null && isDescendant(newParent, category)) {
+      throw new CategoryException(CategoryErrorCode.CATEGORY_CYCLE_DETECTED,
+          AmaazonExceptionContext.logDetails(Map.of("categoryId", category.getId())));
+    }
     int newDepth = newParent == null ? 1 : newParent.getDepth() + 1;
     List<Category> descendants = repository.findAll().stream()
         .filter(candidate -> isDescendant(candidate, category))

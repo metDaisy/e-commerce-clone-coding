@@ -20,10 +20,12 @@ public abstract class AbstractIdentifierVerificationAdapter implements
   private final CatalogIdentifierType type;
 
   @Override
-  public final void verify(UUID id, String identifierValue) {
-    validateFormat(identifierValue);
-    afterFormatValidation(identifierValue);
-    validateUniqueness(id, identifierValue);
+  public final String verify(UUID id, String identifierValue) {
+    String normalizedValue = normalize(identifierValue);
+    validateFormat(normalizedValue);
+    afterFormatValidation(normalizedValue);
+    validateUniqueness(id, normalizedValue);
+    return normalizedValue;
   }
 
   @Override
@@ -32,6 +34,10 @@ public abstract class AbstractIdentifierVerificationAdapter implements
   }
 
   protected abstract boolean isValidFormat(String identifierValue);
+
+  protected String normalize(String identifierValue) {
+    return identifierValue;
+  }
 
   protected void afterFormatValidation(String identifierValue) {
     // 식별자별 추가 검증이 필요한 adapter에서 확장한다.

@@ -6,6 +6,7 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
+import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class CategoryQueryService {
   private final CategoryRepository repository;
   private final CategoryMapper mapper;
 
-  @Cacheable(cacheNames = "categories")
+  @Cacheable(cacheNames = CacheConstants.CATEGORIES)
   public List<CategoryResponse> findAll() {
     return mapper.toDto(repository.findAll());
   }

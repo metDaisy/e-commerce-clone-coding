@@ -41,9 +41,11 @@ public class CatalogProductService {
 
   @Transactional
   public CatalogProductResponse create(CatalogProductCreateRequest request) {
-    validateIdentifiers(null, request.identifiers(), true);
+    Map<CatalogIdentifierType, String> normalizedIdentifiers =
+        validateIdentifiers(null, request.identifiers(), true);
     Category category = categoryQueryService.getProxy(request.categoryId());
     CatalogProduct catalogProduct = mapper.toEntity(category, request);
+    mapper.update(catalogProduct, normalizedIdentifiers);
     List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
         .stream()
         .map(tag -> CatalogProductTag.of(catalogProduct, tag))
@@ -71,8 +73,9 @@ public class CatalogProductService {
       Map<CatalogIdentifierType, String> identifiers) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
-    validateIdentifiers(id, identifiers, false);
-    mapper.update(catalog, identifiers);
+    Map<CatalogIdentifierType, String> normalizedIdentifiers =
+        validateIdentifiers(id, identifiers, false);
+    mapper.update(catalog, normalizedIdentifiers);
     return mapper.toIdentifierResponse(catalog);
   }
 
@@ -84,11 +87,11 @@ public class CatalogProductService {
         catalog.getArchivedAt(), catalog.getUpdatedAt());
   }
 
-  private void verifyIdentifier(UUID id, CatalogIdentifierType type, String value) {
+  private String verifyIdentifier(UUID id, CatalogIdentifierType type, String value) {
     for (CatalogProductIdentifierVerifier verifier : verifiers) {
       if (verifier.support(type)) {
         try {
-          verifier.verify(id, value);
+          return verifier.verify(id, value);
         } catch (CatalogProductException exception) {
           if (CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode().equals(exception.getCode())) {
             throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_DUPLICATE,
@@ -96,9 +99,9 @@ public class CatalogProductService {
           }
           throw exception;
         }
-        return;
       }
     }
+    return value;
   }
 
   private CatalogProduct findById(UUID id) {
@@ -107,13 +110,13 @@ public class CatalogProductService {
             AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
   }
 
-  private void validateIdentifiers(UUID id,
+  private Map<CatalogIdentifierType, String> validateIdentifiers(UUID id,
       Map<CatalogIdentifierType, String> identifiers, boolean required) {
     if (identifiers == null || identifiers.isEmpty()) {
       if (required) {
         throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_INVALID);
       }
-      return;
+      return Map.of();
     }
     List<Entry<CatalogIdentifierType, String>> validIdentifiers = identifiers.entrySet()
         .stream()
@@ -125,9 +128,11 @@ public class CatalogProductService {
     List<CatalogProductException> failures = new ArrayList<>();
     List<Map<String, Object>> fields = new ArrayList<>();
     Map<String, Object> logDetails = new LinkedHashMap<>();
+    Map<CatalogIdentifierType, String> normalizedIdentifiers = new LinkedHashMap<>();
     validIdentifiers.forEach(entry -> {
       try {
-        verifyIdentifier(id, entry.getKey(), entry.getValue());
+        normalizedIdentifiers.put(entry.getKey(),
+            verifyIdentifier(id, entry.getKey(), entry.getValue()));
       } catch (CatalogProductException exception) {
         failures.add(exception);
         fields.add(identifierField(entry.getKey(), exception));
@@ -138,6 +143,7 @@ public class CatalogProductService {
       throw new CatalogProductException(resolveIdentifierErrorCode(failures),
           new AmaazonExceptionContext(Map.of("fields", List.copyOf(fields)), logDetails, null));
     }
+    return normalizedIdentifiers;
   }
 
   private Map<String, Object> identifierField(CatalogIdentifierType type,

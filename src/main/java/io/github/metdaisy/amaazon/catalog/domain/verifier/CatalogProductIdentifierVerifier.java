@@ -7,5 +7,5 @@ public interface CatalogProductIdentifierVerifier {
 
   boolean support(CatalogIdentifierType type);
 
-  void verify(UUID id, String identifierValue);
+  String verify(UUID id, String identifierValue);
 }

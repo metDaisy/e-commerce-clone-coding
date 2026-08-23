@@ -8,7 +8,7 @@ import java.util.Map;
 public record CatalogProductUpdateRequest(
     @Pattern(regexp = ".*\\S.*", message = "상품명은 비어 있을 수 없습니다.")
     @Size(max = 255) String name,
-    String description, String brand, List<String> tags,
+    String description, @Size(max = 255) String brand, List<String> tags,
     Map<String, Object> attributes) {
 
 }
