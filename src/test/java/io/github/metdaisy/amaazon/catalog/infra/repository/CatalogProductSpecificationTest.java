@@ -5,7 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import java.util.UUID;
 import java.util.stream.Stream;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -59,7 +59,7 @@ class CatalogProductSpecificationTest {
   @ParameterizedTest
   @DisplayName("상품 식별자 명세: 식별자 유형별 필드 일치 조건을 생성한다")
   @MethodSource("identifierFields")
-  void hasIdentifier_shouldUseIdentifierField(CatalogProductIdentifierType type, String field) {
+  void hasIdentifier_shouldUseIdentifierField(CatalogIdentifierType type, String field) {
     given(root.get(field)).willReturn(path);
     given(criteriaBuilder.equal(path, "value")).willReturn(predicate);
 
@@ -72,10 +72,10 @@ class CatalogProductSpecificationTest {
 
   private static Stream<Arguments> identifierFields() {
     return Stream.of(
-        Arguments.of(CatalogProductIdentifierType.ASIN, "asin"),
-        Arguments.of(CatalogProductIdentifierType.GTIN, "gtin"),
-        Arguments.of(CatalogProductIdentifierType.UPC, "upc"),
-        Arguments.of(CatalogProductIdentifierType.EAN, "ean"),
-        Arguments.of(CatalogProductIdentifierType.ISBN, "isbn"));
+        Arguments.of(CatalogIdentifierType.ASIN, "asin"),
+        Arguments.of(CatalogIdentifierType.GTIN, "gtin"),
+        Arguments.of(CatalogIdentifierType.UPC, "upc"),
+        Arguments.of(CatalogIdentifierType.EAN, "ean"),
+        Arguments.of(CatalogIdentifierType.ISBN, "isbn"));
   }
 }
