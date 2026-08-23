@@ -1,0 +1,13 @@
+package io.github.metdaisy.amaazon.catalog.application.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import java.time.Instant;
+import java.util.UUID;
+
+public record ProductVariantArchivedResponse(
+    @JsonProperty("id") UUID productVariantId,
+    CatalogStatus publicationStatus,
+    Instant archivedAt) {
+
+}
