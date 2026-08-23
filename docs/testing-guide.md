@@ -39,6 +39,12 @@ adapters. Use `@ExtendWith(MockitoExtension.class)`, `@Mock`, and `@InjectMocks`
 `@SpringBootTest`, a database, HTTP server, or external service. Use `@ParameterizedTest` with
 `@ValueSource`, `@CsvSource`, or `@MethodSource` when inputs exercise the same rule.
 
+Do not mock mappers. Use the actual mapper implementation in service and mapper unit tests so
+mapping behavior is exercised together with the selected scenario. Do not start a Spring
+container to obtain a mapper; instantiate the generated implementation directly, for example
+`new CatalogProductMapperImpl(...)`. Provide any mapper collaborators by direct construction or
+test doubles as appropriate.
+
 ## 4. Slice tests
 
 | Target | Annotation | Verify |
