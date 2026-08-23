@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.port.out.CatalogSellerPort;
 import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import java.util.UUID;
@@ -16,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -68,9 +67,7 @@ class ActiveSellerValidatorTest {
 
     assertThatThrownBy(() -> new ActiveSellerValidator(sellerPort)
         .validate(joinPoint, activeSeller))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code",
-            CatalogProductErrorCode.SELLER_APPROVAL_REQUIRED.getCode());
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   private void authenticateAs(String role, UUID id) {

@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -26,8 +28,8 @@ class CategoryQueryServiceTest {
   @Mock
   private CategoryRepository repository;
 
-  @Mock
-  private CategoryMapper mapper;
+  @Spy
+  private CategoryMapper mapper = new CategoryMapperImpl();
 
   @InjectMocks
   private CategoryQueryService service;
@@ -37,16 +39,17 @@ class CategoryQueryServiceTest {
   void findAll_shouldReturnMappedCategories() {
     // given
     List<Category> categories = List.of(Category.of("Computers", null));
-    List<CategoryResponse> response = List.of(
-        new CategoryResponse(categories.get(0).getId(), "Computers", null, 1, List.of()));
     given(repository.findAll()).willReturn(categories);
-    given(mapper.toDto(categories)).willReturn(response);
 
     // when
     List<CategoryResponse> result = service.findAll();
 
     // then
-    assertThat(result).isSameAs(response);
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0))
+        .usingRecursiveComparison()
+        .isEqualTo(new CategoryResponse(categories.get(0).getId(), "Computers", null, 1,
+            List.of()));
   }
 
   @Test

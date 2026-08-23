@@ -11,6 +11,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreate
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,8 +34,8 @@ class CategoryCommandServiceTest {
   @Mock
   private CategoryRepository repository;
 
-  @Mock
-  private CategoryMapper mapper;
+  @Spy
+  private CategoryMapper mapper = new CategoryMapperImpl();
 
   @InjectMocks
   private CategoryCommandService service;
@@ -44,19 +46,17 @@ class CategoryCommandServiceTest {
     // given
     CategoryCreateRequest request = new CategoryCreateRequest("Computers", null);
     Category saved = Category.of("Computers", null);
-    CategoryResponse response = new CategoryResponse(saved.getId(), "Computers", null, 1,
-        List.of());
     given(repository.save(any(Category.class))).willReturn(saved);
-    given(mapper.toDto(saved)).willReturn(response);
 
     // when
     CategoryResponse result = service.create(request);
 
     // then
-    assertThat(result).isSameAs(response);
+    assertThat(result.id()).isEqualTo(saved.getId());
+    assertThat(result.name()).isEqualTo("Computers");
+    assertThat(result.depth()).isEqualTo(1);
 
     then(repository).should().save(any(Category.class));
-    then(mapper).should().toDto(any(Category.class));
   }
 
   @Test
@@ -64,21 +64,20 @@ class CategoryCommandServiceTest {
   void create_shouldCreateChildCategory() {
     // given
     Category parent = Category.of("Computers", null);
-    Category child = Category.of("Laptops", parent);
     CategoryCreateRequest request = new CategoryCreateRequest("Ultrabooks", parent.getId());
-    CategoryResponse response = new CategoryResponse(child.getId(), "Ultrabooks", parent.getId(), 2,
-        List.of());
     given(repository.findById(parent.getId())).willReturn(Optional.of(parent));
-    given(repository.save(any(Category.class))).willReturn(child);
-    given(mapper.toDto(child)).willReturn(response);
+    given(repository.save(any(Category.class)))
+        .willAnswer(invocation -> invocation.getArgument(0));
 
     // when
     CategoryResponse result = service.create(request);
 
     // then
-    assertThat(result).isSameAs(response);
-    assertThat(parent.getChildren()).contains(child);
-    assertThat(child.getDepth()).isEqualTo(2);
+    assertThat(result.id()).isNotNull();
+    assertThat(result.name()).isEqualTo("Ultrabooks");
+    assertThat(result.parentId()).isEqualTo(parent.getId());
+    assertThat(result.depth()).isEqualTo(2);
+    assertThat(parent.getChildren()).anyMatch(category -> category.getName().equals("Ultrabooks"));
   }
 
   @Test
@@ -153,20 +152,20 @@ class CategoryCommandServiceTest {
     Category category = Category.of("Category", oldParent);
     Category descendant = Category.of("Descendant", category);
     Category newParent = Category.of("New parent", null);
-    CategoryResponse response = new CategoryResponse(category.getId(), "Renamed",
-        newParent.getId(), 2, List.of());
     given(repository.findById(category.getId())).willReturn(Optional.of(category));
     given(repository.findById(newParent.getId())).willReturn(Optional.of(newParent));
     given(repository.findAll()).willReturn(
         List.of(root, oldParent, category, descendant, newParent));
-    given(mapper.toDto(category)).willReturn(response);
 
     // when
     CategoryResponse result = service.update(category.getId(),
         new CategoryUpdateRequest("Renamed", newParent.getId()));
 
     // then
-    assertThat(result).isSameAs(response);
+    assertThat(result.id()).isEqualTo(category.getId());
+    assertThat(result.name()).isEqualTo("Renamed");
+    assertThat(result.parentId()).isEqualTo(newParent.getId());
+    assertThat(result.depth()).isEqualTo(2);
 
     assertThat(category.getParent()).isSameAs(newParent);
     assertThat(category.getDepth()).isEqualTo(2);
@@ -181,18 +180,18 @@ class CategoryCommandServiceTest {
     // given
     Category oldParent = Category.of("Old parent", null);
     Category category = Category.of("Category", oldParent);
-    CategoryResponse response = new CategoryResponse(category.getId(), "Renamed", null, 1,
-        List.of());
     given(repository.findById(category.getId())).willReturn(Optional.of(category));
     given(repository.findAll()).willReturn(List.of(oldParent, category));
-    given(mapper.toDto(category)).willReturn(response);
 
     // when
     CategoryResponse result = service.update(category.getId(),
         new CategoryUpdateRequest("Renamed", null));
 
     // then
-    assertThat(result).isSameAs(response);
+    assertThat(result.id()).isEqualTo(category.getId());
+    assertThat(result.name()).isEqualTo("Renamed");
+    assertThat(result.parentId()).isNull();
+    assertThat(result.depth()).isEqualTo(1);
 
     assertThat(category.getParent()).isNull();
     assertThat(category.getDepth()).isEqualTo(1);
