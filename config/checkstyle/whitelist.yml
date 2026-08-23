@@ -1,0 +1,4 @@
+# Literal fragments that are valid even though they resemble a Korean
+# encoding mismatch. Keep this list intentionally small.
+whitelist:
+  # - "known-valid-fragment"
