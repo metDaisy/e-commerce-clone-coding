@@ -3,7 +3,7 @@ package io.github.metdaisy.amaazon.catalog.domain.entity;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ProductPublicationStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ class CatalogProductTest {
   @DisplayName("상품 상태 검증 실패: 보관된 상품은 수정할 수 없다")
   void validateActive_shouldRejectArchivedProduct() {
     CatalogProduct product = product();
-    product.setPublicationStatus(ProductPublicationStatus.ARCHIVED);
+    product.setPublicationStatus(CatalogStatus.ARCHIVED);
 
     assertThatThrownBy(product::validateActive)
         .isInstanceOf(CatalogProductException.class)

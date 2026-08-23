@@ -3,11 +3,11 @@ package io.github.metdaisy.amaazon.catalog.domain.entity.constant;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import java.util.stream.Stream;
 
-public enum CatalogProductIdentifierType {
+public enum CatalogIdentifierType {
   ASIN, GTIN, UPC, EAN, ISBN;
 
   @JsonCreator
-  public static CatalogProductIdentifierType from(String value) {
+  public static CatalogIdentifierType from(String value) {
     return Stream.of(values())
         .filter(it -> it.name().equalsIgnoreCase(value))
         .findFirst()

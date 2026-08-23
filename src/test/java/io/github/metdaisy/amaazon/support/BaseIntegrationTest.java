@@ -41,7 +41,7 @@ public abstract class BaseIntegrationTest {
 
   protected void flushAndClear() {
     em.flush();
-    em.clear();
+    clear();
   }
 
   protected void clear() {

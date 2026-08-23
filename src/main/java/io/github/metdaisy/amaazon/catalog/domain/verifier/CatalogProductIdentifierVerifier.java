@@ -1,11 +1,11 @@
 package io.github.metdaisy.amaazon.catalog.domain.verifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import java.util.UUID;
 
 public interface CatalogProductIdentifierVerifier {
 
-  boolean support(CatalogProductIdentifierType type);
+  boolean support(CatalogIdentifierType type);
 
-  void verify(UUID id, String identifierValue);
+  String verify(UUID id, String identifierValue);
 }

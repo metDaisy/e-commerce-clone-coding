@@ -5,10 +5,11 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdate
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,28 +28,29 @@ public class CategoryCommandService {
   private final CategoryMapper mapper;
 
   @Transactional
-  @CacheEvict(cacheNames = "categories", allEntries = true)
+  @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
   public CategoryResponse create(CategoryCreateRequest request) {
     Category parent = findParent(request.parentId());
+    validateUniqueName(request.name(), null);
     validateDepth(parent == null ? 1 : parent.getDepth() + 1);
     Category category = Category.of(request.name(), parent);
     return mapper.toDto(repository.save(category));
   }
 
   @Transactional
-  @CacheEvict(cacheNames = "categories", allEntries = true)
+  @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
   public CategoryResponse update(UUID id, CategoryUpdateRequest request) {
     Category category = findById(id);
     Category parent = findParent(request.parentId());
-    validateNoCycle(category, parent);
+    validateUniqueName(request.name(), id);
     updateHierarchy(category, parent);
     category.rename(request.name());
     return mapper.toDto(category);
   }
 
   private Category findById(UUID id) {
-    return repository.findById(id).orElseThrow(() -> new CatalogProductException(
-        CatalogProductErrorCode.CATEGORY_NOT_FOUND,
+    return repository.findById(id).orElseThrow(() -> new CategoryException(
+        CategoryErrorCode.CATEGORY_NOT_FOUND,
         AmaazonExceptionContext.logDetails(Map.of("categoryId", id))));
   }
 
@@ -58,24 +60,26 @@ public class CategoryCommandService {
 
   private void validateDepth(int depth) {
     if (depth > 3) {
-      throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_DEPTH_EXCEEDED,
+      throw new CategoryException(CategoryErrorCode.CATEGORY_DEPTH_EXCEEDED,
           AmaazonExceptionContext.logDetails(Map.of("depth", depth)));
     }
   }
 
-  private void validateNoCycle(Category category, Category parent) {
-    Category current = parent;
-    while (current != null) {
-      if (Objects.equals(current.getId(), category.getId())) {
-        throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
-            AmaazonExceptionContext.logDetails(Map.of(
-                "categoryId", category.getId(), "parentId", parent.getId())));
-      }
-      current = current.getParent();
+  private void validateUniqueName(String name, UUID excludedId) {
+    boolean duplicate = excludedId == null
+        ? repository.existsByName(name)
+        : repository.existsByNameAndIdNot(name, excludedId);
+    if (duplicate) {
+      throw new CategoryException(CategoryErrorCode.CATEGORY_NAME_DUPLICATE,
+          AmaazonExceptionContext.logDetails(Map.of("name", name)));
     }
   }
 
   private void updateHierarchy(Category category, Category newParent) {
+    if (newParent != null && isDescendant(newParent, category)) {
+      throw new CategoryException(CategoryErrorCode.CATEGORY_CYCLE_DETECTED,
+          AmaazonExceptionContext.logDetails(Map.of("categoryId", category.getId())));
+    }
     int newDepth = newParent == null ? 1 : newParent.getDepth() + 1;
     List<Category> descendants = repository.findAll().stream()
         .filter(candidate -> isDescendant(candidate, category))

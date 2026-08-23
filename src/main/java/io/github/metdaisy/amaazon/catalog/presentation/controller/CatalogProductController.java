@@ -1,10 +1,10 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
+import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
@@ -43,13 +43,15 @@ public class CatalogProductController {
   }
 
   @PatchMapping("/{id}/identifiers")
-  public ResponseEntity<CatalogProductIdentifierUpdateResponse> verifyIdentifierCode(
-      @PathVariable UUID id, @RequestBody CatalogProductIdentifierUpdateRequest request) {
-    return ResponseEntity.status(HttpStatus.OK).body(service.updateIdentifier(id, request));
+  public ResponseEntity<CatalogIdentifierUpdateResponse> verifyIdentifierCode(
+      @PathVariable UUID id,
+      @RequestBody @Valid CatalogIdentifierUpdateRequest request) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(service.updateIdentifier(id, request.identifiers()));
   }
 
   @PostMapping("/{id}/archive")
-  public ResponseEntity<CatalogProductArchivedResponse> archive(@PathVariable UUID id) {
+  public ResponseEntity<CatalogArchivedResponse> archive(@PathVariable UUID id) {
     return ResponseEntity.status(HttpStatus.OK).body(service.archive(id));
   }
 }

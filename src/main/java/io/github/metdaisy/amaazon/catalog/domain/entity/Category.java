@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
 import jakarta.persistence.CascadeType;
@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -42,6 +43,7 @@ public class Category extends MutableEntity {
 
   @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY,
       cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("name asc, id asc")
   private List<Category> children = new ArrayList<>();
 
   private Category(String name, Category parent, Integer depth, List<Category> children) {
@@ -82,7 +84,7 @@ public class Category extends MutableEntity {
     Category current = parent;
     while (current != null) {
       if (current == this || (getId() != null && getId().equals(current.getId()))) {
-        throw new CatalogProductException(CatalogProductErrorCode.CATEGORY_CYCLE_DETECTED,
+        throw new CategoryException(CategoryErrorCode.CATEGORY_CYCLE_DETECTED,
           AmaazonExceptionContext.logDetails(Map.of("categoryId", getId())));
       }
       current = current.parent;
