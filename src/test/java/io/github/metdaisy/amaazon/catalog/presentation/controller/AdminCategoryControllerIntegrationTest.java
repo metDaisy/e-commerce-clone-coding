@@ -14,7 +14,7 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.infra.repository.CategoryJpaRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
-import io.github.metdaisy.amaazon.support.BaseIntegrationTest;
+import io.github.metdaisy.amaazon.support.BaseCacheIntegrationTest;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.entity.constant.UserRole;
 import java.util.EnumSet;
@@ -25,11 +25,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DisplayName("관리자 카테고리 컨트롤러 통합 테스트: HTTP 요청의 DB 반영을 검증한다")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-class AdminCategoryControllerIntegrationTest extends BaseIntegrationTest {
+class AdminCategoryControllerIntegrationTest extends BaseCacheIntegrationTest {
 
   private static final String CATEGORIES_URL = WebConstants.SERVLET_PREFIX + "/admin/categories";
   private static final String PUBLIC_CATEGORIES_URL = WebConstants.SERVLET_PREFIX + "/categories";

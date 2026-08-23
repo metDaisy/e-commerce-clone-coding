@@ -28,10 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DisplayName("CatalogProduct 생성 통합 테스트: 관리자 API와 영속 상태를 검증한다")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class CatalogProductCreationIntegrationTest extends BaseIntegrationTest {
 
   private static final String PRODUCTS_URL =
@@ -59,6 +57,7 @@ class CatalogProductCreationIntegrationTest extends BaseIntegrationTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.catalogProductId").exists())
         .andExpect(jsonPath("$.categoryId").value(category.getId().toString()))
         .andExpect(jsonPath("$.name").value("Laptop"))
         .andExpect(jsonPath("$.description").value("Portable computer"))

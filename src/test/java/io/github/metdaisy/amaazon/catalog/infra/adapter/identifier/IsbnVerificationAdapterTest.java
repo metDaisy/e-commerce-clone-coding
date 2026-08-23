@@ -11,6 +11,7 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductExcepti
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
 import io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn.IsbnExternalVerificationPort;
+import java.util.Locale;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +53,7 @@ class IsbnVerificationAdapterTest {
     given(repository.existsIdentifier(productId, CatalogIdentifierType.ISBN,
         "9780306406157")).willReturn(true);
 
-    assertThatThrownBy(() -> verifier.verify(productId, "9780306406157"))
+    assertThatThrownBy(() -> verifier.verify(productId, "978-0-306-40615-7"))
         .isInstanceOf(CatalogProductException.class)
         .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
 
@@ -71,9 +72,10 @@ class IsbnVerificationAdapterTest {
   })
   @DisplayName("유효한 ISBN-10·ISBN-13과 구분자를 허용한다")
   void verify_shouldAcceptValidIsbnFormats(String value) {
-    verifier.verify(null, value);
+    String normalized = value.replaceAll("[-\\s]", "").toUpperCase(Locale.ROOT);
 
-    then(externalVerificationPort).should().verify(value);
+    assertThat(verifier.verify(null, value)).isEqualTo(normalized);
+    then(externalVerificationPort).should().verify(normalized);
   }
 
   @ParameterizedTest(name = "[{index}] 잘못된 ISBN={0}")

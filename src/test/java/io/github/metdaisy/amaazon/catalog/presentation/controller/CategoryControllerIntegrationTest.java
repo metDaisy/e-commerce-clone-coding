@@ -10,7 +10,7 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.infra.repository.CategoryJpaRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
-import io.github.metdaisy.amaazon.support.BaseIntegrationTest;
+import io.github.metdaisy.amaazon.support.BaseCacheIntegrationTest;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -18,11 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.test.annotation.DirtiesContext;
 
 @DisplayName("카테고리 조회 컨트롤러 통합 테스트: HTTP 응답과 계층 구조를 검증한다")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-class CategoryControllerIntegrationTest extends BaseIntegrationTest {
+class CategoryControllerIntegrationTest extends BaseCacheIntegrationTest {
 
   private static final String CATEGORIES_URL = WebConstants.SERVLET_PREFIX + "/categories";
   private static final UUID USER_ID = UUID.fromString("30000000-0000-0000-0000-000000000001");
@@ -58,7 +56,8 @@ class CategoryControllerIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(Category.of("Books", null));
     Category electronics = persistAndFlush(Category.of("Electronics", null));
     persistAndFlush(Category.of("Keyboards", electronics));
-    persistAndFlush(Category.of("Laptops", electronics));
+    Category laptops = persistAndFlush(Category.of("Laptops", electronics));
+    persistAndFlush(Category.of("Gaming", laptops));
     clear();
 
     // when & then
@@ -70,6 +69,7 @@ class CategoryControllerIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$[1].name").value("Electronics"))
         .andExpect(jsonPath("$[1].children[0].name").value("Keyboards"))
         .andExpect(jsonPath("$[1].children[1].name").value("Laptops"))
+        .andExpect(jsonPath("$[1].children[1].children[0].name").value("Gaming"))
         .andExpect(jsonPath("$[1].children[0].parentId")
             .value(electronics.getId().toString()));
   }

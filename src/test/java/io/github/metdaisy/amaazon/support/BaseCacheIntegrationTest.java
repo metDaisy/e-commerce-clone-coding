@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
+import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 
 @Import(QueryInspectorConfig.class)
 public abstract class BaseCacheIntegrationTest extends BaseIntegrationTest {
@@ -33,9 +34,9 @@ public abstract class BaseCacheIntegrationTest extends BaseIntegrationTest {
   }
 
   protected Cache categoriesCache() {
-    Cache cache = cacheManager.getCache("categories");
+    Cache cache = cacheManager.getCache(CacheConstants.CATEGORIES);
     if (cache == null) {
-      throw new IllegalStateException("categories cache is not configured");
+      throw new IllegalStateException(CacheConstants.CATEGORIES + " cache is not configured");
     }
     return cache;
   }

@@ -98,12 +98,17 @@ class CatalogProductServiceTest {
     Tag tag = tag();
     given(categoryQueryService.getProxy(categoryId)).willReturn(category);
     given(tagService.findAndCreate(request.tags())).willReturn(List.of(tag));
+    given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
+    given(asinVerifier.verify(null, "B000123456")).willReturn("B000123456");
 
     CatalogProductResponse result = service.create(request);
 
     assertThat(result.name()).isEqualTo("Laptop");
     assertThat(result.tags()).containsExactly("office");
     then(repository).should().save(any(CatalogProduct.class));
+    then(asinVerifier).should().verify(null, "B000123456");
+    then(unsupportedVerifier).should(never()).verify(any(), any());
+    then(gtinVerifier).should(never()).verify(any(), any());
   }
 
   @Test
@@ -223,6 +228,7 @@ class CatalogProductServiceTest {
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(unsupportedVerifier.support(CatalogIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
+    given(asinVerifier.verify(productId, "B000123456")).willReturn("B000123456");
 
     CatalogIdentifierUpdateResponse response = service.updateIdentifier(productId, request);
 

@@ -35,14 +35,14 @@ class TagJpaRepositoryTest extends BaseRepositoryTest {
       return tag.getId();
     });
     evictTagCache(tagId);
-    clear();
+    queryInspector.clear();
 
     Tag first = transactionTemplate.execute(status -> repository.findById(tagId).orElseThrow());
 
     assertThat(first.getName()).isEqualTo("office");
     ensureQueryCount(1);
 
-    clear();
+    queryInspector.clear();
 
     Tag second = transactionTemplate.execute(status -> repository.findById(tagId).orElseThrow());
 
