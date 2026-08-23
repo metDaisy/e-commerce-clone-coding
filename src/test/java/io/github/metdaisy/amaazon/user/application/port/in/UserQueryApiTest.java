@@ -13,13 +13,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import io.github.metdaisy.amaazon.user.application.dto.UserDto;
 import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
+import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapperImpl;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
-import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("사용자 조회 API 테스트")
@@ -28,8 +29,8 @@ class UserQueryApiTest {
   @Mock
   private UserRepository repository;
 
-  @Mock
-  private UserApiMapper mapper;
+  @Spy
+  private UserApiMapper mapper = new UserApiMapperImpl();
 
   @InjectMocks
   private UserQueryApi userQueryApi;
@@ -38,11 +39,9 @@ class UserQueryApiTest {
   @DisplayName("사용자 조회 성공: 사용자와 DTO 매핑 결과를 반환한다")
   void findById() {
     UUID userId = UUID.randomUUID();
-    User user = User.createUser(UUID.randomUUID(), "tester", "01012345678");
-    UserDto userDto = new UserDto(userId, List.of("USER"), true);
+    User user = User.createUser(userId, "tester", "01012345678");
 
     given(repository.findWithRolesById(userId)).willReturn(Optional.of(user));
-    given(mapper.toDto(user)).willReturn(userDto);
 
     Optional<UserDto> result = userQueryApi.findById(userId);
 

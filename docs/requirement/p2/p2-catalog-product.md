@@ -25,7 +25,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 | `name` | String | 예 | 공백이 아닌 상품명 |
 | `description` | String | 예 | 공백이 아닌 상품 설명 |
 | `brand` | String | 예 | 상품 브랜드 |
-| `attributes` | JSON object | 예 | 상품군 공통 동적 속성. 기본값 `{}` |
+| `attributes` | JSON object | 아니오 | 카테고리별 구조가 달라 별도 포맷을 강제하지 않으며, `null`·생략 시 `{}` |
 | `identifiers` | Object | 예 | `asin`, `gtin`, `upc`, `ean`, `isbn` 중 하나 이상 |
 | `publicationStatus` | Enum | 예 | `ACTIVE` 또는 `ARCHIVED` |
 | `archivedAt` | Instant | 아니오 | 보관 시각 |
@@ -51,7 +51,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 - ProductVariant·Offer·Inventory·Media는 CatalogProduct 생성 시 함께 생성하지 않는다.
 - `asin`, `gtin`, `upc`, `ean`, `isbn` 중 하나 이상을 입력한다. 각 유형은 형식·체크디지트·CatalogProduct 간 유일성을 검증한다.
 - `isbn`만 외부 도서 API로 추가 검증한다.
-- `attributes` 최상위 값은 object여야 한다. 공통 크기·깊이 제한만 적용하고 Category별 스키마는 강제하지 않는다.
+- `attributes`는 카테고리마다 구조가 다르므로 별도 포맷이나 Category별 스키마를 강제하지 않는다. `null`·생략은 `{}`로 처리한다.
 - `PATCH`의 `attributes`는 JSON Merge Patch다. 일반 값은 추가·수정, `null`은 키 삭제, 생략은 유지, `{}`는 변경 없음이다. `null` 자체를 값으로 저장하지 않는다.
 - 일반 수정은 `name`, `description`, `brand`, `attributes`만 받는다. Category·Variant·Offer·Inventory·`publicationStatus`는 받지 않는다.
 - 외부 식별자 수정은 전달된 값만 바꾸며 식별자 삭제는 지원하지 않는다.
@@ -77,7 +77,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
   "description": "카탈로그 상품 설명",
   "brand": "Example Brand",
   "attributes": { "connectionType": "BLUETOOTH" },
-  "gtin": "8801234567890"
+  "identifiers": { "gtin": "8801234567890" }
 }
 ```
 
@@ -103,7 +103,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 | 400 | `CATALOG-013` | 이름·설명·브랜드·attributes 검증 실패 | 상품 정보를 확인해 주세요. | 실패 필드와 수정 가능한 reason | 내부 검증 원인 |
 | 400 | `CATALOG-014` | 식별자 형식·체크디지트 실패 또는 식별자 없음 | 상품 식별자 입력을 확인해 주세요. | `details.fields`에 필드·reason·안내 메시지 | 실제 입력값은 로그에만 기록 |
 | 400 | `CATALOG-015` | ISBN 외부 검증 실패 | 상품 식별자 입력을 확인해 주세요. | `field=isbn`, `reason=external_verification_failed` | 외부 응답 원문은 로그에만 기록 |
-| 404 | `CATALOG-016` | Category가 없음 | 카테고리를 찾을 수 없습니다. | 없음 | `categoryId`, requestId |
+| 404 | [CATEGORY-003](../p2/p2-category.md) | Category가 없음 | 카테고리를 찾을 수 없습니다. | 없음 | `categoryId`, requestId |
 | 409 | `CATALOG-017` | 식별자가 다른 CatalogProduct와 중복 | 이미 등록된 상품 식별자입니다. | 식별자 유형만 | 충돌 식별자 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
@@ -183,8 +183,10 @@ ADMIN 응답에는 `categoryId`, 내부 ID, `publicationStatus`를 포함하고,
 
 ```json
 {
-  "gtin": "8801234567890",
-  "isbn": "9781234567890"
+  "identifiers": {
+    "gtin": "8801234567890",
+    "isbn": "9781234567890"
+  }
 }
 ```
 

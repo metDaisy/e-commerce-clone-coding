@@ -14,12 +14,11 @@ import io.github.metdaisy.amaazon.user.application.dto.response.UserResponse;
 import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
+import io.github.metdaisy.amaazon.user.application.mapper.UserMapperImpl;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
-import io.github.metdaisy.amaazon.user.domain.entity.constant.UserRole;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -44,8 +44,8 @@ class UserServiceTest {
   @Mock
   private ApplicationEventPublisher eventPublisher;
 
-  @Mock
-  private UserMapper userMapper;
+  @Spy
+  private UserMapper userMapper = new UserMapperImpl();
 
   @InjectMocks
   private UserService userService;
@@ -56,18 +56,16 @@ class UserServiceTest {
     // given
     UUID userId = UUID.randomUUID();
     User user = User.createUser(userId, "tester", "01012345678");
-    UserResponse expected = new UserResponse(
-        userId, "tester", "01012345678", List.of(UserRole.USER), true, null, null);
     given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
-    given(userMapper.toDto(user)).willReturn(expected);
 
     // when
     UserResponse result = userService.findProfile(userId);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.id()).isEqualTo(userId);
+    assertThat(result.name()).isEqualTo("tester");
+    assertThat(result.phoneNumber()).isEqualTo("01012345678");
     then(userRepository).should().findWithRolesById(userId);
-    then(userMapper).should().toDto(user);
   }
 
   @Test
@@ -161,15 +159,13 @@ class UserServiceTest {
     given(userRepository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId))
         .willReturn(false);
 
-    UserResponse expected = new UserResponse(
-        userId, request.name(), request.phoneNumber(), List.of(UserRole.USER), true, null, null);
-    given(userMapper.toDto(user)).willReturn(expected);
 
     // when
     UserResponse result = userService.update(userId, request);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.name()).isEqualTo(request.name());
+    assertThat(result.phoneNumber()).isEqualTo(request.phoneNumber());
     assertThat(user)
         .extracting(User::getName, User::getPhoneNumber)
         .containsExactly(request.name(), request.phoneNumber());
@@ -177,7 +173,6 @@ class UserServiceTest {
     then(userRepository).should().existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId);
     then(userRepository).should()
         .existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId);
-    then(userMapper).should().toDto(user);
   }
 
   @Test
@@ -190,15 +185,13 @@ class UserServiceTest {
     given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId))
         .willReturn(false);
-    UserResponse expected = new UserResponse(
-        userId, request.name(), user.getPhoneNumber(), List.of(UserRole.USER), true, null, null);
-    given(userMapper.toDto(user)).willReturn(expected);
 
     // when
     UserResponse result = userService.update(userId, request);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.name()).isEqualTo(request.name());
+    assertThat(result.phoneNumber()).isEqualTo(user.getPhoneNumber());
     assertThat(user).extracting(User::getName, User::getPhoneNumber)
         .containsExactly(request.name(), "01011112222");
     then(userRepository).should().existsByNameAndIsEnabledTrueAndIdNot(request.name(), userId);
@@ -215,15 +208,13 @@ class UserServiceTest {
     given(userRepository.findWithRolesById(userId)).willReturn(Optional.of(user));
     given(userRepository.existsByPhoneNumberAndIsEnabledTrueAndIdNot(request.phoneNumber(), userId))
         .willReturn(false);
-    UserResponse expected = new UserResponse(
-        userId, user.getName(), request.phoneNumber(), List.of(UserRole.USER), true, null, null);
-    given(userMapper.toDto(user)).willReturn(expected);
 
     // when
     UserResponse result = userService.update(userId, request);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.name()).isEqualTo(user.getName());
+    assertThat(result.phoneNumber()).isEqualTo(request.phoneNumber());
     assertThat(user).extracting(User::getName, User::getPhoneNumber)
         .containsExactly("기존이름", request.phoneNumber());
     then(userRepository).should()

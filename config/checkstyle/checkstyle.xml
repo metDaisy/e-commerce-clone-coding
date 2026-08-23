@@ -7,5 +7,10 @@
 
     <module name="TreeWalker">
         <module name="io.github.metdaisy.checkstyle.NoFullyQualifiedTypeCheck"/>
+        <module name="io.github.metdaisy.checkstyle.NoReplacementCharacterCheck"/>
+        <module name="io.github.metdaisy.checkstyle.SuspiciousKoreanEncodingCheck">
+            <property name="severity" value="warning"/>
+            <property name="whitelistFile" value="${config_loc}/whitelist.yml"/>
+        </module>
     </module>
 </module>
