@@ -5,13 +5,13 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressCreateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateRequest;
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.mapper.AddressMapper;
+import io.github.metdaisy.amaazon.address.application.mapper.AddressMapperImpl;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressErrorCode;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressException;
@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,8 +39,8 @@ class AddressServiceTest {
   @Mock
   private AddressRepository repository;
 
-  @Mock
-  private AddressMapper addressMapper;
+  @Spy
+  private AddressMapper addressMapper = new AddressMapperImpl();
 
   @InjectMocks
   private AddressService addressService;
@@ -49,21 +50,16 @@ class AddressServiceTest {
   void create_success_whenPrimaryIsRequested() {
     // given
     AddressCreateRequest request = validRequest(true);
-    Address address = Address.create(USER_ID, request.alias(), request.recipientName(),
-        request.recipientPhone(),
-        request.postalCode(), request.addressLine(), true);
-    AddressResponse expected = response(address);
-    given(addressMapper.toEntity(USER_ID, request)).willReturn(address);
     given(repository.existsByUserIdAndPostalCodeAndAddressLine(USER_ID, request.postalCode(),
         request.addressLine())).willReturn(false);
-    given(repository.save(any(Address.class))).willReturn(address);
-    given(addressMapper.toDto(address)).willReturn(expected);
+    given(repository.save(any(Address.class))).willAnswer(invocation -> invocation.getArgument(0));
 
     // when
     AddressResponse result = addressService.create(USER_ID, request);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.recipientName()).isEqualTo(request.recipientName());
+    assertThat(result.isPrimary()).isTrue();
     then(repository).should().existsByUserIdAndPostalCodeAndAddressLine(USER_ID,
         request.postalCode(), request.addressLine());
     then(repository).should().clearPrimaryByUserId(USER_ID);
@@ -79,13 +75,9 @@ class AddressServiceTest {
   void create_success_whenPrimaryIsOmitted() {
     // given
     AddressCreateRequest request = validRequest(false);
-    Address address = Address.create(USER_ID, request.alias(), request.recipientName(),
-        request.recipientPhone(), request.postalCode(), request.addressLine(), false);
-    given(addressMapper.toEntity(USER_ID, request)).willReturn(address);
     given(repository.existsByUserIdAndPostalCodeAndAddressLine(USER_ID, request.postalCode(),
         request.addressLine())).willReturn(false);
     given(repository.save(any(Address.class))).willAnswer(invocation -> invocation.getArgument(0));
-    given(addressMapper.toDto(any(Address.class))).willReturn(null);
 
     // when
     addressService.create(USER_ID, request);
@@ -121,16 +113,15 @@ class AddressServiceTest {
     // given
     Address address = Address.create(USER_ID, "집", "tester", "01012345678", "06236", "서울",
         true);
-    AddressResponse response = response(address);
     given(repository.findPageByUserId(any(UUID.class), any())).willReturn(
         new PageResult<>(List.of(address), 0, 20, 1, 1));
-    given(addressMapper.toDto(address)).willReturn(response);
 
     // when
     PageResult<AddressResponse> result = addressService.findAll(USER_ID, new PageQuery(0, 20));
 
     // then
-    assertThat(result.content()).containsExactly(response);
+    assertThat(result.content()).usingRecursiveFieldByFieldElementComparator()
+        .containsExactly(response(address));
     then(repository).should().findPageByUserId(any(UUID.class), any());
   }
 
@@ -142,21 +133,13 @@ class AddressServiceTest {
         false);
     AddressUpdateRequest request = new AddressUpdateRequest(
         null, "updated tester", null, null, "부산광역시 해운대구");
-    AddressResponse expected = response(address);
     given(repository.findById(address.getId())).willReturn(Optional.of(address));
-    willAnswer(invocation -> {
-      AddressUpdateRequest update = invocation.getArgument(1);
-      address.setRecipientName(update.recipientName());
-      address.setAddressLine(update.addressLine());
-      return null;
-    }).given(addressMapper).update(address, request);
-    given(addressMapper.toDto(address)).willReturn(expected);
 
     // when
     AddressResponse result = addressService.update(USER_ID, address.getId(), request);
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.recipientName()).isEqualTo("updated tester");
     assertThat(address)
         .extracting(Address::getRecipientName, Address::getRecipientPhone,
             Address::getPostalCode, Address::getAddressLine)
@@ -194,16 +177,14 @@ class AddressServiceTest {
     // given
     Address address = Address.create(USER_ID, "집", "tester", "01012345678", "06236", "서울",
         false);
-    AddressResponse expected = response(address);
     given(repository.findById(address.getId())).willReturn(Optional.of(address));
-    given(addressMapper.toDto(address)).willReturn(expected);
 
     // when
     AddressResponse result = addressService.update(USER_ID, address.getId(),
         new AddressUpdateRequest(null, null, null, null, null));
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.recipientName()).isEqualTo("tester");
     assertThat(address)
         .extracting(Address::getRecipientName, Address::getRecipientPhone,
             Address::getPostalCode, Address::getAddressLine)
@@ -254,18 +235,17 @@ class AddressServiceTest {
     // given
     Address address = Address.create(USER_ID, "집", "tester", "01012345678", "06236", "서울",
         false);
-    AddressResponse expected = response(address);
     given(repository.existsById(address.getId())).willReturn(true);
     given(repository.existsByIdAndUserId(address.getId(), USER_ID)).willReturn(true);
     address.setPrimary(true);
     given(repository.makePrimary(USER_ID, address.getId())).willReturn(address);
-    given(addressMapper.toDto(address)).willReturn(expected);
 
     // when
     AddressResponse result = addressService.makePrimary(USER_ID, address.getId());
 
     // then
-    assertThat(result).isSameAs(expected);
+    assertThat(result.isPrimary()).isTrue();
+    assertThat(result.recipientName()).isEqualTo("tester");
     assertThat(address.isPrimary()).isTrue();
     then(repository).should().makePrimary(USER_ID, address.getId());
     then(repository).should(never()).save(any(Address.class));
@@ -280,6 +260,7 @@ class AddressServiceTest {
     return new AddressResponse(address.getId(), USER_ID, address.getAlias(),
         address.getRecipientName(),
         address.getRecipientPhone(), address.getPostalCode(), address.getAddressLine(),
-        address.isPrimary(), address.getLastUsedAt(), address.getCreatedAt(), address.getUpdatedAt());
+        address.isPrimary(), address.getLastUsedAt(), address.getCreatedAt(),
+        address.getUpdatedAt());
   }
 }

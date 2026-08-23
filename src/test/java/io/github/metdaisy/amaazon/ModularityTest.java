@@ -49,7 +49,6 @@ class ModularityTest {
           .layer("Application").definedBy(domainPackage + ".application..")
           .layer("Domain").definedBy(domainPackage + ".domain..")
           .layer("Infrastructure").definedBy(domainPackage + ".infra..")
-
           // 도메인 내부 계층 방향: Presentation -> Application -> Domain <- Infrastructure
           .whereLayer("Presentation").mayOnlyBeAccessedByLayers("Presentation")
           // Infrastructure는 DIP에 따라 Application의 outbound port를 구현할 수 있다.
