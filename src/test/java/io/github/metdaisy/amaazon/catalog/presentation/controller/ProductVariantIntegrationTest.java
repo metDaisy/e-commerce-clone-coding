@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,6 +36,7 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
   private static final String PUBLIC_URL = WebConstants.SERVLET_PREFIX + "/product-variants";
   private static final UUID ADMIN_ID = UUID.fromString("30000000-0000-0000-0000-000000000021");
   private static final UUID USER_ID = UUID.fromString("30000000-0000-0000-0000-000000000022");
+  private static final UUID SELLER_ID = UUID.fromString("30000000-0000-0000-0000-000000000023");
 
   @Autowired
   private ProductVariantJpaRepository variantRepository;
@@ -81,6 +83,101 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.variantId").doesNotExist())
         .andExpect(jsonPath("$.catalogProductId").doesNotExist())
         .andExpect(jsonPath("$.publicationStatus").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 공개 조회: Seller도 활성 옵션의 공개 필드만 조회한다")
+  void findPublic_returnsPublicFieldsForSeller() throws Exception {
+    persistSeller();
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
+    clear();
+
+    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId())
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsSeller())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.displayName").value("Black / 256GB"))
+        .andExpect(jsonPath("$.attributes.storage").value("256GB"))
+        .andExpect(jsonPath("$.variantId").doesNotExist())
+        .andExpect(jsonPath("$.catalogProductId").doesNotExist());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 공개 조회 실패: 인증되지 않은 요청은 401을 반환한다")
+  void findPublic_requiresAuthentication() throws Exception {
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
+    clear();
+
+    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId()))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 수정: 관리자는 표시명과 attributes 병합 결과를 저장한다")
+  void update_persistsMergedVariant() throws Exception {
+    persistAdmin();
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
+    clear();
+
+    mockMvc.perform(patch(ADMIN_URL + "/product-variants/" + variant.getId())
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(ProductVariantFixture.updateRequest())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(variant.getId().toString()))
+        .andExpect(jsonPath("$.catalogProductId").value(product.getId().toString()))
+        .andExpect(jsonPath("$.displayName").value("Black / 512GB"))
+        .andExpect(jsonPath("$.attributes.storage").value("512GB"))
+        .andExpect(jsonPath("$.attributes.color").doesNotExist())
+        .andExpect(jsonPath("$.publicationStatus").value("ACTIVE"));
+
+    flushAndClear();
+    ProductVariant updated = variantRepository.findWithCatalogProductById(variant.getId())
+        .orElseThrow();
+    assertThat(updated.getDisplayName()).isEqualTo("Black / 512GB");
+    assertThat(updated.getAttributes()).containsOnlyKeys("storage")
+        .containsEntry("storage", "512GB");
+  }
+
+  @Test
+  @DisplayName("상품 옵션 수정 실패: 보관된 옵션은 409와 CATALOG-033을 반환한다")
+  void update_rejectsArchivedVariant() throws Exception {
+    persistAdmin();
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = ProductVariantFixture.variant(product);
+    variant.archive();
+    persistAndFlush(variant);
+    clear();
+
+    mockMvc.perform(patch(ADMIN_URL + "/product-variants/" + variant.getId())
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(ProductVariantFixture.updateRequest())))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-033"));
+  }
+
+  @Test
+  @DisplayName("상품 옵션 보관 실패: 이미 보관된 옵션은 409와 CATALOG-035를 반환한다")
+  void archive_rejectsAlreadyArchivedVariant() throws Exception {
+    persistAdmin();
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = ProductVariantFixture.variant(product);
+    variant.archive();
+    persistAndFlush(variant);
+    clear();
+
+    mockMvc.perform(post(ADMIN_URL + "/product-variants/" + variant.getId() + "/archive")
+            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin())))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-035"));
   }
 
   @Test
@@ -157,6 +254,12 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(User.createUser(USER_ID, "vuser", "01099990022"));
   }
 
+  private void persistSeller() {
+    User seller = User.createUser(SELLER_ID, "vseller", "01099990023");
+    seller.updateRoles(EnumSet.of(UserRole.USER, UserRole.PRODUCT_MANAGER));
+    persistAndFlush(seller);
+  }
+
   private UsernamePasswordAuthenticationToken authenticationAsAdmin() {
     JwtPrincipal principal = new JwtPrincipal(ADMIN_ID, "ADMIN");
     return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
@@ -164,6 +267,11 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
 
   private UsernamePasswordAuthenticationToken authenticationAsUser() {
     JwtPrincipal principal = new JwtPrincipal(USER_ID, "USER");
+    return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+  }
+
+  private UsernamePasswordAuthenticationToken authenticationAsSeller() {
+    JwtPrincipal principal = new JwtPrincipal(SELLER_ID, "PRODUCT_MANAGER");
     return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
   }
 }

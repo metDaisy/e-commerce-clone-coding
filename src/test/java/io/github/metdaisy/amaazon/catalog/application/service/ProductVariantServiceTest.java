@@ -79,12 +79,37 @@ class ProductVariantServiceTest {
   }
 
   @Test
+  @DisplayName("상품 옵션 생성 실패: 존재하지 않는 상품은 CATALOG-019로 거절한다")
+  void create_shouldRejectUnknownCatalogProduct() {
+    UUID productId = UUID.randomUUID();
+    given(catalogProductRepository.findById(productId)).willReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.create(productId, ProductVariantFixture.createRequest()))
+        .isInstanceOf(CatalogProductException.class)
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.CATALOG_NOT_FOUND.getCode());
+  }
+
+  @Test
   @DisplayName("상품 옵션 공개 조회: 보관 옵션은 CATALOG-031로 거절한다")
   void findPublic_shouldRejectArchivedVariant() {
     CatalogProduct product = CatalogProductFixture.persistedProduct(
         CategoryFixture.category());
     ProductVariant variant = ProductVariantFixture.variant(product);
     variant.archive();
+    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
+
+    assertThatThrownBy(() -> service.findPublic(variant.getId()))
+        .isInstanceOf(ProductVariantException.class)
+        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_NOT_FOUND.getCode());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 공개 조회 실패: 보관된 상품에 속한 옵션은 CATALOG-031로 거절한다")
+  void findPublic_shouldRejectVariantOfArchivedCatalogProduct() {
+    CatalogProduct product = CatalogProductFixture.persistedProduct(
+        CategoryFixture.category());
+    product.setPublicationStatus(CatalogStatus.ARCHIVED);
+    ProductVariant variant = ProductVariantFixture.variant(product);
     given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
 
     assertThatThrownBy(() -> service.findPublic(variant.getId()))
@@ -105,6 +130,54 @@ class ProductVariantServiceTest {
 
     assertThat(result.displayName()).isEqualTo("Black / 512GB");
     assertThat(result.attributes()).containsOnlyKeys("storage");
+    assertThat(result.productVariantId()).isEqualTo(variant.getId());
+    assertThat(result.catalogProductId()).isEqualTo(product.getId());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 수정 실패: 보관된 옵션은 CATALOG-033으로 거절한다")
+  void update_shouldRejectArchivedVariant() {
+    CatalogProduct product = CatalogProductFixture.persistedProduct(
+        CategoryFixture.category());
+    ProductVariant variant = ProductVariantFixture.variant(product);
+    variant.archive();
+    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
+
+    assertThatThrownBy(() -> service.update(variant.getId(), ProductVariantFixture.updateRequest()))
+        .isInstanceOf(ProductVariantException.class)
+        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_ARCHIVED.getCode());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 보관 실패: 이미 보관된 옵션은 CATALOG-035로 거절한다")
+  void archive_shouldRejectAlreadyArchivedVariant() {
+    CatalogProduct product = CatalogProductFixture.persistedProduct(
+        CategoryFixture.category());
+    ProductVariant variant = ProductVariantFixture.variant(product);
+    variant.archive();
+    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
+
+    assertThatThrownBy(() -> service.archive(variant.getId()))
+        .isInstanceOf(ProductVariantException.class)
+        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_ALREADY_ARCHIVED
+            .getCode());
+  }
+
+  @Test
+  @DisplayName("관리자 상품 옵션 조회: 보관된 옵션도 내부 상태를 포함해 반환한다")
+  void findAdmin_shouldReturnArchivedVariant() {
+    CatalogProduct product = CatalogProductFixture.persistedProduct(
+        CategoryFixture.category());
+    ProductVariant variant = ProductVariantFixture.variant(product);
+    variant.archive();
+    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
+
+    ProductVariantAdminResponse result = service.findAdmin(variant.getId());
+
+    assertThat(result.productVariantId()).isEqualTo(variant.getId());
+    assertThat(result.catalogProductId()).isEqualTo(product.getId());
+    assertThat(result.publicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+    assertThat(result.archivedAt()).isNotNull();
   }
 
   @Test

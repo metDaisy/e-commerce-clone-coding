@@ -34,6 +34,24 @@ class ProductVariantTest {
   }
 
   @Test
+  @DisplayName("상품 옵션 생성 실패: attributes가 null이면 거절한다")
+  void of_shouldRejectNullAttributes() {
+    assertThatThrownBy(() -> ProductVariant.of(product(), "Black / 256GB", null))
+        .isInstanceOf(ProductVariantException.class)
+        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_INVALID.getCode());
+  }
+
+  @Test
+  @DisplayName("상품 옵션 생성 실패: 표시명이 255자를 초과하면 거절한다")
+  void of_shouldRejectOverlongDisplayName() {
+    String displayName = "a".repeat(256);
+
+    assertThatThrownBy(() -> ProductVariant.of(product(), displayName, Map.of()))
+        .isInstanceOf(ProductVariantException.class)
+        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_INVALID.getCode());
+  }
+
+  @Test
   @DisplayName("상품 옵션 수정: 속성은 병합하고 null 값은 기존 키를 삭제한다")
   void update_shouldMergeAttributesAndRemoveNullValues() {
     ProductVariant variant = ProductVariant.of(product(), "Black / 256GB",

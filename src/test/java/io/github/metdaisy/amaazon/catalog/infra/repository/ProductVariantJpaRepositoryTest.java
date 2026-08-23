@@ -61,6 +61,26 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
+  @DisplayName("기본 ID 조회: 모든 필드와 지연 부모를 접근하면 두 번의 쿼리가 발생한다")
+  void findById_shouldLoadAllFieldsAndLazyCatalogProduct() {
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
+    flushAndClear();
+
+    ProductVariant found = repository.findById(variant.getId()).orElseThrow();
+
+    assertThat(found)
+        .usingRecursiveComparison()
+        .ignoringFields("catalogProduct")
+        .withEqualsForType(this::compareInstant, Instant.class)
+        .isEqualTo(variant);
+    assertThat(found.getCatalogProduct().getId()).isEqualTo(product.getId());
+    assertThat(found.getCatalogProduct().getName()).isEqualTo(product.getName());
+    ensureQueryCount(2);
+  }
+
+  @Test
   @DisplayName("상품 옵션 보관: 상태와 보관 시각을 영속화한다")
   void archive_shouldPersistArchivedState() {
     Category category = persistAndFlush(CategoryFixture.category());
@@ -79,5 +99,23 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
     assertThat(archived.getPublicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
     assertThat(archived.getArchivedAt()).isNotNull();
     ensureQueryCount(1);
+  }
+
+  @Test
+  @DisplayName("상품 옵션 삭제: 저장된 옵션을 삭제하고 데이터가 남지 않는다")
+  void delete_shouldRemovePersistedVariant() {
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
+    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
+    flushAndClear();
+    ProductVariant managed = repository.findById(variant.getId()).orElseThrow();
+    queryInspector.clear();
+
+    repository.delete(managed);
+    em.flush();
+
+    ensureQueryCount(1);
+    clear();
+    assertThat(repository.findById(variant.getId())).isEmpty();
   }
 }
