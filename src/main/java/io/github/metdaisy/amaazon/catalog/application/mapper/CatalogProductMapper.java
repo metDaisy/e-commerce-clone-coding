@@ -2,12 +2,12 @@ package io.github.metdaisy.amaazon.catalog.application.mapper;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
 import java.time.Instant;
 import java.util.Collections;
@@ -30,7 +30,7 @@ public interface CatalogProductMapper {
   @Mapping(target = "tags", source = "tags", qualifiedByName = "toTagName")
   CatalogProductResponse toDto(CatalogProduct catalogProduct);
 
-  CatalogProductIdentifierUpdateResponse toIdentifierResponse(CatalogProduct catalog);
+  CatalogIdentifierUpdateResponse toIdentifierResponse(CatalogProduct catalog);
 
   @Mapping(target = "tags", ignore = true)
   @Mapping(target = "name", source = "request.name")
@@ -51,7 +51,7 @@ public interface CatalogProductMapper {
       Map<String, String> identifiers);
 
   default void update(@MappingTarget CatalogProduct catalog,
-      Map<CatalogProductIdentifierType, String> identifiers) {
+      Map<CatalogIdentifierType, String> identifiers) {
     updateIdentifierFields(catalog, toIdentifierMap(identifiers));
   }
 
@@ -74,7 +74,7 @@ public interface CatalogProductMapper {
   }
 
   private Map<String, String> toIdentifierMap(
-      Map<CatalogProductIdentifierType, String> identifiers) {
+      Map<CatalogIdentifierType, String> identifiers) {
     if (identifiers == null || identifiers.isEmpty()) {
       return Collections.emptyMap();
     }

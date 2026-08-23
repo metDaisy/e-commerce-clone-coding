@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn.IsbnExternalVerificationPort;
 import org.springframework.stereotype.Component;
@@ -12,7 +12,7 @@ public class IsbnVerificationAdapter extends AbstractIdentifierVerificationAdapt
 
   public IsbnVerificationAdapter(CatalogProductRepository repository,
       IsbnExternalVerificationPort externalVerificationPort) {
-    super(repository, CatalogProductIdentifierType.ISBN);
+    super(repository, CatalogIdentifierType.ISBN);
     this.externalVerificationPort = externalVerificationPort;
   }
 

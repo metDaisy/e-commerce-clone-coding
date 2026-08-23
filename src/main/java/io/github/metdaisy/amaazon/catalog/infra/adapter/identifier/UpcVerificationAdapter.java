@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import org.springframework.stereotype.Component;
 
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 public class UpcVerificationAdapter extends AbstractIdentifierVerificationAdapter {
 
   public UpcVerificationAdapter(CatalogProductRepository repository) {
-    super(repository, CatalogProductIdentifierType.UPC);
+    super(repository, CatalogIdentifierType.UPC);
   }
 
   @Override

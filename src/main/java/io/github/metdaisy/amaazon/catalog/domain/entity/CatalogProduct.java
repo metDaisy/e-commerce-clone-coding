@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ProductPublicationStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -29,7 +29,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 @Getter
@@ -40,7 +39,6 @@ import org.hibernate.type.SqlTypes;
 @SQLDelete(sql = "update catalog_products "
     + "set publication_status = 'ARCHIVED', archived_at = now(), updated_at = now() "
     + "where id = ?")
-@SQLRestriction("publication_status <> 'ARCHIVED'")
 public class CatalogProduct extends MutableEntity {
 
   @NotNull
@@ -48,8 +46,7 @@ public class CatalogProduct extends MutableEntity {
   @JoinColumn(name = "category_id", nullable = false)
   private Category category;
 
-  @OneToMany(fetch = FetchType.LAZY, mappedBy = "catalogProduct", cascade = {CascadeType.PERSIST,
-      CascadeType.REMOVE}, orphanRemoval = true)
+  @OneToMany(fetch = FetchType.LAZY, mappedBy = "catalogProduct", cascade = CascadeType.PERSIST)
   private List<CatalogProductTag> tags = new ArrayList<>();
 
   @Size(max = 255)
@@ -92,7 +89,7 @@ public class CatalogProduct extends MutableEntity {
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(name = "publication_status", nullable = false, length = 20)
-  private ProductPublicationStatus publicationStatus;
+  private CatalogStatus publicationStatus;
 
   @Column(name = "archived_at")
   private Instant archivedAt;
@@ -111,13 +108,13 @@ public class CatalogProduct extends MutableEntity {
     this.ean = ean;
     this.isbn = isbn;
     this.attributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
-    this.publicationStatus = ProductPublicationStatus.ACTIVE;
+    this.publicationStatus = CatalogStatus.ACTIVE;
     this.archivedAt = null;
     this.tags = tags == null ? new ArrayList<>() : tags;
   }
 
   public void validateActive() {
-    if (publicationStatus.equals(ProductPublicationStatus.ARCHIVED)) {
+    if (publicationStatus.equals(CatalogStatus.ARCHIVED)) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_PRODUCT_ARCHIVED,
           AmaazonExceptionContext.logDetails(Map.of("catalogId", getId())));
     }
@@ -126,7 +123,7 @@ public class CatalogProduct extends MutableEntity {
   public void archive() {
     validateActive();
     Instant now = Instant.now();
-    publicationStatus = ProductPublicationStatus.ARCHIVED;
+    publicationStatus = CatalogStatus.ARCHIVED;
     archivedAt = now;
     setUpdatedAt(now);
   }

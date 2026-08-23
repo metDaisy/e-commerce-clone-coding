@@ -1,16 +1,14 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
+import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Size;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,15 +43,15 @@ public class CatalogProductController {
   }
 
   @PatchMapping("/{id}/identifiers")
-  public ResponseEntity<CatalogProductIdentifierUpdateResponse> verifyIdentifierCode(
+  public ResponseEntity<CatalogIdentifierUpdateResponse> verifyIdentifierCode(
       @PathVariable UUID id,
-      @RequestBody @Valid
-      Map<CatalogProductIdentifierType, @Size(max = 50) String> identifiers) {
-    return ResponseEntity.status(HttpStatus.OK).body(service.updateIdentifier(id, identifiers));
+      @RequestBody @Valid CatalogIdentifierUpdateRequest request) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(service.updateIdentifier(id, request.identifiers()));
   }
 
   @PostMapping("/{id}/archive")
-  public ResponseEntity<CatalogProductArchivedResponse> archive(@PathVariable UUID id) {
+  public ResponseEntity<CatalogArchivedResponse> archive(@PathVariable UUID id) {
     return ResponseEntity.status(HttpStatus.OK).body(service.archive(id));
   }
 }

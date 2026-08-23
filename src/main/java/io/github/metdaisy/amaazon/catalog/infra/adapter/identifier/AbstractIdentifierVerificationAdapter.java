@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
@@ -17,7 +17,7 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     CatalogProductIdentifierVerifier {
 
   private final CatalogProductRepository repository;
-  private final CatalogProductIdentifierType type;
+  private final CatalogIdentifierType type;
 
   @Override
   public final void verify(UUID id, String identifierValue) {
@@ -27,7 +27,7 @@ public abstract class AbstractIdentifierVerificationAdapter implements
   }
 
   @Override
-  public final boolean support(CatalogProductIdentifierType type) {
+  public final boolean support(CatalogIdentifierType type) {
     return this.type.equals(type);
   }
 

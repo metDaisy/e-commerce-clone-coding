@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.infra.repository;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductIdentifierType;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import java.util.UUID;
 import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,7 +19,7 @@ public class CatalogProductSpecification {
         -> cb.notEqual(root.get("id"), id);
   }
 
-  public Specification<CatalogProduct> hasIdentifier(CatalogProductIdentifierType type,
+  public Specification<CatalogProduct> hasIdentifier(CatalogIdentifierType type,
       String value) {
     String field = switch (type) {
       case ASIN -> "asin";
