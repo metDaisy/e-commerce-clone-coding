@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.util.AttributesUpdater;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -23,13 +24,19 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.type.SqlTypes;
 
 @Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(name = "product_variants")
+@SQLDelete(sql = "UPDATE product_variants "
+    + "SET publication_status = 'ARCHIVED', archived_at = now(), updated_at = now() "
+    + "WHERE id = ?")
 public class ProductVariant extends MutableEntity {
 
   @NotNull
@@ -57,7 +64,6 @@ public class ProductVariant extends MutableEntity {
 
   private ProductVariant(CatalogProduct catalogProduct, String displayName,
       Map<String, Object> attributes) {
-    validateDisplayName(displayName);
     if (attributes == null) {
       throw new ProductVariantException(ProductVariantErrorCode.VARIANT_INVALID);
     }
@@ -70,16 +76,6 @@ public class ProductVariant extends MutableEntity {
   public static ProductVariant of(CatalogProduct catalogProduct, String displayName,
       Map<String, Object> attributes) {
     return new ProductVariant(catalogProduct, displayName, attributes);
-  }
-
-  public void update(String displayName, Map<String, Object> attributePatch) {
-    validateActive();
-    if (displayName != null) {
-      validateDisplayName(displayName);
-      this.displayName = displayName;
-    }
-    applyAttributePatch(attributePatch);
-    setUpdatedAt(Instant.now());
   }
 
   public void validateActive() {
@@ -103,25 +99,7 @@ public class ProductVariant extends MutableEntity {
     setUpdatedAt(archivedAt);
   }
 
-  private void applyAttributePatch(Map<String, Object> attributePatch) {
-    if (attributePatch == null || attributePatch.isEmpty()) {
-      return;
-    }
-    Map<String, Object> merged = new LinkedHashMap<>(attributes);
-    attributePatch.forEach((key, value) -> {
-      if (value == null) {
-        merged.remove(key);
-      } else {
-        merged.put(key, value);
-      }
-    });
-    attributes = merged;
-  }
-
-  private void validateDisplayName(String value) {
-    if (value == null || value.trim().isEmpty() || value.length() > 255) {
-      throw new ProductVariantException(ProductVariantErrorCode.VARIANT_INVALID,
-          AmaazonExceptionContext.logDetails(Map.of("field", "displayName")));
-    }
+  public void setAttributes(Map<String, Object> attributes) {
+    this.attributes = AttributesUpdater.update(this.attributes, attributes);
   }
 }

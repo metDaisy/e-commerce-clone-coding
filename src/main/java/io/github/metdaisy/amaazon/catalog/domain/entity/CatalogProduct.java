@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.util.AttributesUpdater;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -126,5 +127,9 @@ public class CatalogProduct extends MutableEntity {
     publicationStatus = CatalogStatus.ARCHIVED;
     archivedAt = now;
     setUpdatedAt(now);
+  }
+
+  public void setAttributes(Map<String, Object> attributes) {
+    this.attributes = AttributesUpdater.update(this.attributes, attributes);
   }
 }

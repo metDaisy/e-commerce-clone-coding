@@ -3,32 +3,33 @@ package io.github.metdaisy.amaazon.catalog.application.mapper;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductPublicResponse;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.springframework.util.StringUtils;
 
-@Mapper(config = GlobalMapperConfig.class, uses = TagMapper.class)
+@Mapper(config = GlobalMapperConfig.class, uses = {TagMapper.class})
 public interface CatalogProductMapper {
 
   @Mapping(target = "categoryId", source = "category.id")
   @Mapping(target = "tags", source = "tags", qualifiedByName = "toTagName")
   CatalogProductResponse toDto(CatalogProduct catalogProduct);
+
+  CatalogProductPublicResponse toPublicDto(CatalogProduct catalogProduct);
 
   CatalogIdentifierUpdateResponse toIdentifierResponse(CatalogProduct catalog);
 
@@ -37,7 +38,7 @@ public interface CatalogProductMapper {
   @Mapping(target = ".", source = "request")
   CatalogProduct toEntity(Category category, CatalogProductCreateRequest request);
 
-  @Mapping(target = "tags", source = "tags", conditionQualifiedByName = "checkCollection")
+  @Mapping(target = "tags", source = "tags")
   void update(@MappingTarget CatalogProduct catalog, List<CatalogProductTag> tags,
       CatalogProductUpdateRequest request);
 
@@ -53,24 +54,6 @@ public interface CatalogProductMapper {
   default void update(@MappingTarget CatalogProduct catalog,
       Map<CatalogIdentifierType, String> identifiers) {
     updateIdentifierFields(catalog, toIdentifierMap(identifiers));
-  }
-
-  @AfterMapping
-  default void updateUpdatedAt(@MappingTarget CatalogProduct catalog,
-      List<CatalogProductTag> tags, CatalogProductUpdateRequest request) {
-    catalog.setUpdatedAt(Instant.now());
-  }
-
-  @AfterMapping
-  default void updateUpdatedAt(@MappingTarget CatalogProduct catalog,
-      Map<String, String> identifiers) {
-    catalog.setUpdatedAt(Instant.now());
-  }
-
-  @AfterMapping
-  default void mapIdentifiers(CatalogProductCreateRequest request,
-      @MappingTarget CatalogProduct catalog) {
-    update(catalog, request.identifiers());
   }
 
   private Map<String, String> toIdentifierMap(

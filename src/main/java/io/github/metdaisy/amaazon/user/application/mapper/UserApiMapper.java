@@ -12,7 +12,7 @@ import org.mapstruct.Mapping;
 @Mapper(config = GlobalMapperConfig.class)
 public interface UserApiMapper {
 
-  @Mapping(target = "roles", source = "roles")
+  @Mapping(target = "roles", source = "roles", defaultExpression = "java(java.util.Collections.emptyList())")
   UserDto toDto(User user);
 
   default List<String> mapRoles(Set<UserRole> roles) {
