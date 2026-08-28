@@ -1,6 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.entity.util.AttributesUpdater;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantException;
@@ -57,7 +57,7 @@ public class ProductVariant extends MutableEntity {
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(name = "publication_status", nullable = false, length = 20)
-  private CatalogStatus publicationStatus;
+  private ArchiveStatus publicationStatus;
 
   @Column(name = "archived_at")
   private Instant archivedAt;
@@ -70,7 +70,7 @@ public class ProductVariant extends MutableEntity {
     this.catalogProduct = catalogProduct;
     this.displayName = displayName;
     this.attributes = new LinkedHashMap<>(attributes);
-    this.publicationStatus = CatalogStatus.ACTIVE;
+    this.publicationStatus = ArchiveStatus.ACTIVE;
   }
 
   public static ProductVariant of(CatalogProduct catalogProduct, String displayName,
@@ -79,14 +79,14 @@ public class ProductVariant extends MutableEntity {
   }
 
   public void validateActive() {
-    if (publicationStatus == CatalogStatus.ARCHIVED) {
+    if (publicationStatus == ArchiveStatus.ARCHIVED) {
       throw new ProductVariantException(ProductVariantErrorCode.VARIANT_ARCHIVED,
           AmaazonExceptionContext.logDetails(Map.of("variantId", getId())));
     }
   }
 
   public boolean isActive() {
-    return publicationStatus == CatalogStatus.ACTIVE;
+    return publicationStatus == ArchiveStatus.ACTIVE;
   }
 
   public void archive() {
@@ -94,7 +94,7 @@ public class ProductVariant extends MutableEntity {
       throw new ProductVariantException(ProductVariantErrorCode.VARIANT_ALREADY_ARCHIVED,
           AmaazonExceptionContext.logDetails(Map.of("variantId", getId())));
     }
-    publicationStatus = CatalogStatus.ARCHIVED;
+    publicationStatus = ArchiveStatus.ARCHIVED;
     archivedAt = Instant.now();
     setUpdatedAt(archivedAt);
   }
