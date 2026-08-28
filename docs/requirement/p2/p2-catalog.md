@@ -22,7 +22,7 @@ Offer          1 : N Review      (P10)
 
 - 상품 연결은 `CatalogProduct.categoryId` 단일 FK다. 별도의 다대다 Category 연결 테이블을 사용하지 않는다.
 - Category 검색 범위는 선택한 Category와 모든 하위 Category다.
-- `CatalogProduct`와 `ProductVariant`의 내부 ID는 서버가 생성한다. 구매자·Seller 응답에는 반환하지 않는다.
+- `CatalogProduct`와 `ProductVariant`의 내부 ID는 서버가 생성한다. 고객용 Product 응답에는 반환하지 않는다. 관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택을 위해 반환한다.
 - ProductType·ItemType·SearchKeyword는 현재 리소스 모델에 포함하지 않는다. 상세 내용은 [심화 문서](p2-product-type.md), [SearchKeyword](p2-search-keyword.md)를 따른다.
 
 ## 2. 관계와 제약
@@ -49,6 +49,22 @@ CatalogVariantQueryApi.findActiveByVariantId(variantId)
   → CatalogVariantReference
 ```
 
+### Catalog 관리자·Product Manager 조회 API
+
+`GET /api/v1/catalog-products`
+
+권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
+
+관리자는 운영 목적으로, Product Manager는 Offer 등록 대상 CatalogProduct와 ProductVariant를 찾는 목적으로 사용한다. 응답은 CatalogProduct와 연결된 ProductVariant를 함께 반환하며 `catalogProductId`와 `variantId`를 포함한다.
+
+Query는 `page`, `size`, `keyword`, `categoryId`, `tag`, `catalogPublicationStatus`, `variantPublicationStatus`, `sort`를 지원한다. `categoryId`는 자기 자신과 모든 하위 Category를 검색한다. 일반 사용자는 이 API를 사용할 수 없으며 고객용 검색은 [P9 Marketplace](../p9/p9-marketplace.md)의 Product API가 담당한다.
+
+상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`, Variant 단건 조회는 `GET /api/v1/product-variants/{variantId}`를 사용하며 같은 권한 정책을 따른다.
+
+- 기본적으로 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회한다.
+- 관리자는 상태 Query를 지정하여 `ARCHIVED`도 조회할 수 있다.
+- Product Manager는 항상 `ACTIVE` 데이터만 조회한다.
+
 | 호출자 | 사용 목적 | P2가 보장하는 결과 |
 |---|---|---|
 | P7 | Category 생성·수정 전 검증 | 부모 존재, 순환, 중복, 최대 깊이 검증 |
@@ -66,8 +82,8 @@ P8의 제안 검증과 P7의 승인 시점에는 같은 검증을 다시 수행�
 | 존재하는 `ARCHIVED` | `200` | 존재하지 않는 리소스와 같은 `404` |
 | 실제 미존재 | `404` | `404` |
 
-- 구매자·Seller의 목록·조건 검색에는 보관된 상품과 Variant를 포함하지 않는다.
-- 구매자·Seller 응답에는 `catalogProductId`, `variantId`를 반환하지 않는다. 화면에는 상품명·Variant 표시명·attributes를 사용한다.
+- Catalog 관리 조회의 목록·조건 검색에는 기본적으로 보관된 상품과 Variant를 포함하지 않는다.
+- 고객용 Product 응답에는 `catalogProductId`, `variantId`를 반환하지 않는다. 관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택을 위해 반환한다.
 - 보관 데이터와 미존재 데이터의 클라이언트 응답은 동일한 일반 메시지를 사용한다.
 - 서버 로그에는 `lookupResult = ARCHIVED` 또는 `NOT_FOUND`, `requestId`, 역할, 리소스 종류, 내부 ID, 요청 경로, 실패 원인을 기록한다. 이 내부 판단은 클라이언트에 반환하지 않는다.
 

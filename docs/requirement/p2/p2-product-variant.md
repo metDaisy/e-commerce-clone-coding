@@ -47,7 +47,7 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ## 3. API 정의
 
-관리자 응답에는 운영에 필요한 내부 ID와 상태를 포함한다. 구매자·Seller 응답에는 `variantId`, `catalogProductId`, 보관 상태를 반환하지 않는다.
+관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택과 운영에 필요한 `variantId`, `catalogProductId`, 상태를 포함한다. 고객용 Product API 응답에는 내부 ID와 보관 상태를 반환하지 않는다.
 
 ### 3-1. ProductVariant 생성
 
@@ -96,13 +96,13 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ### 3-2. ProductVariant 조회
 
-구매자·Seller 조회:
+관리자·Product Manager 조회:
 
 `GET /api/v1/product-variants/{variantId}`
 
-권한: 구매자·Seller
+권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
 
-관리자 조회:
+기존 관리자 조회:
 
 `GET /api/v1/admin/product-variants/{variantId}`
 
@@ -110,7 +110,7 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 #### 성공 응답: `200 OK`
 
-구매자·Seller:
+관리자·Product Manager:
 
 ```json
 {
@@ -122,7 +122,7 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 }
 ```
 
-ADMIN:
+관리자 호환 응답:
 
 ```json
 {

@@ -34,7 +34,7 @@
 | `attributes` | JSON Object | 예 | Variant 동적 속성 |
 | `myOffer` | SellerOfferSummary 또는 null | 예 | 현재 Seller의 Offer가 없으면 null |
 
-`myOffer`가 존재하면 `offerId`, `status`, `basePrice`, `appliedPrice`, `inventoryQuantity`, `availabilityStatus`를 포함한다. `catalogProductId`, `variantId`는 Seller 상품 응답에 포함하지 않는다.
+`myOffer`가 존재하면 `offerId`, `status`, `basePrice`, `appliedPrice`, `inventoryQuantity`, `availabilityStatus`를 포함한다. 공용 Catalog 관리 조회에서는 Offer 등록 대상 선택을 위해 `catalogProductId`, `variantId`를 포함한다.
 
 ### 2-3. 관계와 제약
 
@@ -48,9 +48,9 @@
 
 ### 3-1. Seller CatalogProduct·Variant 조회
 
-`GET /api/v1/seller/catalog-products`
+`GET /api/v1/catalog-products`
 
-권한: `PRODUCT_MANAGER`이면서 `ACTIVE Seller`인 User.
+권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자. 별도의 `/seller` 경로는 사용하지 않는다.
 
 Query:
 
@@ -59,6 +59,9 @@ page=0
 size=20
 keyword=headphone
 categoryId=uuid
+tag=office
+catalogPublicationStatus=ACTIVE|ARCHIVED
+variantPublicationStatus=ACTIVE|ARCHIVED
 sort=LATEST|NAME_ASC|NAME_DESC
 ```
 
@@ -72,12 +75,14 @@ sort=LATEST|NAME_ASC|NAME_DESC
   "totalPages": 1,
   "data": [
     {
+      "catalogProductId": "uuid-product",
       "name": "무선 헤드폰",
       "description": "카탈로그 상품 설명",
       "brand": "Example Brand",
       "categoryPath": [{ "categoryId": "uuid", "name": "전자기기" }],
       "variants": [
         {
+          "variantId": "uuid-variant",
           "displayName": "블랙",
           "attributes": { "color": "Black" },
           "myOffer": {

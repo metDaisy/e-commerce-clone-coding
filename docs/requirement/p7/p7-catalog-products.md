@@ -37,15 +37,15 @@ ProductVariant 표현은 `variantId`, `displayName`, `attributes`, `publicationS
 - `categoryId` 필터는 선택한 Category와 하위 Category를 포함한다.
 - 기본 조회는 `ACTIVE` CatalogProduct와 `ACTIVE` ProductVariant만 반환한다.
 - 보관 상태 필터를 지정하면 부모·자식의 현재 상태를 각각 표시한다.
-- 목록은 관리자 운영 조회이며 고객용 상품 검색이나 상세 API를 대체하지 않는다.
+- 목록은 관리자 운영 조회와 Product Manager의 Offer 등록 대상 검색을 함께 담당하며 고객용 상품 검색이나 상세 API를 대체하지 않는다.
 
 ## 3. API 정의
 
 ### 3-1. CatalogProduct·ProductVariant 관리자 목록
 
-`GET /api/v1/admin/catalog-products`
+`GET /api/v1/catalog-products`
 
-권한: `ADMIN`
+권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
 
 Query:
 
@@ -56,6 +56,7 @@ keyword=headphone
 categoryId=uuid
 catalogPublicationStatus=ACTIVE|ARCHIVED
 variantPublicationStatus=ACTIVE|ARCHIVED
+tag=office
 sort=LATEST|NAME_ASC|NAME_DESC
 ```
 

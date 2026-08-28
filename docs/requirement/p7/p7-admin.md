@@ -35,7 +35,7 @@
 | PATCH | `/api/v1/admin/sellers/{sellerId}/status` | `ADMIN` | [Access API](p7-access.md) |
 | POST | `/api/v1/admin/categories` | `ADMIN` | [Category API](p7-category.md) |
 | PATCH | `/api/v1/admin/categories/{categoryId}` | `ADMIN` | [Category API](p7-category.md) |
-| GET | `/api/v1/admin/catalog-products` | `ADMIN` | [CatalogProduct API](p7-catalog-products.md) |
+| GET | `/api/v1/catalog-products` | `ADMIN` 또는 `PRODUCT_MANAGER` + `ACTIVE Seller` | [CatalogProduct API](p7-catalog-products.md) |
 | GET | `/api/v1/admin/catalog-registration-requests` | `ADMIN` | [Catalog Request API](p7-catalog-requests.md) |
 | POST | `/api/v1/admin/catalog-registration-requests/{requestId}/approve` | `ADMIN` | [Catalog Request API](p7-catalog-requests.md) |
 | POST | `/api/v1/admin/catalog-registration-requests/{requestId}/reject` | `ADMIN` | [Catalog Request API](p7-catalog-requests.md) |

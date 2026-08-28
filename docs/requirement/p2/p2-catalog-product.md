@@ -60,7 +60,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 ## 3. API 정의
 
-성공 응답은 구매자·Seller용 API에서 내부 `catalogProductId`, `variantId`를 제외한다. 관리자 API는 운영에 필요한 내부 ID와 상태를 반환한다.
+성공 응답은 고객용 Product API에서 내부 `catalogProductId`, `variantId`를 제외한다. 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
 
 ### 3-1. CatalogProduct 생성
 
@@ -115,7 +115,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 `GET /api/v1/catalog-products/{catalogProductId}`
 
-권한: 구매자·Seller·ADMIN
+권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
 
 #### 성공 응답: `200 OK`
 
@@ -131,7 +131,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 }
 ```
 
-ADMIN 응답에는 `categoryId`, 내부 ID, `publicationStatus`를 포함하고, 구매자·Seller 응답에는 내부 ID와 보관 상태를 포함하지 않는다.
+관리자·Product Manager 응답에는 `categoryId`, 내부 ID, `publicationStatus`, 연결된 ProductVariant를 포함한다. Product Manager는 활성 CatalogProduct만 조회할 수 있으며, 고객용 공개 응답은 P9 Product API에서 별도로 정의한다.
 
 #### 예외
 
