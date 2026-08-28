@@ -1,15 +1,18 @@
 package io.github.metdaisy.amaazon.catalog.application.mapper;
 
+import io.github.metdaisy.amaazon.catalog.application.dto.response.TagDto;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
 import java.util.Collections;
 import java.util.List;
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingConstants.ComponentModel;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = ComponentModel.SPRING)
 public interface TagMapper {
+
+  TagDto toDto(Tag tag);
 
   @Named("toTagName")
   default List<String> toTagName(List<CatalogProductTag> tags) {

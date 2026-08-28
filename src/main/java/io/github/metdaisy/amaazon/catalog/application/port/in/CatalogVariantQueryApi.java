@@ -1,7 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.application.port.in;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.repository.ProductVariantRepository;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,7 +21,7 @@ public class CatalogVariantQueryApi {
   public Optional<CatalogVariantReference> findActiveByVariantId(UUID variantId) {
     return repository.findWithCatalogProductById(variantId)
         .filter(ProductVariant::isActive)
-        .filter(variant -> variant.getCatalogProduct().getPublicationStatus() == CatalogStatus.ACTIVE)
+        .filter(variant -> variant.getCatalogProduct().isActive())
         .map(variant -> new CatalogVariantReference(variant.getId(),
             variant.getCatalogProduct().getId()));
   }

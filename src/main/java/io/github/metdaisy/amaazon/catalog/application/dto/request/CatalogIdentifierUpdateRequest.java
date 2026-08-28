@@ -1,9 +1,10 @@
 package io.github.metdaisy.amaazon.catalog.application.dto.request;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
+import io.github.metdaisy.amaazon.catalog.application.validator.ValidCatalogIdentifierKeys;
 import jakarta.validation.constraints.Size;
 import java.util.Map;
 
 public record CatalogIdentifierUpdateRequest(
-    Map<CatalogIdentifierType, @Size(max = 50) String> identifiers) {
+    @ValidCatalogIdentifierKeys
+    Map<String, @Size(max = 50) String> identifiers) {
 }

@@ -2,13 +2,11 @@ package io.github.metdaisy.amaazon.catalog.application.service;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantAdminResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.ProductVariantMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantErrorCode;
@@ -32,45 +30,54 @@ public class ProductVariantService {
   private final ProductVariantMapper mapper;
 
   @Transactional
-  public ProductVariantAdminResponse create(UUID catalogProductId,
+  public ProductVariantDto create(UUID catalogProductId,
       ProductVariantCreateRequest request) {
     CatalogProduct catalogProduct = findActiveCatalogProduct(catalogProductId);
     ProductVariant variant = ProductVariant.of(catalogProduct, request.displayName(),
         request.attributes());
-    return mapper.toAdminResponse(repository.save(variant));
+    return mapper.toDto(repository.save(variant));
   }
 
-  public ProductVariantResponse findPublic(UUID id) {
+  public ProductVariantDto findPublic(UUID id) {
     ProductVariant variant = findById(id);
     if (!variant.isActive() || variant.getCatalogProduct().getPublicationStatus()
-        != CatalogStatus.ACTIVE) {
+        != ArchiveStatus.ACTIVE) {
       throw variantNotFound(id);
     }
-    return mapper.toResponse(variant);
+    return mapper.toDto(variant);
   }
 
-  public ProductVariantAdminResponse findAdmin(UUID id) {
-    return mapper.toAdminResponse(findById(id));
+  public ProductVariantDto findAdmin(UUID id) {
+    return mapper.toDto(findById(id));
+  }
+
+  public ProductVariantDto findForCatalogManager(UUID id) {
+    ProductVariant variant = findById(id);
+    if (!variant.isActive() || variant.getCatalogProduct().getPublicationStatus()
+        != ArchiveStatus.ACTIVE) {
+      throw variantNotFound(id);
+    }
+    return mapper.toDto(variant);
   }
 
   @Transactional
-  public ProductVariantAdminResponse update(UUID id, ProductVariantUpdateRequest request) {
+  public ProductVariantDto update(UUID id, ProductVariantUpdateRequest request) {
     ProductVariant variant = findById(id);
-    if (variant.getCatalogProduct().getPublicationStatus() != CatalogStatus.ACTIVE) {
+    if (variant.getCatalogProduct().getPublicationStatus() != ArchiveStatus.ACTIVE) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
           AmaazonExceptionContext.logDetails(
               Map.of("catalogId", variant.getCatalogProduct().getId())));
     }
-    variant.update(request.displayName(), request.attributes());
-    return mapper.toAdminResponse(variant);
+    variant.validateActive();
+    mapper.update(variant, request);
+    return mapper.toDto(variant);
   }
 
   @Transactional
-  public ProductVariantArchivedResponse archive(UUID id) {
+  public ProductVariantDto archive(UUID id) {
     ProductVariant variant = findById(id);
     variant.archive();
-    return new ProductVariantArchivedResponse(variant.getId(), variant.getPublicationStatus(),
-        variant.getArchivedAt());
+    return mapper.toDto(variant);
   }
 
   private ProductVariant findById(UUID id) {
@@ -82,7 +89,7 @@ public class ProductVariantService {
     CatalogProduct catalogProduct = catalogProductRepository.findById(id)
         .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
-    if (catalogProduct.getPublicationStatus() != CatalogStatus.ACTIVE) {
+    if (catalogProduct.getPublicationStatus() != ArchiveStatus.ACTIVE) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
           AmaazonExceptionContext.logDetails(Map.of("catalogId", id)));
     }
