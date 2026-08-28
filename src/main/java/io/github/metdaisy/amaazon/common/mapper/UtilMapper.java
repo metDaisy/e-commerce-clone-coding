@@ -32,6 +32,9 @@ public interface UtilMapper {
 
   @AfterMapping
   default <T extends MutableEntity> void update(@MappingTarget T entity) {
+    if (entity.isNew()) {
+      return;
+    }
     entity.setUpdatedAt(Instant.now());
   }
 }

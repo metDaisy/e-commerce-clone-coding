@@ -21,7 +21,6 @@ public final class SecurityConstants {
   // Request Matchers
   public static final String[] PUBLIC_GET_PATHS = {
       WebConstants.SERVLET_PREFIX + "/categories",
-      WebConstants.SERVLET_PREFIX + "/catalog-products",
       "/ws/**",
       "/actuator/**",
       "/swagger-ui.html",
