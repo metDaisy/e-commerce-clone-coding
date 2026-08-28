@@ -3,9 +3,10 @@ package io.github.metdaisy.amaazon.catalog.presentation.controller;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogArchivedResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.CatalogProductPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
@@ -24,22 +25,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/admin/catalog-products")
 @RequireEnabledUser
 @RequiredArgsConstructor
-public class CatalogProductController {
+public class AdminCatalogProductController {
 
   private final CatalogProductService service;
+  private final CatalogProductPresentationMapper presentationMapper;
 
   @PostMapping
   public ResponseEntity<CatalogProductResponse> create(
       @RequestBody @Valid CatalogProductCreateRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(service.create(request));
+        .body(presentationMapper.toResponse(service.create(request)));
   }
 
   @PatchMapping("/{id}")
   public ResponseEntity<CatalogProductResponse> update(
       @PathVariable UUID id,
       @RequestBody @Valid CatalogProductUpdateRequest request) {
-    return ResponseEntity.status(HttpStatus.OK).body(service.update(id, request));
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(presentationMapper.toResponse(service.update(id, request)));
   }
 
   @PatchMapping("/{id}/identifiers")
@@ -47,11 +50,13 @@ public class CatalogProductController {
       @PathVariable UUID id,
       @RequestBody @Valid CatalogIdentifierUpdateRequest request) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(service.updateIdentifier(id, request.identifiers()));
+        .body(presentationMapper.toIdentifierResponse(
+            service.updateIdentifier(id, request.identifiers())));
   }
 
   @PostMapping("/{id}/archive")
   public ResponseEntity<CatalogArchivedResponse> archive(@PathVariable UUID id) {
-    return ResponseEntity.status(HttpStatus.OK).body(service.archive(id));
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(presentationMapper.toArchivedResponse(service.archive(id)));
   }
 }

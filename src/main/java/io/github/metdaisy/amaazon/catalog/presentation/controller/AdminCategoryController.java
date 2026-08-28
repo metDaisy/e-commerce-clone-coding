@@ -2,7 +2,8 @@ package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.CategoryPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryCommandService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
@@ -24,17 +25,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminCategoryController {
 
   private final CategoryCommandService service;
+  private final CategoryPresentationMapper presentationMapper;
 
   @PostMapping
   public ResponseEntity<CategoryResponse> create(
       @RequestBody @Valid CategoryCreateRequest request) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(presentationMapper.toResponse(service.create(request)));
   }
 
   @PatchMapping("/{categoryId}")
   public ResponseEntity<CategoryResponse> update(
       @PathVariable UUID categoryId,
       @RequestBody @Valid CategoryUpdateRequest request) {
-    return ResponseEntity.ok(service.update(categoryId, request));
+    return ResponseEntity.ok(presentationMapper.toResponse(service.update(categoryId, request)));
   }
 }

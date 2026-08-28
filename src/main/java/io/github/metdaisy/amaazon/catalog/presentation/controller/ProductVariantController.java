@@ -1,7 +1,9 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantAdminResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.ProductVariantService;
+import io.github.metdaisy.amaazon.catalog.application.validator.ActiveSeller;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.ProductVariantPresentationMapper;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,9 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductVariantController {
 
   private final ProductVariantService service;
+  private final ProductVariantPresentationMapper presentationMapper;
 
   @GetMapping("/{id}")
-  public ResponseEntity<ProductVariantResponse> find(@PathVariable UUID id) {
-    return ResponseEntity.ok(service.findPublic(id));
+  @ActiveSeller
+  public ResponseEntity<ProductVariantAdminResponse> find(@PathVariable UUID id) {
+    return ResponseEntity.ok(
+        presentationMapper.toAdminResponse(service.findForCatalogManager(id)));
   }
 }
