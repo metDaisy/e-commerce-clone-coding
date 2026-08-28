@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.dto.response;
+package io.github.metdaisy.amaazon.catalog.presentation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;

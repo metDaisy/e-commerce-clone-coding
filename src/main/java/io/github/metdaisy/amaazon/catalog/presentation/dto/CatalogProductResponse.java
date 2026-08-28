@@ -1,7 +1,6 @@
-package io.github.metdaisy.amaazon.catalog.application.dto.response;
+package io.github.metdaisy.amaazon.catalog.presentation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,7 @@ public record CatalogProductResponse(@JsonProperty("catalogProductId") UUID id,
                                      String brand, String asin, String gtin, String upc, String ean,
                                      String isbn, List<String> tags,
                                      Map<String, Object> attributes,
-                                     CatalogStatus publicationStatus,
+                                     String publicationStatus,
                                      Instant archivedAt, Instant createdAt) {
 
 }
