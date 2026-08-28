@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture;
@@ -33,7 +33,7 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
     em.flush();
 
     assertThat(saved.getId()).isNotNull();
-    assertThat(saved.getPublicationStatus()).isEqualTo(CatalogStatus.ACTIVE);
+    assertThat(saved.getPublicationStatus()).isEqualTo(ArchiveStatus.ACTIVE);
     ensureQueryCount(1);
   }
 
@@ -56,7 +56,7 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
     assertThat(found.getCatalogProduct().getName()).isEqualTo(product.getName());
     assertThat(found.getDisplayName()).isEqualTo("Black / 256GB");
     assertThat(found.getAttributes()).containsEntry("storage", "256GB");
-    assertThat(found.getPublicationStatus()).isEqualTo(CatalogStatus.ACTIVE);
+    assertThat(found.getPublicationStatus()).isEqualTo(ArchiveStatus.ACTIVE);
     ensureQueryCount(1);
   }
 
@@ -96,14 +96,14 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
     clear();
     ProductVariant archived = repository.findWithCatalogProductById(variant.getId()).orElseThrow();
 
-    assertThat(archived.getPublicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+    assertThat(archived.getPublicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED);
     assertThat(archived.getArchivedAt()).isNotNull();
     ensureQueryCount(1);
   }
 
   @Test
-  @DisplayName("상품 옵션 삭제: 저장된 옵션을 삭제하고 데이터가 남지 않는다")
-  void delete_shouldRemovePersistedVariant() {
+  @DisplayName("상품 옵션 삭제: 물리 삭제하지 않고 ARCHIVED 상태로 전환한다")
+  void delete_shouldArchivePersistedVariant() {
     Category category = persistAndFlush(CategoryFixture.category());
     CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
     ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
@@ -116,6 +116,8 @@ class ProductVariantJpaRepositoryTest extends BaseRepositoryTest {
 
     ensureQueryCount(1);
     clear();
-    assertThat(repository.findById(variant.getId())).isEmpty();
+    ProductVariant archived = repository.findById(variant.getId()).orElseThrow();
+    assertThat(archived.getPublicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED);
+    assertThat(archived.getArchivedAt()).isNotNull();
   }
 }

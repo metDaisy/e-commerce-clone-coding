@@ -10,10 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantAdminResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantArchivedResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantDto;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantAdminResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.ProductVariantService;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.ProductVariantPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.support.fixture.ProductVariantFixture;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import java.time.Instant;
@@ -36,17 +37,22 @@ class AdminProductVariantControllerTest extends RestControllerTest {
   @MockitoBean
   private ProductVariantService service;
 
+  @MockitoBean
+  private ProductVariantPresentationMapper presentationMapper;
+
   @Test
   @DisplayName("상품 옵션 생성: 요청을 서비스에 전달하고 201 응답을 반환한다")
   void create_shouldDelegateRequestAndReturnCreated() throws Exception {
     UUID productId = UUID.randomUUID();
     ProductVariantCreateRequest request = ProductVariantFixture.createRequest();
     ProductVariantAdminResponse response = response(productId);
-    given(service.create(productId, request)).willReturn(response);
+    ProductVariantDto dto = dto(response);
+    given(service.create(productId, request)).willReturn(dto);
+    given(presentationMapper.toAdminResponse(dto)).willReturn(response);
 
     mockMvc.perform(postJson(ADMIN_URL + "/catalog-products/" + productId + "/variants", request))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.id").value(response.productVariantId().toString()))
+        .andExpect(jsonPath("$.id").value(response.id().toString()))
         .andExpect(jsonPath("$.catalogProductId").value(productId.toString()))
         .andExpect(jsonPath("$.displayName").value("Black / 256GB"));
 
@@ -74,11 +80,14 @@ class AdminProductVariantControllerTest extends RestControllerTest {
     ProductVariantUpdateRequest request = new ProductVariantUpdateRequest("Black / 512GB",
         Map.of("storage", "512GB"));
     ProductVariantAdminResponse response = response(UUID.randomUUID());
-    given(service.update(variantId, request)).willReturn(response);
+    ProductVariantDto dto = new ProductVariantDto(variantId, null, null, null,
+        "Black / 256GB", Map.of(), "ARCHIVED", response.archivedAt());
+    given(service.update(variantId, request)).willReturn(dto);
+    given(presentationMapper.toAdminResponse(dto)).willReturn(response);
 
     mockMvc.perform(jsonBody(patch(ADMIN_URL + "/product-variants/" + variantId), request))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(response.productVariantId().toString()));
+        .andExpect(jsonPath("$.id").value(response.id().toString()));
 
     then(service).should().update(variantId, request);
   }
@@ -88,12 +97,15 @@ class AdminProductVariantControllerTest extends RestControllerTest {
   void archive_shouldDelegateRequestAndReturnOk() throws Exception {
     UUID variantId = UUID.randomUUID();
     ProductVariantArchivedResponse response = new ProductVariantArchivedResponse(variantId,
-        CatalogStatus.ARCHIVED, Instant.now());
-    given(service.archive(variantId)).willReturn(response);
+        "ARCHIVED", Instant.now());
+    ProductVariantDto dto = new ProductVariantDto(variantId, null, null, null,
+        "Black / 256GB", Map.of(), "ARCHIVED", response.archivedAt());
+    given(service.archive(variantId)).willReturn(dto);
+    given(presentationMapper.toArchivedResponse(dto)).willReturn(response);
 
     mockMvc.perform(post(ADMIN_URL + "/product-variants/" + variantId + "/archive"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(variantId.toString()))
+        .andExpect(jsonPath("$.productVariantId").value(variantId.toString()))
         .andExpect(jsonPath("$.publicationStatus").value("ARCHIVED"));
 
     then(service).should().archive(variantId);
@@ -102,8 +114,14 @@ class AdminProductVariantControllerTest extends RestControllerTest {
   private ProductVariantAdminResponse response(UUID productId) {
     return new ProductVariantAdminResponse(UUID.randomUUID(), productId, "Black / 256GB",
         Map.of("color", "BLACK"),
-        CatalogStatus.ACTIVE,
+        "ACTIVE",
         null, null, null);
+  }
+
+  private ProductVariantDto dto(ProductVariantAdminResponse response) {
+    return new ProductVariantDto(response.id(), null, null, null, response.displayName(),
+        response.attributes(), response.publicationStatus(),
+        response.archivedAt());
   }
 
   private MockHttpServletRequestBuilder jsonBody(MockHttpServletRequestBuilder request,

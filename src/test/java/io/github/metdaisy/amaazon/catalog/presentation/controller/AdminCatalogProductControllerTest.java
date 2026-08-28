@@ -1,6 +1,8 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -16,12 +18,14 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductF
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogArchivedResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogIdentifierUpdateResponse;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.CatalogProductPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -38,15 +42,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@WebMvcTest(CatalogProductController.class)
+@WebMvcTest(AdminCatalogProductController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @DisplayName("관리자 카탈로그 상품 컨트롤러")
-class CatalogProductControllerTest extends RestControllerTest {
+class AdminCatalogProductControllerTest extends RestControllerTest {
 
   private static final String PRODUCTS_URL = API_PREFIX + "/admin/catalog-products";
 
   @MockitoBean
   private CatalogProductService service;
+
+  @MockitoBean
+  private CatalogProductPresentationMapper presentationMapper;
 
   @Test
   @DisplayName("상품 생성: 요청 본문을 서비스에 전달하고 201 응답을 반환한다")
@@ -60,7 +67,9 @@ class CatalogProductControllerTest extends RestControllerTest {
         .name("Laptop")
         .tags(List.of("office"))
         .build();
-    given(service.create(request)).willReturn(response);
+    CatalogProductDto dto = productDto(response.id(), categoryId, response.name());
+    given(service.create(request)).willReturn(dto);
+    given(presentationMapper.toResponse(dto)).willReturn(response);
 
     mockMvc.perform(postJson(PRODUCTS_URL, request))
         .andExpect(status().isCreated())
@@ -82,6 +91,23 @@ class CatalogProductControllerTest extends RestControllerTest {
         .andExpect(jsonPath("$.details.categoryId").isArray())
         .andExpect(jsonPath("$.details.name").isArray())
         .andExpect(jsonPath("$.details.brand").isArray());
+
+    then(service).should(never()).create(any(CatalogProductCreateRequest.class));
+  }
+
+  @Test
+  @DisplayName("상품 생성 실패: 지원하지 않는 식별자 key가 있으면 서비스 호출 없이 400으로 거절한다")
+  void create_shouldRejectUnsupportedIdentifierKey() throws Exception {
+    CatalogProductCreateRequest request = new CatalogProductCreateRequest(
+        UUID.randomUUID(), "Laptop", "Portable computer", "Brand", Set.of(), Map.of(),
+        Map.of("sku", "SKU-1", "model", "MODEL-1"));
+
+    mockMvc.perform(postJson(PRODUCTS_URL, request))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.details.identifiers[0]")
+            .value(allOf(containsString("소문자로"), containsString("sku"),
+                containsString("model"))));
 
     then(service).should(never()).create(any(CatalogProductCreateRequest.class));
   }
@@ -118,7 +144,9 @@ class CatalogProductControllerTest extends RestControllerTest {
         .id(productId)
         .name("Updated laptop")
         .build();
-    given(service.update(productId, request)).willReturn(response);
+    CatalogProductDto dto = productDto(productId, null, response.name());
+    given(service.update(productId, request)).willReturn(dto);
+    given(presentationMapper.toResponse(dto)).willReturn(response);
 
     mockMvc.perform(patch(PRODUCTS_URL + "/" + productId)
             .contentType("application/json")
@@ -155,13 +183,14 @@ class CatalogProductControllerTest extends RestControllerTest {
   @DisplayName("상품 식별자 수정: 식별자 요청을 서비스에 전달하고 200 응답을 반환한다")
   void updateIdentifier_shouldReturnUpdatedIdentifiers() throws Exception {
     UUID productId = UUID.randomUUID();
-    Map<CatalogIdentifierType, String> identifiers =
-        Map.of(CatalogIdentifierType.ASIN, "B000123456");
+    Map<String, String> identifiers = Map.of("asin", "B000123456");
     CatalogIdentifierUpdateRequest request = new CatalogIdentifierUpdateRequest(identifiers);
     CatalogIdentifierUpdateResponse response =
         new CatalogIdentifierUpdateResponse(productId, "B000123456", null, null, null,
             null);
-    given(service.updateIdentifier(productId, identifiers)).willReturn(response);
+    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    given(service.updateIdentifier(productId, identifiers)).willReturn(dto);
+    given(presentationMapper.toIdentifierResponse(dto)).willReturn(response);
 
     mockMvc.perform(patch(PRODUCTS_URL + "/" + productId + "/identifiers")
             .contentType("application/json")
@@ -176,8 +205,7 @@ class CatalogProductControllerTest extends RestControllerTest {
   @DisplayName("상품 식별자 수정 실패: 식별자 값이 50자를 초과하면 서비스 호출 없이 400으로 거절한다")
   void updateIdentifier_shouldRejectValueLongerThan50Characters() throws Exception {
     UUID productId = UUID.randomUUID();
-    Map<CatalogIdentifierType, String> identifiers =
-        Map.of(CatalogIdentifierType.ASIN, "A".repeat(51));
+    Map<String, String> identifiers = Map.of("asin", "A".repeat(51));
     CatalogIdentifierUpdateRequest request = new CatalogIdentifierUpdateRequest(identifiers);
 
     mockMvc.perform(patch(PRODUCTS_URL + "/" + productId + "/identifiers")
@@ -185,7 +213,7 @@ class CatalogProductControllerTest extends RestControllerTest {
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
-        .andExpect(jsonPath("$.details['identifiers[ASIN]']").isArray());
+        .andExpect(jsonPath("$.details['identifiers[asin]']").isArray());
 
     then(service).should(never()).updateIdentifier(any(UUID.class), any());
   }
@@ -195,8 +223,10 @@ class CatalogProductControllerTest extends RestControllerTest {
   void archive_shouldReturnArchivedProductId() throws Exception {
     UUID productId = UUID.randomUUID();
     CatalogArchivedResponse response = new CatalogArchivedResponse(productId,
-        CatalogStatus.ARCHIVED, Instant.now(), Instant.now());
-    given(service.archive(productId)).willReturn(response);
+        "ARCHIVED", Instant.now(), Instant.now());
+    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    given(service.archive(productId)).willReturn(dto);
+    given(presentationMapper.toArchivedResponse(dto)).willReturn(response);
 
     mockMvc.perform(post(PRODUCTS_URL + "/" + productId + "/archive"))
         .andExpect(status().isOk())
@@ -204,5 +234,13 @@ class CatalogProductControllerTest extends RestControllerTest {
         .andExpect(jsonPath("$.publicationStatus").value("ARCHIVED"));
 
     then(service).should().archive(productId);
+  }
+
+  private CatalogProductDto productDto(UUID productId, UUID categoryId, String name) {
+    return new CatalogProductDto(productId, null, null,
+        categoryId == null ? null : new CategoryDto(
+            categoryId, null, null, null, "Computers", 1, List.of()),
+        List.of(), name, null, null, null, null, null, null, null, Map.of(), "ACTIVE", null,
+        List.of());
   }
 }

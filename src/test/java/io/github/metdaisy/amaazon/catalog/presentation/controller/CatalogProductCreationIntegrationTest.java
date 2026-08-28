@@ -10,8 +10,8 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductF
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import io.github.metdaisy.amaazon.catalog.infra.repository.CatalogProductJpaRepository;
 import io.github.metdaisy.amaazon.global.security.jwt.model.JwtPrincipal;
 import io.github.metdaisy.amaazon.global.web.constant.WebConstants;
@@ -76,7 +76,7 @@ class CatalogProductCreationIntegrationTest extends BaseIntegrationTest {
     assertThat(saved.getBrand()).isEqualTo("Brand");
     assertThat(saved.getGtin()).isEqualTo("4006381333931");
     assertThat(saved.getAttributes()).containsEntry("screenSize", "15");
-    assertThat(saved.getPublicationStatus()).isEqualTo(CatalogStatus.ACTIVE);
+    assertThat(saved.getPublicationStatus()).isEqualTo(ArchiveStatus.ACTIVE);
   }
 
   @Test

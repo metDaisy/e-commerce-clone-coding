@@ -5,7 +5,7 @@ import static org.mockito.BDDMockito.given;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.repository.ProductVariantRepository;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture;
@@ -57,7 +57,7 @@ class CatalogVariantQueryApiTest {
   @DisplayName("보관된 상품의 옵션 조회: 부모 상품이 ARCHIVED이면 빈 결과를 반환한다")
   void findActiveByVariantId_shouldReturnEmptyForArchivedCatalogProduct() {
     ProductVariant variant = variant();
-    variant.getCatalogProduct().setPublicationStatus(CatalogStatus.ARCHIVED);
+    variant.getCatalogProduct().setPublicationStatus(ArchiveStatus.ARCHIVED);
     given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
 
     assertThat(api.findActiveByVariantId(variant.getId())).isEmpty();

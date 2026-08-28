@@ -9,9 +9,10 @@ import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
@@ -35,7 +36,7 @@ class CategoryCommandServiceTest {
   private CategoryRepository repository;
 
   @Spy
-  private CategoryMapper mapper = new CategoryMapperImpl();
+  private CategoryMapper mapper = new CategoryMapperImpl(new UtilMapperImpl());
 
   @InjectMocks
   private CategoryCommandService service;
@@ -49,7 +50,7 @@ class CategoryCommandServiceTest {
     given(repository.save(any(Category.class))).willReturn(saved);
 
     // when
-    CategoryResponse result = service.create(request);
+    CategoryDto result = service.create(request);
 
     // then
     assertThat(result.id()).isEqualTo(saved.getId());
@@ -70,7 +71,7 @@ class CategoryCommandServiceTest {
         .willAnswer(invocation -> invocation.getArgument(0));
 
     // when
-    CategoryResponse result = service.create(request);
+    CategoryDto result = service.create(request);
 
     // then
     assertThat(result.id()).isNotNull();
@@ -158,7 +159,7 @@ class CategoryCommandServiceTest {
         List.of(root, oldParent, category, descendant, newParent));
 
     // when
-    CategoryResponse result = service.update(category.getId(),
+    CategoryDto result = service.update(category.getId(),
         new CategoryUpdateRequest("Renamed", newParent.getId()));
 
     // then
@@ -184,7 +185,7 @@ class CategoryCommandServiceTest {
     given(repository.findAll()).willReturn(List.of(oldParent, category));
 
     // when
-    CategoryResponse result = service.update(category.getId(),
+    CategoryDto result = service.update(category.getId(),
         new CategoryUpdateRequest("Renamed", null));
 
     // then

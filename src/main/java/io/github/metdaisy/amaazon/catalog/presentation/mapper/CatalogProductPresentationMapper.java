@@ -13,12 +13,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 @Mapper(config = GlobalMapperConfig.class, uses = ProductVariantPresentationMapper.class)
 public interface CatalogProductPresentationMapper {
 
+  @Mapping(target = "categoryId", source = "category.id")
   CatalogProductResponse toResponse(CatalogProductDto source);
 
+  @Mapping(target = "categoryId", source = "category.id")
   CatalogProductQueryResponse toQueryResponse(CatalogProductDto source);
 
   CatalogIdentifierUpdateResponse toIdentifierResponse(CatalogProductDto source);

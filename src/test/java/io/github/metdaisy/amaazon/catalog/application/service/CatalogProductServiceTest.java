@@ -16,18 +16,18 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.TagFixture.tag;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductTagMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
@@ -35,6 +35,7 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
 import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -75,7 +76,11 @@ class CatalogProductServiceTest {
 
   @Spy
   private CatalogProductMapper mapper = new CatalogProductMapperImpl(
-      new TagMapperImpl(), new UtilMapperImpl());
+      new CategoryMapperImpl(new UtilMapperImpl()),
+      new CatalogProductTagMapperImpl(new TagMapperImpl()), new UtilMapperImpl());
+
+  @Spy
+  private UtilMapper utilMapper = new UtilMapperImpl();
 
   @Spy
   private List<CatalogProductIdentifierVerifier> verifiers = new ArrayList<>();
@@ -101,10 +106,11 @@ class CatalogProductServiceTest {
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
     given(asinVerifier.verify(null, "B000123456")).willReturn("B000123456");
 
-    CatalogProductResponse result = service.create(request);
+    CatalogProductDto result = service.create(request);
 
     assertThat(result.name()).isEqualTo("Laptop");
-    assertThat(result.tags()).containsExactly("office");
+    assertThat(result.tags()).extracting(catalogTag -> catalogTag.tag().name())
+        .containsExactly("office");
     then(repository).should().save(any(CatalogProduct.class));
     then(asinVerifier).should().verify(null, "B000123456");
     then(unsupportedVerifier).should(never()).verify(any(), any());
@@ -191,15 +197,18 @@ class CatalogProductServiceTest {
   void update_shouldUpdateActiveProduct() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(category());
+    product.setAttributes(new LinkedHashMap<>(Map.of("color", "BLACK", "storage", "256GB")));
     CatalogProductUpdateRequest request = updateRequest();
     Tag tag = tag();
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(tagService.findAndCreate(request.tags())).willReturn(List.of(tag));
 
-    CatalogProductResponse response = service.update(productId, request);
+    CatalogProductDto response = service.update(productId, request);
 
     assertThat(response.name()).isEqualTo("Updated laptop");
     assertThat(product.getTags()).hasSize(1);
+    assertThat(product.getAttributes()).containsOnlyKeys("storage")
+        .containsEntry("storage", "512GB");
   }
 
   @Test
@@ -211,7 +220,7 @@ class CatalogProductServiceTest {
         "Updated laptop", null, null, null, null);
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
 
-    CatalogProductResponse response = service.update(productId, request);
+    CatalogProductDto response = service.update(productId, request);
 
     assertThat(response.name()).isEqualTo("Updated laptop");
     assertThat(product.getTags()).isEmpty();
@@ -223,14 +232,13 @@ class CatalogProductServiceTest {
   void updateIdentifier_shouldVerifySupportedIdentifierAndReturnResponse() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(category());
-    Map<CatalogIdentifierType, String> request =
-        Map.of(CatalogIdentifierType.ASIN, "B000123456");
+    Map<String, String> request = Map.of("asin", "B000123456");
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(unsupportedVerifier.support(CatalogIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
     given(asinVerifier.verify(productId, "B000123456")).willReturn("B000123456");
 
-    CatalogIdentifierUpdateResponse response = service.updateIdentifier(productId, request);
+    CatalogProductDto response = service.updateIdentifier(productId, request);
 
     then(asinVerifier).should().verify(productId, "B000123456");
     assertThat(response.asin()).isEqualTo("B000123456");
@@ -241,8 +249,7 @@ class CatalogProductServiceTest {
   void updateIdentifier_shouldRejectDuplicateIdentifier() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(category());
-    Map<CatalogIdentifierType, String> request =
-        Map.of(CatalogIdentifierType.ASIN, "B000123456");
+    Map<String, String> request = Map.of("asin", "B000123456");
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(unsupportedVerifier.support(CatalogIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
@@ -263,7 +270,7 @@ class CatalogProductServiceTest {
   void update_shouldRejectArchivedProduct() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(category());
-    product.setPublicationStatus(CatalogStatus.ARCHIVED);
+    product.setPublicationStatus(ArchiveStatus.ARCHIVED);
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
 
     assertThatThrownBy(() -> service.update(productId,
@@ -280,10 +287,10 @@ class CatalogProductServiceTest {
     CatalogProduct product = product(Category.of("Computers", null));
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
 
-    CatalogArchivedResponse response = service.archive(productId);
+    CatalogProductDto response = service.archive(productId);
 
     assertThat(response.id()).isEqualTo(product.getId());
-    assertThat(response.publicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+    assertThat(response.publicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED.name());
     assertThat(response.archivedAt()).isNotNull();
     assertThat(response.updatedAt()).isEqualTo(response.archivedAt());
     then(repository).should(never()).delete(product);

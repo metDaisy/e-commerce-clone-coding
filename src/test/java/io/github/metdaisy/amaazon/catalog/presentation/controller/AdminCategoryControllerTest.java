@@ -11,8 +11,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryCommandService;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.CategoryPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -38,6 +40,9 @@ class AdminCategoryControllerTest extends RestControllerTest {
   @MockitoBean
   private CategoryCommandService categoryCommandService;
 
+  @MockitoBean
+  private CategoryPresentationMapper presentationMapper;
+
   @Test
   @DisplayName("카테고리 생성: 요청 본문을 서비스에 전달하고 201 응답을 반환한다")
   void create_returnsCreatedCategory() throws Exception {
@@ -46,7 +51,10 @@ class AdminCategoryControllerTest extends RestControllerTest {
     CategoryCreateRequest request = new CategoryCreateRequest("노트북", null);
     CategoryResponse response = new CategoryResponse(
         categoryId, "노트북", null, 1, List.of());
-    given(categoryCommandService.create(any(CategoryCreateRequest.class))).willReturn(response);
+    CategoryDto dto = new CategoryDto(categoryId, null, null, null, response.name(), response.depth(),
+        List.of());
+    given(categoryCommandService.create(any(CategoryCreateRequest.class))).willReturn(dto);
+    given(presentationMapper.toResponse(dto)).willReturn(response);
 
     // when & then
     mockMvc.perform(postJson(CATEGORIES_URL, request))
@@ -69,7 +77,11 @@ class AdminCategoryControllerTest extends RestControllerTest {
     CategoryResponse response = new CategoryResponse(
         categoryId, "노트북·태블릿", null, 1, List.of());
     given(categoryCommandService.update(any(UUID.class), any(CategoryUpdateRequest.class)))
-        .willReturn(response);
+        .willReturn(new CategoryDto(categoryId, null, null, null, response.name(), response.depth(),
+            List.of()));
+    CategoryDto dto = new CategoryDto(categoryId, null, null, null, response.name(), response.depth(),
+        List.of());
+    given(presentationMapper.toResponse(dto)).willReturn(response);
 
     // when & then
     mockMvc.perform(patch(CATEGORIES_URL + "/" + categoryId)

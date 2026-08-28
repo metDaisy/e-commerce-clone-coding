@@ -6,9 +6,12 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class CatalogProductFixture {
 
@@ -52,11 +55,17 @@ public final class CatalogProductFixture {
   public static CatalogProductCreateRequest createRequest(UUID categoryId, Set<String> tags,
       Map<String, Object> attributes, Map<CatalogIdentifierType, String> identifiers) {
     return new CatalogProductCreateRequest(categoryId, "Laptop", "Portable computer", "Brand",
-        tags, attributes, identifiers);
+        tags, attributes, identifiers.entrySet().stream()
+            .collect(Collectors.toMap(
+                entry -> entry.getKey().name().toLowerCase(Locale.ROOT), Map.Entry::getValue,
+                (first, second) -> second, LinkedHashMap::new)));
   }
 
   public static CatalogProductUpdateRequest updateRequest() {
+    Map<String, Object> attributes = new LinkedHashMap<>();
+    attributes.put("storage", "512GB");
+    attributes.put("color", null);
     return new CatalogProductUpdateRequest(
-        "Updated laptop", "Updated description", "New brand", List.of("sale"), Map.of());
+        "Updated laptop", "Updated description", "New brand", List.of("sale"), attributes);
   }
 }

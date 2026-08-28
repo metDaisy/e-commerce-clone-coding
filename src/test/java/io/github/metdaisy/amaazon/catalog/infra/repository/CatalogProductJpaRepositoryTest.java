@@ -6,13 +6,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
+import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogProductSort;
+import io.github.metdaisy.amaazon.common.dto.PageQuery;
+import io.github.metdaisy.amaazon.common.dto.PageResult;
 import io.github.metdaisy.amaazon.support.BaseRepositoryTest;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -81,7 +86,7 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
     clear();
 
     CatalogProduct archived = repository.findById(product.getId()).orElseThrow();
-    assertThat(archived.getPublicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+    assertThat(archived.getPublicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED);
     ensureQueryCount(1);
   }
 
@@ -221,6 +226,56 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
+  @DisplayName("공개 목록 조회: ACTIVE와 키워드 조건으로 상품을 필터링하고 2회의 쿼리로 페이지를 반환한다")
+  void findPage_shouldFilterActiveProductsAndKeyword() {
+    Category category = persistAndFlush(Category.of("Computers", null));
+    CatalogProduct matching = persistAndFlush(product(category, "Office device", "Computer",
+        "Brand", "B000123457"));
+    persistAndFlush(ProductVariant.of(matching, "Wireless edition", Map.of()));
+    CatalogProduct archived = product(category, "Archived device", "Computer", "Brand",
+        "B000123458");
+    archived.archive();
+    persistAndFlush(archived);
+    flushAndClear();
+
+    PageResult<CatalogProduct> result = repository.findPage(
+        Set.of(category.getId()), "wireless", null, CatalogProductSort.NAME_ASC,
+        ArchiveStatus.ACTIVE, ArchiveStatus.ACTIVE, new PageQuery(0, 20));
+
+    assertThat(result.content()).extracting(CatalogProduct::getName)
+        .containsExactly("Office device");
+    assertThat(result.totalElements()).isEqualTo(1);
+    ensureQueryCount(1);
+  }
+
+  @Test
+  @DisplayName("공개 목록 페이지: NAME_ASC 정렬로 연속 페이지를 조회하고 각 페이지에서 2회의 쿼리를 실행한다")
+  void findPage_shouldReturnNonOverlappingSortedPages() {
+    Category category = persistAndFlush(Category.of("Computers", null));
+    persistAndFlush(product(category, "A device", "Computer", "Brand", "B000123461"));
+    persistAndFlush(product(category, "B device", "Computer", "Brand", "B000123462"));
+    persistAndFlush(product(category, "C device", "Computer", "Brand", "B000123463"));
+    flushAndClear();
+
+    PageResult<CatalogProduct> firstPage = repository.findPage(
+        Set.of(category.getId()), null, null, CatalogProductSort.NAME_ASC,
+        ArchiveStatus.ACTIVE, ArchiveStatus.ACTIVE, new PageQuery(0, 1));
+    ensureQueryCount(2);
+
+    clear();
+    PageResult<CatalogProduct> secondPage = repository.findPage(
+        Set.of(category.getId()), null, null, CatalogProductSort.NAME_ASC,
+        ArchiveStatus.ACTIVE, ArchiveStatus.ACTIVE, new PageQuery(1, 1));
+
+    assertThat(firstPage.content()).extracting(CatalogProduct::getName)
+        .containsExactly("A device");
+    assertThat(secondPage.content()).extracting(CatalogProduct::getName)
+        .containsExactly("B device");
+    assertThat(firstPage.content()).doesNotContainAnyElementsOf(secondPage.content());
+    ensureQueryCount(2);
+  }
+
+  @Test
   @DisplayName("상품 저장 제약조건: 외부 식별자가 없으면 저장을 거부한다")
   void save_shouldRejectProductWithoutIdentifier() {
     Category category = persistAndFlush(Category.of("Computers", null));
@@ -279,6 +334,17 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
         .brand("Brand")
         .asin(asin)
         .build());
+  }
+
+  private CatalogProduct product(Category category, String name, String description,
+      String brand, String asin) {
+    return CatalogProduct.builder()
+        .category(category)
+        .name(name)
+        .description(description)
+        .brand(brand)
+        .asin(asin)
+        .build();
   }
 
   private CatalogProduct persistProductWithAllFields() {

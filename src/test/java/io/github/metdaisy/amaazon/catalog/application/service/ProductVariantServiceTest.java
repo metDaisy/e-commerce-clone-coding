@@ -8,12 +8,16 @@ import static org.mockito.BDDMockito.then;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantAdminResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.ProductVariantMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.ProductVariantMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductTagMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
+import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.exception.ProductVariantErrorCode;
@@ -23,6 +27,8 @@ import io.github.metdaisy.amaazon.catalog.domain.repository.ProductVariantReposi
 import io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.ProductVariantFixture;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +50,13 @@ class ProductVariantServiceTest {
   private CatalogProductRepository catalogProductRepository;
 
   @Spy
-  private ProductVariantMapper mapper = new ProductVariantMapperImpl();
+  private ProductVariantMapper mapper = new ProductVariantMapperImpl(
+      new CatalogProductMapperImpl(new CategoryMapperImpl(new UtilMapperImpl()),
+          new CatalogProductTagMapperImpl(new TagMapperImpl()), new UtilMapperImpl()),
+      new UtilMapperImpl());
+
+  @Spy
+  private UtilMapper utilMapper = new UtilMapperImpl();
 
   @InjectMocks
   private ProductVariantService service;
@@ -58,9 +70,9 @@ class ProductVariantServiceTest {
     given(catalogProductRepository.findById(product.getId())).willReturn(Optional.of(product));
     given(repository.save(any(ProductVariant.class))).willAnswer(invocation -> invocation.getArgument(0));
 
-    ProductVariantAdminResponse result = service.create(product.getId(), request);
+    ProductVariantDto result = service.create(product.getId(), request);
 
-    assertThat(result.catalogProductId()).isEqualTo(product.getId());
+    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
     assertThat(result.displayName()).isEqualTo("Black / 256GB");
     then(repository).should().save(any(ProductVariant.class));
   }
@@ -70,7 +82,7 @@ class ProductVariantServiceTest {
   void create_shouldRejectArchivedCatalogProduct() {
     CatalogProduct product = CatalogProductFixture.persistedProduct(
         CategoryFixture.category());
-    product.setPublicationStatus(CatalogStatus.ARCHIVED);
+    product.setPublicationStatus(ArchiveStatus.ARCHIVED);
     given(catalogProductRepository.findById(product.getId())).willReturn(Optional.of(product));
 
     assertThatThrownBy(() -> service.create(product.getId(), ProductVariantFixture.createRequest()))
@@ -108,7 +120,7 @@ class ProductVariantServiceTest {
   void findPublic_shouldRejectVariantOfArchivedCatalogProduct() {
     CatalogProduct product = CatalogProductFixture.persistedProduct(
         CategoryFixture.category());
-    product.setPublicationStatus(CatalogStatus.ARCHIVED);
+    product.setPublicationStatus(ArchiveStatus.ARCHIVED);
     ProductVariant variant = ProductVariantFixture.variant(product);
     given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
 
@@ -126,12 +138,12 @@ class ProductVariantServiceTest {
     ProductVariantUpdateRequest request = ProductVariantFixture.updateRequest();
     given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
 
-    ProductVariantAdminResponse result = service.update(variant.getId(), request);
+    ProductVariantDto result = service.update(variant.getId(), request);
 
     assertThat(result.displayName()).isEqualTo("Black / 512GB");
     assertThat(result.attributes()).containsOnlyKeys("storage");
-    assertThat(result.productVariantId()).isEqualTo(variant.getId());
-    assertThat(result.catalogProductId()).isEqualTo(product.getId());
+    assertThat(result.id()).isEqualTo(variant.getId());
+    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
   }
 
   @Test
@@ -172,11 +184,11 @@ class ProductVariantServiceTest {
     variant.archive();
     given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
 
-    ProductVariantAdminResponse result = service.findAdmin(variant.getId());
+    ProductVariantDto result = service.findAdmin(variant.getId());
 
-    assertThat(result.productVariantId()).isEqualTo(variant.getId());
-    assertThat(result.catalogProductId()).isEqualTo(product.getId());
-    assertThat(result.publicationStatus()).isEqualTo(CatalogStatus.ARCHIVED);
+    assertThat(result.id()).isEqualTo(variant.getId());
+    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
+    assertThat(result.publicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED.name());
     assertThat(result.archivedAt()).isNotNull();
   }
 

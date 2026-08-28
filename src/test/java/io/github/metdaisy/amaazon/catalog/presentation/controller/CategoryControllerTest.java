@@ -6,8 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
+import io.github.metdaisy.amaazon.catalog.presentation.dto.CategoryResponse;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
+import io.github.metdaisy.amaazon.catalog.presentation.mapper.CategoryPresentationMapper;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
 import java.util.List;
 import java.util.UUID;
@@ -27,13 +29,19 @@ class CategoryControllerTest extends RestControllerTest {
   @MockitoBean
   private CategoryQueryService service;
 
+  @MockitoBean
+  private CategoryPresentationMapper presentationMapper;
+
   @Test
   @DisplayName("카테고리 목록 조회: 서비스 결과를 200 응답으로 반환한다")
   void findAll_shouldReturnCategories() throws Exception {
     // given
     CategoryResponse response = new CategoryResponse(
         UUID.randomUUID(), "Computers", null, 1, List.of());
-    given(service.findAll()).willReturn(List.of(response));
+    CategoryDto dto = new CategoryDto(response.id(), response.parentId(), null, null,
+        response.name(), response.depth(), List.of());
+    given(service.findAll()).willReturn(List.of(dto));
+    given(presentationMapper.toResponse(List.of(dto))).willReturn(List.of(response));
 
     // when & then
     mockMvc.perform(get(CATEGORIES_URL))
