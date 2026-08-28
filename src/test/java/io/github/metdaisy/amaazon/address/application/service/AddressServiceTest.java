@@ -12,6 +12,7 @@ import io.github.metdaisy.amaazon.address.application.dto.request.AddressUpdateR
 import io.github.metdaisy.amaazon.address.application.dto.response.AddressResponse;
 import io.github.metdaisy.amaazon.address.application.mapper.AddressMapper;
 import io.github.metdaisy.amaazon.address.application.mapper.AddressMapperImpl;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressErrorCode;
 import io.github.metdaisy.amaazon.address.domain.exception.AddressException;
@@ -40,7 +41,7 @@ class AddressServiceTest {
   private AddressRepository repository;
 
   @Spy
-  private AddressMapper addressMapper = new AddressMapperImpl();
+  private AddressMapper addressMapper = new AddressMapperImpl(new UtilMapper() {});
 
   @InjectMocks
   private AddressService addressService;
