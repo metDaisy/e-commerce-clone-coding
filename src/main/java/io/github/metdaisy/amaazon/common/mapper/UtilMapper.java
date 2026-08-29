@@ -6,7 +6,6 @@ import java.util.Collection;
 import java.util.Map;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Condition;
-import org.mapstruct.ConditionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants.ComponentModel;
 import org.mapstruct.MappingTarget;
