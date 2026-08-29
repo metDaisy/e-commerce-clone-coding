@@ -10,17 +10,18 @@ import org.mapstruct.ConditionStrategy;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants.ComponentModel;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.SourceParameterCondition;
 import org.springframework.util.StringUtils;
 
 @Mapper(componentModel = ComponentModel.SPRING)
 public interface UtilMapper {
 
-  @Condition(appliesTo = {ConditionStrategy.PROPERTIES, ConditionStrategy.SOURCE_PARAMETERS})
+  @SourceParameterCondition
   default boolean hasElement(Collection<?> collection) {
     return collection != null && !collection.isEmpty();
   }
 
-  @Condition(appliesTo = {ConditionStrategy.PROPERTIES, ConditionStrategy.SOURCE_PARAMETERS})
+  @SourceParameterCondition
   default boolean hasElement(Map<?, ?> map) {
     return map != null && !map.isEmpty();
   }

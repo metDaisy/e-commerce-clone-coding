@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.application.dto.response;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,8 +23,9 @@ public record CatalogProductDto(UUID id, Instant createdAt,
 ) {
 
   public CatalogProductDto {
-    tags = tags == null ? List.of() : tags;
-    variants = variants == null ? List.of() : variants;
+    tags = tags == null ? Collections.emptyList() : tags;
+    attributes = attributes == null ? Collections.emptyMap() : attributes;
+    variants = variants == null ? Collections.emptyList() : variants;
   }
 
   public CatalogProductDto withVariants(List<ProductVariantDto> variants) {

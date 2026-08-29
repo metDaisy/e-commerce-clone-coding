@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.application.dto.response;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ public record CategoryDto(UUID id, UUID parentId, Instant createdAt, Instant upd
                           String name, Integer depth, List<CategoryDto> children) {
 
   public CategoryDto {
-    children = children == null ? List.of() : children;
+    children = children == null ? Collections.emptyList() : children;
   }
 
 }

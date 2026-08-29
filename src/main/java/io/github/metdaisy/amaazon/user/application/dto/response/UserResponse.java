@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.user.application.dto.response;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,4 +14,7 @@ public record UserResponse(
     Instant createdAt,
     Instant updatedAt) {
 
+  public UserResponse {
+    roles = roles == null ? Collections.emptyList() : roles;
+  }
 }

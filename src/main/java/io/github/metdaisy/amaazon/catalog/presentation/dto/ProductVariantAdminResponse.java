@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.presentation.dto;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -14,4 +15,7 @@ public record ProductVariantAdminResponse(
     Instant createdAt,
     Instant updatedAt) {
 
+  public ProductVariantAdminResponse {
+    attributes = attributes == null ? Collections.emptyMap() : attributes;
+  }
 }

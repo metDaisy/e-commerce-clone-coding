@@ -5,7 +5,6 @@ import io.github.metdaisy.amaazon.catalog.presentation.dto.CategoryResponse;
 import io.github.metdaisy.amaazon.common.mapper.GlobalMapperConfig;
 import java.util.List;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(config = GlobalMapperConfig.class)
 public interface CategoryPresentationMapper {

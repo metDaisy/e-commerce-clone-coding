@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import io.github.metdaisy.amaazon.user.application.dto.UserDto;
 import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapper;
 import io.github.metdaisy.amaazon.user.application.mapper.UserApiMapperImpl;
-import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
 import io.github.metdaisy.amaazon.user.domain.repository.UserRepository;
@@ -31,7 +30,7 @@ class UserQueryApiTest {
   private UserRepository repository;
 
   @Spy
-  private UserApiMapper mapper = new UserApiMapperImpl(new UtilMapper() {});
+  private UserApiMapper mapper = new UserApiMapperImpl();
 
   @InjectMocks
   private UserQueryApi userQueryApi;

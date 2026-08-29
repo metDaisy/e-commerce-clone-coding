@@ -14,6 +14,7 @@ import org.springframework.modulith.NamedInterface;
     unmappedTargetPolicy = ReportingPolicy.IGNORE,
     collectionMappingStrategy = CollectionMappingStrategy.TARGET_IMMUTABLE,
     nullValueIterableMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
+    nullValueMapMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
     nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE,
     injectionStrategy = InjectionStrategy.CONSTRUCTOR, uses = UtilMapper.class)
 public interface GlobalMapperConfig {

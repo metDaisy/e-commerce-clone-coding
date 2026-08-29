@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.presentation.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,4 +26,9 @@ public record CatalogProductQueryResponse(
     Instant updatedAt,
     List<ProductVariantQueryResponse> variants) {
 
+  public CatalogProductQueryResponse {
+    tags = tags == null ? Collections.emptyList() : tags;
+    attributes = attributes == null ? Collections.emptyMap() : attributes;
+    variants = variants == null ? Collections.emptyList() : variants;
+  }
 }
