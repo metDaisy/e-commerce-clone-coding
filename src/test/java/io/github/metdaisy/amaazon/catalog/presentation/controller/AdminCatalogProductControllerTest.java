@@ -180,6 +180,23 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
   }
 
   @Test
+  @DisplayName("상품 수정 실패: 빈 설명은 서비스 호출 없이 400으로 거절한다")
+  void update_shouldRejectBlankDescription() throws Exception {
+    UUID productId = UUID.randomUUID();
+    CatalogProductUpdateRequest request = new CatalogProductUpdateRequest(
+        null, " ", null, null, null);
+
+    mockMvc.perform(patch(PRODUCTS_URL + "/" + productId)
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("INVALID_INPUT"))
+        .andExpect(jsonPath("$.details.description").isArray());
+
+    then(service).should(never()).update(any(UUID.class), any(CatalogProductUpdateRequest.class));
+  }
+
+  @Test
   @DisplayName("상품 식별자 수정: 식별자 요청을 서비스에 전달하고 200 응답을 반환한다")
   void updateIdentifier_shouldReturnUpdatedIdentifiers() throws Exception {
     UUID productId = UUID.randomUUID();

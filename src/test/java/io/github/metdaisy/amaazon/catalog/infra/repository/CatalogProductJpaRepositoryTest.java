@@ -226,7 +226,7 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
   }
 
   @Test
-  @DisplayName("공개 목록 조회: ACTIVE와 키워드 조건으로 상품을 필터링하고 2회의 쿼리로 페이지를 반환한다")
+  @DisplayName("공개 목록 조회: ACTIVE와 키워드 조건으로 상품을 필터링하고 1회의 쿼리로 페이지를 반환한다")
   void findPage_shouldFilterActiveProductsAndKeyword() {
     Category category = persistAndFlush(Category.of("Computers", null));
     CatalogProduct matching = persistAndFlush(product(category, "Office device", "Computer",

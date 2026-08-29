@@ -29,6 +29,9 @@ class CategoryQueryServiceTest {
   @Mock
   private CategoryRepository repository;
 
+  @Mock
+  private CategoryCacheService categoryCacheService;
+
   @Spy
   private CategoryMapper mapper = new CategoryMapperImpl(new UtilMapperImpl());
 
@@ -40,7 +43,9 @@ class CategoryQueryServiceTest {
   void findAll_shouldReturnMappedCategories() {
     // given
     List<Category> categories = List.of(Category.of("Computers", null));
-    given(repository.findAll()).willReturn(categories);
+    given(categoryCacheService.findAll()).willReturn(List.of(
+        new CategoryDto(categories.get(0).getId(), null, null, null, "Computers", 1,
+            List.of())));
 
     // when
     List<CategoryDto> result = service.findAll();

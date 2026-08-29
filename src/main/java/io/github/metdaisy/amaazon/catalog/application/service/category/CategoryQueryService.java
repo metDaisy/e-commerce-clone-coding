@@ -1,12 +1,10 @@
 package io.github.metdaisy.amaazon.catalog.application.service.category;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CategoryRepository;
-import io.github.metdaisy.amaazon.global.infra.cache.constant.CacheConstants;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
 import java.util.List;
 import java.util.LinkedHashSet;
@@ -15,7 +13,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryQueryService {
 
   private final CategoryRepository repository;
-  private final CategoryMapper mapper;
+  private final CategoryCacheService categoryCacheService;
 
-  @Cacheable(cacheNames = CacheConstants.CATEGORIES)
   public List<CategoryDto> findAll() {
-    return mapper.toDto(repository.findAll());
+    return categoryCacheService.findAll();
   }
 
   public Category getProxy(UUID id) {
@@ -41,7 +37,7 @@ public class CategoryQueryService {
   }
 
   public Set<UUID> findSelfAndDescendantIds(UUID categoryId) {
-    for (CategoryDto category : findAll()) {
+    for (CategoryDto category : categoryCacheService.findAll()) {
       Optional<CategoryDto> found = findCategory(category, categoryId);
       if (found.isPresent()) {
         return collectIds(found.get());
