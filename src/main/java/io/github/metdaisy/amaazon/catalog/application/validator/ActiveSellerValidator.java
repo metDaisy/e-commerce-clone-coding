@@ -26,6 +26,10 @@ public class ActiveSellerValidator {
         .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()))) {
       return;
     }
+    if (principal.getAuthorities().stream()
+        .noneMatch(authority -> "ROLE_PRODUCT_MANAGER".equals(authority.getAuthority()))) {
+      throw new AccessDeniedException("PRODUCT_MANAGER 권한이 필요합니다.");
+    }
     validateSeller(principal);
   }
 

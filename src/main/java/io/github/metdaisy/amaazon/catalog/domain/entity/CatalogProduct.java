@@ -1,6 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
+import io.github.metdaisy.amaazon.catalog.domain.entity.util.AttributesUpdater;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
@@ -89,7 +90,7 @@ public class CatalogProduct extends MutableEntity {
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(name = "publication_status", nullable = false, length = 20)
-  private CatalogStatus publicationStatus;
+  private ArchiveStatus publicationStatus;
 
   @Column(name = "archived_at")
   private Instant archivedAt;
@@ -108,23 +109,31 @@ public class CatalogProduct extends MutableEntity {
     this.ean = ean;
     this.isbn = isbn;
     this.attributes = attributes == null ? new HashMap<>() : new HashMap<>(attributes);
-    this.publicationStatus = CatalogStatus.ACTIVE;
+    this.publicationStatus = ArchiveStatus.ACTIVE;
     this.archivedAt = null;
     this.tags = tags == null ? new ArrayList<>() : tags;
   }
 
   public void validateActive() {
-    if (publicationStatus.equals(CatalogStatus.ARCHIVED)) {
+    if (publicationStatus.equals(ArchiveStatus.ARCHIVED)) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_PRODUCT_ARCHIVED,
           AmaazonExceptionContext.logDetails(Map.of("catalogId", getId())));
     }
   }
 
+  public boolean isActive() {
+    return publicationStatus == ArchiveStatus.ACTIVE;
+  }
+
   public void archive() {
     validateActive();
     Instant now = Instant.now();
-    publicationStatus = CatalogStatus.ARCHIVED;
+    publicationStatus = ArchiveStatus.ARCHIVED;
     archivedAt = now;
     setUpdatedAt(now);
+  }
+
+  public void setAttributes(Map<String, Object> attributes) {
+    this.attributes = AttributesUpdater.update(this.attributes, attributes);
   }
 }

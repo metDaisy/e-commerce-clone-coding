@@ -2,7 +2,7 @@ package io.github.metdaisy.amaazon.catalog.application.service.category;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
@@ -29,7 +29,7 @@ public class CategoryCommandService {
 
   @Transactional
   @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
-  public CategoryResponse create(CategoryCreateRequest request) {
+  public CategoryDto create(CategoryCreateRequest request) {
     Category parent = findParent(request.parentId());
     validateUniqueName(request.name(), null);
     validateDepth(parent == null ? 1 : parent.getDepth() + 1);
@@ -39,7 +39,7 @@ public class CategoryCommandService {
 
   @Transactional
   @CacheEvict(cacheNames = CacheConstants.CATEGORIES, allEntries = true)
-  public CategoryResponse update(UUID id, CategoryUpdateRequest request) {
+  public CategoryDto update(UUID id, CategoryUpdateRequest request) {
     Category category = findById(id);
     Category parent = findParent(request.parentId());
     validateUniqueName(request.name(), id);

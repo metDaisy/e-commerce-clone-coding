@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CategoryUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.support.BaseCacheIntegrationTest;
 import java.util.List;
@@ -34,10 +34,10 @@ class CategoryCacheServiceIntegrationTest extends BaseCacheIntegrationTest {
     clear();
 
     // when
-    List<CategoryResponse> firstResult = queryService.findAll();
+    List<CategoryDto> firstResult = queryService.findAll();
     int firstQueryCount = queryInspector.getCount();
     queryInspector.clear();
-    List<CategoryResponse> secondResult = queryService.findAll();
+    List<CategoryDto> secondResult = queryService.findAll();
     int secondQueryCount = queryInspector.getCount();
 
     // then
@@ -63,8 +63,8 @@ class CategoryCacheServiceIntegrationTest extends BaseCacheIntegrationTest {
     // then
     assertThat(categoriesCache().get(SimpleKey.EMPTY)).isNull();
     queryInspector.clear();
-    List<CategoryResponse> refreshedResult = queryService.findAll();
-    assertThat(refreshedResult).extracting(CategoryResponse::name)
+    List<CategoryDto> refreshedResult = queryService.findAll();
+    assertThat(refreshedResult).extracting(CategoryDto::name)
         .containsExactlyInAnyOrder("Electronics", "Computers");
     assertThat(queryInspector.getCount()).isPositive();
   }
@@ -84,8 +84,8 @@ class CategoryCacheServiceIntegrationTest extends BaseCacheIntegrationTest {
     // then
     assertThat(categoriesCache().get(SimpleKey.EMPTY)).isNull();
     queryInspector.clear();
-    List<CategoryResponse> refreshedResult = queryService.findAll();
-    assertThat(refreshedResult).extracting(CategoryResponse::name)
+    List<CategoryDto> refreshedResult = queryService.findAll();
+    assertThat(refreshedResult).extracting(CategoryDto::name)
         .containsExactly("Laptops");
     assertThat(queryInspector.getCount()).isPositive();
   }

@@ -2,9 +2,7 @@ package io.github.metdaisy.amaazon.catalog.application.service;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogIdentifierUpdateResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
@@ -23,6 +21,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,12 +39,12 @@ public class CatalogProductService {
   private final List<CatalogProductIdentifierVerifier> verifiers;
 
   @Transactional
-  public CatalogProductResponse create(CatalogProductCreateRequest request) {
+  public CatalogProductDto create(CatalogProductCreateRequest request) {
     Map<CatalogIdentifierType, String> normalizedIdentifiers =
-        validateIdentifiers(null, request.identifiers(), true);
+        validateIdentifiers(null, toIdentifierMap(request.identifiers()), true);
     Category category = categoryQueryService.getProxy(request.categoryId());
     CatalogProduct catalogProduct = mapper.toEntity(category, request);
-    mapper.update(catalogProduct, normalizedIdentifiers);
+    mapper.updateIdentifierFields(catalogProduct, toIdentifierFieldMap(normalizedIdentifiers));
     List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
         .stream()
         .map(tag -> CatalogProductTag.of(catalogProduct, tag))
@@ -56,7 +55,7 @@ public class CatalogProductService {
   }
 
   @Transactional
-  public CatalogProductResponse update(UUID id, CatalogProductUpdateRequest request) {
+  public CatalogProductDto update(UUID id, CatalogProductUpdateRequest request) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
     List<CatalogProductTag> tags = request.tags() == null ? null
@@ -69,22 +68,21 @@ public class CatalogProductService {
   }
 
   @Transactional
-  public CatalogIdentifierUpdateResponse updateIdentifier(UUID id,
-      Map<CatalogIdentifierType, String> identifiers) {
+  public CatalogProductDto updateIdentifier(UUID id,
+      Map<String, String> identifiers) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
     Map<CatalogIdentifierType, String> normalizedIdentifiers =
-        validateIdentifiers(id, identifiers, false);
-    mapper.update(catalog, normalizedIdentifiers);
-    return mapper.toIdentifierResponse(catalog);
+        validateIdentifiers(id, toIdentifierMap(identifiers), false);
+    mapper.updateIdentifierFields(catalog, toIdentifierFieldMap(normalizedIdentifiers));
+    return mapper.toDto(catalog);
   }
 
   @Transactional
-  public CatalogArchivedResponse archive(UUID id) {
+  public CatalogProductDto archive(UUID id) {
     CatalogProduct catalog = findById(id);
     catalog.archive();
-    return new CatalogArchivedResponse(catalog.getId(), catalog.getPublicationStatus(),
-        catalog.getArchivedAt(), catalog.getUpdatedAt());
+    return mapper.toDto(catalog);
   }
 
   private String verifyIdentifier(UUID id, CatalogIdentifierType type, String value) {
@@ -144,6 +142,27 @@ public class CatalogProductService {
           new AmaazonExceptionContext(Map.of("fields", List.copyOf(fields)), logDetails, null));
     }
     return normalizedIdentifiers;
+  }
+
+  private Map<CatalogIdentifierType, String> toIdentifierMap(Map<String, String> identifiers) {
+    if (identifiers == null || identifiers.isEmpty()) {
+      return Map.of();
+    }
+    return identifiers.entrySet().stream()
+        .collect(Collectors.toMap(
+            entry -> CatalogIdentifierType.from(entry.getKey()), Entry::getValue,
+            (first, second) -> second, LinkedHashMap::new));
+  }
+
+  private Map<String, String> toIdentifierFieldMap(
+      Map<CatalogIdentifierType, String> identifiers) {
+    if (identifiers == null || identifiers.isEmpty()) {
+      return Map.of();
+    }
+    return identifiers.entrySet().stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey().name().toLowerCase(Locale.ROOT), Entry::getValue,
+            (first, second) -> second, LinkedHashMap::new));
   }
 
   private Map<String, Object> identifierField(CatalogIdentifierType type,

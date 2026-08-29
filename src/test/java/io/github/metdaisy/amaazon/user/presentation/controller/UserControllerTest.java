@@ -55,7 +55,7 @@ class UserControllerTest extends RestControllerTest {
         USER_ID,
         "tester",
         "01012345678",
-        List.of(UserRole.USER, UserRole.PRODUCT_MANAGER),
+        List.of(UserRole.USER.name(), UserRole.PRODUCT_MANAGER.name()),
         true,
         createdAt,
         updatedAt);
@@ -210,6 +210,6 @@ class UserControllerTest extends RestControllerTest {
   private static UserResponse profileResponse() {
     Instant now = Instant.parse("2026-08-16T12:00:00Z");
     return new UserResponse(
-        USER_ID, "tester", "01012345678", List.of(UserRole.USER), true, now, now);
+        USER_ID, "tester", "01012345678", List.of(UserRole.USER.name()), true, now, now);
   }
 }

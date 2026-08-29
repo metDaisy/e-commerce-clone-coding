@@ -50,7 +50,6 @@ public class Seller extends MutableEntity {
   @Column(name = "contact_phone", nullable = false, length = 20)
   private String contactPhone;
 
-  @Size(max = 20)
   @NotNull
   @Enumerated(EnumType.STRING)
   @Column(name = "status", nullable = false, length = 20)

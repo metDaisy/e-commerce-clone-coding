@@ -15,6 +15,7 @@ import io.github.metdaisy.amaazon.user.application.event.FormSignUpTask;
 import io.github.metdaisy.amaazon.user.application.event.UserDeactivatedEvent;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapper;
 import io.github.metdaisy.amaazon.user.application.mapper.UserMapperImpl;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
 import io.github.metdaisy.amaazon.user.domain.entity.User;
 import io.github.metdaisy.amaazon.user.domain.exception.UserErrorCode;
 import io.github.metdaisy.amaazon.user.domain.exception.UserException;
@@ -45,7 +46,7 @@ class UserServiceTest {
   private ApplicationEventPublisher eventPublisher;
 
   @Spy
-  private UserMapper userMapper = new UserMapperImpl();
+  private UserMapper userMapper = new UserMapperImpl(new UtilMapper() {});
 
   @InjectMocks
   private UserService userService;

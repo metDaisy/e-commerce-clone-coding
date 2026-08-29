@@ -1,17 +1,41 @@
 package io.github.metdaisy.amaazon.common.mapper;
 
+import io.github.metdaisy.amaazon.common.jpa.MutableEntity;
+import java.time.Instant;
 import java.util.Collection;
+import java.util.Map;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Condition;
+import org.mapstruct.ConditionStrategy;
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.Named;
+import org.mapstruct.MappingConstants.ComponentModel;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.SourceParameterCondition;
+import org.springframework.util.StringUtils;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+@Mapper(componentModel = ComponentModel.SPRING)
 public interface UtilMapper {
 
   @SourceParameterCondition
-  @Named("checkCollection")
-  default <T extends Collection<?>> boolean checkCollection(T collection) {
+  default boolean hasElement(Collection<?> collection) {
     return collection != null && !collection.isEmpty();
+  }
+
+  @SourceParameterCondition
+  default boolean hasElement(Map<?, ?> map) {
+    return map != null && !map.isEmpty();
+  }
+
+  @Condition
+  default boolean hasText(String value) {
+    return StringUtils.hasText(value);
+  }
+
+  @AfterMapping
+  default <T extends MutableEntity> void update(@MappingTarget T entity) {
+    if (entity.isNew()) {
+      return;
+    }
+    entity.setUpdatedAt(Instant.now());
   }
 }

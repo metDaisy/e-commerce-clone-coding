@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryResponse;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
+import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CategoryException;
@@ -28,8 +29,11 @@ class CategoryQueryServiceTest {
   @Mock
   private CategoryRepository repository;
 
+  @Mock
+  private CategoryCacheService categoryCacheService;
+
   @Spy
-  private CategoryMapper mapper = new CategoryMapperImpl();
+  private CategoryMapper mapper = new CategoryMapperImpl(new UtilMapperImpl());
 
   @InjectMocks
   private CategoryQueryService service;
@@ -39,16 +43,18 @@ class CategoryQueryServiceTest {
   void findAll_shouldReturnMappedCategories() {
     // given
     List<Category> categories = List.of(Category.of("Computers", null));
-    given(repository.findAll()).willReturn(categories);
+    given(categoryCacheService.findAll()).willReturn(List.of(
+        new CategoryDto(categories.get(0).getId(), null, null, null, "Computers", 1,
+            List.of())));
 
     // when
-    List<CategoryResponse> result = service.findAll();
+    List<CategoryDto> result = service.findAll();
 
     // then
     assertThat(result).hasSize(1);
     assertThat(result.get(0))
         .usingRecursiveComparison()
-        .isEqualTo(new CategoryResponse(categories.get(0).getId(), "Computers", null, 1,
+        .isEqualTo(new CategoryDto(categories.get(0).getId(), null, null, null, "Computers", 1,
             List.of()));
   }
 

@@ -7,7 +7,6 @@ import io.github.metdaisy.amaazon.address.application.dto.response.AddressRespon
 import io.github.metdaisy.amaazon.address.application.service.AddressService;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
-import io.github.metdaisy.amaazon.common.dto.PageResponse;
 import io.github.metdaisy.amaazon.common.dto.PageResult;
 import jakarta.validation.Valid;
 import java.util.UUID;
@@ -34,13 +33,11 @@ public class AddressController {
   private final AddressService service;
 
   @GetMapping
-  public ResponseEntity<PageResponse<AddressResponse>> findAll(
+  public ResponseEntity<PageResult<AddressResponse>> findAll(
       @AuthenticationPrincipal AmaazonPrincipal principal,
       @Valid @ModelAttribute AddressPageRequest request) {
-    PageResult<AddressResponse> result = service.findAll(principal.getId(),
-        request.toPageQuery());
-    return ResponseEntity.ok(new PageResponse<>(result.content(), result.page(), result.size(),
-        result.totalElements(), result.totalPages()));
+    return ResponseEntity.ok(service.findAll(principal.getId(),
+        request.toPageQuery()));
   }
 
   @PostMapping
