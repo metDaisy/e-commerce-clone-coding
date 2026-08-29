@@ -1,0 +1,22 @@
+name: Test - Modularity
+
+on:
+  workflow_call:
+    inputs:
+      test-patterns:
+        required: false
+        type: string
+        default: '[]'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Run modularity tests
+        uses: ./.github/actions/run-domain-test
+        with:
+          test-name: modularity
+          test-scope: 'ModularityTest'
+          test-patterns: ${{ inputs['test-patterns'] }}

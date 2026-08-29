@@ -91,7 +91,6 @@ dependencies {
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'  // MapStruct 프로세서 추가 권장
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
-    annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
 
     // === 10. Development Tools (개발 도구) ===
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -164,6 +163,9 @@ def jacocoExcludePatterns = [
 
 jacocoTestReport {
     dependsOn test
+    executionData fileTree("${layout.buildDirectory.get()}/jacoco/parts") {
+        include "**/*.exec"
+    }
     reports {
         xml.required = true
         html.required = true
@@ -192,6 +194,9 @@ tasks.register('build-and-report') {
 
 jacocoTestCoverageVerification {
     dependsOn jacocoTestReport
+    executionData fileTree("${layout.buildDirectory.get()}/jacoco/parts") {
+        include "**/*.exec"
+    }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: jacocoExcludePatterns)

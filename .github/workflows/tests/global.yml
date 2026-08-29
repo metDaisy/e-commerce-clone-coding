@@ -1,0 +1,22 @@
+name: Test - Global
+
+on:
+  workflow_call:
+    inputs:
+      test-patterns:
+        required: false
+        type: string
+        default: '[]'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Run global tests
+        uses: ./.github/actions/run-domain-test
+        with:
+          test-name: global
+          test-scope: 'global.*'
+          test-patterns: ${{ inputs['test-patterns'] }}

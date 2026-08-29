@@ -8,9 +8,8 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - 'src/main/java/**'
-      - 'src/test/java/**'
-      - 'src/main/resources/**'
+      - 'src/main/**'
+      - 'src/test/**'
       - 'config/checkstyle/**'
       - 'build-tools/checkstyle-rules/**'
       - 'build.gradle'
@@ -20,12 +19,15 @@ on:
       - 'gradlew.bat'
       - 'gradle/**'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/tests/**'
+      - '.github/actions/**'
+      - '.github/affected-tests/**'
+      - '.github/filters.yml'
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'src/main/java/**'
-      - 'src/test/java/**'
-      - 'src/main/resources/**'
+      - 'src/main/**'
+      - 'src/test/**'
       - 'config/checkstyle/**'
       - 'build-tools/checkstyle-rules/**'
       - 'build.gradle'
@@ -35,8 +37,11 @@ on:
       - 'gradlew.bat'
       - 'gradle/**'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/tests/**'
+      - '.github/actions/**'
+      - '.github/affected-tests/**'
+      - '.github/filters.yml'
 
-# Test Reporter 액션이 PR 코멘트 및 Checks 탭에 결과를 쓸 수 있도록 권한 부여
 permissions:
   contents: read
   issues: read
@@ -44,43 +49,284 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  changes:
     runs-on: ubuntu-latest
-
+    outputs:
+      testable: ${{ steps.filter.outputs.testable }}
+      test_required: ${{ steps.filter.outputs.test_required }}
+      all_tests: ${{ steps.filter.outputs.all_tests }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v7
+      - name: Checkout filter configuration
+        uses: actions/checkout@v7
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v5.7.0
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        # 기존의 단순 cache: gradle 대신 아래의 전문 캐싱 액션 사용
+      - name: Detect testable changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: .github/filters.yml
 
-    - name: Setup Gradle Build Cache
-      uses: gradle/actions/setup-gradle@v6
-      with:
-        # Testcontainers 등의 빌드 결과물을 캐싱하여 변경사항이 없는 테스트는 즉시 패스(UP-TO-DATE)
-        cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+  select_tests:
+    needs: changes
+    if: needs.changes.outputs.test_required == 'true'
+    runs-on: ubuntu-latest
+    env:
+      JAVA_BASE_PACKAGE: io.github.metdaisy.amaazon
+      FULL_SUITE: ${{ github.event_name == 'push' || needs.changes.outputs.all_tests == 'true' }}
+    outputs:
+      auth_patterns: ${{ steps.select.outputs.auth_patterns }}
+      user_patterns: ${{ steps.select.outputs.user_patterns }}
+      address_patterns: ${{ steps.select.outputs.address_patterns }}
+      catalog_patterns: ${{ steps.select.outputs.catalog_patterns }}
+      seller_patterns: ${{ steps.select.outputs.seller_patterns }}
+      global_patterns: ${{ steps.select.outputs.global_patterns }}
+      application_patterns: ${{ steps.select.outputs.application_patterns }}
+      modularity_patterns: ${{ steps.select.outputs.modularity_patterns }}
+    steps:
+      - name: Checkout selector inputs
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # affected-tests resolves the changed-file graph against the PR base.
+          fetch-depth: 0
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+      - name: Set up JDK 21 for affected-test analysis
+        if: env.FULL_SUITE != 'true'
+        uses: actions/setup-java@v5.7.0
+        with:
+          java-version: '21'
+          distribution: temurin
 
-    - name: Build and Test with Gradle
-      run: ./gradlew build jacocoTestReport
+      - name: Set up Gradle
+        if: env.FULL_SUITE != 'true'
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
 
-    - name: Publish Test Results
-      uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always() # 빌드나 테스트가 실패하더라도 리포트를 생성하도록 보장
-      with:
-        files: |
-          build/test-results/**/*.xml
+      - name: Make Gradle executable
+        if: env.FULL_SUITE != 'true'
+        shell: bash
+        run: chmod +x ./gradlew
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v7
-      with:
-        files: ./build/reports/jacoco/test/jacocoTestReport.xml
-        disable_search: true
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
+      - name: Select tests
+        id: select
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          bash .github/affected-tests/select-tests.sh
+
+  compile:
+    needs: changes
+    if: needs.changes.outputs.testable == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5.7.0
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+      - name: Make Gradle executable
+        shell: bash
+        run: chmod +x ./gradlew
+
+      - name: Compile and run Checkstyle
+        shell: bash
+        run: ./gradlew classes testClasses checkstyleMain checkstyleTest
+
+      - name: Upload compiled outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-outputs
+          path: |
+            build/classes
+            build/generated
+            build/resources
+          if-no-files-found: error
+
+  auth_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.auth_patterns != '[]'
+    uses: ./.github/workflows/tests/auth.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.auth_patterns }}
+
+  user_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.user_patterns != '[]'
+    uses: ./.github/workflows/tests/user.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.user_patterns }}
+
+  address_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.address_patterns != '[]'
+    uses: ./.github/workflows/tests/address.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.address_patterns }}
+
+  catalog_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.catalog_patterns != '[]'
+    uses: ./.github/workflows/tests/catalog.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.catalog_patterns }}
+
+  seller_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.seller_patterns != '[]'
+    uses: ./.github/workflows/tests/seller.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.seller_patterns }}
+
+  global_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.global_patterns != '[]'
+    uses: ./.github/workflows/tests/global.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.global_patterns }}
+
+  application_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.application_patterns != '[]'
+    uses: ./.github/workflows/tests/application.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.application_patterns }}
+
+  modularity_tests:
+    needs: [changes, compile, select_tests]
+    if: >-
+      needs.compile.result == 'success' &&
+      needs.changes.outputs.test_required == 'true' &&
+      needs.select_tests.result == 'success' &&
+      needs.select_tests.outputs.modularity_patterns != '[]'
+    uses: ./.github/workflows/tests/modularity.yml
+    with:
+      test-patterns: ${{ needs.select_tests.outputs.modularity_patterns }}
+
+  coverage:
+    needs:
+      - compile
+      - select_tests
+      - auth_tests
+      - user_tests
+      - address_tests
+      - catalog_tests
+      - seller_tests
+      - global_tests
+      - application_tests
+      - modularity_tests
+    if: >-
+      always() &&
+      needs.compile.result == 'success' &&
+      (needs.auth_tests.result == 'success' || needs.auth_tests.result == 'skipped') &&
+      (needs.user_tests.result == 'success' || needs.user_tests.result == 'skipped') &&
+      (needs.address_tests.result == 'success' || needs.address_tests.result == 'skipped') &&
+      (needs.catalog_tests.result == 'success' || needs.catalog_tests.result == 'skipped') &&
+      (needs.seller_tests.result == 'success' || needs.seller_tests.result == 'skipped') &&
+      (needs.global_tests.result == 'success' || needs.global_tests.result == 'skipped') &&
+      (needs.application_tests.result == 'success' || needs.application_tests.result == 'skipped') &&
+      (needs.modularity_tests.result == 'success' || needs.modularity_tests.result == 'skipped') &&
+      (needs.auth_tests.result == 'success' ||
+      needs.user_tests.result == 'success' ||
+      needs.address_tests.result == 'success' ||
+      needs.catalog_tests.result == 'success' ||
+      needs.seller_tests.result == 'success' ||
+      needs.global_tests.result == 'success' ||
+      needs.application_tests.result == 'success' ||
+      needs.modularity_tests.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5.7.0
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+      - name: Make Gradle executable
+        shell: bash
+        run: chmod +x ./gradlew
+
+      - name: Download compiled outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-outputs
+          path: build
+
+      - name: Download JaCoCo execution data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: jacoco-*
+          path: build/jacoco/parts
+          merge-multiple: false
+
+      - name: Generate coverage report
+        shell: bash
+        run: ./gradlew jacocoTestReport -x test
+
+      - name: Check PR selected-test coverage (advisory)
+        if: github.event_name == 'pull_request'
+        id: selected_coverage
+        continue-on-error: true
+        shell: bash
+        run: ./gradlew jacocoTestCoverageVerification -x test
+
+      - name: Warn when PR selected-test coverage is below 80%
+        if: >-
+          github.event_name == 'pull_request' &&
+          steps.selected_coverage.outcome == 'failure'
+        shell: bash
+        run: |
+          echo '::warning title=Selected-test coverage below 80%::PR coverage is advisory only; the full coverage report is generated on main.'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./build/reports/jacoco/test/jacocoTestReport.xml
+          disable_search: true
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
