@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.address.infra.repository;
+package io.github.metdaisy.amaazon.address.infra.repository.qdsl;
 
 import static io.github.metdaisy.amaazon.address.domain.entity.QAddress.address;
 
@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
-public class AddressQuerydslRepositoryImpl implements AddressQuerydslRepository {
+public class AddressQueryRepositoryImpl implements AddressQueryRepository {
 
   private final JPAQueryFactory queryFactory;
   private final EntityManager em;

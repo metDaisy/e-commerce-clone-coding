@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.address.infra.repository;
 
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import io.github.metdaisy.amaazon.address.domain.repository.AddressRepository;
+import io.github.metdaisy.amaazon.address.infra.repository.qdsl.AddressQueryRepository;
 import io.github.metdaisy.amaazon.common.dto.PageQuery;
 import io.github.metdaisy.amaazon.common.dto.PageResult;
 import java.util.List;
@@ -16,7 +17,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface AddressJpaRepository extends JpaRepository<Address, UUID>, AddressRepository,
-    AddressQuerydslRepository {
+    AddressQueryRepository {
 
   @Override
   Optional<Address> findById(UUID id);

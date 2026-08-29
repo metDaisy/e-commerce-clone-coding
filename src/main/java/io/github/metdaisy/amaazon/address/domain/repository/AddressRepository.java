@@ -6,11 +6,9 @@ import io.github.metdaisy.amaazon.common.dto.PageResult;
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import java.util.UUID;
 
-public interface AddressRepository extends DomainRepository<Address> {
+public interface AddressRepository extends DomainRepository<Address>, AddressQuery {
 
   PageResult<Address> findPageByUserId(UUID userId, PageQuery pageQuery);
-
-  void deleteAndUpdatePrimary(UUID userId, UUID addressId);
 
   boolean existsByUserIdAndPostalCodeAndAddressLine(UUID userId, String postalCode,
       String addressLine);
@@ -22,5 +20,4 @@ public interface AddressRepository extends DomainRepository<Address> {
 
   int clearPrimaryByUserId(UUID userId);
 
-  Address makePrimary(UUID userId, UUID addressId);
 }
