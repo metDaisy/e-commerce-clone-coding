@@ -1,0 +1,16 @@
+import io.affectedtests.gradle.AffectedTestsPlugin
+
+initscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'io.github.vedanthvdev:affected-tests-gradle:2.2.29'
+    }
+}
+
+gradle.beforeProject { project ->
+    if (project == gradle.rootProject) {
+        project.pluginManager.apply(AffectedTestsPlugin)
+    }
+}

@@ -1,0 +1,80 @@
+name: Run domain tests
+description: Run a domain test slice using the shared compiled outputs
+
+inputs:
+  test-name:
+    description: Name used for the JaCoCo artifact
+    required: true
+  test-scope:
+    description: Gradle test filter suffix relative to the base package
+    required: true
+  test-patterns:
+    description: JSON array of Gradle --tests patterns selected by CI
+    required: false
+    default: '[]'
+  base-package:
+    description: Common Java base package
+    required: false
+    default: io.github.metdaisy.amaazon
+
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK 17
+      uses: actions/setup-java@v5.7.0
+      with:
+        java-version: '17'
+        distribution: temurin
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
+
+    - name: Make Gradle executable
+      shell: bash
+      run: chmod +x ./gradlew
+
+    - name: Download compiled outputs
+      uses: actions/download-artifact@v4
+      with:
+        name: compiled-outputs
+        path: build
+
+    - name: Run ${{ inputs.test-name }} tests
+      shell: bash
+      env:
+        TEST_PATTERNS: ${{ inputs['test-patterns'] }}
+      run: |
+        if [[ "$TEST_PATTERNS" != "[]" ]]; then
+          mapfile -t selected_patterns < <(jq -r '.[]' <<< "$TEST_PATTERNS")
+          gradle_args=(test)
+          for pattern in "${selected_patterns[@]}"; do
+            gradle_args+=(--tests "$pattern")
+          done
+        else
+          gradle_args=(test --tests "${{ inputs.base-package }}.${{ inputs.test-scope }}")
+        fi
+        gradle_args+=(
+        -x classes
+        -x testClasses
+        -x compileJava
+        -x compileTestJava
+        -x processResources
+        -x processTestResources
+        -x jacocoTestReport)
+        ./gradlew "${gradle_args[@]}"
+
+    - name: Publish unit test results
+      if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        files: build/test-results/**/*.xml
+
+    - name: Upload JaCoCo execution data
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-${{ inputs.test-name }}
+        path: build/jacoco/test.exec
+        if-no-files-found: ignore
