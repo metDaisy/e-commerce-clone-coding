@@ -36,7 +36,7 @@ runs:
       run: chmod +x ./gradlew
 
     - name: Download compiled outputs
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v7
       with:
         name: compiled-outputs
         path: build
@@ -63,7 +63,22 @@ runs:
         -x processResources
         -x processTestResources
         -x jacocoTestReport)
-        ./gradlew "${gradle_args[@]}"
+        for attempt in 1 2 3; do
+          if ./gradlew "${gradle_args[@]}" 2>&1 | tee gradle-test.log; then
+            exit 0
+          fi
+
+          if ! grep -Eq 'Could not resolve all files|Could not download|Could not GET|status code 429' gradle-test.log; then
+            exit 1
+          fi
+
+          if [[ "$attempt" -lt 3 ]]; then
+            delay=$((attempt * 20 + RANDOM % 10))
+            echo "Dependency download was rate-limited; retrying in ${delay}s (attempt ${attempt}/3)."
+            sleep "$delay"
+          fi
+        done
+        exit 1
 
     - name: Publish unit test results
       if: always()
@@ -73,7 +88,7 @@ runs:
 
     - name: Upload JaCoCo execution data
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: jacoco-${{ inputs.test-name }}
         path: build/jacoco/test.exec

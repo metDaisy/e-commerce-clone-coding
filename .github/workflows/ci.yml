@@ -59,7 +59,7 @@ jobs:
 
       - name: Detect testable changes
         id: filter
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: .github/filters.yml
 
@@ -138,10 +138,10 @@ jobs:
 
       - name: Compile and run Checkstyle
         shell: bash
-        run: ./gradlew classes testClasses checkstyleMain checkstyleTest
+        run: ./gradlew classes testClasses checkstyleMain checkstyleTest dependencies --configuration jacocoAgent
 
       - name: Upload compiled outputs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: compiled-outputs
           path: |
@@ -306,13 +306,13 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Download compiled outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: compiled-outputs
           path: build
 
       - name: Download JaCoCo execution data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: jacoco-*
           path: build/jacoco/parts
