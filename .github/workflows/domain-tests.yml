@@ -1,8 +1,14 @@
-name: Test - Global
+name: Test - Domain slice
 
 on:
   workflow_call:
     inputs:
+      test-name:
+        required: true
+        type: string
+      test-scope:
+        required: true
+        type: string
       test-patterns:
         required: false
         type: string
@@ -14,9 +20,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-      - name: Run global tests
+
+      - name: Run ${{ inputs.test-name }} tests
         uses: ./.github/actions/run-domain-test
         with:
-          test-name: global
-          test-scope: 'global.*'
+          test-name: ${{ inputs['test-name'] }}
+          test-scope: ${{ inputs['test-scope'] }}
           test-patterns: ${{ inputs['test-patterns'] }}

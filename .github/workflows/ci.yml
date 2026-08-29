@@ -18,8 +18,7 @@ on:
       - 'gradlew'
       - 'gradlew.bat'
       - 'gradle/**'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/tests/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/affected-tests/**'
       - '.github/filters.yml'
@@ -36,8 +35,7 @@ on:
       - 'gradlew'
       - 'gradlew.bat'
       - 'gradle/**'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/tests/**'
+      - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/affected-tests/**'
       - '.github/filters.yml'
@@ -159,8 +157,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.auth_patterns != '[]'
-    uses: ./.github/workflows/tests/auth.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: auth
+      test-scope: 'auth.*'
       test-patterns: ${{ needs.select_tests.outputs.auth_patterns }}
 
   user_tests:
@@ -170,8 +170,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.user_patterns != '[]'
-    uses: ./.github/workflows/tests/user.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: user
+      test-scope: 'user.*'
       test-patterns: ${{ needs.select_tests.outputs.user_patterns }}
 
   address_tests:
@@ -181,8 +183,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.address_patterns != '[]'
-    uses: ./.github/workflows/tests/address.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: address
+      test-scope: 'address.*'
       test-patterns: ${{ needs.select_tests.outputs.address_patterns }}
 
   catalog_tests:
@@ -192,8 +196,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.catalog_patterns != '[]'
-    uses: ./.github/workflows/tests/catalog.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: catalog
+      test-scope: 'catalog.*'
       test-patterns: ${{ needs.select_tests.outputs.catalog_patterns }}
 
   seller_tests:
@@ -203,8 +209,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.seller_patterns != '[]'
-    uses: ./.github/workflows/tests/seller.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: seller
+      test-scope: 'seller.*'
       test-patterns: ${{ needs.select_tests.outputs.seller_patterns }}
 
   global_tests:
@@ -214,8 +222,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.global_patterns != '[]'
-    uses: ./.github/workflows/tests/global.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: global
+      test-scope: 'global.*'
       test-patterns: ${{ needs.select_tests.outputs.global_patterns }}
 
   application_tests:
@@ -225,8 +235,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.application_patterns != '[]'
-    uses: ./.github/workflows/tests/application.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: application
+      test-scope: AmaazonApplicationTests
       test-patterns: ${{ needs.select_tests.outputs.application_patterns }}
 
   modularity_tests:
@@ -236,8 +248,10 @@ jobs:
       needs.changes.outputs.test_required == 'true' &&
       needs.select_tests.result == 'success' &&
       needs.select_tests.outputs.modularity_patterns != '[]'
-    uses: ./.github/workflows/tests/modularity.yml
+    uses: ./.github/workflows/domain-tests.yml
     with:
+      test-name: modularity
+      test-scope: ModularityTest
       test-patterns: ${{ needs.select_tests.outputs.modularity_patterns }}
 
   coverage:
