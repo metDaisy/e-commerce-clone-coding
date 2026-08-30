@@ -60,7 +60,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 ## 3. API 정의
 
-성공 응답은 고객용 Product API에서 내부 `catalogProductId`, `variantId`를 제외한다. 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
+생성·수정·아카이빙 application 결과는 `CatalogProductCommandDto`를 사용한다. 관리자·Product Manager용 조회 application 결과는 `CatalogProductQueryDto`를 사용하며, CatalogProduct의 조회 필드와 연결된 모든 ProductVariant를 포함한다. HTTP 계층은 이 application DTO를 presentation response로 변환한다. 고객용 Product API에서는 내부 `catalogProductId`, `variantId`를 제외하고, 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
 
 ### 3-1. CatalogProduct 생성
 
@@ -160,7 +160,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 #### 성공 응답: `200 OK`
 
-생성 응답과 같은 CatalogProduct Response DTO를 반환한다.
+생성 응답과 같은 CatalogProductCommandDto 기반 response를 반환한다.
 
 #### 예외
 
