@@ -39,5 +39,6 @@ ADR은 되돌리기 어렵거나 여러 모듈의 구현을 제한하는 결정�
 | ADR-0014 | CSR 프로필 조합과 User·Auth 조회 책임 분리 | Accepted | [0014-csr-profile-composition-and-auth-user-query-direction.md](0014-csr-profile-composition-and-auth-user-query-direction.md) |
 | ADR-0015 | Address를 User와 별도 모듈로 분리 | Accepted | [0015-separate-address-module.md](0015-separate-address-module.md) |
 | ADR-0016 | 활성 사용자 접근 강제 책임의 인터셉터 이동 | Accepted | [0016-active-user-enforcement-via-interceptor.md](0016-active-user-enforcement-via-interceptor.md) |
+| ADR-0017 | CatalogProduct와 ProductVariant의 페이지 기반 통합 조회 | Accepted | [0017-catalog-page-based-query.md](0017-catalog-page-based-query.md) |
 
 ADR이 추가되면 번호, 제목, 상태, 대체 관계를 이 목록에 기록한다.

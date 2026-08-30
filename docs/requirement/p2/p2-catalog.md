@@ -55,11 +55,13 @@ CatalogVariantQueryApi.findActiveByVariantId(variantId)
 
 권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
 
-관리자는 운영 목적으로, Product Manager는 Offer 등록 대상 CatalogProduct와 ProductVariant를 찾는 목적으로 사용한다. 응답은 CatalogProduct와 연결된 ProductVariant를 함께 반환하며 `catalogProductId`와 `variantId`를 포함한다.
+관리자는 운영 목적으로, Product Manager는 Offer 등록 대상 CatalogProduct와 ProductVariant를 찾는 목적으로 사용한다. 응답은 CatalogProduct와 연결된 모든 ProductVariant를 함께 반환하며 `catalogProductId`와 `variantId`를 포함한다.
+
+application layer에서는 생성·수정·아카이빙 결과를 `CatalogProductCommandDto`로 반환하고, 조회 결과를 `CatalogProductQueryDto`로 반환한다. `CatalogProductQueryDto`는 CatalogProduct의 조회 필드와 연결된 모든 Variant 목록을 함께 가진다. HTTP 응답으로 변환할 때는 presentation DTO를 사용한다.
 
 Query는 `page`, `size`, `keyword`, `categoryId`, `tag`, `catalogPublicationStatus`, `variantPublicationStatus`, `sort`를 지원한다. `categoryId`는 자기 자신과 모든 하위 Category를 검색한다. 일반 사용자는 이 API를 사용할 수 없으며 고객용 검색은 [P9 Marketplace](../p9/p9-marketplace.md)의 Product API가 담당한다.
 
-상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`, Variant 단건 조회는 `GET /api/v1/product-variants/{variantId}`를 사용하며 같은 권한 정책을 따른다.
+상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`를 사용한다. 목록·상세 조회 모두 `CatalogProductQueryDto`를 기반으로 해당 CatalogProduct에 연결된 모든 ProductVariant를 함께 반환하며, Variant 단건 조회 API는 제공하지 않는다.
 
 - 기본적으로 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회한다.
 - 관리자는 상태 Query를 지정하여 `ARCHIVED`도 조회할 수 있다.

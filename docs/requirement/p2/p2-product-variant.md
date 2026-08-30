@@ -47,7 +47,7 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ## 3. API 정의
 
-관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택과 운영에 필요한 `variantId`, `catalogProductId`, 상태를 포함한다. 고객용 Product API 응답에는 내부 ID와 보관 상태를 반환하지 않는다.
+관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택과 운영에 필요한 `variantId`, `catalogProductId`, 상태를 포함한다. 이 조회 결과는 `CatalogProductQueryDto` 안의 Variant 목록으로 제공되며, 고객용 Product API 응답에는 내부 ID와 보관 상태를 반환하지 않는다.
 
 ### 3-1. ProductVariant 생성
 
@@ -96,55 +96,12 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ### 3-2. ProductVariant 조회
 
-관리자·Product Manager 조회:
+ProductVariant 단건 조회 API는 제공하지 않는다. 관리자와 Product Manager는
+`GET /api/v1/catalog-products/{catalogProductId}` 또는
+`GET /api/v1/catalog-products`를 통해 CatalogProduct와 연결된 ProductVariant 목록을 함께 조회한다.
 
-`GET /api/v1/product-variants/{variantId}`
-
-권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
-
-기존 관리자 조회:
-
-`GET /api/v1/admin/product-variants/{variantId}`
-
-권한: ADMIN
-
-#### 성공 응답: `200 OK`
-
-관리자·Product Manager:
-
-```json
-{
-  "displayName": "블랙 / 256GB",
-  "attributes": {
-    "color": "BLACK",
-    "storage": "256GB"
-  }
-}
-```
-
-관리자 호환 응답:
-
-```json
-{
-  "variantId": "uuid-variant",
-  "catalogProductId": "uuid-product",
-  "displayName": "블랙 / 256GB",
-  "attributes": {
-    "color": "BLACK",
-    "storage": "256GB"
-  },
-  "publicationStatus": "ARCHIVED",
-  "archivedAt": "2026-08-16T12:31:33Z"
-}
-```
-
-#### 예외
-
-| HTTP | exceptionCode | 발생 조건 | client message | details | system message |
-|---:|---|---|---|---|---|
-| 404 | `CATALOG-031` | Variant 미존재 또는 비관리자의 보관 Variant 조회 | 상품 옵션을 찾을 수 없습니다. | 없음 | `lookupResult=NOT_FOUND` 또는 `ARCHIVED` |
-| 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
-| 500 | `CATALOG-032` | 조회 실패 | 상품 옵션을 조회하지 못했습니다. | 없음 | 저장소 원인과 requestId |
+조회 권한은 P2 Catalog의 관리자·Product Manager 조회 정책을 따르며, Variant는
+CatalogProduct 응답의 `variants` 필드로 반환한다.
 
 ### 3-3. ProductVariant 수정
 
