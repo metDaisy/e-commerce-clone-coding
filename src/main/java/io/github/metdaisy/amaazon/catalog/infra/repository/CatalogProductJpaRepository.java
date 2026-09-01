@@ -2,6 +2,7 @@ package io.github.metdaisy.amaazon.catalog.infra.repository;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
+import io.github.metdaisy.amaazon.catalog.infra.repository.qdsl.CatalogProductQueryRepository;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.EntityGraph;

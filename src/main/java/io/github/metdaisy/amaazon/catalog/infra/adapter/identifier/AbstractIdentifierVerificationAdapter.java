@@ -1,6 +1,5 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
@@ -17,7 +16,7 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     CatalogProductIdentifierVerifier {
 
   private final CatalogProductRepository repository;
-  private final CatalogIdentifierType type;
+  private final String type;
 
   @Override
   public final String verify(UUID id, String identifierValue) {
@@ -25,11 +24,11 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     validateFormat(normalizedValue);
     afterFormatValidation(normalizedValue);
     validateUniqueness(id, normalizedValue);
-    return normalizedValue;
+    return identifierValue;
   }
 
   @Override
-  public final boolean support(CatalogIdentifierType type) {
+  public final boolean support(String type) {
     return this.type.equals(type);
   }
 
@@ -64,7 +63,7 @@ public abstract class AbstractIdentifierVerificationAdapter implements
   private void validateUniqueness(UUID id, String identifierValue) {
     if (repository.existsIdentifier(id, type, identifierValue)) {
       throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          AmaazonExceptionContext.logDetails(Map.of(type.name(), identifierValue)));
+          AmaazonExceptionContext.logDetails(Map.of(type, identifierValue)));
     }
   }
 
@@ -80,11 +79,10 @@ public abstract class AbstractIdentifierVerificationAdapter implements
   }
 
   private CatalogProductException createInvalidFormatException(String value) {
-    String field = type.name().toLowerCase();
     return new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_INVALID,
         new AmaazonExceptionContext(
             Map.of("fields", List.of(
-                Map.of("field", field, "reason", "invalid_format"))),
-            Map.of(type.name(), value), null));
+                Map.of("field", type, "reason", "invalid_format"))),
+            Map.of(type, value), null));
   }
 }
