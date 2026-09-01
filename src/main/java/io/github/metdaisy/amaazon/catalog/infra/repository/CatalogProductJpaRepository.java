@@ -12,11 +12,14 @@ public interface CatalogProductJpaRepository extends JpaRepository<CatalogProduc
     CatalogProductRepository, CatalogProductQueryRepository {
 
   @Override
-  Optional<CatalogProduct> findById(UUID uuid);
+  Optional<CatalogProduct> findById(UUID id);
+
+  @Override
+  CatalogProduct getReferenceById(UUID id);
 
   @Override
   @EntityGraph(attributePaths = {
       "category", "category.parent", "category.children"})
-  Optional<CatalogProduct> findWithDetailsById(UUID uuid);
+  Optional<CatalogProduct> findWithDetailsById(UUID id);
 
 }
