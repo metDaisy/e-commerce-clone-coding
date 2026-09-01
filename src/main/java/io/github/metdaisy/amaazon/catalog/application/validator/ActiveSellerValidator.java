@@ -22,12 +22,7 @@ public class ActiveSellerValidator {
   public void validate(JoinPoint point, ActiveSeller activeSeller) {
     AmaazonPrincipal principal = (AmaazonPrincipal) SecurityContextHolder.getContext()
         .getAuthentication().getPrincipal();
-    if (principal.getAuthorities().stream()
-        .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()))) {
-      return;
-    }
-    if (principal.getAuthorities().stream()
-        .noneMatch(authority -> "ROLE_PRODUCT_MANAGER".equals(authority.getAuthority()))) {
+    if (!principal.hasRole("PRODUCT_MANAGER")) {
       throw new AccessDeniedException("PRODUCT_MANAGER 권한이 필요합니다.");
     }
     validateSeller(principal);
