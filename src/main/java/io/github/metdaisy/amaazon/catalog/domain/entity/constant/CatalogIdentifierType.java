@@ -1,16 +1,16 @@
 package io.github.metdaisy.amaazon.catalog.domain.entity.constant;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import java.util.stream.Stream;
+import java.util.Set;
+import lombok.experimental.UtilityClass;
 
-public enum CatalogIdentifierType {
-  ASIN, GTIN, UPC, EAN, ISBN;
+@UtilityClass
+public final class CatalogIdentifierType {
 
-  @JsonCreator
-  public static CatalogIdentifierType from(String value) {
-    return Stream.of(values())
-        .filter(it -> it.name().equalsIgnoreCase(value))
-        .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException("Invalid identifier: " + value));
-  }
+  public final String ASIN = "asin";
+  public final String GTIN = "gtin";
+  public final String UPC = "upc";
+  public final String EAN = "ean";
+  public final String ISBN = "isbn";
+
+  public final Set<String> types = Set.of(ASIN, GTIN, UPC, EAN, ISBN);
 }
