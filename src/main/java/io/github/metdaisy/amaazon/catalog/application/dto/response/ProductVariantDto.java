@@ -10,7 +10,7 @@ import java.util.UUID;
  * DTO for {@link ProductVariant}
  */
 public record ProductVariantDto(UUID id, Instant createdAt, Instant updatedAt,
-                                CatalogProductDto catalogProduct,
+                                UUID catalogProductId,
                                 String displayName,
                                 Map<String, Object> attributes,
                                 String publicationStatus,

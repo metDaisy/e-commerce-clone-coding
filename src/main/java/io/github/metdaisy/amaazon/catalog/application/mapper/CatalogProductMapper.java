@@ -2,7 +2,8 @@ package io.github.metdaisy.amaazon.catalog.application.mapper;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductCommandDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductQueryDto;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
@@ -18,7 +19,10 @@ import org.mapstruct.MappingTarget;
     CatalogProductTagMapper.class})
 public interface CatalogProductMapper {
 
-  CatalogProductDto toDto(CatalogProduct catalogProduct);
+  CatalogProductCommandDto toCommandDto(CatalogProduct catalogProduct);
+
+  @Mapping(target = "variants", ignore = true)
+  CatalogProductQueryDto toQueryDto(CatalogProduct catalogProduct);
 
   @Mapping(target = "tags", ignore = true)
   @Mapping(target = "name", source = "request.name")
