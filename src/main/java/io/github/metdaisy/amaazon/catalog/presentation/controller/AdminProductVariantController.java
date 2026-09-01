@@ -5,14 +5,13 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariant
 import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantAdminResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.mapper.ProductVariantPresentationMapper;
-import io.github.metdaisy.amaazon.catalog.application.service.ProductVariantService;
+import io.github.metdaisy.amaazon.catalog.application.service.variant.ProductVariantCommandService;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AdminProductVariantController {
 
-  private final ProductVariantService service;
+  private final ProductVariantCommandService service;
   private final ProductVariantPresentationMapper presentationMapper;
 
   @PostMapping("/catalog-products/{catalogProductId}/variants")
@@ -35,11 +34,6 @@ public class AdminProductVariantController {
       @RequestBody @Valid ProductVariantCreateRequest request) {
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(presentationMapper.toAdminResponse(service.create(catalogProductId, request)));
-  }
-
-  @GetMapping("/product-variants/{id}")
-  public ResponseEntity<ProductVariantAdminResponse> find(@PathVariable UUID id) {
-    return ResponseEntity.ok(presentationMapper.toAdminResponse(service.findAdmin(id)));
   }
 
   @PatchMapping("/product-variants/{id}")
