@@ -33,6 +33,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
 
   private static final String URL = WebConstants.SERVLET_PREFIX + "/catalog-products";
+  private static final String ADMIN_URL = WebConstants.SERVLET_PREFIX
+      + "/admin/catalog-products";
   private static final UUID ADMIN_ID = UUID.randomUUID();
 
   @Test
@@ -47,7 +49,7 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(ProductVariant.of(product, "Wireless edition", Map.of("color", "BLACK")));
     clear();
 
-    mockMvc.perform(get(URL).with(authentication("ADMIN", ADMIN_ID)))
+    mockMvc.perform(get(ADMIN_URL).with(authentication("ADMIN", ADMIN_ID)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(1))
         .andExpect(jsonPath("$.data[0].catalogProductId").value(product.getId().toString()))
@@ -55,6 +57,44 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
         .andExpect(jsonPath("$.data[0].variants[0].variantId").exists())
         .andExpect(jsonPath("$.data[0].variants[0].displayName")
             .value("Wireless edition"));
+  }
+
+  @Test
+  @DisplayName("관리자 목록 조회: 상태 기본값은 활성이고 보관 데이터는 명시적으로 조회할 수 있다")
+  void findAll_adminDefaultsToActiveAndCanRequestArchivedData() throws Exception {
+    persistAdmin();
+    Category category = persistAndFlush(CategoryFixture.category());
+    CatalogProduct activeProduct = persistAndFlush(
+        product(category, "Active product", "Description", "Brand"));
+    persistAndFlush(ProductVariant.of(activeProduct, "Active variant", Map.of()));
+    ProductVariant archivedVariant = ProductVariant.of(activeProduct, "Archived variant", Map.of());
+    archivedVariant.archive();
+    persistAndFlush(archivedVariant);
+    CatalogProduct archivedProduct = product(category, "Archived product", "Description", "Brand");
+    archivedProduct.archive();
+    persistAndFlush(archivedProduct);
+    ProductVariant archivedProductVariant = ProductVariant.of(
+        archivedProduct, "Archived product variant", Map.of());
+    archivedProductVariant.archive();
+    persistAndFlush(archivedProductVariant);
+    clear();
+
+    mockMvc.perform(get(ADMIN_URL)
+            .queryParam("sort", "NAME_ASC")
+            .with(authentication("ADMIN", ADMIN_ID)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.data[0].publicationStatus").value("ACTIVE"))
+        .andExpect(jsonPath("$.data[0].variants.length()").value(1));
+
+    mockMvc.perform(get(ADMIN_URL)
+            .queryParam("catalogPublicationStatus", "ARCHIVED")
+            .queryParam("variantPublicationStatus", "ARCHIVED")
+            .with(authentication("ADMIN", ADMIN_ID)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(1))
+        .andExpect(jsonPath("$.data[0].publicationStatus").value("ARCHIVED"))
+        .andExpect(jsonPath("$.data[0].variants.length()").value(1));
   }
 
   @Test
@@ -73,7 +113,7 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(other);
     clear();
 
-    mockMvc.perform(get(URL)
+    mockMvc.perform(get(ADMIN_URL)
             .queryParam("keyword", "wireless")
             .queryParam("tag", matchingTag.getName())
             .with(authentication("ADMIN", ADMIN_ID)))
@@ -91,12 +131,19 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
     CatalogProduct product = persistAndFlush(product(category, "Seller product", "Description",
         "Brand"));
     persistAndFlush(ProductVariant.of(product, "Variant", Map.of()));
+    ProductVariant archivedVariant = ProductVariant.of(product, "Archived variant", Map.of());
+    archivedVariant.archive();
+    persistAndFlush(archivedVariant);
     clear();
 
-    mockMvc.perform(get(URL).with(authentication("PRODUCT_MANAGER", userId)))
+    mockMvc.perform(get(URL)
+            .queryParam("catalogPublicationStatus", "ARCHIVED")
+            .queryParam("variantPublicationStatus", "ARCHIVED")
+            .with(authentication("PRODUCT_MANAGER", userId)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(1))
-        .andExpect(jsonPath("$.data[0].name").value("Seller product"));
+        .andExpect(jsonPath("$.data[0].name").value("Seller product"))
+        .andExpect(jsonPath("$.data[0].variants.length()").value(1));
   }
 
   @Test
@@ -115,7 +162,7 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(product(category, "A device", "Description", "Brand"));
     clear();
 
-    mockMvc.perform(get(URL)
+    mockMvc.perform(get(ADMIN_URL)
             .queryParam("sort", "NAME_ASC")
             .queryParam("page", "0")
             .queryParam("size", "1")
@@ -136,7 +183,7 @@ class CatalogProductQueryIntegrationTest extends BaseIntegrationTest {
     persistAndFlush(ProductVariant.of(product, "Black", Map.of("color", "BLACK")));
     clear();
 
-    mockMvc.perform(get(URL + "/" + product.getId())
+    mockMvc.perform(get(ADMIN_URL + "/" + product.getId())
             .with(authentication("ADMIN", ADMIN_ID)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.catalogProductId").value(product.getId().toString()))

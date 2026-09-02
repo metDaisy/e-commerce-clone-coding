@@ -55,7 +55,7 @@ class IsbnVerificationAdapterTest {
 
     assertThatThrownBy(() -> verifier.verify(productId, "978-0-306-40615-7"))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.ISBN,
         "9780306406157");
@@ -74,7 +74,7 @@ class IsbnVerificationAdapterTest {
   void verify_shouldAcceptValidIsbnFormats(String value) {
     String normalized = value.replaceAll("[-\\s]", "").toUpperCase(Locale.ROOT);
 
-    assertThat(verifier.verify(null, value)).isEqualTo(normalized);
+    assertThat(verifier.verify(null, value)).isEqualTo(value);
     then(externalVerificationPort).should().verify(normalized);
   }
 

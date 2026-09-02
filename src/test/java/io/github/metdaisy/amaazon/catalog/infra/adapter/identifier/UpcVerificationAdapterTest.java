@@ -48,7 +48,7 @@ class UpcVerificationAdapterTest {
 
     assertThatThrownBy(() -> verifier.verify(productId, "036000291452"))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.UPC,
         "036000291452");

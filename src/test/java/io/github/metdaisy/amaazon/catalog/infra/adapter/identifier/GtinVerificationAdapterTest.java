@@ -48,7 +48,7 @@ class GtinVerificationAdapterTest {
 
     assertThatThrownBy(() -> verifier.verify(productId, "4006381333931"))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.GTIN,
         "4006381333931");

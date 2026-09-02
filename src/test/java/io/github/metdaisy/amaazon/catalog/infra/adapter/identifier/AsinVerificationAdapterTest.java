@@ -48,7 +48,7 @@ class AsinVerificationAdapterTest {
 
     assertThatThrownBy(() -> verifier.verify(productId, "B000123456"))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.ASIN,
         "B000123456");

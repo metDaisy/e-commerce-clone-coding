@@ -18,12 +18,12 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductF
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductCommandDto;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductResponse;
-import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.catalog.application.service.catalog.CatalogProductService;
 import io.github.metdaisy.amaazon.catalog.presentation.mapper.CatalogProductPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
@@ -67,7 +67,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         .name("Laptop")
         .tags(List.of("office"))
         .build();
-    CatalogProductDto dto = productDto(response.id(), categoryId, response.name());
+    CatalogProductCommandDto dto = productDto(response.id(), categoryId, response.name());
     given(service.create(request)).willReturn(dto);
     given(presentationMapper.toResponse(dto)).willReturn(response);
 
@@ -144,7 +144,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         .id(productId)
         .name("Updated laptop")
         .build();
-    CatalogProductDto dto = productDto(productId, null, response.name());
+    CatalogProductCommandDto dto = productDto(productId, null, response.name());
     given(service.update(productId, request)).willReturn(dto);
     given(presentationMapper.toResponse(dto)).willReturn(response);
 
@@ -205,7 +205,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     CatalogIdentifierUpdateResponse response =
         new CatalogIdentifierUpdateResponse(productId, "B000123456", null, null, null,
             null);
-    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    CatalogProductCommandDto dto = productDto(productId, null, "Laptop");
     given(service.updateIdentifier(productId, identifiers)).willReturn(dto);
     given(presentationMapper.toIdentifierResponse(dto)).willReturn(response);
 
@@ -241,7 +241,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     UUID productId = UUID.randomUUID();
     CatalogArchivedResponse response = new CatalogArchivedResponse(productId,
         "ARCHIVED", Instant.now(), Instant.now());
-    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    CatalogProductCommandDto dto = productDto(productId, null, "Laptop");
     given(service.archive(productId)).willReturn(dto);
     given(presentationMapper.toArchivedResponse(dto)).willReturn(response);
 
@@ -253,11 +253,10 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     then(service).should().archive(productId);
   }
 
-  private CatalogProductDto productDto(UUID productId, UUID categoryId, String name) {
-    return new CatalogProductDto(productId, null, null,
+  private CatalogProductCommandDto productDto(UUID productId, UUID categoryId, String name) {
+    return new CatalogProductCommandDto(productId, null, null,
         categoryId == null ? null : new CategoryDto(
             categoryId, null, null, null, "Computers", 1, List.of()),
-        List.of(), name, null, null, null, null, null, null, null, Map.of(), "ACTIVE", null,
-        List.of());
+        List.of(), name, null, null, null, null, null, null, null, Map.of(), "ACTIVE", null);
   }
 }
