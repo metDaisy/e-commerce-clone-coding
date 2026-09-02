@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -16,13 +16,14 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.TagFixture.tag;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductCommandDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductTagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
+import io.github.metdaisy.amaazon.catalog.application.service.tag.TagService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
@@ -106,7 +107,7 @@ class CatalogProductServiceTest {
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
     given(asinVerifier.verify(null, "B000123456")).willReturn("B000123456");
 
-    CatalogProductDto result = service.create(request);
+    CatalogProductCommandDto result = service.create(request);
 
     assertThat(result.name()).isEqualTo("Laptop");
     assertThat(result.tags()).extracting(catalogTag -> catalogTag.tag().name())
@@ -153,12 +154,12 @@ class CatalogProductServiceTest {
         Map.of(CatalogIdentifierType.ASIN, "B000123456"));
     given(unsupportedVerifier.support(CatalogIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
-    willThrow(new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR))
+    willThrow(new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_DUPLICATE))
         .given(asinVerifier).verify(null, "B000123456");
 
     assertThatThrownBy(() -> service.create(request))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
 
     then(repository).shouldHaveNoInteractions();
   }
@@ -167,7 +168,7 @@ class CatalogProductServiceTest {
   @DisplayName("상품 생성 실패: 여러 식별자를 모두 검증하고 모든 실패 필드를 반환한다")
   void create_shouldCollectAllIdentifierFailures() {
     UUID categoryId = UUID.randomUUID();
-    Map<CatalogIdentifierType, String> identifiers = new LinkedHashMap<>();
+    Map<String, String> identifiers = new LinkedHashMap<>();
     identifiers.put(CatalogIdentifierType.ASIN, "invalid-asin");
     identifiers.put(CatalogIdentifierType.GTIN, "invalid-gtin");
     CatalogProductCreateRequest request = createRequest(categoryId, identifiers);
@@ -181,15 +182,31 @@ class CatalogProductServiceTest {
     assertThatThrownBy(() -> service.create(request))
         .isInstanceOfSatisfying(CatalogProductException.class, exception -> {
           assertThat(exception.getCode())
-              .isEqualTo(CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
+              .isEqualTo(CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
           assertThat(exception.getClientDetails().get("fields"))
-              .isEqualTo(List.of(
-                  Map.of("field", "asin", "reason", "invalid_format"),
-                  Map.of("field", "gtin", "reason", "invalid_format")));
+              .isEqualTo(Map.of(
+                  "asin", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode(),
+                  "gtin", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode()));
         });
 
     then(asinVerifier).should().verify(null, "invalid-asin");
     then(gtinVerifier).should().verify(null, "invalid-gtin");
+  }
+
+  @Test
+  @DisplayName("상품 생성 실패: 식별자 값이 비어 있으면 검증기를 호출하지 않고 오류를 반환한다")
+  void create_shouldRejectBlankIdentifierBeforeVerification() {
+    UUID categoryId = UUID.randomUUID();
+    CatalogProductCreateRequest request = createRequest(categoryId,
+        Map.of(CatalogIdentifierType.ASIN, " "));
+
+    assertThatThrownBy(() -> service.create(request))
+        .isInstanceOf(CatalogProductException.class)
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
+
+    then(asinVerifier).shouldHaveNoInteractions();
+    then(categoryQueryService).shouldHaveNoInteractions();
+    then(repository).shouldHaveNoInteractions();
   }
 
   @Test
@@ -203,7 +220,7 @@ class CatalogProductServiceTest {
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(tagService.findAndCreate(request.tags())).willReturn(List.of(tag));
 
-    CatalogProductDto response = service.update(productId, request);
+    CatalogProductCommandDto response = service.update(productId, request);
 
     assertThat(response.name()).isEqualTo("Updated laptop");
     assertThat(product.getTags()).hasSize(1);
@@ -219,12 +236,13 @@ class CatalogProductServiceTest {
     CatalogProductUpdateRequest request = new CatalogProductUpdateRequest(
         "Updated laptop", null, null, null, null);
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
+    given(tagService.findAndCreate(null)).willReturn(List.of());
 
-    CatalogProductDto response = service.update(productId, request);
+    CatalogProductCommandDto response = service.update(productId, request);
 
     assertThat(response.name()).isEqualTo("Updated laptop");
     assertThat(product.getTags()).isEmpty();
-    then(tagService).shouldHaveNoInteractions();
+    then(tagService).should().findAndCreate(null);
   }
 
   @Test
@@ -238,7 +256,7 @@ class CatalogProductServiceTest {
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
     given(asinVerifier.verify(productId, "B000123456")).willReturn("B000123456");
 
-    CatalogProductDto response = service.updateIdentifier(productId, request);
+    CatalogProductCommandDto response = service.updateIdentifier(productId, request);
 
     then(asinVerifier).should().verify(productId, "B000123456");
     assertThat(response.asin()).isEqualTo("B000123456");
@@ -253,16 +271,46 @@ class CatalogProductServiceTest {
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
     given(unsupportedVerifier.support(CatalogIdentifierType.ASIN)).willReturn(false);
     given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
-    willThrow(new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
+    willThrow(new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_DUPLICATE,
         AmaazonExceptionContext.logDetails(Map.of("ASIN", "B000123456"))))
         .given(asinVerifier)
         .verify(productId, "B000123456");
 
     assertThatThrownBy(() -> service.updateIdentifier(productId, request))
         .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
+        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
 
     assertThat(product.getAsin()).isNull();
+  }
+
+  @Test
+  @DisplayName("식별자 수정 실패: 여러 식별자를 모두 검증하고 실패 필드를 반환한다")
+  void updateIdentifier_shouldCollectAllIdentifierFailures() {
+    UUID productId = UUID.randomUUID();
+    CatalogProduct product = product(category());
+    Map<String, String> identifiers = new LinkedHashMap<>();
+    identifiers.put(CatalogIdentifierType.ASIN, "invalid-asin");
+    identifiers.put(CatalogIdentifierType.GTIN, "invalid-gtin");
+    given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
+    given(asinVerifier.support(CatalogIdentifierType.ASIN)).willReturn(true);
+    given(gtinVerifier.support(CatalogIdentifierType.GTIN)).willReturn(true);
+    willThrow(invalidIdentifier("asin")).given(asinVerifier)
+        .verify(productId, "invalid-asin");
+    willThrow(invalidIdentifier("gtin")).given(gtinVerifier)
+        .verify(productId, "invalid-gtin");
+
+    assertThatThrownBy(() -> service.updateIdentifier(productId, identifiers))
+        .isInstanceOfSatisfying(CatalogProductException.class, exception -> {
+          assertThat(exception.getCode())
+              .isEqualTo(CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+          assertThat(exception.getClientDetails().get("fields"))
+              .isEqualTo(Map.of(
+                  "asin", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode(),
+                  "gtin", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode()));
+        });
+
+    then(asinVerifier).should().verify(productId, "invalid-asin");
+    then(gtinVerifier).should().verify(productId, "invalid-gtin");
   }
 
   @Test
@@ -287,7 +335,7 @@ class CatalogProductServiceTest {
     CatalogProduct product = product(Category.of("Computers", null));
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
 
-    CatalogProductDto response = service.archive(productId);
+    CatalogProductCommandDto response = service.archive(productId);
 
     assertThat(response.id()).isEqualTo(product.getId());
     assertThat(response.publicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED.name());
