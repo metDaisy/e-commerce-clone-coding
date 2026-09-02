@@ -62,8 +62,10 @@ public abstract class AbstractIdentifierVerificationAdapter implements
 
   private void validateUniqueness(UUID id, String identifierValue) {
     if (repository.existsIdentifier(id, type, identifierValue)) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          AmaazonExceptionContext.logDetails(Map.of(type, identifierValue)));
+      throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_DUPLICATE,
+          new AmaazonExceptionContext(
+              Map.of("fields", List.of(Map.of("field", type, "reason", "duplicate"))),
+              Map.of(type, identifierValue), null));
     }
   }
 

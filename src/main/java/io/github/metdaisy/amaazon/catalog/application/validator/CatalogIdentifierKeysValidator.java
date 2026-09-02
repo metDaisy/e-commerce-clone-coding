@@ -3,6 +3,7 @@ package io.github.metdaisy.amaazon.catalog.application.validator;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ public class CatalogIdentifierKeysValidator
     if (identifiers == null || identifiers.isEmpty()) {
       return true;
     }
-    Set<String> invalidKeys = identifiers.keySet();
+    Set<String> invalidKeys = new LinkedHashSet<>(identifiers.keySet());
     invalidKeys.removeAll(CatalogIdentifierType.types);
     if (invalidKeys.isEmpty()) {
       return true;
