@@ -48,7 +48,17 @@
 
 ### 3-1. Seller CatalogProduct·Variant 조회
 
+Product Manager 조회:
+
 `GET /api/v1/catalog-products`
+
+관리자 조회:
+
+`GET /api/v1/admin/catalog-products`
+
+조회 상태 기본값은 `ACTIVE`이다. `PRODUCT_MANAGER`는 요청한 상태와 관계없이
+CatalogProduct와 ProductVariant를 `ACTIVE`만 조회한다. `ADMIN`은 상태 파라미터를
+생략하면 `ACTIVE`를 조회하며, 상태를 전달하면 해당 상태만 조회한다.
 
 권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자. 별도의 `/seller` 경로는 사용하지 않는다.
 

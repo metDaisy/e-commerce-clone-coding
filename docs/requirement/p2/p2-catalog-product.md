@@ -62,6 +62,8 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 생성·수정·아카이빙 application 결과는 `CatalogProductCommandDto`를 사용한다. 관리자·Product Manager용 조회 application 결과는 `CatalogProductQueryDto`를 사용하며, CatalogProduct의 조회 필드와 연결된 모든 ProductVariant를 포함한다. HTTP 계층은 이 application DTO를 presentation response로 변환한다. 고객용 Product API에서는 내부 `catalogProductId`, `variantId`를 제외하고, 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
 
+> TODO: 현재 관리자와 Product Manager는 동일한 Catalog 조회 응답을 사용한다. 추후 역할별 화면 요구사항에 맞춰 presentation response와 화면 구성을 분리할지 검토한다.
+
 ### 3-1. CatalogProduct 생성
 
 `POST /api/v1/admin/catalog-products`

@@ -34,16 +34,16 @@ Use BDDMockito only: `given(...).willReturn(...)`, `willThrow(...)`, `willDoNoth
 
 ## 3. Unit tests
 
-Test one class without Spring for domain rules, services, validators, mappers, handlers, and
-adapters. Use `@ExtendWith(MockitoExtension.class)`, `@Mock`, and `@InjectMocks`; do not use
+Test one class without Spring for domain rules, services, validators, handlers, and adapters. Use
+`@ExtendWith(MockitoExtension.class)`, `@Mock`, and `@InjectMocks`; do not use
 `@SpringBootTest`, a database, HTTP server, or external service. Use `@ParameterizedTest` with
 `@ValueSource`, `@CsvSource`, or `@MethodSource` when inputs exercise the same rule.
 
-Do not mock mappers. Use the actual mapper implementation in service and mapper unit tests so
-mapping behavior is exercised together with the selected scenario. Do not start a Spring
-container to obtain a mapper; instantiate the generated implementation directly, for example
-`new CatalogProductMapperImpl(...)`. Provide any mapper collaborators by direct construction or
-test doubles as appropriate.
+Mapper-only unit tests are not required. When a service test exercises mapping, do not mock the
+mapper; use the actual generated implementation so mapping behavior is covered with the service
+scenario. Do not start a Spring container to obtain a mapper; instantiate the generated
+implementation directly, for example `new CatalogProductMapperImpl(...)`. Provide any mapper
+collaborators by direct construction or test doubles as appropriate.
 
 ## 4. Slice tests
 
@@ -163,10 +163,11 @@ additional persistence operations. Query-inspector logs are diagnostic only.
 
 | Behavior | Test type |
 |---|---|
-| Pure rule, service, mapper, validator | Unit |
+| Pure rule, service, validator | Unit |
 | One Spring adapter or web layer | Slice |
 | Database, transaction, module, security, external collaboration | Integration |
 
-Before merging, confirm the DisplayName, Given-When-Then separation, success and failure paths,
+Before merging, confirm that every `@DisplayName` is written in Korean and explains the behavior,
+scenario, and expected result, along with the Given-When-Then separation, success and failure paths,
 deterministic fixtures, correct test scope, and—when applicable—request delegation or exact
 repository query count.

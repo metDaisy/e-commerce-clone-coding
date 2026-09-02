@@ -51,7 +51,17 @@ CatalogVariantQueryApi.findActiveByVariantId(variantId)
 
 ### Catalog 관리자·Product Manager 조회 API
 
+Product Manager 조회:
+
 `GET /api/v1/catalog-products`
+
+관리자 조회:
+
+`GET /api/v1/admin/catalog-products`
+
+조회 상태 기본값은 `ACTIVE`이다. `PRODUCT_MANAGER`는 요청한 상태와 관계없이
+CatalogProduct와 ProductVariant를 `ACTIVE`만 조회한다. `ADMIN`은 상태 파라미터를
+생략하면 `ACTIVE`를 조회하며, 상태를 전달하면 해당 상태만 조회한다.
 
 권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
 
@@ -61,11 +71,10 @@ application layer에서는 생성·수정·아카이빙 결과를 `CatalogProduc
 
 Query는 `page`, `size`, `keyword`, `categoryId`, `tag`, `catalogPublicationStatus`, `variantPublicationStatus`, `sort`를 지원한다. `categoryId`는 자기 자신과 모든 하위 Category를 검색한다. 일반 사용자는 이 API를 사용할 수 없으며 고객용 검색은 [P9 Marketplace](../p9/p9-marketplace.md)의 Product API가 담당한다.
 
-상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`를 사용한다. 목록·상세 조회 모두 `CatalogProductQueryDto`를 기반으로 해당 CatalogProduct에 연결된 모든 ProductVariant를 함께 반환하며, Variant 단건 조회 API는 제공하지 않는다.
+Product Manager 상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`, 관리자 상세 조회는 `GET /api/v1/admin/catalog-products/{catalogProductId}`를 사용한다. 목록·상세 조회 모두 `CatalogProductQueryDto`를 기반으로 해당 CatalogProduct에 연결된 모든 ProductVariant를 함께 반환하며, Variant 단건 조회 API는 제공하지 않는다.
 
-- 기본적으로 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회한다.
-- 관리자는 상태 Query를 지정하여 `ARCHIVED`도 조회할 수 있다.
-- Product Manager는 항상 `ACTIVE` 데이터만 조회한다.
+- `PRODUCT_MANAGER`는 항상 CatalogProduct와 ProductVariant의 `ACTIVE` 데이터만 조회한다.
+- `ADMIN`은 상태 Query를 생략하면 `ACTIVE`를 조회하고, 상태를 지정하면 해당 상태만 조회한다.
 
 | 호출자 | 사용 목적 | P2가 보장하는 결과 |
 |---|---|---|
