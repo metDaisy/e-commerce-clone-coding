@@ -20,7 +20,17 @@
 
 # continue
 .continue/
-.agents/
+
+# hermes
+.hermes/*
+!.hermes/
+!.hermes/README.md
+!.hermes/plugins/
+!.hermes/plugins/agent-audit/
+!.hermes/plugins/agent-audit/**
+.hermes/plugins/agent-audit/__pycache__/
+.hermes/events.jsonl
+.hermes/events.jsonl.*
 
 # vscode
 .vscode/
