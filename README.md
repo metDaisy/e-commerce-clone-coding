@@ -38,7 +38,7 @@ src/main/java/io/github/metdaisy/amaazon/
 ├── auth/       # 로컬·소셜 인증
 ├── user/       # 사용자·프로필·역할·활성 상태
 ├── address/    # 사용자 배송지
-├── catalog/    # Category·Tag·CatalogProduct
+├── catalog/    # Category·Tag·CatalogProduct·ProductVariant
 ├── seller/     # 판매자
 ├── common/     # 공통 타입·예외·영속화 기반
 └── global/     # 보안·웹·애플리케이션 설정
@@ -51,23 +51,11 @@ docs/          # 요구사항·아키텍처·ADR·개발 가이드
 
 ## 문서
 
-문서는 [docs/index.md](./docs/index.md)에서 목적별로 탐색할 수 있습니다.
-
-| 문서 | 설명 |
-|---|---|
-| [요구사항 인덱스](./docs/requirement/index.md) | 공통 규칙과 P1~P12 도메인 요구사항 |
-| [Domain ERD](./docs/domain-erd.md) | 현재·목표 도메인 객체와 업무 관계. 구현 여부는 Current State 기준 |
-| [Architecture](./docs/architecture.md) | 모듈 경계와 의존성 규칙 |
-| [Domain Glossary](./docs/domain-glossary.md) | 도메인 용어와 상태값 기준 |
-| [ADR](./docs/adr/) | 주요 설계 결정과 선택 이유 |
-| [Testing Guide](./docs/testing-guide.md) | 단위·슬라이스·통합 테스트 작성 규칙 |
-| [Current State](./docs/current-state.md) | 특정 Git SHA 기준 구현 상태 스냅샷 |
-| [Skills Index](./docs/skills/index.md) | 작업별 에이전트 스킬 선택 가이드 |
-| [Frontend README](./amaazon-front/README.md) | 프론트엔드 실행·검증 방법 |
+문서의 역할과 읽기 순서는 [docs/index.md](./docs/index.md)를 단일 진입점으로 사용합니다. 프런트엔드 실행·검증 방법은 [Frontend README](./amaazon-front/README.md)를 참고합니다.
 
 ## 데이터베이스
 
-기본 PostgreSQL 스키마는 [V1__init_schema.sql](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되고, 이후 변경은 V2~V5 Flyway 마이그레이션으로 누적됩니다.
+기본 PostgreSQL 스키마는 [V1__init_schema.sql](./src/main/resources/db/migration/V1__init_schema.sql)에 정의되고, 이후 변경은 V2~V8 Flyway 마이그레이션으로 누적됩니다.
 
 - SQL 스키마는 테이블·컬럼·제약 조건·외래 키를 설명합니다.
 - Domain ERD는 도메인 객체와 업무 관계를 설명하며 SQL 테이블과 일대일 대응하지 않을 수 있습니다.
