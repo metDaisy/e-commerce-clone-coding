@@ -6,7 +6,7 @@
 
 | 데이터 모델 | 책임 | 관련 API |
 |---|---|---|
-| `ProductVariant` | 고객이 선택하고 주문하는 실제 구매 단위 | 조회·생성·수정·보관 |
+| `ProductVariant` | 고객이 선택하고 주문하는 실제 구매 단위 | Catalog 통합 조회·생성·수정·보관 |
 | `CatalogProduct` | Variant가 속한 상품군과 공통 정보 | 부모 조회 |
 | `Offer` | 판매자별 가격·판매 상태·판매 Media | P9가 소유 |
 | `Inventory` | 판매 가능한 재고 | P9가 소유 |
@@ -47,7 +47,9 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ## 3. API 정의
 
-관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택과 운영에 필요한 `variantId`, `catalogProductId`, 상태를 포함한다. 이 조회 결과는 `CatalogProductQueryDto` 안의 Variant 목록으로 제공되며, 고객용 Product API 응답에는 내부 ID와 보관 상태를 반환하지 않는다.
+관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택과 운영에 필요한 `variantId`,
+`catalogProductId`, 상태를 포함한다. 이 조회 결과는 `CatalogProductQueryDto` 안의 Variant
+목록으로 제공되며, 고객용 Product API 응답에는 내부 ID와 보관 상태를 반환하지 않는다.
 
 ### 3-1. ProductVariant 생성
 
@@ -96,12 +98,18 @@ ProductVariant는 옵션·속성만 소유한다. Media는 연결하지 않으�
 
 ### 3-2. ProductVariant 조회
 
-ProductVariant 단건 조회 API는 제공하지 않는다. 관리자와 Product Manager는
+ProductVariant 단건 조회 API는 제공하지 않는다. Product Manager는
 `GET /api/v1/catalog-products/{catalogProductId}` 또는
-`GET /api/v1/catalog-products`를 통해 CatalogProduct와 연결된 ProductVariant 목록을 함께 조회한다.
+`GET /api/v1/catalog-products`를, 관리자는
+`GET /api/v1/admin/catalog-products/{catalogProductId}` 또는
+`GET /api/v1/admin/catalog-products`를 통해 CatalogProduct와 연결된 ProductVariant 목록을
+함께 조회한다.
 
-조회 권한은 P2 Catalog의 관리자·Product Manager 조회 정책을 따르며, Variant는
-CatalogProduct 응답의 `variants` 필드로 반환한다.
+Product Manager 조회에는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태가 필요하며 항상
+`ACTIVE` Variant만 반환한다. 관리자 조회에는 `ADMIN` 권한이 필요하고 상태를 지정할 수
+있다. Variant는 CatalogProduct 응답의 `variants` 필드로 반환하며,
+`ProductVariantQueryService`는 이 통합 조회를 위한 application 내부 서비스이지 별도 HTTP
+진입점이 아니다.
 
 ### 3-3. ProductVariant 수정
 

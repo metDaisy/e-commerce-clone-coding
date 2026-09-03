@@ -32,6 +32,7 @@ P2는 판매자별 판매 조건, 재고, 리뷰, 주문을 소유하지 않는�
 | `CatalogProduct` | 여러 Variant가 공유하는 상품명·설명·브랜드·식별자·공통 attributes |
 | `ProductVariant` | 색상·용량 등 선택 가능한 실제 구매 단위. 단일 상품도 하나를 가진다. |
 | `ADMIN` | 정식 Category·CatalogProduct·ProductVariant·CatalogProduct Media를 생성·수정·보관한다. |
+| `PRODUCT_MANAGER` | `ACTIVE Seller` 상태를 가진 User. CatalogProduct와 ProductVariant의 활성 조회 결과를 확인하고 Offer 등록 대상을 탐색한다. P2 원본을 직접 변경하지 않는다. |
 | `Seller` | P8을 통해 등록을 요청하고, P9에서 자신의 Offer를 관리한다. P2 원본을 직접 변경하지 않는다. |
 | 구매자 | 공개 상태의 상품·Variant와 Category를 조회한다. 내부 ID와 보관 여부를 알 수 없다. |
 | `ACTIVE` | 공개 조회 및 후속 업무의 기준 리소스로 사용할 수 있는 상태 |
@@ -42,6 +43,7 @@ P2는 판매자별 판매 조건, 재고, 리뷰, 주문을 소유하지 않는�
 ## 3. 핵심 업무 규칙
 
 - 정식 Category·CatalogProduct·ProductVariant·CatalogProduct Media의 생성·수정·보관은 `ADMIN`만 수행한다.
+- `PRODUCT_MANAGER`는 `ACTIVE Seller` 상태일 때 전용 Catalog 조회 경로로 `ACTIVE` CatalogProduct와 `ACTIVE` ProductVariant만 조회한다. 상태 Query로 보관 데이터를 조회할 수 없다.
 - Seller의 Category·CatalogProduct·ProductVariant 제안은 P8이 받고, P7의 승인 후 P2 정식 리소스로 반영한다.
 - CatalogProduct는 대표 Category 하나와 연결한다. Category 계층을 변경해도 상품의 연결 FK는 하나만 유지한다.
 - CatalogProduct 생성은 ProductVariant·Offer·Inventory·Media를 함께 생성하지 않는다.

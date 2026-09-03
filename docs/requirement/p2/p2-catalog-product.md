@@ -60,7 +60,7 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 ## 3. API 정의
 
-생성·수정·아카이빙 application 결과는 `CatalogProductCommandDto`를 사용한다. 관리자·Product Manager용 조회 application 결과는 `CatalogProductQueryDto`를 사용하며, CatalogProduct의 조회 필드와 연결된 모든 ProductVariant를 포함한다. HTTP 계층은 이 application DTO를 presentation response로 변환한다. 고객용 Product API에서는 내부 `catalogProductId`, `variantId`를 제외하고, 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
+생성·수정·아카이빙 application 결과는 `CatalogProductCommandDto`를 사용한다. 관리자·Product Manager용 조회 application 결과는 `CatalogProductQueryDto`를 사용하며, CatalogProduct의 조회 필드와 조회 상태 조건에 맞는 연결된 ProductVariant 목록을 포함한다. HTTP 계층은 이 application DTO를 presentation response로 변환한다. 고객용 Product API에서는 내부 `catalogProductId`, `variantId`를 제외하고, 관리자·Product Manager용 Catalog 조회 API는 등록 대상 선택과 운영을 위해 내부 ID와 상태를 반환한다.
 
 > TODO: 현재 관리자와 Product Manager는 동일한 Catalog 조회 응답을 사용한다. 추후 역할별 화면 요구사항에 맞춰 presentation response와 화면 구성을 분리할지 검토한다.
 
@@ -113,27 +113,73 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 식별자 오류가 여러 개면 `details.fields`에 모든 실패 필드를 반환한다. 전체 식별자 값·SQL·외부 API 원문은 반환하지 않는다.
 
-### 3-2. CatalogProduct 조회
+### 3-2. CatalogProduct 목록·상세 조회
+
+Product Manager 목록 조회:
+
+`GET /api/v1/catalog-products`
+
+관리자 목록 조회:
+
+`GET /api/v1/admin/catalog-products`
+
+Product Manager 상세 조회:
 
 `GET /api/v1/catalog-products/{catalogProductId}`
 
-권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
+관리자 상세 조회:
+
+`GET /api/v1/admin/catalog-products/{catalogProductId}`
+
+권한:
+
+- Product Manager 경로: `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태
+- 관리자 경로: `ADMIN` 권한
+
+목록 조회는 `page`, `size`, `keyword`, `categoryId`, `tag`,
+`catalogPublicationStatus`, `variantPublicationStatus`, `sort`를 지원한다. Product Manager는
+요청한 상태와 관계없이 `ACTIVE` CatalogProduct와 `ACTIVE` ProductVariant만 조회한다.
+관리자는 상태 파라미터를 생략하면 `ACTIVE`를 조회하고, 지정하면 해당 상태만 조회한다.
 
 #### 성공 응답: `200 OK`
 
 ```json
 {
   "catalogProductId": "uuid-product",
+  "categoryId": "uuid-graphics-card",
   "name": "무선 헤드폰",
   "description": "카탈로그 상품 설명",
   "brand": "Example Brand",
+  "asin": "B012345678",
+  "gtin": null,
+  "upc": null,
+  "ean": null,
+  "isbn": null,
+  "tags": [],
   "attributes": { "connectionType": "BLUETOOTH" },
-  "media": [],
-  "publicationStatus": "ACTIVE"
+  "publicationStatus": "ACTIVE",
+  "archivedAt": null,
+  "createdAt": "2026-08-16T12:31:33Z",
+  "updatedAt": "2026-08-16T12:31:33Z",
+  "variants": [
+    {
+      "variantId": "uuid-variant",
+      "displayName": "블랙 / 256GB",
+      "attributes": { "color": "BLACK", "storage": "256GB" },
+      "publicationStatus": "ACTIVE",
+      "archivedAt": null,
+      "createdAt": "2026-08-16T12:31:33Z",
+      "updatedAt": "2026-08-16T12:31:33Z"
+    }
+  ]
 }
 ```
 
-관리자·Product Manager 응답에는 `categoryId`, 내부 ID, `publicationStatus`, 연결된 ProductVariant를 포함한다. Product Manager는 활성 CatalogProduct만 조회할 수 있으며, 고객용 공개 응답은 P9 Product API에서 별도로 정의한다.
+관리자·Product Manager 응답에는 `categoryId`, 내부 ID, `publicationStatus`, 연결된
+ProductVariant 목록을 포함한다. 현재 Catalog 조회 응답에는 `media` 필드가 포함되지 않으며,
+Media 연결·수정·보관은 별도 Media API 계약으로 다룬다. Product Manager는 활성
+CatalogProduct와 ProductVariant만 조회할 수 있으며, 고객용 공개 응답은 P9 Product API에서
+별도로 정의한다.
 
 #### 예외
 
