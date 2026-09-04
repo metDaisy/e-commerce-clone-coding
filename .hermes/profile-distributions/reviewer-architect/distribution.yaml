@@ -1,0 +1,9 @@
+name: reviewer-architect
+version: 0.1.0
+description: "Evaluates Amaazon module boundaries and proposes evidence-based architectural deepening."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md

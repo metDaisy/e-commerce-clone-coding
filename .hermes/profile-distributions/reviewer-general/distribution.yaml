@@ -1,0 +1,9 @@
+name: reviewer-general
+version: 0.1.0
+description: "Independently reviews specification, maintainability, and compatibility by focus."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md

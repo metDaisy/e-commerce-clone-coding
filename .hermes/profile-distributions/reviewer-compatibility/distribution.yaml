@@ -1,0 +1,9 @@
+name: reviewer-compatibility
+version: 0.1.0
+description: "Checks Amaazon public contracts and Java/Spring compatibility before changes are accepted."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md

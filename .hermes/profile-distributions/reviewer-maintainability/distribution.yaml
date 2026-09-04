@@ -1,0 +1,9 @@
+name: reviewer-maintainability
+version: 0.1.0
+description: "Finds unnecessary complexity and duplication without automatically editing Amaazon code."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md

@@ -28,6 +28,8 @@
 !.hermes/plugins/
 !.hermes/plugins/agent-audit/
 !.hermes/plugins/agent-audit/**
+!.hermes/profile-distributions/
+!.hermes/profile-distributions/**
 .hermes/plugins/agent-audit/__pycache__/
 .hermes/events.jsonl
 .hermes/events.jsonl.*
