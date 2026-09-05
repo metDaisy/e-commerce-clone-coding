@@ -5,9 +5,13 @@ if ! command -v hermes >/dev/null 2>&1; then
   printf '%s\n' 'Hermes CLI is required: https://hermes-agent.nousresearch.com/docs' >&2
   exit 1
 fi
+if ! command -v python >/dev/null 2>&1; then
+  printf '%s\n' 'Python is required to apply the YAML capability policy.' >&2
+  exit 1
+fi
 
 root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-profiles="planner prototype-coder reviewer-general reviewer-deep reviewer-coordinator refactor-coder"
+profiles="project-manager prototype-coder reviewer-general reviewer-deep reviewer-coordinator refactor-coder"
 
 cd "$root_dir"
 
@@ -32,10 +36,12 @@ install_skill() {
 for profile in $profiles; do
   hermes profile install "./.hermes/profile-distributions/$profile" \
     --name "$profile" --alias --force --yes
+  hermes --profile "$profile" config set terminal.cwd "$root_dir"
 done
 
 install_skill prototype-coder skills-sh/github/awesome-copilot/java-springboot
 install_skill prototype-coder skills-sh/github/awesome-copilot/java-junit
+
 install_skill reviewer-general skills-sh/mattpocock/skills/code-review
 install_skill reviewer-general skills-sh/alannkl/skills/simplify-code
 install_skill reviewer-general skills-sh/toss/es-toolkit/compat-review
@@ -45,6 +51,9 @@ install_skill reviewer-deep skills-sh/jabrena/plinth/305-frameworks-spring-boot-
 install_skill reviewer-deep skills-sh/affaan-m/ecc/jpa-patterns
 install_skill refactor-coder skills-sh/github/awesome-copilot/java-refactoring-extract-method
 install_skill refactor-coder skills-sh/github/awesome-copilot/java-refactoring-remove-parameter
+
+python scripts/apply-hermes-capabilities.py \
+  --policy .hermes/profile-capabilities
 
 if [ -n "${HERMES_MODEL:-}" ]; then
   provider="${HERMES_PROVIDER:-custom}"

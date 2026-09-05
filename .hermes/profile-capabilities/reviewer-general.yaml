@@ -1,0 +1,16 @@
+profile: reviewer-general
+
+skills:
+  additional_disabled:
+    - systematic-debugging
+
+approvals:
+  mode: manual
+
+mcp:
+  allowed_servers:
+    - semble-mcp
+    - codebase-memory
+  filters:
+    codebase-memory: codebase_read
+    semble-mcp: semble_read

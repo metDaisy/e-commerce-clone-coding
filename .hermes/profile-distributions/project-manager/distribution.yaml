@@ -1,0 +1,9 @@
+name: project-manager
+version: 0.1.0
+description: "Owns the Amaazon Issue lifecycle from requirement-based task graph creation through verified PR merge."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md

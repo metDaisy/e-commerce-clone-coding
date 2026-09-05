@@ -26,6 +26,27 @@ HERMES_ENABLE_PROJECT_PLUGINS=true hermes --profile coder
 For the Desktop app, enable the same environment variable before launching or
 use the profile/plugin reload flow after activation.
 
+## Capability policy
+
+The six operational Profiles use the repository-managed
+[`profile-capabilities/`](./profile-capabilities/) policy. `common.yaml` contains
+shared defaults and each `<profile>.yaml` contains only that Profile's policy.
+The files declare disabled Skills, disabled built-in Toolsets, approval mode,
+allowed MCP server names, and MCP tool allowlists without storing endpoints or
+credentials.
+
+The setup scripts apply this policy to each machine-local Hermes Profile through
+`hermes config set`:
+
+```bash
+python scripts/apply-hermes-capabilities.py \
+  --policy .hermes/profile-capabilities
+```
+
+MCP servers must already be configured in the local Profile. Servers not listed
+for a Profile are disabled; missing allowed servers are reported but are not
+created because their endpoints are machine-local configuration.
+
 ## Runtime log
 
 `.hermes/events.jsonl` is local runtime data and is ignored by Git. It records

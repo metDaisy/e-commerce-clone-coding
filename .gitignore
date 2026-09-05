@@ -25,6 +25,8 @@
 .hermes/*
 !.hermes/
 !.hermes/README.md
+!.hermes/profile-capabilities/
+!.hermes/profile-capabilities/**
 !.hermes/plugins/
 !.hermes/plugins/agent-audit/
 !.hermes/plugins/agent-audit/**

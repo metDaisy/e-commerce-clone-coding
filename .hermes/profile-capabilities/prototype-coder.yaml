@@ -1,0 +1,17 @@
+profile: prototype-coder
+
+skills:
+  additional_disabled:
+    - simplify-code
+
+approvals:
+  mode: smart
+
+mcp:
+  allowed_servers:
+    - semble-mcp
+    - codebase-memory
+    - gradle-mcp
+  filters:
+    codebase-memory: codebase_read
+    semble-mcp: semble_read

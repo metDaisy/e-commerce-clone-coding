@@ -1,0 +1,17 @@
+profile: reviewer-coordinator
+
+skills:
+  additional_disabled:
+    - simplify-code
+    - systematic-debugging
+
+tools:
+  additional_disabled_toolsets:
+    - web
+
+approvals:
+  mode: manual
+
+mcp:
+  allowed_servers: []
+  filters: {}

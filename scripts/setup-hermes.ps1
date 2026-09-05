@@ -3,10 +3,13 @@ $ErrorActionPreference = 'Stop'
 if (-not (Get-Command hermes -ErrorAction SilentlyContinue)) {
   throw 'Hermes CLI is required: https://hermes-agent.nousresearch.com/docs'
 }
+if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+  throw 'Python is required to apply the YAML capability policy.'
+}
 
 $rootDir = Split-Path -Parent $PSScriptRoot
 $profiles = @(
-  'planner'
+  'project-manager'
   'prototype-coder'
   'reviewer-general'
   'reviewer-deep'
@@ -14,7 +17,8 @@ $profiles = @(
   'refactor-coder'
 )
 $skills = @{
-  'planner' = @()
+  'project-manager' = @(
+  )
   'prototype-coder' = @(
     'skills-sh/github/awesome-copilot/java-springboot'
     'skills-sh/github/awesome-copilot/java-junit'
@@ -45,6 +49,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to install Hermes Profile Distribution: $profile"
     }
+    hermes --profile $profile config set terminal.cwd $rootDir
+    if ($LASTEXITCODE -ne 0) {
+      throw "Failed to configure project cwd: $profile"
+    }
   }
 } finally {
   Pop-Location
@@ -59,6 +67,13 @@ foreach ($profile in $profiles) {
     }
     Write-Output "skills.sh: $identifier -> $profile"
   }
+}
+
+$policyScript = Join-Path $rootDir 'scripts\apply-hermes-capabilities.py'
+$policyFile = Join-Path $rootDir '.hermes\profile-capabilities'
+python $policyScript --policy $policyFile
+if ($LASTEXITCODE -ne 0) {
+  throw 'Failed to apply the YAML capability policy.'
 }
 
 if ($env:HERMES_MODEL) {
