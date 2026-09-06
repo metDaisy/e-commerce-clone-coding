@@ -7,3 +7,5 @@ license: "MIT"
 
 distribution_owned:
   - SOUL.md
+  - capabilities.yaml
+  - skills/write-task/SKILL.md

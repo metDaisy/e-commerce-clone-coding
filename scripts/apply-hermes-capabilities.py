@@ -37,8 +37,8 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return value
 
 
-def load_policy(policy_path: Path) -> dict[str, Any]:
-    """Load either the legacy aggregate policy or split policy directory."""
+def load_policy(policy_path: Path, profiles: list[str]) -> dict[str, Any]:
+    """Load either the legacy aggregate policy or split policy sources."""
     if policy_path.is_file():
         return load_yaml(policy_path)
     if not policy_path.is_dir():
@@ -53,9 +53,16 @@ def load_policy(policy_path: Path) -> dict[str, Any]:
     if not isinstance(common_mcp_tools, dict):
         raise ValueError("common.yaml: mcp_tools must be a mapping")
 
-    profiles: dict[str, dict[str, Any]] = {}
-    for profile in PROFILES:
+    loaded_profiles: dict[str, dict[str, Any]] = {}
+    for profile in profiles:
         profile_path = policy_path / f"{profile}.yaml"
+        if not profile_path.is_file():
+            profile_path = (
+                policy_path.parent
+                / "profile-distributions"
+                / profile
+                / "capabilities.yaml"
+            )
         entry = load_yaml(profile_path)
         if entry.get("profile") != profile:
             raise ValueError(f"{profile_path}: profile name does not match filename")
@@ -63,12 +70,17 @@ def load_policy(policy_path: Path) -> dict[str, Any]:
         skills = entry.get("skills", {}) or {}
         tools = entry.get("tools", {}) or {}
         approvals = entry.get("approvals", {}) or {}
+        stt = entry.get("stt")
         mcp = entry.get("mcp", {}) or {}
+        profile_mcp_tools = entry.get("mcp_tools", {}) or {}
+        if not isinstance(profile_mcp_tools, dict):
+            raise ValueError(f"{profile_path}: mcp_tools must be a mapping")
+        mcp_tools = {**common_mcp_tools, **profile_mcp_tools}
         filters: dict[str, Any] = {}
         for server, reference in (mcp.get("filters", {}) or {}).items():
             if isinstance(reference, str):
                 try:
-                    filters[server] = common_mcp_tools[reference]
+                    filters[server] = mcp_tools[reference]
                 except KeyError as exc:
                     raise ValueError(
                         f"{profile_path}: unknown MCP tool reference {reference}"
@@ -78,7 +90,7 @@ def load_policy(policy_path: Path) -> dict[str, Any]:
             else:
                 raise ValueError(f"{profile_path}: invalid MCP filter for {server}")
 
-        profiles[profile] = {
+        loaded_profiles[profile] = {
             "skills": {
                 "disabled": common_skills,
                 "additional_disabled": skills.get("additional_disabled", []),
@@ -87,16 +99,18 @@ def load_policy(policy_path: Path) -> dict[str, Any]:
                 "disabled_toolsets": [
                     common_toolsets,
                     tools.get("additional_disabled_toolsets", []),
-                ]
+                ],
+                "platform_toolsets": tools.get("platform_toolsets", {}),
             },
             "approvals": {"mode": approvals.get("mode")},
+            "stt": stt,
             "mcp": {
                 "allowed_servers": mcp.get("allowed_servers", []),
                 "filters": filters,
             },
         }
 
-    return {"version": common["version"], "profiles": profiles}
+    return {"version": common["version"], "profiles": loaded_profiles}
 
 
 def flatten(value: Any) -> list[str]:
@@ -182,11 +196,27 @@ def verify(profile: str, expected: dict[str, Any]) -> None:
     if disabled_toolsets != expected["disabled_toolsets"]:
         raise RuntimeError(f"{profile}: agent.disabled_toolsets read-back mismatch")
 
+    actual_platform_toolsets = json.loads(
+        hermes(profile, "config", "get", "platform_toolsets", "--json")
+    )
+    for platform, expected_toolsets in expected["platform_toolsets"].items():
+        if actual_platform_toolsets.get(platform) != expected_toolsets:
+            raise RuntimeError(
+                f"{profile}: platform_toolsets.{platform} read-back mismatch"
+            )
+
     approval = json.loads(
         hermes(profile, "config", "get", "approvals.mode", "--json")
     )
     if approval != expected["approval"]:
         raise RuntimeError(f"{profile}: approvals.mode read-back mismatch")
+
+    if expected["stt_enabled"] is not None:
+        stt_enabled = json.loads(
+            hermes(profile, "config", "get", "stt.enabled", "--json")
+        )
+        if stt_enabled != expected["stt_enabled"]:
+            raise RuntimeError(f"{profile}: stt.enabled read-back mismatch")
 
     servers = get_mcp_servers(profile)
     allowed = set(expected["allowed_servers"])
@@ -212,6 +242,7 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
         tools = entry["tools"]
         mcp = entry["mcp"]
         approval = entry["approvals"]["mode"]
+        stt = entry.get("stt")
     except (KeyError, TypeError) as exc:
         raise ValueError(f"invalid policy structure for {profile}") from exc
 
@@ -223,6 +254,24 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
         raise ValueError(f"{profile}: hermes-agent cannot be disabled")
 
     disabled_toolsets = flatten(tools["disabled_toolsets"])
+    platform_toolsets_raw = tools.get("platform_toolsets", {}) or {}
+    if not isinstance(platform_toolsets_raw, dict):
+        raise ValueError(f"{profile}: tools.platform_toolsets must be a mapping")
+    platform_toolsets: dict[str, list[str]] = {}
+    for platform, toolsets in platform_toolsets_raw.items():
+        if not isinstance(platform, str) or not platform:
+            raise ValueError(f"{profile}: platform_toolsets key must be a non-empty string")
+        platform_toolsets[platform] = flatten(toolsets)
+        overlap = set(platform_toolsets[platform]) & set(disabled_toolsets)
+        if overlap:
+            raise ValueError(
+                f"{profile}: platform toolsets also disabled: {sorted(overlap)}"
+            )
+    stt_enabled = None
+    if stt is not None:
+        if not isinstance(stt, dict) or not isinstance(stt.get("enabled"), bool):
+            raise ValueError(f"{profile}: stt.enabled must be a boolean")
+        stt_enabled = stt["enabled"]
     allowed_servers = flatten(mcp.get("allowed_servers", []))
     filters = mcp.get("filters", {}) or {}
     if not isinstance(filters, dict):
@@ -243,7 +292,9 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
     return {
         "skills_disabled": disabled_skills,
         "disabled_toolsets": disabled_toolsets,
+        "platform_toolsets": platform_toolsets,
         "approval": approval,
+        "stt_enabled": stt_enabled,
         "allowed_servers": allowed_servers,
         "filters": normalized_filters,
     }
@@ -253,7 +304,11 @@ def apply_profile(raw: dict[str, Any], profile: str) -> None:
     expected = profile_expected(raw, profile)
     set_config(profile, "skills.disabled", expected["skills_disabled"])
     set_config(profile, "agent.disabled_toolsets", expected["disabled_toolsets"])
+    for platform, toolsets in expected["platform_toolsets"].items():
+        set_config(profile, f"platform_toolsets.{platform}", toolsets)
     set_config(profile, "approvals.mode", expected["approval"])
+    if expected["stt_enabled"] is not None:
+        set_config(profile, "stt.enabled", expected["stt_enabled"])
 
     servers = get_mcp_servers(profile)
     allowed = set(expected["allowed_servers"])
@@ -276,6 +331,7 @@ def apply_profile(raw: dict[str, Any], profile: str) -> None:
     print(
         f"{profile}: policy applied; skills.disabled={len(expected['skills_disabled'])}, "
         f"disabled_toolsets={len(expected['disabled_toolsets'])}, "
+        f"platform_toolsets={','.join(expected['platform_toolsets'].get('cli', []))}, "
         f"mcp={','.join(present_allowed) if present_allowed else 'none'}"
     )
 
@@ -287,10 +343,10 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        raw = load_policy(args.policy)
+        profiles = args.profile or list(PROFILES)
+        raw = load_policy(args.policy, profiles)
         if raw.get("version") != 1:
             raise ValueError("policy version must be 1")
-        profiles = args.profile or list(PROFILES)
         for profile in profiles:
             apply_profile(raw, profile)
     except (OSError, ValueError, json.JSONDecodeError, RuntimeError) as exc:

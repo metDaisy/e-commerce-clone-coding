@@ -37,6 +37,10 @@ for profile in $profiles; do
   hermes profile install "./.hermes/profile-distributions/$profile" \
     --name "$profile" --alias --force --yes
   hermes --profile "$profile" config set terminal.cwd "$root_dir"
+  if [ "$profile" = "project-manager" ]; then
+    hermes --profile "$profile" config set skills.external_dirs \
+      "[\"$root_dir/.hermes/profile-distributions/project-manager/skills\"]"
+  fi
 done
 
 install_skill prototype-coder skills-sh/github/awesome-copilot/java-springboot

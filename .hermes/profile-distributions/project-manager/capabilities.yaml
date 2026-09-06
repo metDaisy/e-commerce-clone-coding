@@ -1,0 +1,64 @@
+# Project Manager capability policy distributed with this Profile.
+# No endpoints, credentials, sessions, state databases, or machine paths.
+profile: project-manager
+
+skills:
+  additional_disabled:
+    - simplify-code
+
+tools:
+  additional_disabled_toolsets:
+    - web
+    - todo
+    - memory
+    - session_search
+
+approvals:
+  mode: smart
+
+stt:
+  enabled: false
+
+mcp_tools:
+  codebase_project_manager:
+    include:
+      - index_status
+      - search_graph
+      - trace_path
+
+  github_project_manager:
+    include:
+      - get_commit
+      - get_file_contents
+      - get_me
+      - add_issue_comment
+      - add_reply_to_pull_request_comment
+      - create_pull_request
+      - issue_read
+      - issue_write
+      - list_branches
+      - list_commits
+      - list_issue_fields
+      - list_issue_types
+      - list_issues
+      - list_pull_requests
+      - projects_get
+      - projects_list
+      - projects_write
+      - merge_pull_request
+      - pull_request_read
+      - pull_request_review_write
+      - search_issues
+      - search_pull_requests
+      - sub_issue_write
+      - update_pull_request
+
+mcp:
+  allowed_servers:
+    - semble-mcp
+    - codebase-memory
+    - github-mcp
+  filters:
+    codebase-memory: codebase_project_manager
+    github-mcp: github_project_manager
+    semble-mcp: semble_read

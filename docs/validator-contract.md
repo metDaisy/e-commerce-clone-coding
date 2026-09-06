@@ -155,6 +155,21 @@ failed ─────┴─ 다음 대상 변경 시 stale
 
 구체적인 명령어·결과 원문 대신 validator category, 상태, scope와 sanitized summary만 저장한다. 이벤트 로그는 규칙을 대체하지 않으며, 검증 도구의 실제 결과와 CI가 최종 근거다.
 
+`workflow_deviation`은 관찰 가능한 workflow 이탈을 별도로 표시한다. 현재 대상은 최신
+검증의 누락·실패, 변경 경로 미확인, 그리고 직접 Gradle 실행이다. 이 이벤트에도 raw
+command, raw output, prompt, credential은 기록하지 않는다.
+
+```json
+{
+  "event": "workflow_deviation",
+  "category": "verification",
+  "reason": "missing_validation",
+  "rules": ["STYLE-JAVA-001", "TEST-JAVA-001"],
+  "generation": 3,
+  "session_id": "opaque-id"
+}
+```
+
 ## 처리 흐름
 
 ```text
@@ -163,7 +178,8 @@ failed ─────┴─ 다음 대상 변경 시 stale
 3. Agent가 gradle-mcp 또는 프로젝트 검증기를 실행한다.
 4. post_tool_call이 validator 실행과 결과를 관찰한다.
 5. pre_verify가 최신 passed 증거가 없는 Rule을 Agent에게 안내한다.
-6. 실패하면 sanitized summary와 수정·재검증 지침을 전달한다.
+6. 누락·실패·도구 정책 이탈이면 `workflow_deviation`을 추가 기록하고, 실패하면
+   sanitized summary와 수정·재검증 지침을 전달한다.
 7. CI가 동일한 품질 게이트를 독립적으로 최종 판정한다.
 ```
 

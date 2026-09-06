@@ -17,6 +17,7 @@
 | 테스트 절차 | [`testing-guide.md`](testing-guide.md) | 테스트 종류 선택, 작성 규칙, assertion 규칙 |
 | Agent 행동 검증 계약 | [`validator-contract.md`](validator-contract.md) | 행동별 Rule ID, 결정론적 validator, Hook·CI 책임 |
 | Project Skill Map | [`skills/index.md`](skills/index.md) | 작업 유형별 Skill·tool·validator 선택과 공개 범위 |
+| Agent Profile Workflow | [`agent-profile-workflow.md`](agent-profile-workflow.md) | Prototype·독립 Reviewer·Feedback 기반 Refactor 운영 계약 |
 | Git 커밋 규칙 | [`commit-message-convention.md`](commit-message-convention.md) | 논리적 커밋 단위와 메시지 형식 |
 | DB 물리 스키마 | [`V1__init_schema.sql`](../src/main/resources/db/migration/V1__init_schema.sql) 및 후속 migration | 테이블·컬럼·제약 조건·실제 저장 구조 |
 

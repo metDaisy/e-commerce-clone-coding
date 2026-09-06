@@ -246,3 +246,48 @@ metadata나 comment에 기록하지 않는다.
 
 다음 단계가 없거나 상태가 불명확하면 `no-ready-task`, `blocked`, `needs-input` 중
 정확한 상태를 기록하고 추측으로 진행하지 않는다.
+
+## Task contract persistence
+
+Task body는 실제 multiline으로 저장하고 literal `\\n` 문자열을 저장하지 않는다. 생성 전에는
+다음 field를 분리해 기록한다.
+
+```text
+current_state_sha: <docs/current-state.md snapshot SHA>
+planning_head_sha: <planning HEAD>
+state_freshness: fresh | stale | blocked
+decomposition_depth: 1..3
+dependency_path_length: <actual graph path length>
+workspace_kind: dir | scratch | worktree
+workspace_path: <native Kanban raw path>
+```
+
+`current_state_sha`와 `planning_head_sha`가 다르면 implementation/finalization은 ready가
+아니다. reconciliation/investigation만 ready로 두고 나머지는 `blocked` 또는 `needs-input`으로
+둔다. dependency path가 길어도 `decomposition_depth`를 3보다 크게 기록하지 않는다.
+
+`--workspace dir:<path>`와 `--workspace worktree:<path>`의 prefix는 create selector일 뿐이다.
+body의 `workspace_path`는 native Kanban read-back의 raw path와 정확히 같아야 한다. current
+repository의 HEAD·diff·미커밋 변경을 읽거나 수정하는 task는 `dir`와 동일 CWD를 사용한다.
+`scratch`는 독립 조사/artifact에만, `worktree`는 clean committed base에서 명시적으로 승인된
+격리 작업에만 사용한다.
+
+다른 task를 body/comment/metadata에서 가리킬 때는 read-back한 literal `t_<hex>` ID만 쓴다.
+`t01`, `step-1`, 제목 alias 또는 placeholder는 저장하지 않는다. prerequisite를 create·read-back한
+후 실제 ID로 body reference와 graph edge를 만들고 양쪽 envelope를 확인한다.
+
+`CHECK`는 설명문이 아니라 runner, exact command 또는 test identifier, CWD, success-only
+`EXPECT`를 포함한다. Gradle check는 `gradle-mcp` runner와 task/test target을 명시한다. manual
+review에는 reviewer, fixed subject/SHA, evidence source, verdict를 기록한다.
+
+Task가 absent public contract/module을 evidence로 요구하면 그 producer implementation task 또는
+명시적 blocked decision이 graph에 있어야 한다. consumer가 prerequisite implementation을
+`out_of_scope`로 제외한 채 실행되면 안 된다.
+
+구현 task는 focused verification 뒤 같은 card에서 `request-review`를 요청하고 `verified_sha`,
+validator, test identifier/check category, result, changed_paths, residual_risk를 남긴다. Reviewer는
+`show`, `runs`, comments를 read-back한 뒤에만 complete/request-changes를 선택한다.
+
+Quality sequence는 final implementation commit/freeze task가 `final_review_base_sha`와 clean
+workspace를 durable comment/metadata로 남긴 뒤 시작한다. 모든 reviewer와 coordinator는 같은
+literal SHA를 read-back한다. SHA가 바뀌거나 producer evidence가 없으면 review를 block한다.

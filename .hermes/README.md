@@ -1,4 +1,4 @@
-# Project-local Hermes audit
+# Project-local Hermes plugins
 
 This directory contains the project-local Agent audit plugin and its runtime log.
 
@@ -11,9 +11,8 @@ The personal `codex-quota` Desktop plugin remains under the active Hermes
 profile and is intentionally not part of this repository.
 
 Hermes CLI project discovery uses `.hermes/plugins/` when
-`HERMES_ENABLE_PROJECT_PLUGINS=1`. The project-local plugin in this repository
-is `agent-audit`; the Desktop-only personal plugin uses the active profile's
-Desktop plugin door separately.
+`HERMES_ENABLE_PROJECT_PLUGINS=1`. The Desktop-only personal plugin uses the
+active profile's Desktop plugin door separately.
 
 ## Activation
 
@@ -28,12 +27,14 @@ use the profile/plugin reload flow after activation.
 
 ## Capability policy
 
-The six operational Profiles use the repository-managed
-[`profile-capabilities/`](./profile-capabilities/) policy. `common.yaml` contains
-shared defaults and each `<profile>.yaml` contains only that Profile's policy.
-The files declare disabled Skills, disabled built-in Toolsets, approval mode,
-allowed MCP server names, and MCP tool allowlists without storing endpoints or
-credentials.
+The operational Profiles use repository-managed capability policies. The
+[`profile-capabilities/`](./profile-capabilities/) directory contains shared
+defaults and the non-Project-Manager Profile policies. The Project Manager
+Distribution keeps its policy in
+[`profile-distributions/project-manager/capabilities.yaml`](./profile-distributions/project-manager/capabilities.yaml),
+including its GitHub write allowlist. These files declare disabled Skills,
+disabled built-in Toolsets, approval mode, allowed MCP server names, and MCP
+tool allowlists without storing endpoints or credentials.
 
 The setup scripts apply this policy to each machine-local Hermes Profile through
 `hermes config set`:
@@ -56,6 +57,7 @@ compact metadata only:
 - Tool lifecycle: tool name, status, duration, and safe project-relative paths
 - Validation trigger/result: Rule ID, validator category, generation, and pass/fail status
 - Verification gate: changed paths and missing/failed Rule IDs
+- Workflow deviation: direct Gradle use or verification that is missing, failed, or uncorrelated
 - Session end: completion and interruption status
 
 Prompts, conversation history, terminal commands, raw tool arguments, raw tool
