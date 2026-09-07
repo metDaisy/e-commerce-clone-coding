@@ -68,6 +68,7 @@ def load_policy(policy_path: Path, profiles: list[str]) -> dict[str, Any]:
             raise ValueError(f"{profile_path}: profile name does not match filename")
 
         skills = entry.get("skills", {}) or {}
+        plugins = entry.get("plugins")
         tools = entry.get("tools", {}) or {}
         approvals = entry.get("approvals", {}) or {}
         stt = entry.get("stt")
@@ -95,6 +96,7 @@ def load_policy(policy_path: Path, profiles: list[str]) -> dict[str, Any]:
                 "disabled": common_skills,
                 "additional_disabled": skills.get("additional_disabled", []),
             },
+            "plugins": plugins,
             "tools": {
                 "disabled_toolsets": [
                     common_toolsets,
@@ -190,6 +192,13 @@ def verify(profile: str, expected: dict[str, Any]) -> None:
     if disabled_skills != expected["skills_disabled"]:
         raise RuntimeError(f"{profile}: skills.disabled read-back mismatch")
 
+    if expected["plugins_enabled"] is not None:
+        enabled_plugins = json.loads(
+            hermes(profile, "config", "get", "plugins.enabled", "--json")
+        )
+        if enabled_plugins != expected["plugins_enabled"]:
+            raise RuntimeError(f"{profile}: plugins.enabled read-back mismatch")
+
     disabled_toolsets = json.loads(
         hermes(profile, "config", "get", "agent.disabled_toolsets", "--json")
     )
@@ -253,6 +262,13 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
     if "hermes-agent" in disabled_skills:
         raise ValueError(f"{profile}: hermes-agent cannot be disabled")
 
+    plugins = entry.get("plugins")
+    if plugins is not None and not isinstance(plugins, dict):
+        raise ValueError(f"{profile}: plugins must be a mapping")
+    plugins_enabled = None
+    if plugins is not None:
+        plugins_enabled = flatten(plugins.get("enabled", []))
+
     disabled_toolsets = flatten(tools["disabled_toolsets"])
     platform_toolsets_raw = tools.get("platform_toolsets", {}) or {}
     if not isinstance(platform_toolsets_raw, dict):
@@ -291,6 +307,7 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
 
     return {
         "skills_disabled": disabled_skills,
+        "plugins_enabled": plugins_enabled,
         "disabled_toolsets": disabled_toolsets,
         "platform_toolsets": platform_toolsets,
         "approval": approval,
@@ -303,6 +320,8 @@ def profile_expected(raw: dict[str, Any], profile: str) -> dict[str, Any]:
 def apply_profile(raw: dict[str, Any], profile: str) -> None:
     expected = profile_expected(raw, profile)
     set_config(profile, "skills.disabled", expected["skills_disabled"])
+    if expected["plugins_enabled"] is not None:
+        set_config(profile, "plugins.enabled", expected["plugins_enabled"])
     set_config(profile, "agent.disabled_toolsets", expected["disabled_toolsets"])
     for platform, toolsets in expected["platform_toolsets"].items():
         set_config(profile, f"platform_toolsets.{platform}", toolsets)
@@ -330,6 +349,7 @@ def apply_profile(raw: dict[str, Any], profile: str) -> None:
     present_allowed = sorted(set(servers) & allowed)
     print(
         f"{profile}: policy applied; skills.disabled={len(expected['skills_disabled'])}, "
+        f"plugins.enabled={len(expected['plugins_enabled']) if expected['plugins_enabled'] is not None else 'unchanged'}, "
         f"disabled_toolsets={len(expected['disabled_toolsets'])}, "
         f"platform_toolsets={','.join(expected['platform_toolsets'].get('cli', []))}, "
         f"mcp={','.join(present_allowed) if present_allowed else 'none'}"

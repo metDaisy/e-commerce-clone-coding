@@ -10,21 +10,10 @@ Kanban으로 통제한다.
 
 ## Mission
 
-Issue의 대략적인 설명을 요구사항 문서의 상세 계약과 현재 구현 상태에 연결하여,
-Coder가 추측하지 않고 실행할 수 있는 **Issue 전체 task graph**를 만든다.
-
-각 task에는 다음을 기록한다.
-
-- 담당 Profile
-- 실제 dependency
-- 요구사항과 현재 상태의 evidence
-- scope와 out_of_scope
-- 성공·실패·경계 조건을 포함한 acceptance criteria
-- 결정론적 verification
-- 현재 상태 기준 SHA
-
-Graph를 만든 뒤 우선순위와 dependency에 따라 실행 가능한 task 하나만 `ready`로
-승격한다. 이후에는 Kanban lifecycle과 검증된 결과에 따라 다음 task를 라우팅한다.
+Issue를 요구사항과 committed 구현 상태에 연결하여 Coder가 추측하지 않고 실행할 수
+있는 전체 task graph를 만든다. Task schema와 생성·검증 절차는 `write-task` Skill이
+유일한 기준이다. Graph 생성 후 dependency가 충족된 task 하나만 `ready`로 승격하고,
+검증된 Kanban 결과에 따라 다음 단계를 라우팅한다.
 
 ## Authority order
 
@@ -44,59 +33,39 @@ Graph를 만든 뒤 우선순위와 dependency에 따라 실행 가능한 task �
 검증한다. 아직 구현되지 않은 요구사항이면 gap task를 만들고, 현재 상태가 stale하면
 `blocked` 또는 `needs-input`으로 기록한다.
 
-## Evidence retrieval
+## Dirty working tree isolation
 
-매번 저장소 전체를 full scan하지 않는다. 다음 순서로 필요한 범위만 확장한다.
+미커밋·untracked 변경은 planning evidence가 아니며 graph의 task, scope, dependency,
+verification 또는 freshness를 바꾸지 않는다. Graph는 `planning_head_sha`의 committed
+artifact를 기준으로 clean tree와 동일하게 생성한다. Git status는 claim/edit 직전 path
+충돌 검사에만 사용한다. 충돌하면 기존 변경을 건드리지 않고 `blocked`/`needs-input`,
+충돌하지 않으면 보존하고 진행한다. Commit/freeze와 quality review는 clean workspace가
+필수다.
 
-1. Git branch/status/HEAD와 `current-state.md`의 기준 SHA를 확인한다.
-2. `docs/index.md`와 `docs/current-state.md`를 직접 읽는다.
-3. GitHub Issue의 대상 branch와 Issue tree를 확인한다.
-4. Issue가 가리키는 요구사항 문서와 관련 domain 문서를 직접 읽는다.
-5. Semble은 관련 문서와 symbol의 위치를 찾는 locator로 사용한다.
-6. Semble 결과는 원문이 아니므로 반환된 파일의 heading·line range를 filesystem read로
-   다시 확인한다.
-7. 관련 코드·test·migration·ADR만 추가로 읽고, exact identifier와 SHA는 literal
-   search와 Git으로 교차 확인한다.
+## Graph authoring gate
 
-검색 결과의 URL·요약만으로 task를 만들지 않는다. 근거가 부족하면 full scan으로
-무리하게 확장하지 말고 해당 task를 `blocked` 또는 `needs-input`으로 남긴다.
+Kanban graph를 생성·수정·평가하기 전에 `write-task` Skill과 현재 동결된 board contract를
+로드한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다. 생성 전 draft와
+생성 후 zero-ready native draft에 `--phase draft`를 실행한다. 둘 다 통과한 뒤 하나만
+`ready`로 승격하고 `--phase post`를 실행한다. 어느 단계든 exit code `0`이 아니면 승격하거나
+graph 생성을 완료했다고 보고하지 않는다. Agent 자신의 자연어 검토는 validator를 대체하지
+않는다.
 
-## Issue activation and task graph
+동일 contract version의 평가 기준은 생성 후 변경하지 않는다. 새 결함 규칙은 regression
+test와 새 contract version으로 다음 graph부터 적용하며 기존 board에 소급하지 않는다.
 
-Issue를 구현 대상으로 활성화할 때 다음을 수행한다.
+검색 결과는 locator일 뿐이다. 요구사항과 committed source를 직접 확인하고, 근거가
+충돌하거나 부족하면 추측하지 않고 `unknowns`, `blocked` 또는 `needs-input`으로 보존한다.
+Issue·요구사항·`current-state.md`만으로 기능의 구현 부재를 단정하지 않는다. Task 생성 전
+`write-task` Skill의 repository discovery preflight에 따라 Semble로 구현 후보를 찾고,
+codebase-memory로 관계·영향을 확인한 뒤, 반환된 source/test/migration을
+`planning_head_sha`의 committed artifact에서 직접 확인한다. MCP는 탐색 보조이며 source가
+최종 근거다. MCP 실패 시 로컬 탐색으로 진행하되 한계를 숨기지 않고 audit/unknown에 남긴다.
 
-1. 기존 Kanban task와 Issue tree를 read-back하여 중복을 확인한다.
-2. 요구사항 문서에 근거하여 Issue의 모든 알려진 구현 task를 분해한다.
-3. task graph 깊이는 최소 1, 최대 3으로 유지한다.
-4. 하나의 Profile이 수행할 수 있고, 하나의 논리적 결과와 검증 방법을 갖는 지점에서
-   leaf를 멈춘다.
-5. 이미 구현된 task도 생략하지 않는다. `current-state.md`와 committed code/test의
-   근거를 기록하고 `done`으로 표시한다.
-6. 구현 task에 `prototype-coder`를 할당하고, commit task에는 `project-manager`를
-   할당한다.
-7. 각 task의 부모·자식과 dependency 방향을 read-back한다.
-8. 첫 번째 실행 가능한 task 하나만 `ready`로 승격한다.
-
-구현 task의 필수 evidence는 다음과 같다.
-
-```text
-evidence:
-  - type: goal
-    source: docs/requirement/<path>#<heading> 또는 Issue URL/identifier
-    claim: 이 근거가 증명하는 요구사항
-  - type: state
-    source: docs/current-state.md#<heading> 또는 path:Lx-Ly
-    claim: 현재 구현 gap 또는 선행 조건
-  - type: constraint          # 필요한 경우
-    source: docs/architecture.md#<heading> 또는 path:Lx-Ly
-    claim: 지켜야 하는 구조·API·DB 제약
-```
-
-`goal`과 `state` 근거가 모두 없는 구현 task는 생성하지 않는다. 근거가 서로 다른
-판단을 뒷받침하면 각각 보존하고 conflict를 `unknowns`에 기록한다.
-
-요구사항에 근거가 없는 speculative task는 생성하지 않는다. 반대로 Issue에는 없지만
-요구사항 문서에 명시된 필수 task는 누락하지 않는다.
+Snapshot이 stale이면 reconciliation/investigation task 하나만 생성한다. 그 task가 확정한
+committed SHA와 gap을 read-back한 후 fresh implementation graph를 새로 생성하며, 수정할 수
+없는 stale downstream body를 미리 만들지 않는다. SHA 불일치는 reconciliation의 입력이지
+그 task 자체를 즉시 block할 사유가 아니다.
 
 ## Task lifecycle and routing
 
@@ -174,9 +143,11 @@ GitHub CI는 필수 검증이고 CodeRabbit은 부가 검토다.
 CI가 실패하면 실패 원인과 관계없이 Issue/PR에 연결된 **하나의 CI failure task**를
 생성한다. task에는 CI run URL, failed job/step, 오류 요약과 재검증 방법을 기록한다.
 
-최종 code commit과 push 후 Project Manager가 PR을 생성한다. PR title과 실제 Issue
-번호를 설정하고, 본문 summary는 CodeRabbit에 맡긴다. 단, merge 시 Issue가 닫히도록
-최종 PR 본문에 실제 closing keyword가 있는지 확인한다.
+최종 code commit과 push 후 Project Manager가 별도 `pr-create` task에서 PR을 생성하고
+literal PR number와 URL을 durable handoff에 기록한다. 후속 `finalization` task만 그 값을
+소비한다. `producer_task_id: self`나 placeholder operand를 허용하지 않는다. PR title과
+실제 Issue 번호를 설정하고, 본문 summary는 CodeRabbit에 맡긴다. 단, merge 시 Issue가
+닫히도록 최종 PR 본문에 실제 closing keyword가 있는지 확인한다.
 
 ```text
 Closes #<issue-number>
@@ -246,48 +217,3 @@ metadata나 comment에 기록하지 않는다.
 
 다음 단계가 없거나 상태가 불명확하면 `no-ready-task`, `blocked`, `needs-input` 중
 정확한 상태를 기록하고 추측으로 진행하지 않는다.
-
-## Task contract persistence
-
-Task body는 실제 multiline으로 저장하고 literal `\\n` 문자열을 저장하지 않는다. 생성 전에는
-다음 field를 분리해 기록한다.
-
-```text
-current_state_sha: <docs/current-state.md snapshot SHA>
-planning_head_sha: <planning HEAD>
-state_freshness: fresh | stale | blocked
-decomposition_depth: 1..3
-dependency_path_length: <actual graph path length>
-workspace_kind: dir | scratch | worktree
-workspace_path: <native Kanban raw path>
-```
-
-`current_state_sha`와 `planning_head_sha`가 다르면 implementation/finalization은 ready가
-아니다. reconciliation/investigation만 ready로 두고 나머지는 `blocked` 또는 `needs-input`으로
-둔다. dependency path가 길어도 `decomposition_depth`를 3보다 크게 기록하지 않는다.
-
-`--workspace dir:<path>`와 `--workspace worktree:<path>`의 prefix는 create selector일 뿐이다.
-body의 `workspace_path`는 native Kanban read-back의 raw path와 정확히 같아야 한다. current
-repository의 HEAD·diff·미커밋 변경을 읽거나 수정하는 task는 `dir`와 동일 CWD를 사용한다.
-`scratch`는 독립 조사/artifact에만, `worktree`는 clean committed base에서 명시적으로 승인된
-격리 작업에만 사용한다.
-
-다른 task를 body/comment/metadata에서 가리킬 때는 read-back한 literal `t_<hex>` ID만 쓴다.
-`t01`, `step-1`, 제목 alias 또는 placeholder는 저장하지 않는다. prerequisite를 create·read-back한
-후 실제 ID로 body reference와 graph edge를 만들고 양쪽 envelope를 확인한다.
-
-`CHECK`는 설명문이 아니라 runner, exact command 또는 test identifier, CWD, success-only
-`EXPECT`를 포함한다. Gradle check는 `gradle-mcp` runner와 task/test target을 명시한다. manual
-review에는 reviewer, fixed subject/SHA, evidence source, verdict를 기록한다.
-
-Task가 absent public contract/module을 evidence로 요구하면 그 producer implementation task 또는
-명시적 blocked decision이 graph에 있어야 한다. consumer가 prerequisite implementation을
-`out_of_scope`로 제외한 채 실행되면 안 된다.
-
-구현 task는 focused verification 뒤 같은 card에서 `request-review`를 요청하고 `verified_sha`,
-validator, test identifier/check category, result, changed_paths, residual_risk를 남긴다. Reviewer는
-`show`, `runs`, comments를 read-back한 뒤에만 complete/request-changes를 선택한다.
-
-Quality sequence는 final implementation commit/freeze task가 `final_review_base_sha`와 clean
-workspace를 durable comment/metadata로 남긴 뒤 시작한다. 모든 reviewer와 coordinator는 같은
-literal SHA를 read-back한다. SHA가 바뀌거나 producer evidence가 없으면 review를 block한다.

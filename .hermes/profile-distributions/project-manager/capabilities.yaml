@@ -6,6 +6,10 @@ skills:
   additional_disabled:
     - simplify-code
 
+plugins:
+  enabled:
+    - agent-audit
+
 tools:
   additional_disabled_toolsets:
     - web
