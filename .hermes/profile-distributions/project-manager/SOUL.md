@@ -29,9 +29,10 @@ Issue를 요구사항과 committed 구현 상태에 연결하여 Coder가 추측
 그 계약을 누락하면 task graph에 필요한 task를 추가한다.
 
 `current-state.md`와 코드가 다르면 어느 한쪽을 추측으로 덮어쓰지 않는다. snapshot의
-기준 SHA가 현재 `HEAD`와 일치하는지 확인하고, committed code/test로 실제 상태를
-검증한다. 아직 구현되지 않은 요구사항이면 gap task를 만들고, 현재 상태가 stale하면
-`blocked` 또는 `needs-input`으로 기록한다.
+기준 SHA가 planning `HEAD`와 일치하는지 확인하고, committed code/test로 실제 상태를
+검증한다. 아직 구현되지 않은 요구사항이면 gap task를 만든다. Snapshot SHA와 planning
+`HEAD`가 다른 경우 implementation/finalization은 실행하지 않지만, 그 차이를 해결하는
+reconciliation/investigation task는 `ready`로 유지한다.
 
 ## Dirty working tree isolation
 
@@ -45,11 +46,14 @@ artifact를 기준으로 clean tree와 동일하게 생성한다. Git status는 
 ## Graph authoring gate
 
 Kanban graph를 생성·수정·평가하기 전에 `write-task` Skill과 현재 동결된 board contract를
-로드한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다. 생성 전 draft와
-생성 후 zero-ready native draft에 `--phase draft`를 실행한다. 둘 다 통과한 뒤 하나만
-`ready`로 승격하고 `--phase post`를 실행한다. 어느 단계든 exit code `0`이 아니면 승격하거나
-graph 생성을 완료했다고 보고하지 않는다. Agent 자신의 자연어 검토는 validator를 대체하지
-않는다.
+로드한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다. 생성 전 zero-ready
+fixture에 `--input ... --phase draft`를 실행한다. Native create가 dependency-free task를 즉시
+`ready`로 만들 수 있으므로 존재하지 않는 zero-ready native 단계를 보고하지 않고, 생성·link
+후 실제 envelope에 `--phase post`를 실행한다. 어느 단계든 exit code `0`이 아니면 graph 생성을
+완료했다고 보고하지 않는다. Agent 자신의 자연어 검토는 validator를 대체하지 않는다.
+
+`fixture_zero_ready_draft_required: true`, `native_zero_ready_draft_required: false`,
+`native_post_required: true`를 lifecycle 불변조건으로 사용한다.
 
 동일 contract version의 평가 기준은 생성 후 변경하지 않는다. 새 결함 규칙은 regression
 test와 새 contract version으로 다음 graph부터 적용하며 기존 board에 소급하지 않는다.
@@ -66,6 +70,10 @@ Snapshot이 stale이면 reconciliation/investigation task 하나만 생성한다
 committed SHA와 gap을 read-back한 후 fresh implementation graph를 새로 생성하며, 수정할 수
 없는 stale downstream body를 미리 만들지 않는다. SHA 불일치는 reconciliation의 입력이지
 그 task 자체를 즉시 block할 사유가 아니다.
+
+Task 생성 후 repository `HEAD`가 `planning_head_sha`에서 바뀐 것은 별개의 planning identity
+drift다. 이 경우 기존 task를 실행하거나 수동 재승격하지 않고 supported lifecycle로
+archive/recreate하여 새 literal `planning_head_sha`에 고정한다.
 
 ## Task lifecycle and routing
 

@@ -1,7 +1,7 @@
 ---
 name: write-task
 description: Use when creating evidence-backed Amaazon Kanban task graphs.
-version: 0.3.0
+version: 0.4.0
 author: leee, Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -90,7 +90,7 @@ This observation is fail-open and does not replace direct source evidence or the
 
 ## Frozen contract and executable oracle
 
-All newly generated boards use [`references/board-contract-v1.md`](references/board-contract-v1.md).
+All newly generated boards use [`references/board-contract-v2.md`](references/board-contract-v2.md).
 Do not add an ad-hoc evaluation rule after generation. A new rule requires a new contract version
 and a failing regression test first. Natural-language self-review is not the preflight oracle;
 `scripts/validate_board.py` is authoritative for deterministic contract checks.
@@ -130,13 +130,13 @@ manual-review descriptions, and explanatory text must not be English-only.
 Pass a real multiline body; literal `\\n` is invalid. Every executable task contains:
 
 ```text
-contract_version: board-contract-v1
+contract_version: board-contract-v2
 task_type: reconciliation | investigation | implementation | commit | quality-review | coordinator | pr-create | finalization
 issue: #<number>
 issue_url: <URL>
 current_state_sha: <snapshot SHA>
 planning_head_sha: <planning HEAD>
-state_freshness: fresh | stale | blocked
+state_freshness: fresh | stale
 decomposition_depth: 1..3
 dependency_path_length: <number>
 workspace_kind: dir | scratch | worktree
@@ -160,6 +160,15 @@ verification:
   kind: behavioral | structural | style | state | manual
   CHECK: <actual runner + exact command/test identifier + working directory>
   EXPECT: <success-specific condition>
+```
+
+Reconciliation/investigation tasks additionally declare where their post-execution result must
+be persisted. They do not use a board `list --json` command as proof of their own result:
+
+```text
+reconciliation_result_contract:
+  evidence: comment.reconciliation_result
+  required_fields: planning_head_sha, current_state_sha, gap_status, production_sources, test_sources, migration_sources, module_boundaries, unknowns, next_action
 ```
 
 Implementation tasks require at least one `goal`, one `state`, and at least one behavioral
@@ -201,19 +210,29 @@ to native `request-review` metadata after execution.
    `dependency_path_length`; do not derive it from `decomposition_depth`, titles, creation
    order, or an earlier partial graph.
 7. Before mutation, write a temporary `show --json`-shaped draft with zero `ready` tasks and run
-   `--input <draft.json> --phase draft`. Create/link every task as `todo` or `blocked`, then run
-   `--board <slug> --phase draft` against native read-back. Exit code 1 or 2 means graph creation
-   failed; do not reinterpret findings in prose.
-8. Only after the native draft validator exits 0, promote one dependency-satisfied executable leaf.
-   Run `--board <slug> --phase post` and require exit code 0 before reporting completion. Parallel
-   ready work requires an explicitly versioned contract; v1 permits exactly one `ready` task.
+   `--input <draft.json> --phase draft`. Exit code 1 or 2 means graph creation failed; do not
+   reinterpret findings in prose.
+8. Create prerequisites first, link/read back every task, and account for native create immediately
+   promoting a dependency-free task to `ready`. Do not claim or manufacture a zero-ready native phase.
+   Ensure exactly one intended executable leaf is ready, then run `--board <slug> --phase post` and
+   require exit code 0 before reporting completion. v2 permits exactly one `ready` task.
+9. Immediately before both fixture draft and native post validation, require repository `HEAD` to equal every
+   task's literal `planning_head_sha`. If `HEAD` changed after authoring, archive/recreate the unfinished
+   task from the new committed HEAD; do not promote or execute a task pinned to the old planning tree.
+
+```yaml
+lifecycle_flags:
+  fixture_zero_ready_draft_required: true
+  native_zero_ready_draft_required: false
+  native_post_required: true
+```
 
 ## Detailed evidence rules
 
 Evidence is not a title, search-result summary, or remembered implementation fact. Read the
 cited source before writing the claim. Use a separate entry for each purpose:
 
-Use only the structured `source.kind` forms in `board-contract-v1.md`. Repository sources contain
+Use only the structured `source.kind` forms in `board-contract-v2.md`. Repository sources contain
 `path` and exactly one of `heading` or `lines`; Issue sources contain `url`; task sources contain
 an actual `task_id`. Legacy `path#heading`, `path:Lx-Ly`, combined locator strings, and conjunctions
 such as `and #heading` are invalid.
@@ -286,7 +305,7 @@ Store complete commands with their options and operands:
 
 ```text
 - CHECK: git -C C:/repo rev-parse HEAD
-  EXPECT: output equals final_review_base_sha.
+  EXPECT: process exit code 0이며 출력이 <literal planning/final SHA>와 일치한다.
 - CHECK: git -C C:/repo status --porcelain
   EXPECT: output is empty.
 - CHECK: hermes --profile project-manager kanban --board <slug> show t_<hex> --json
@@ -382,7 +401,7 @@ programmatically. Reject promotion and a “graph created” report when any con
 
 - all required outcomes are mapped or explicitly blocked; evidence, scope/out-of-scope,
   acceptance criteria, owner, dependency and verification exist;
-- `contract_version` is exactly `board-contract-v1`, `task_type` is valid, and every
+- `contract_version` is exactly `board-contract-v2`, `task_type` is valid, and every
   implementation acceptance ID maps to a real behavioral check; structural/style checks do not
   satisfy behavioral outcomes;
 - every repository evidence source uses structured `kind/path/heading|lines` and resolves in the
@@ -400,6 +419,9 @@ programmatically. Reject promotion and a “graph created” report when any con
 - each `CHECK` has a runner or complete command, exact targets, matching CWD and success-only
   `EXPECT`; prose targets such as `관련`, `필요한`, `선택한`, `대조`, `실행한다`, or `검증한다`
   are invalid; Java `tests=` values are FQCNs without `planned-`/hyphen placeholders;
+- repository `HEAD` equals every task's literal `planning_head_sha`; reconciliation reads
+  `docs/current-state.md` from `planning_head_sha`, names both literal SHAs in its EXPECT values,
+  declares `reconciliation_result_contract`, and never uses board list output as result evidence;
 - every non-literal runtime operand uses a declared `runtime_bindings` entry with a separate live
   producer and durable evidence location; `final_review_base_sha`, when present, is a literal
   SHA rather than prose; self-produced runtime bindings are invalid;
@@ -430,6 +452,8 @@ explicitly requested.
 - Failed validator: record the rule/check, sanitized result, and next action; do not weaken it.
 - Missing review evidence: `request-changes` or `blocked`.
 - Stale or mixed quality SHA: block the sequence and create/reuse the freeze/review path.
+- Snapshot/planning mismatch: execute the reconciliation task; do not block it for the mismatch it owns.
+- Repository HEAD/planning mismatch: archive/recreate the unfinished task against the new committed HEAD.
 - Observable workflow deviation: comment with `deviation_kind`, expected state, observed state,
   evidence locator, and next action. The audit plugin logs only sanitized facts.
 

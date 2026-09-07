@@ -5,6 +5,8 @@ profile: project-manager
 skills:
   additional_disabled:
     - simplify-code
+    - kanban-task-graph
+    - kanban-task-graph-operations
 
 plugins:
   enabled:

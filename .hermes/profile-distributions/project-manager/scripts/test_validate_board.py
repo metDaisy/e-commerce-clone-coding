@@ -14,7 +14,7 @@ def body(*, stale=False, extra="", source=None):
       kind: repository
       path: docs/requirement.md
       heading: 목표"""
-    return f"""contract_version: board-contract-v1
+    return f"""contract_version: board-contract-v2
 task_type: implementation
 issue: #20
 issue_url: https://github.com/example/repository/issues/20
@@ -59,14 +59,14 @@ review_handoff_contract:
 {extra}"""
 
 
-def envelope(task_id, task_body, *, status="ready", parents=None, children=None, runs=None):
+def envelope(task_id, task_body, *, status="ready", parents=None, children=None, runs=None, assignee="prototype-coder"):
     return {
         "task": {
             "id": task_id,
             "title": "미디어 계약 구현",
             "body": task_body,
             "status": status,
-            "assignee": "prototype-coder",
+            "assignee": assignee,
             "workspace_kind": "dir",
             "workspace_path": REPO,
         },
@@ -88,12 +88,44 @@ def source_loader(_sha, path):
     return sources[path]
 
 
+def reconciliation_body():
+    result = body(stale=True).replace("task_type: implementation", "task_type: reconciliation")
+    result = result.replace("assignee: prototype-coder", "assignee: project-manager")
+    result = result.replace(
+        "- check_id: check-media\n"
+        "  kind: behavioral\n"
+        "  CHECK: runner=gradle-mcp; tasks=:test; tests=io.example.MediaTest; CWD=C:/repo\n"
+        "  EXPECT: process exit code 0이며 지정한 테스트가 통과한다.\n"
+        "review_handoff_contract:\n"
+        "  action: request-review\n"
+        "  required_metadata: verified_sha, validator, check_id, result, changed_paths, residual_risk\n"
+        "  reviewer_readback: show, runs, comments\n",
+        "- check_id: check-head\n"
+        "  kind: state\n"
+        f"  CHECK: git -C {REPO} rev-parse HEAD\n"
+        f"  EXPECT: process exit code 0이며 출력이 {HEAD}와 일치한다.\n"
+        "- check_id: check-snapshot\n"
+        "  kind: state\n"
+        f"  CHECK: git -C {REPO} show {HEAD}:docs/current-state.md\n"
+        f"  EXPECT: process exit code 0이며 문서가 {SNAPSHOT}을 기준 SHA로 기록한다.\n"
+        "reconciliation_result_contract:\n"
+        "  evidence: comment.reconciliation_result\n"
+        "  required_fields: planning_head_sha, current_state_sha, gap_status, production_sources, test_sources, migration_sources, module_boundaries, unknowns, next_action\n",
+    )
+    return result
+
+
 class BoardContractTest(unittest.TestCase):
     def codes(self, board, phase="post"):
         return {finding.code for finding in validate_board(board, source_loader, phase=phase)}
 
     def test_valid_contract_passes(self):
         self.assertEqual([], validate_board([envelope("t_aaaaaaaa", body())], source_loader))
+
+    def test_rejects_planning_sha_that_is_not_repository_head(self):
+        board = [envelope("t_aaaaaaaa", body())]
+        findings = validate_board(board, source_loader, repository_head=SNAPSHOT)
+        self.assertIn("PLANNING_HEAD_MISMATCH", {finding.code for finding in findings})
 
     def test_rejects_combined_heading_and_line_locator(self):
         board = [envelope("t_aaaaaaaa", body(source="source: docs/requirement.md#목표:L1-L2"))]
@@ -199,6 +231,57 @@ runtime_bindings:
             envelope("t_bbbbbbbb", second, status="blocked", parents=["t_aaaaaaaa"]),
         ]
         self.assertIn("STALE_GRAPH_NOT_TWO_PHASE", self.codes(board))
+
+    def test_reconciliation_requires_result_contract(self):
+        invalid = reconciliation_body().replace(
+            "reconciliation_result_contract:\n"
+            "  evidence: comment.reconciliation_result\n"
+            "  required_fields: planning_head_sha, current_state_sha, gap_status, production_sources, test_sources, migration_sources, module_boundaries, unknowns, next_action\n",
+            "",
+        )
+        board = [envelope("t_aaaaaaaa", invalid, assignee="project-manager")]
+        self.assertIn("RECONCILIATION_RESULT_CONTRACT_MISSING", self.codes(board))
+
+    def test_reconciliation_snapshot_check_reads_planning_tree(self):
+        invalid = reconciliation_body().replace(
+            f"show {HEAD}:docs/current-state.md",
+            f"show {SNAPSHOT}:docs/current-state.md",
+        )
+        board = [envelope("t_aaaaaaaa", invalid, assignee="project-manager")]
+        self.assertIn("RECONCILIATION_SNAPSHOT_CHECK_INVALID", self.codes(board))
+
+    def test_reconciliation_head_check_names_literal_planning_sha(self):
+        invalid = reconciliation_body().replace(
+            f"EXPECT: process exit code 0이며 출력이 {HEAD}와 일치한다.",
+            "EXPECT: process exit code 0이며 출력이 planning_head_sha와 일치한다.",
+        )
+        board = [envelope("t_aaaaaaaa", invalid, assignee="project-manager")]
+        self.assertIn("RECONCILIATION_HEAD_CHECK_INVALID", self.codes(board))
+
+    def test_reconciliation_rejects_tautological_board_list_check(self):
+        invalid = reconciliation_body().replace(
+            f"CHECK: git -C {REPO} show {HEAD}:docs/current-state.md",
+            "CHECK: hermes --profile project-manager kanban --board issue-20 list --json",
+        )
+        board = [envelope("t_aaaaaaaa", invalid, assignee="project-manager")]
+        self.assertIn("RECONCILIATION_TAUTOLOGICAL_CHECK", self.codes(board))
+
+    def test_reconciliation_rejects_self_block_for_expected_snapshot_mismatch(self):
+        board = [
+            envelope(
+                "t_aaaaaaaa",
+                reconciliation_body(),
+                assignee="project-manager",
+                runs=[
+                    {
+                        "status": "blocked",
+                        "outcome": "blocked",
+                        "summary": "현재 planning HEAD와 snapshot SHA 불일치 조정이 선행되어야 한다.",
+                    }
+                ],
+            )
+        ]
+        self.assertIn("RECONCILIATION_SELF_BLOCKED", self.codes(board))
 
     def test_rejects_english_only_human_text(self):
         invalid = body().replace("claim: 미디어 업로드 계약을 구현한다.", "claim: Implement media upload contract.")

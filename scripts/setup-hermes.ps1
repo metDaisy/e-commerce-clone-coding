@@ -54,11 +54,9 @@ try {
       throw "Failed to configure project cwd: $profile"
     }
     if ($profile -eq 'project-manager') {
-      $skillDir = Join-Path $rootDir '.hermes\profile-distributions\project-manager\skills'
-      $externalDirs = ConvertTo-Json -Compress @($skillDir)
-      hermes --profile $profile config set skills.external_dirs $externalDirs
+      hermes --profile $profile config set skills.external_dirs '[]'
       if ($LASTEXITCODE -ne 0) {
-        throw "Failed to configure custom Skill directory: $profile"
+        throw "Failed to clear legacy duplicate Skill directory: $profile"
       }
     }
   }

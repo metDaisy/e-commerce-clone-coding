@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only validator for Amaazon board-contract-v1."""
+"""Read-only validator for Amaazon board-contract-v2."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 
-CONTRACT_VERSION = "board-contract-v1"
+CONTRACT_VERSION = "board-contract-v2"
 TASK_ID = re.compile(r"^t_[0-9a-f]+$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 FQCN = re.compile(r"^(?:[a-z_][A-Za-z0-9_]*\.)+[A-Z][A-Za-z0-9_]*(?:#[A-Za-z_$][A-Za-z0-9_$]*)?$")
@@ -222,6 +222,8 @@ def _human_text_findings(task_id: str, title: str, body: str) -> list[Finding]:
 def _verification_findings(task_id: str, body: str, task_type: str | None) -> list[Finding]:
     findings: list[Finding] = []
     workspace_path = _field(body, "workspace_path")
+    planning_sha = _field(body, "planning_head_sha")
+    current_sha = _field(body, "current_state_sha")
     checks = _structured_entries(body, "verification", "check_id")
     criteria = _structured_entries(body, "acceptance_criteria", "id")
     coverage = _structured_entries(body, "acceptance_coverage", "acceptance_id")
@@ -264,6 +266,64 @@ def _verification_findings(task_id: str, body: str, task_type: str | None) -> li
                 findings.append(Finding("CHECK_WORKSPACE_MISMATCH", task_id, check_id))
         else:
             findings.append(Finding("SHELL_CHECK_INVALID", task_id, check_id))
+    if task_type in {"reconciliation", "investigation"}:
+        result_contract = _flat_block(body, "reconciliation_result_contract")
+        required_result_fields = {
+            "planning_head_sha",
+            "current_state_sha",
+            "gap_status",
+            "production_sources",
+            "test_sources",
+            "migration_sources",
+            "module_boundaries",
+            "unknowns",
+            "next_action",
+        }
+        declared_result_fields = {
+            value.strip()
+            for value in result_contract.get("required_fields", "").split(",")
+            if value.strip()
+        }
+        if (
+            result_contract.get("evidence") != "comment.reconciliation_result"
+            or declared_result_fields != required_result_fields
+        ):
+            findings.append(
+                Finding(
+                    "RECONCILIATION_RESULT_CONTRACT_MISSING",
+                    task_id,
+                    "reconciliation_result_contract",
+                )
+            )
+        expected_head_command = f"git -C {workspace_path} rev-parse HEAD"
+        if not any(
+            check.get("CHECK") == expected_head_command and planning_sha and planning_sha in check.get("EXPECT", "")
+            for check in checks.values()
+        ):
+            findings.append(Finding("RECONCILIATION_HEAD_CHECK_INVALID", task_id, "literal planning SHA"))
+        expected_snapshot_command = f"git -C {workspace_path} show {planning_sha}:docs/current-state.md"
+        if not any(
+            check.get("CHECK") == expected_snapshot_command and current_sha and current_sha in check.get("EXPECT", "")
+            for check in checks.values()
+        ):
+            findings.append(
+                Finding(
+                    "RECONCILIATION_SNAPSHOT_CHECK_INVALID",
+                    task_id,
+                    "read current-state.md from planning_head_sha",
+                )
+            )
+        if any(
+            re.search(r"\bkanban\b.*\blist\b.*--json", check.get("CHECK", ""))
+            for check in checks.values()
+        ):
+            findings.append(
+                Finding(
+                    "RECONCILIATION_TAUTOLOGICAL_CHECK",
+                    task_id,
+                    "board list cannot prove reconciliation result",
+                )
+            )
     if task_type == "implementation":
         if not criteria or not coverage:
             findings.append(Finding("IMPLEMENTATION_BEHAVIOR_COVERAGE", task_id, "criteria or coverage missing"))
@@ -281,6 +341,7 @@ def validate_board(
     source_loader: Callable[[str, str], str],
     *,
     phase: str = "post",
+    repository_head: str | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
     if phase not in {"draft", "post"}:
@@ -389,6 +450,14 @@ def validate_board(
             value = _field(body, name)
             if value is None or (expected is not None and value != expected):
                 findings.append(Finding("BODY_SCHEMA_MISSING", task_id, name))
+        if repository_head is not None and planning_sha != repository_head:
+            findings.append(
+                Finding(
+                    "PLANNING_HEAD_MISMATCH",
+                    task_id,
+                    f"planning_head_sha={planning_sha},repository_head={repository_head}",
+                )
+            )
         if task_type not in TASK_TYPES:
             findings.append(Finding("TASK_TYPE_INVALID", task_id, str(task_type)))
         if task.get("status") not in TASK_STATUSES:
@@ -427,6 +496,24 @@ def validate_board(
             findings.append(Finding("WORKSPACE_MISMATCH", task_id, "body/native workspace differ"))
         if task.get("status") == "done" and not any(_successful_run(run) for run in item.get("runs", [])):
             findings.append(Finding("FALSE_DONE", task_id, "no successful task run"))
+        if task_type in {"reconciliation", "investigation"}:
+            for run in item.get("runs", []):
+                summary = str(run.get("summary", "")).lower() if isinstance(run, dict) else ""
+                outcome = str(run.get("outcome", "")).lower() if isinstance(run, dict) else ""
+                expected_snapshot_mismatch = (
+                    ("snapshot" in summary or "current_state" in summary)
+                    and ("planning" in summary or "계획" in summary)
+                    and ("mismatch" in summary or "불일치" in summary)
+                )
+                if outcome == "blocked" and expected_snapshot_mismatch:
+                    findings.append(
+                        Finding(
+                            "RECONCILIATION_SELF_BLOCKED",
+                            task_id,
+                            "snapshot/planning mismatch is the reconciliation input",
+                        )
+                    )
+                    break
         for key in ("depends_on_task_id", "final_review_base_sha_producer_task_id"):
             reference = _field(body, key)
             if reference and (not TASK_ID.fullmatch(reference) or reference not in task_ids):
@@ -574,7 +661,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         envelopes = json.loads(args.input.read_text(encoding="utf-8")) if args.input else collect_board(args.profile, args.board, args.repository)
         phase = args.phase or ("draft" if args.input else "post")
-        findings = validate_board(envelopes, git_source_loader(args.repository), phase=phase)
+        repository_head = _run(["git", "rev-parse", "HEAD"], args.repository).strip()
+        findings = validate_board(
+            envelopes,
+            git_source_loader(args.repository),
+            phase=phase,
+            repository_head=repository_head,
+        )
     except (KeyError, TypeError, OSError, subprocess.CalledProcessError, RuntimeError, json.JSONDecodeError) as error:
         print(f"infrastructure error: {error}", file=sys.stderr)
         return 2
@@ -585,6 +678,7 @@ def main(argv: list[str] | None = None) -> int:
         "valid": not findings,
         "finding_count": len(findings),
         "phase": phase,
+        "repository_head": repository_head,
         "findings": [_finding_payload(finding) for finding in findings],
     }
     if args.json:

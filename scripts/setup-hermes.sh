@@ -38,8 +38,7 @@ for profile in $profiles; do
     --name "$profile" --alias --force --yes
   hermes --profile "$profile" config set terminal.cwd "$root_dir"
   if [ "$profile" = "project-manager" ]; then
-    hermes --profile "$profile" config set skills.external_dirs \
-      "[\"$root_dir/.hermes/profile-distributions/project-manager/skills\"]"
+    hermes --profile "$profile" config set skills.external_dirs '[]'
   fi
 done
 
