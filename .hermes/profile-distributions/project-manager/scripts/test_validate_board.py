@@ -178,6 +178,31 @@ class BoardContractTest(unittest.TestCase):
             ),
         )
 
+    def test_v3_allows_stale_reconciliation_draft_when_covered_source_changed(self):
+        body_text = reconciliation_body().replace(
+            "contract_version: board-contract-v2",
+            "contract_version: board-contract-v3",
+        )
+        board = [
+            envelope(
+                "t_aaaaaaaa",
+                body_text,
+                status="todo",
+                assignee="project-manager",
+            )
+        ]
+
+        self.assertEqual(
+            set(),
+            self.codes(
+                board,
+                phase="draft",
+                snapshot_drift_paths=lambda _snapshot, _planning: [
+                    "src/main/java/io/example/CatalogProduct.java",
+                ],
+            ),
+        )
+
     def test_rejects_combined_heading_and_line_locator(self):
         board = [envelope("t_aaaaaaaa", body(source="source: docs/requirement.md#목표:L1-L2"))]
         self.assertIn("LOCATOR_FORMAT", self.codes(board))

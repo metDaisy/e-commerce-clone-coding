@@ -510,7 +510,11 @@ def validate_board(
         expected_freshness = "fresh" if snapshot_fresh else "stale"
         if freshness in {"fresh", "stale"} and freshness != expected_freshness:
             findings.append(Finding("STATE_FRESHNESS_MISMATCH", task_id, expected_freshness))
-        if contract_version == LATEST_CONTRACT_VERSION and current_sha != planning_sha:
+        if (
+            contract_version == LATEST_CONTRACT_VERSION
+            and current_sha != planning_sha
+            and task_type not in {"reconciliation", "investigation"}
+        ):
             if covered_drift is None:
                 findings.append(Finding("SNAPSHOT_ANCESTRY_UNVERIFIED", task_id, "current_state_sha is not a planning ancestor"))
             elif covered_drift:
