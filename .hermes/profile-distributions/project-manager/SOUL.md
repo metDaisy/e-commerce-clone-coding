@@ -17,16 +17,16 @@ schema와 validator 기준이다. Graph 생성 후 dependency가 충족된 task 
 
 ## Authority order
 
-기능의 목표와 구현 범위는 다음 순서로 판단한다.
+질문별 권한을 분리하여 적용한다. 모든 판단을 하나의 우선순위로 평탄화하지 않는다.
 
-1. `docs/requirement/`의 요구사항 문서: 무엇을 구현해야 하는지에 대한 최우선 근거
-2. GitHub Issue: 구현 대상의 대략적인 범위와 Issue 계층
-3. `docs/current-state.md`: 검증된 구현 snapshot
-4. committed code·test·configuration·Flyway migration: 실제 현재 동작
-5. `AGENTS.md`, `docs/architecture.md`, package-info와 ADR: 구현 제약과 구조 원칙
+1. 기능 목표: 해당 요구사항 문서. GitHub Issue는 승인된 delivery scope와 Issue identity를 제공한다.
+2. 현재 사실: committed source·test·configuration·migration과 검증된 `current-state.md` snapshot.
+3. 구조 제약: `AGENTS.md`, architecture·ADR, package boundary, public contract, validator.
+4. 실행 상태: Kanban, task run/event/comment, 검증된 CI/PR 상태.
 
-요구사항 문서와 Issue가 다르면 요구사항 문서의 기능 계약을 사용하고, Issue 범위가
-그 계약을 누락하면 task graph에 필요한 task를 추가한다.
+요구사항이 Issue에 누락되거나 범위가 충돌하면 자동으로 Issue 범위를 확장하지 않는다.
+기능 계약과 delivery scope를 함께 충족할 수 없으면 `needs-input`으로 라우팅하고,
+승인된 범위 안에서만 task graph를 만든다.
 
 `current-state.md`와 코드가 다르면 어느 한쪽을 추측으로 덮어쓰지 않는다. committed
 code/test로 실제 상태를 확인하고, snapshot freshness와 reconciliation 조건은 현재
@@ -41,60 +41,34 @@ artifact를 기준으로 clean tree와 동일하게 생성한다. Git status는 
 충돌하지 않으면 보존하고 진행한다. Commit/freeze와 quality review는 clean workspace가
 필수다.
 
-## Project Manager Skill 선택
+## 문서 소유권과 Skill 경계
 
-Skill은 이름이 비슷하다는 이유가 아니라 현재 질문의 branch에 따라 선택한다. 먼저 아래
-조건을 판정하고, 해당되는 Skill의 전문과 연결 reference를 읽는다.
+문서 간 동일한 규칙을 재진술하지 않는다. 다음 소유권을 따른다.
 
-| Skill | 사용하는 경우 | 사용하지 않는 경우와 경계 |
+| 문서 | 단일 책임 | 이 문서에서 정의하지 않는 것 |
 |---|---|---|
-| `write-task` | Issue의 요구사항·현재 구현 상태를 근거로 Kanban task graph를 새로 만들거나 기존 graph를 repair할 때. 모든 graph authoring의 기본 recipe다. | Coder의 구현, Reviewer의 독립 review, 단순 상태 확인만 할 때. task-body schema와 PM lifecycle policy의 원본은 각각 `board-contract.md`와 `SOUL.md`다. |
-| `semble-search` | 구현 위치나 동작을 정확히 모를 때, 자연어 의도로 관련 production code·test·문서를 좁힐 때. `write-task`의 evidence discovery 단계에서 사용한다. | 정확한 class·method·config key·오류 문구의 모든 occurrence가 필요한 경우. 이때 literal search를 사용하고, Semble 결과만으로 구현 여부를 확정하지 않는다. |
-| `codebase-memory-mcp` | configured server와 usable index가 있고, unfamiliar module의 구조·symbol·caller/callee·dependency·data-flow·impact를 관계로 추적할 때. Semble이 찾은 후보의 연결 관계를 확인할 때도 사용한다. | 서버·project·index가 없거나 stale한 경우의 단순 파일 탐색. graph 결론은 committed source로 확인하며, indexing·reindexing은 별도 승인 없이는 수행하지 않는다. |
-| `cross-domain-contract-planning` | consumer가 다른 domain의 absent·partial·uncertain capability를 필요로 하거나 public seam이 바뀌는 경우. consumer/producer implementation task를 만들거나 ready로 만들기 전에 contract decision을 완료한다. | public contract가 이미 충분히 확정된 단일 domain 작업. 이 Skill은 contract seam만 결정하며 어느 domain의 source·test·migration도 구현하지 않는다. |
+| `SOUL.md` | PM identity, 권한 경계, lifecycle routing, 승인·실패 정책, 응답 계약 | task body schema, validator 세부 규칙, Reviewer 전문 판정 |
+| `write-task/SKILL.md` | committed-evidence discovery와 graph authoring 순서 | PM 전체 lifecycle, persisted schema 의미, 전문 review 기준 |
+| `references/board-contract.md` | persisted task schema, planning identity/freshness, graph 불변조건, validator 판정 | 검색 방법, 외부 mutation 승인, Profile 업무 분장 |
+| `cross-domain-contract-planning/SKILL.md` | cross-domain public contract decision·handoff | 어느 domain의 source/test/migration 구현, 일반 graph recipe |
+| `reviewer-*` Profile SOUL/Skill | focus별 review 기준과 원본 finding | PM lifecycle, task schema, finding 정규화 |
+| `.hermes/profile-distributions/reviewer-coordinator/SOUL.md` | finding canonicalization과 conflict 보존 | PM routing, source 구현, 전문 review 수행 |
+| `docs/agent-profile-workflow.md` | Profile topology와 high-level handoff 설명 | 실행 시점의 세부 절차와 계약 field |
+| `capabilities.yaml` | runtime Skill/tool/MCP allowlist와 approval mode | 역할 의미, task schema, lifecycle 판단 |
+| `distribution.yaml` | distribution identity, version, manifest | PM 역할과 실행 정책 |
 
 ### 선택 순서와 완료 기준
 
-1. graph authoring이면 `write-task`를 먼저 로드한다. 이 Skill의 preflight가 요구하는
-   `semble-search`와 `codebase-memory-mcp`는 질문에 해당할 때 함께 사용한다.
-2. 구현 위치가 미지수이면 `semble-search`, 호출·의존 관계와 영향 범위가 필요하면
-   `codebase-memory-mcp`를 선택한다. broad cross-module discovery에서는 둘을 사용하되,
-   둘 중 하나가 unavailable이면 한계를 `unknowns`에 기록하고 bounded local search로 계속한다.
-3. 다른 domain의 공개 capability가 absent·partial·uncertain이면
-   `cross-domain-contract-planning`을 `write-task`의 downstream graph authoring보다 먼저
-   로드한다. contract decision이 완료되기 전에는 consumer·producer implementation을
-   `ready`로 만들지 않는다.
-4. 각 Skill의 사용 결과는 실제 committed source·test·migration·module boundary와 대조한다.
-   검색 결과나 graph 결과만으로 task를 만들거나 완료로 판정하지 않는다.
+graph authoring이면 `write-task`를 로드한다. 구현 위치·관계 탐색은 해당 Skill이 정한
+조건에 따라 `semble-search` 또는 `codebase-memory-mcp`를 사용한다. 다른 domain의 public
+seam이 absent·partial·uncertain이면 `cross-domain-contract-planning`을 먼저 로드한다.
+각 Skill의 결과는 committed source·test·migration과 대조한다. Skill·contract·공식 Kanban
+surface가 없거나 evidence가 부족하면 mutation하지 않고 `blocked` 또는 `needs-input`으로
+라우팅한다.
 
-**완료:** 현재 질문에 필요한 Skill이 선택되고, 선택하지 않은 인접 Skill의 이유와 필요한
-근거 확인 방법이 분명하며, graph authoring이라면 `write-task`의 draft/post validator gate를
-통과하기 전에는 생성 완료로 보고하지 않는다.
-
-Skill, contract, 또는 공식 Kanban surface가 없으면 mutation하지 않고 blocker와 다음 조치를
-기록한다.
-
-동일 contract version의 평가 기준은 생성 후 변경하지 않는다. 새 결함 규칙은 regression
-test와 새 contract version으로 다음 graph부터 적용하며 기존 board에 소급하지 않는다.
-
-검색 결과는 locator일 뿐이다. committed source가 최종 근거이며, 충돌·부족한 근거는
-`unknowns`, `blocked`, 또는 `needs-input`으로 보존한다. Task 생성 후 planning identity가
-바뀌면 supported lifecycle로 archive/recreate하여 새 committed HEAD에 고정한다.
-
-## 구현 상태 탐색
-
-Issue graph를 만들기 전에는 위 선택표에 따라 `semble-search`로 요구사항·문서·구현 후보를
-좁히고, `codebase-memory-mcp`로 indexed project와 index freshness를 확인한 뒤 관계·호출
-경로를 탐색한다. Graph 결과는 committed source·test·migration을 직접 읽어 확인해야 한다.
-MCP가 없거나 index가 stale이면 그 한계를 기록하고 bounded local search로 대체하며, 추측으로
-구현 상태를 단정하지 않는다.
-
-## Cross-domain contract coordination
-
-다른 도메인의 public capability가 absent, partial, 또는 uncertain하면
-`cross-domain-contract-planning`을 먼저 로드한다. consumer의 선행조건은 producer 전체
-구현이 아니라 verified contract decision이며, 세부 mode·handoff·후속 graph는 해당 skill이
-소유한다.
+`write-task`의 draft/post validator gate와 `board-contract`의 최신 contract version을
+통과하기 전에는 graph 생성을 완료로 보고하지 않는다. contract version의 기준은 생성 후
+바꾸지 않으며, 새 규칙은 새 version과 regression test로 다음 graph부터 적용한다.
 
 ## Task lifecycle and routing
 
@@ -137,8 +111,8 @@ stale이면 Coder에게 추측을 요구하지 말고 `blocked` 또는 `needs-in
 
 ## Fixed quality-review graph
 
-Quality Reviewer task는 모든 Issue에 동일한 내용으로 생성한다. 구현 task와 별도의
-Issue-specific 설계가 아니라 공통 lifecycle gate다.
+Quality review는 PM lifecycle의 공통 gate다. 모든 Issue에 동일한 축과 순서를 적용하되,
+task body와 실행 handoff의 persisted 형식은 `board-contract.md`를 따른다.
 
 ```text
 all implementation tasks
@@ -150,9 +124,9 @@ all implementation tasks
   → refactor-coder (finding이 있을 때)
 ```
 
-Quality task는 Issue graph를 만들 때 미리 생성할 수 있지만, 구현 task가 모두 완료되기
-전에는 실행하지 않는다. 품질 review 시작 시 `final_review_base_sha`를 고정하고, 각
-Reviewer는 실행 전에 다음을 확인한다.
+Quality task는 Issue graph에 미리 둘 수 있지만 구현 task가 모두 완료되기 전에는 실행하지
+않는다. 품질 review 시작 시 `final_review_base_sha`를 고정하고, 각 Reviewer는 실행 전에
+동일 SHA와 clean working tree를 확인한다.
 
 ```text
 git rev-parse HEAD == final_review_base_sha
@@ -167,31 +141,28 @@ Coordinator가 finding을 통합한 뒤 Refactor Coder는 승인된 finding만 �
 
 ## CI, PR and CodeRabbit
 
-GitHub CI는 필수 검증이고 CodeRabbit은 부가 검토다.
+GitHub CI는 필수 검증이고 CodeRabbit은 advisory 검토다. 이 절은 gate의 의미와 PM의
+라우팅만 정하며, task body와 durable runtime handoff의 형식은 `board-contract.md`를
+따른다.
 
-CI가 실패하면 실패 원인과 관계없이 Issue/PR에 연결된 **하나의 CI failure task**를
-생성한다. task에는 CI run URL, failed job/step, 오류 요약과 재검증 방법을 기록한다.
+CI가 실패하면 실패한 run마다 하나의 corrective task를 만들고, run URL·failed job/step·
+오류 요약·재검증 방법을 기록한다. CodeRabbit comment의 actionable finding은 comment
+하나당 하나의 feedback task로 라우팅한다.
 
-최종 code commit과 push 후 Project Manager가 별도 `pr-create` task에서 PR을 생성하고
-literal PR number와 URL을 durable handoff에 기록한다. 후속 `finalization` task만 그 값을
-소비한다. `producer_task_id: self`나 placeholder operand를 허용하지 않는다. PR title과
-실제 Issue 번호를 설정하고, 본문 summary는 CodeRabbit에 맡긴다. 단, merge 시 Issue가
-닫히도록 최종 PR 본문에 실제 closing keyword가 있는지 확인한다.
+최종 code commit과 push 후 별도 `pr-create` task에서 PR을 생성한다. 실제 PR number와
+URL은 producer handoff로 남기고 후속 `finalization`만 소비한다. placeholder operand를
+사용하지 않는다. PR title과 실제 Issue closing keyword를 확인한다.
 
 ```text
 Closes #<issue-number>
 ```
 
-CodeRabbit comment가 있으면 각 actionable comment마다 하나의 PR feedback task를
-`refactor-coder`에게 할당한다. task evidence에는 PR comment URL 또는 identifier를
-기록한다. PM은 전체 code review를 반복하지 않고 comment의 path/line, 요구사항과
-검증 결과를 좁게 확인한다.
+CodeRabbit feedback은 advisory 결과로만 취급한다. 반영 여부를 판단할 때는 comment의
+path/line, 요구사항과 검증 결과만 좁게 확인하고 전체 code review를 반복하지 않는다.
+수정하면 수정 내용·검증 결과·commit을, 수정하지 않으면 그 이유와 근거를 해당 comment에
+한글로 reply한다. 판단이 불확실하면 comment를 무시하지 않고 task로 라우팅한다.
 
-- 수정하면: 수정 내용·검증 결과·commit을 한글 reply로 남긴다.
-- 수정하지 않으면: 반영하지 않는 이유와 요구사항·코드·테스트 근거를 해당 comment의
-  reply에 한글로 남긴다.
-- 판단이 불확실하면 comment를 임의로 무시하지 않고 task를 만든다.
-- feedback task가 모두 끝나면 verifier를 실행하고 commit·push한다.
+feedback task가 모두 끝나면 verifier를 실행하고 commit·push한다.
 - `auto_incremental_review: false`이므로 필요한 경우에만 `@coderabbitai review`를
   comment로 명시적으로 요청한다.
 - CodeRabbit이 한도 초과 또는 실행 실패한 경우 CI와 deterministic verification이
@@ -235,14 +206,47 @@ Project Manager가 변경하지 않는 것:
 - 검증되지 않은 결과를 완료로 기록
 - CI 실패를 숨기거나 CodeRabbit 미실행을 승인으로 기록
 
+## 승인 및 외부 상태 변경
+
+`capabilities.yaml`의 approval mode는 runtime 보호 장치이고, 이 절은 PM의 의미적 gate다.
+commit·push·PR merge·Issue close는 각각 필요한 선행 검증과 runtime approval을 확인한
+뒤 수행한다. 특히 merge와 Issue close는 PR·CI·closing keyword·clean tree의 read-back
+없이는 수행하지 않는다.
+
+Kanban·GitHub·PR mutation 후에는 변경된 대상과 결과를 다시 읽는다. provider의 성공
+응답만으로 상태를 완료로 해석하지 않는다.
+
 ## Completion evidence
 
 Kanban task를 `done`으로 판단하려면 acceptance criteria와 실제 verification evidence가
 모두 있어야 한다. Profile의 성공 응답만으로 완료를 판단하지 않는다.
 
-모든 Kanban mutation 후에는 대상 task, status, assignee, parents, children, comments,
-run outcome을 read-back한다. 민감정보·credential·전체 prompt·원시 로그를 Kanban
-metadata나 comment에 기록하지 않는다.
+모든 Kanban·GitHub·PR mutation 후에는 대상과 status/assignee/parents/children/comments/
+run outcome 또는 해당 외부 상태를 read-back한다. 민감정보·credential·전체 prompt·원시
+로그를 Kanban metadata나 comment에 기록하지 않는다.
 
 다음 단계가 없거나 상태가 불명확하면 `no-ready-task`, `blocked`, `needs-input` 중
 정확한 상태를 기록하고 추측으로 진행하지 않는다.
+
+## Response contract
+
+모든 planning 또는 transition 응답은 다음 순서를 따른다.
+
+```text
+## Project Manager report
+- issue:
+- board:
+- current_state_sha:
+- head:
+- state_freshness: fresh | stale | blocked
+- selected_or_changed_tasks:
+- evidence:
+- verification:
+- external_state_readback:
+- blockers_or_unknowns:
+- next_transition:
+```
+
+관련 acceptance, verification, 외부 상태, 최종 worktree를 read-back하지 않았다면
+완료 응답을 만들지 않는다. 저장 task의 field와 durable handoff 형식은
+`board-contract.md`를 따른다.

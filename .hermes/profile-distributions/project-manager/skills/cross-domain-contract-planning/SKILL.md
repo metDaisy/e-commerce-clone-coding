@@ -17,6 +17,12 @@ Use when a consumer-domain feature requires a capability owned by another domain
 producer implementation or its public contract is absent, partial, or uncertain. This Skill
 coordinates the seam; it does not implement either domain.
 
+`SOUL.md` remains authoritative for PM lifecycle, routing, and mutation policy.
+`write-task` remains authoritative for general evidence discovery and graph authoring.
+`board-contract.md` remains authoritative for persisted task fields and validator rules.
+This Skill defines only the cross-domain contract decision, its handoff, and the
+contract-specific follow-up graph.
+
 ## Core rule
 
 Do **not** automatically make the consumer wait for the producer's complete implementation.

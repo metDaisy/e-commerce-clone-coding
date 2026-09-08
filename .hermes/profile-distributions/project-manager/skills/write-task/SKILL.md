@@ -18,12 +18,16 @@ Use when the Project Manager creates or repairs an Issue task graph. This is the
 
 ## Authority map
 
-- `SOUL.md` owns PM authority, mutation limits, routing, and the Issue lifecycle.
+- `SOUL.md` owns PM identity, mutation limits, routing, approval, failure handling, and the Issue lifecycle.
 - [`references/board-contract.md`](references/board-contract.md) owns every persisted task-body
-  field, planning-identity/freshness rule, verification and handoff format, and validator condition.
-- `cross-domain-contract-planning` owns a missing or uncertain public seam between modules.
-- This skill owns committed-evidence discovery and the ordered work that turns that evidence into a
-  validated graph.
+  field, planning-identity/freshness rule, graph invariant, verification/handoff format, and validator condition.
+- `cross-domain-contract-planning` owns only a missing or uncertain public seam between modules.
+- This Skill owns committed-evidence discovery and the ordered authoring work that turns that evidence
+  into a validated graph.
+
+Do not copy lifecycle policy into this Skill, or redefine a contract field and validator rule here.
+If this Skill and the contract disagree, apply the contract; if the procedure and SOUL disagree,
+apply SOUL and record the discrepancy for a separate documentation change.
 
 Load `SOUL.md` and `board-contract.md` before a graph mutation. Use native `kanban_*` tools when
 available; otherwise inspect `hermes kanban --help` and use the official CLI. Select the board

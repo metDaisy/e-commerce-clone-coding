@@ -17,24 +17,23 @@ discovery와 이 계약을 적용하는 authoring 순서를, `SOUL.md`는 PM의 
 소유한다. 세 문서가 같은 field 또는 validator 결과를 다르게 설명하면 이 계약과 validator를
 따른다.
 
-## 생성 단계
+## Contract boundary
 
-1. Issue, repository `HEAD`, `docs/current-state.md`와 `planning_head_sha`의 committed evidence를 읽는다.
-2. native `show --json` envelope 형태의 임시 graph JSON을 만든다. 모든 task는 `todo` 또는
-   `blocked`이며 `ready`는 0개다. 임시 ID는 파일 안에서만 canonical `t_<hex>` 형태로
-   사용하며 board에 저장하지 않는다.
-3. `planning_head_sha`가 현재 repository `HEAD`와 같은지 확인한다.
-4. `validate_board.py --input <draft.json> --phase draft`가 exit code 0인지 확인한다.
-5. prerequisite부터 생성하고 실제 ID를 read-back한 뒤 downstream body에 치환한다. Native
-   create가 dependency-free task를 즉시 `ready`로 만들 수 있으므로 zero-ready native 상태를
-   만들었다고 가정하거나 보고하지 않는다.
-6. dependency를 연결하고 모든 envelope를 read-back한다. 정확히 하나의 의도한 executable
-   leaf만 `ready`인지 확인하며, 이미 auto-promote된 task를 다시 수동 승격하지 않는다.
-7. 실제 native graph에 `validate_board.py --board <slug> --phase post`가 exit code 0일 때만 graph 생성을
-   완료했다고 보고한다. `post`는 정확히 하나의 `ready`와 완료된 parent를 요구한다.
+이 문서는 저장된 task body와 validator가 판정하는 graph 불변조건만 소유한다.
+`write-task/SKILL.md`가 생성 순서와 discovery procedure를, `SOUL.md`가 PM lifecycle·
+권한·승인·실패 routing을 소유한다. 이 문서의 예시는 schema와 판정 기준을 설명할 뿐,
+실행 절차를 대체하지 않는다.
 
-Validator exit code `1`은 contract finding, `2`는 수집·Git 등 infrastructure failure다. 둘 다
-promotion과 완료 보고를 금지한다.
+validator exit code `1`은 contract finding, `2`는 수집·Git 등 infrastructure failure다.
+둘 다 promotion과 완료 보고를 금지한다.
+
+### Graph invariants
+
+- draft fixture는 `todo` 또는 `blocked`만 포함하고 `ready`는 0개다.
+- native create의 자동 promotion 여부는 사실로 read-back하며, zero-ready 상태를 가정하지 않는다.
+- post gate는 의도한 executable leaf 하나와 완료된 parent를 요구한다.
+- dependency body에는 native에서 read-back한 실제 `t_<hex>` ID만 사용한다.
+- task 생성 후 `planning_head_sha`가 바뀌면 미완료 task를 수동 재승격하지 않는다.
 
 ```yaml
 lifecycle_flags:
