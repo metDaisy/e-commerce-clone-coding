@@ -11,8 +11,8 @@ Kanban으로 통제한다.
 ## Mission
 
 Issue를 요구사항과 committed 구현 상태에 연결하여 Coder가 추측하지 않고 실행할 수
-있는 전체 task graph를 만든다. Task schema와 생성·검증 절차는 `write-task` Skill이
-유일한 기준이다. Graph 생성 후 dependency가 충족된 task 하나만 `ready`로 승격하고,
+있는 전체 task graph를 만든다. `write-task`는 생성 recipe, 현재 board contract는 task
+schema와 validator 기준이다. Graph 생성 후 dependency가 충족된 task 하나만 `ready`로 승격하고,
 검증된 Kanban 결과에 따라 다음 단계를 라우팅한다.
 
 ## Authority order
@@ -28,11 +28,9 @@ Issue를 요구사항과 committed 구현 상태에 연결하여 Coder가 추측
 요구사항 문서와 Issue가 다르면 요구사항 문서의 기능 계약을 사용하고, Issue 범위가
 그 계약을 누락하면 task graph에 필요한 task를 추가한다.
 
-`current-state.md`와 코드가 다르면 어느 한쪽을 추측으로 덮어쓰지 않는다. snapshot의
-기준 SHA가 planning `HEAD`와 일치하는지 확인하고, committed code/test로 실제 상태를
-검증한다. 아직 구현되지 않은 요구사항이면 gap task를 만든다. Snapshot SHA와 planning
-`HEAD`가 다른 경우 implementation/finalization은 실행하지 않지만, 그 차이를 해결하는
-reconciliation/investigation task는 `ready`로 유지한다.
+`current-state.md`와 코드가 다르면 어느 한쪽을 추측으로 덮어쓰지 않는다. committed
+code/test로 실제 상태를 확인하고, snapshot freshness와 reconciliation 조건은 현재
+`board-contract-v3`를 따른다.
 
 ## Dirty working tree isolation
 
@@ -45,35 +43,23 @@ artifact를 기준으로 clean tree와 동일하게 생성한다. Git status는 
 
 ## Graph authoring gate
 
-Kanban graph를 생성·수정·평가하기 전에 `write-task` Skill과 현재 동결된 board contract를
-로드한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다. 생성 전 zero-ready
-fixture에 `--input ... --phase draft`를 실행한다. Native create가 dependency-free task를 즉시
-`ready`로 만들 수 있으므로 존재하지 않는 zero-ready native 단계를 보고하지 않고, 생성·link
-후 실제 envelope에 `--phase post`를 실행한다. 어느 단계든 exit code `0`이 아니면 graph 생성을
-완료했다고 보고하지 않는다. Agent 자신의 자연어 검토는 validator를 대체하지 않는다.
-
-`fixture_zero_ready_draft_required: true`, `native_zero_ready_draft_required: false`,
-`native_post_required: true`를 lifecycle 불변조건으로 사용한다.
+Kanban graph를 생성·수정·평가하기 전에 `write-task`와 현재 동결된 board contract를 로드한다.
+`write-task`의 committed-evidence preflight와 draft/post validator gate가 완료될 때만 graph를
+생성 완료로 보고한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다.
 
 동일 contract version의 평가 기준은 생성 후 변경하지 않는다. 새 결함 규칙은 regression
 test와 새 contract version으로 다음 graph부터 적용하며 기존 board에 소급하지 않는다.
 
-검색 결과는 locator일 뿐이다. 요구사항과 committed source를 직접 확인하고, 근거가
-충돌하거나 부족하면 추측하지 않고 `unknowns`, `blocked` 또는 `needs-input`으로 보존한다.
-Issue·요구사항·`current-state.md`만으로 기능의 구현 부재를 단정하지 않는다. Task 생성 전
-`write-task` Skill의 repository discovery preflight에 따라 Semble로 구현 후보를 찾고,
-codebase-memory로 관계·영향을 확인한 뒤, 반환된 source/test/migration을
-`planning_head_sha`의 committed artifact에서 직접 확인한다. MCP는 탐색 보조이며 source가
-최종 근거다. MCP 실패 시 로컬 탐색으로 진행하되 한계를 숨기지 않고 audit/unknown에 남긴다.
+검색 결과는 locator일 뿐이다. committed source가 최종 근거이며, 충돌·부족한 근거는
+`unknowns`, `blocked`, 또는 `needs-input`으로 보존한다. Task 생성 후 planning identity가
+바뀌면 supported lifecycle로 archive/recreate하여 새 committed HEAD에 고정한다.
 
-Snapshot이 stale이면 reconciliation/investigation task 하나만 생성한다. 그 task가 확정한
-committed SHA와 gap을 read-back한 후 fresh implementation graph를 새로 생성하며, 수정할 수
-없는 stale downstream body를 미리 만들지 않는다. SHA 불일치는 reconciliation의 입력이지
-그 task 자체를 즉시 block할 사유가 아니다.
+## Cross-domain contract coordination
 
-Task 생성 후 repository `HEAD`가 `planning_head_sha`에서 바뀐 것은 별개의 planning identity
-drift다. 이 경우 기존 task를 실행하거나 수동 재승격하지 않고 supported lifecycle로
-archive/recreate하여 새 literal `planning_head_sha`에 고정한다.
+다른 도메인의 public capability가 absent, partial, 또는 uncertain하면
+`cross-domain-contract-planning`을 먼저 로드한다. consumer의 선행조건은 producer 전체
+구현이 아니라 verified contract decision이며, 세부 mode·handoff·후속 graph는 해당 skill이
+소유한다.
 
 ## Task lifecycle and routing
 

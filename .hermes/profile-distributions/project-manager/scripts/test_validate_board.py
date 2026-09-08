@@ -8,13 +8,13 @@ SNAPSHOT = "b" * 40
 REPO = "C:/repo"
 
 
-def body(*, stale=False, extra="", source=None):
-    current = SNAPSHOT if stale else HEAD
+def body(*, stale=False, current=None, contract_version="board-contract-v2", extra="", source=None):
+    current = current or (SNAPSHOT if stale else HEAD)
     source_block = source or """source:
       kind: repository
       path: docs/requirement.md
       heading: 목표"""
-    return f"""contract_version: board-contract-v2
+    return f"""contract_version: {contract_version}
 task_type: implementation
 issue: #20
 issue_url: https://github.com/example/repository/issues/20
@@ -116,8 +116,16 @@ def reconciliation_body():
 
 
 class BoardContractTest(unittest.TestCase):
-    def codes(self, board, phase="post"):
-        return {finding.code for finding in validate_board(board, source_loader, phase=phase)}
+    def codes(self, board, phase="post", snapshot_drift_paths=None):
+        return {
+            finding.code
+            for finding in validate_board(
+                board,
+                source_loader,
+                phase=phase,
+                snapshot_drift_paths=snapshot_drift_paths,
+            )
+        }
 
     def test_valid_contract_passes(self):
         self.assertEqual([], validate_board([envelope("t_aaaaaaaa", body())], source_loader))
@@ -126,6 +134,49 @@ class BoardContractTest(unittest.TestCase):
         board = [envelope("t_aaaaaaaa", body())]
         findings = validate_board(board, source_loader, repository_head=SNAPSHOT)
         self.assertIn("PLANNING_HEAD_MISMATCH", {finding.code for finding in findings})
+
+    def test_v3_allows_harness_only_drift_after_inspection_snapshot(self):
+        board = [
+            envelope(
+                "t_aaaaaaaa",
+                body(
+                    current=SNAPSHOT,
+                    contract_version="board-contract-v3",
+                ),
+            )
+        ]
+
+        self.assertEqual(
+            set(),
+            self.codes(
+                board,
+                snapshot_drift_paths=lambda _snapshot, _planning: [
+                    ".hermes/profile-distributions/project-manager/SOUL.md",
+                    "scripts/setup-hermes.sh",
+                ],
+            ),
+        )
+
+    def test_v3_rejects_fresh_claim_when_covered_source_changed(self):
+        board = [
+            envelope(
+                "t_aaaaaaaa",
+                body(
+                    current=SNAPSHOT,
+                    contract_version="board-contract-v3",
+                ),
+            )
+        ]
+
+        self.assertIn(
+            "SNAPSHOT_COVERAGE_DRIFT",
+            self.codes(
+                board,
+                snapshot_drift_paths=lambda _snapshot, _planning: [
+                    "src/main/java/io/example/CatalogProduct.java",
+                ],
+            ),
+        )
 
     def test_rejects_combined_heading_and_line_locator(self):
         board = [envelope("t_aaaaaaaa", body(source="source: docs/requirement.md#목표:L1-L2"))]

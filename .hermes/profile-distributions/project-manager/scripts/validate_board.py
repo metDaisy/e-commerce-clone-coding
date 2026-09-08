@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only validator for Amaazon board-contract-v2."""
+"""Read-only validator for Amaazon board-contract-v2 and v3."""
 
 from __future__ import annotations
 
@@ -13,7 +13,17 @@ from pathlib import Path
 from typing import Callable, Iterable
 
 
-CONTRACT_VERSION = "board-contract-v2"
+LATEST_CONTRACT_VERSION = "board-contract-v3"
+SUPPORTED_CONTRACT_VERSIONS = {"board-contract-v2", LATEST_CONTRACT_VERSION}
+SNAPSHOT_COVERED_PATHS = (
+    ".github/",
+    "amaazon-front/",
+    "build.gradle",
+    "config/",
+    "gradle/",
+    "settings.gradle",
+    "src/",
+)
 TASK_ID = re.compile(r"^t_[0-9a-f]+$")
 SHA = re.compile(r"^[0-9a-f]{40}$")
 FQCN = re.compile(r"^(?:[a-z_][A-Za-z0-9_]*\.)+[A-Z][A-Za-z0-9_]*(?:#[A-Za-z_$][A-Za-z0-9_$]*)?$")
@@ -57,6 +67,27 @@ def _successful_run(run: object) -> bool:
     values = [run.get("status"), run.get("outcome"), run.get("result")]
     normalized = {str(value).lower() for value in values if isinstance(value, str)}
     return bool(normalized & {"success", "succeeded", "passed", "completed"})
+
+
+def _snapshot_freshness(
+    contract_version: str | None,
+    current_sha: str | None,
+    planning_sha: str | None,
+    snapshot_drift_paths: Callable[[str, str], list[str] | None] | None,
+) -> tuple[bool, list[str] | None]:
+    if not current_sha or not planning_sha or current_sha == planning_sha:
+        return True, []
+    if contract_version != LATEST_CONTRACT_VERSION or snapshot_drift_paths is None:
+        return False, None
+    paths = snapshot_drift_paths(current_sha, planning_sha)
+    if paths is None:
+        return False, None
+    covered = [
+        path
+        for path in paths
+        if any(path == prefix or path.startswith(prefix) for prefix in SNAPSHOT_COVERED_PATHS)
+    ]
+    return not covered, covered
 
 
 def _section(body: str, name: str) -> list[str]:
@@ -342,6 +373,7 @@ def validate_board(
     *,
     phase: str = "post",
     repository_head: str | None = None,
+    snapshot_drift_paths: Callable[[str, str], list[str] | None] | None = None,
 ) -> list[Finding]:
     findings: list[Finding] = []
     if phase not in {"draft", "post"}:
@@ -427,13 +459,20 @@ def validate_board(
         task = item["task"]
         task_id = task["id"]
         body = task.get("body", "")
+        contract_version = _field(body, "contract_version")
         task_type = _field(body, "task_type")
         planning_sha = _field(body, "planning_head_sha")
         current_sha = _field(body, "current_state_sha")
         freshness = _field(body, "state_freshness")
-        stale = stale or freshness == "stale" or (bool(current_sha and planning_sha) and current_sha != planning_sha)
+        snapshot_fresh, covered_drift = _snapshot_freshness(
+            contract_version,
+            current_sha,
+            planning_sha,
+            snapshot_drift_paths,
+        )
+        stale = stale or freshness == "stale" or not snapshot_fresh
         required = {
-            "contract_version": CONTRACT_VERSION,
+            "contract_version": None,
             "task_type": None,
             "issue": None,
             "issue_url": None,
@@ -450,6 +489,8 @@ def validate_board(
             value = _field(body, name)
             if value is None or (expected is not None and value != expected):
                 findings.append(Finding("BODY_SCHEMA_MISSING", task_id, name))
+        if contract_version not in SUPPORTED_CONTRACT_VERSIONS:
+            findings.append(Finding("CONTRACT_VERSION_UNSUPPORTED", task_id, str(contract_version)))
         if repository_head is not None and planning_sha != repository_head:
             findings.append(
                 Finding(
@@ -466,9 +507,14 @@ def validate_board(
             findings.append(Finding("DRAFT_STATUS_INVALID", task_id, "draft tasks must be todo or blocked"))
         if freshness not in {"fresh", "stale"}:
             findings.append(Finding("STATE_FRESHNESS_INVALID", task_id, str(freshness)))
-        expected_freshness = "stale" if current_sha and planning_sha and current_sha != planning_sha else "fresh"
+        expected_freshness = "fresh" if snapshot_fresh else "stale"
         if freshness in {"fresh", "stale"} and freshness != expected_freshness:
             findings.append(Finding("STATE_FRESHNESS_MISMATCH", task_id, expected_freshness))
+        if contract_version == LATEST_CONTRACT_VERSION and current_sha != planning_sha:
+            if covered_drift is None:
+                findings.append(Finding("SNAPSHOT_ANCESTRY_UNVERIFIED", task_id, "current_state_sha is not a planning ancestor"))
+            elif covered_drift:
+                findings.append(Finding("SNAPSHOT_COVERAGE_DRIFT", task_id, ",".join(sorted(covered_drift))))
         if _field(body, "assignee") != task.get("assignee"):
             findings.append(Finding("ASSIGNEE_MISMATCH", task_id, "body/native assignee differ"))
         for section_name in ("evidence", "scope", "out_of_scope", "acceptance_criteria", "verification"):
@@ -626,6 +672,26 @@ def git_source_loader(repository: Path) -> Callable[[str, str], str]:
     return load
 
 
+def git_snapshot_drift_paths(repository: Path) -> Callable[[str, str], list[str] | None]:
+    def paths(snapshot_sha: str, planning_sha: str) -> list[str] | None:
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", snapshot_sha, planning_sha],
+            cwd=repository,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+        )
+        if ancestry.returncode != 0:
+            return None
+        return [
+            path
+            for path in _run(["git", "diff", "--name-only", snapshot_sha, planning_sha], repository).splitlines()
+            if path
+        ]
+
+    return paths
+
+
 def _safe_output(value: str | None) -> str | None:
     if value is None:
         return None
@@ -667,12 +733,20 @@ def main(argv: list[str] | None = None) -> int:
             git_source_loader(args.repository),
             phase=phase,
             repository_head=repository_head,
+            snapshot_drift_paths=git_snapshot_drift_paths(args.repository),
         )
     except (KeyError, TypeError, OSError, subprocess.CalledProcessError, RuntimeError, json.JSONDecodeError) as error:
         print(f"infrastructure error: {error}", file=sys.stderr)
         return 2
+    contract_versions = sorted(
+        {
+            _field(envelope["task"].get("body", ""), "contract_version")
+            for envelope in envelopes
+            if _field(envelope["task"].get("body", ""), "contract_version")
+        }
+    )
     report = {
-        "contract_version": CONTRACT_VERSION,
+        "contract_version": contract_versions[0] if len(contract_versions) == 1 else "mixed",
         "board": args.board,
         "task_count": len(envelopes),
         "valid": not findings,
@@ -684,7 +758,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
-        print(f"{CONTRACT_VERSION}: {'PASS' if not findings else 'FAIL'} ({len(findings)} findings)")
+        print(f"{report['contract_version']}: {'PASS' if not findings else 'FAIL'} ({len(findings)} findings)")
         for finding in findings:
             print(f"- {finding.code} [{_safe_output(finding.task_id) or 'board'}]: {_safe_output(finding.detail)}")
     return 0 if not findings else 1
