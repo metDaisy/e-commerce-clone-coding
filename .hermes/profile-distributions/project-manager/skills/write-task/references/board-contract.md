@@ -1,9 +1,13 @@
-# board-contract-v3
+---
+name: board-contract
+version: 3.0.0
+---
 
-이 문서는 `project-manager`가 새로 생성하는 Amaazon Kanban graph의 동결된 계약이다.
-`board-contract-v1`과 `board-contract-v2`는 기존 board 재현에만 사용한다. v3 board는 이
-문서와 `scripts/validate_board.py`로 판정한다. 새로운 규칙은 새 contract version과 failing
-regression test를 먼저 추가한 뒤 다음 graph부터 적용한다.
+# Board Contract
+
+이 문서는 `project-manager`가 생성하는 Amaazon Kanban graph의 유일한 동결 계약이다.
+이 문서와 `scripts/validate_board.py`로 판정한다. 새로운 규칙은 새 contract version과
+failing regression test를 먼저 추가한 뒤 다음 graph부터 적용한다.
 
 ## Authority
 

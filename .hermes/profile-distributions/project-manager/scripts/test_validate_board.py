@@ -8,7 +8,7 @@ SNAPSHOT = "b" * 40
 REPO = "C:/repo"
 
 
-def body(*, stale=False, current=None, contract_version="board-contract-v2", extra="", source=None):
+def body(*, stale=False, current=None, contract_version="board-contract-v3", extra="", source=None):
     current = current or (SNAPSHOT if stale else HEAD)
     source_block = source or """source:
       kind: repository
@@ -179,10 +179,7 @@ class BoardContractTest(unittest.TestCase):
         )
 
     def test_v3_allows_stale_reconciliation_draft_when_covered_source_changed(self):
-        body_text = reconciliation_body().replace(
-            "contract_version: board-contract-v2",
-            "contract_version: board-contract-v3",
-        )
+        body_text = reconciliation_body()
         board = [
             envelope(
                 "t_aaaaaaaa",

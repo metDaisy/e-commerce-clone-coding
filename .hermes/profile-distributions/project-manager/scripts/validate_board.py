@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only validator for Amaazon board-contract-v2 and v3."""
+"""Read-only validator for Amaazon board-contract-v3."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from typing import Callable, Iterable
 
 
 LATEST_CONTRACT_VERSION = "board-contract-v3"
-SUPPORTED_CONTRACT_VERSIONS = {"board-contract-v2", LATEST_CONTRACT_VERSION}
+SUPPORTED_CONTRACT_VERSIONS = {LATEST_CONTRACT_VERSION}
 SNAPSHOT_COVERED_PATHS = (
     ".github/",
     "amaazon-front/",

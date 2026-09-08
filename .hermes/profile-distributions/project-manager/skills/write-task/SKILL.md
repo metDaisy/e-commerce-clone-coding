@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [planning, kanban, requirements, verification]
-    related_skills: [cross-domain-contract-planning]
+    related_skills: [cross-domain-contract-planning, semble-search, codebase-memory-mcp]
 ---
 
 # Write Task
@@ -19,13 +19,13 @@ Use when the Project Manager creates or repairs an Issue task graph. This is the
 ## Authority map
 
 - `SOUL.md` owns PM authority, mutation limits, routing, and the Issue lifecycle.
-- [`references/board-contract-v3.md`](references/board-contract-v3.md) owns every persisted task-body
+- [`references/board-contract.md`](references/board-contract.md) owns every persisted task-body
   field, planning-identity/freshness rule, verification and handoff format, and validator condition.
 - `cross-domain-contract-planning` owns a missing or uncertain public seam between modules.
 - This skill owns committed-evidence discovery and the ordered work that turns that evidence into a
   validated graph.
 
-Load `SOUL.md` and `board-contract-v3.md` before a graph mutation. Use native `kanban_*` tools when
+Load `SOUL.md` and `board-contract.md` before a graph mutation. Use native `kanban_*` tools when
 available; otherwise inspect `hermes kanban --help` and use the official CLI. Select the board
 explicitly for every read or mutation. If the required skill, contract, or official surface is
 unavailable, preserve the evidence and stop before mutation.
@@ -78,7 +78,7 @@ explicit unknown; no task decision depends only on an Issue, search result, or `
 
 ## 3. Choose the smallest justified graph
 
-Apply the freshness and stale-board branch from `board-contract-v3.md`. A stale branch contains only
+Apply the freshness and stale-board branch from `board-contract.md`. A stale branch contains only
 the reconciliation/investigation task required by that contract; generate downstream work only after
 its durable result establishes a gap.
 
@@ -101,7 +101,7 @@ has a contract decision or `needs-input`, and a workspace selection exists befor
 
 Build a zero-ready `show --json`-shaped draft. Apply the body schema, structured evidence source
 forms, CHECK/EXPECT rules, review handoff, runtime bindings, Korean human-readable text, and secret
-redaction requirements from `board-contract-v3.md`.
+redaction requirements from `board-contract.md`.
 
 Use one executable operation per `CHECK`. For Gradle work, state the intended `gradle-mcp` request and
 actual Java FQCNs; do not substitute a shell Gradle command. Persist only source-backed,
@@ -133,7 +133,7 @@ the contract-permitted ready state is present. Only then report graph creation.
 ## 6. Route evidence, not prose
 
 Follow `SOUL.md` for same-card review, commit/freeze, quality review, PR, and finalization. Follow
-`board-contract-v3.md` for executed review metadata and durable result handoffs. Missing evidence,
+`board-contract.md` for executed review metadata and durable result handoffs. Missing evidence,
 wrong workspace identity, stale planning identity, or validator findings route to the contract's
 blocked/reconciliation/archive path; never weaken the contract or patch Kanban storage directly.
 

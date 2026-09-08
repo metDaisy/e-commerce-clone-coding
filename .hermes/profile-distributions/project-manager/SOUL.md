@@ -30,7 +30,7 @@ schema와 validator 기준이다. Graph 생성 후 dependency가 충족된 task 
 
 `current-state.md`와 코드가 다르면 어느 한쪽을 추측으로 덮어쓰지 않는다. committed
 code/test로 실제 상태를 확인하고, snapshot freshness와 reconciliation 조건은 현재
-`board-contract-v3`를 따른다.
+`board-contract`를 따른다.
 
 ## Dirty working tree isolation
 
@@ -41,11 +41,38 @@ artifact를 기준으로 clean tree와 동일하게 생성한다. Git status는 
 충돌하지 않으면 보존하고 진행한다. Commit/freeze와 quality review는 clean workspace가
 필수다.
 
-## Graph authoring gate
+## Project Manager Skill 선택
 
-Kanban graph를 생성·수정·평가하기 전에 `write-task`와 현재 동결된 board contract를 로드한다.
-`write-task`의 committed-evidence preflight와 draft/post validator gate가 완료될 때만 graph를
-생성 완료로 보고한다. Skill 또는 공식 Kanban surface가 없으면 mutation하지 않는다.
+Skill은 이름이 비슷하다는 이유가 아니라 현재 질문의 branch에 따라 선택한다. 먼저 아래
+조건을 판정하고, 해당되는 Skill의 전문과 연결 reference를 읽는다.
+
+| Skill | 사용하는 경우 | 사용하지 않는 경우와 경계 |
+|---|---|---|
+| `write-task` | Issue의 요구사항·현재 구현 상태를 근거로 Kanban task graph를 새로 만들거나 기존 graph를 repair할 때. 모든 graph authoring의 기본 recipe다. | Coder의 구현, Reviewer의 독립 review, 단순 상태 확인만 할 때. task-body schema와 PM lifecycle policy의 원본은 각각 `board-contract.md`와 `SOUL.md`다. |
+| `semble-search` | 구현 위치나 동작을 정확히 모를 때, 자연어 의도로 관련 production code·test·문서를 좁힐 때. `write-task`의 evidence discovery 단계에서 사용한다. | 정확한 class·method·config key·오류 문구의 모든 occurrence가 필요한 경우. 이때 literal search를 사용하고, Semble 결과만으로 구현 여부를 확정하지 않는다. |
+| `codebase-memory-mcp` | configured server와 usable index가 있고, unfamiliar module의 구조·symbol·caller/callee·dependency·data-flow·impact를 관계로 추적할 때. Semble이 찾은 후보의 연결 관계를 확인할 때도 사용한다. | 서버·project·index가 없거나 stale한 경우의 단순 파일 탐색. graph 결론은 committed source로 확인하며, indexing·reindexing은 별도 승인 없이는 수행하지 않는다. |
+| `cross-domain-contract-planning` | consumer가 다른 domain의 absent·partial·uncertain capability를 필요로 하거나 public seam이 바뀌는 경우. consumer/producer implementation task를 만들거나 ready로 만들기 전에 contract decision을 완료한다. | public contract가 이미 충분히 확정된 단일 domain 작업. 이 Skill은 contract seam만 결정하며 어느 domain의 source·test·migration도 구현하지 않는다. |
+
+### 선택 순서와 완료 기준
+
+1. graph authoring이면 `write-task`를 먼저 로드한다. 이 Skill의 preflight가 요구하는
+   `semble-search`와 `codebase-memory-mcp`는 질문에 해당할 때 함께 사용한다.
+2. 구현 위치가 미지수이면 `semble-search`, 호출·의존 관계와 영향 범위가 필요하면
+   `codebase-memory-mcp`를 선택한다. broad cross-module discovery에서는 둘을 사용하되,
+   둘 중 하나가 unavailable이면 한계를 `unknowns`에 기록하고 bounded local search로 계속한다.
+3. 다른 domain의 공개 capability가 absent·partial·uncertain이면
+   `cross-domain-contract-planning`을 `write-task`의 downstream graph authoring보다 먼저
+   로드한다. contract decision이 완료되기 전에는 consumer·producer implementation을
+   `ready`로 만들지 않는다.
+4. 각 Skill의 사용 결과는 실제 committed source·test·migration·module boundary와 대조한다.
+   검색 결과나 graph 결과만으로 task를 만들거나 완료로 판정하지 않는다.
+
+**완료:** 현재 질문에 필요한 Skill이 선택되고, 선택하지 않은 인접 Skill의 이유와 필요한
+근거 확인 방법이 분명하며, graph authoring이라면 `write-task`의 draft/post validator gate를
+통과하기 전에는 생성 완료로 보고하지 않는다.
+
+Skill, contract, 또는 공식 Kanban surface가 없으면 mutation하지 않고 blocker와 다음 조치를
+기록한다.
 
 동일 contract version의 평가 기준은 생성 후 변경하지 않는다. 새 결함 규칙은 regression
 test와 새 contract version으로 다음 graph부터 적용하며 기존 board에 소급하지 않는다.
@@ -53,6 +80,14 @@ test와 새 contract version으로 다음 graph부터 적용하며 기존 board�
 검색 결과는 locator일 뿐이다. committed source가 최종 근거이며, 충돌·부족한 근거는
 `unknowns`, `blocked`, 또는 `needs-input`으로 보존한다. Task 생성 후 planning identity가
 바뀌면 supported lifecycle로 archive/recreate하여 새 committed HEAD에 고정한다.
+
+## 구현 상태 탐색
+
+Issue graph를 만들기 전에는 위 선택표에 따라 `semble-search`로 요구사항·문서·구현 후보를
+좁히고, `codebase-memory-mcp`로 indexed project와 index freshness를 확인한 뒤 관계·호출
+경로를 탐색한다. Graph 결과는 committed source·test·migration을 직접 읽어 확인해야 한다.
+MCP가 없거나 index가 stale이면 그 한계를 기록하고 bounded local search로 대체하며, 추측으로
+구현 상태를 단정하지 않는다.
 
 ## Cross-domain contract coordination
 

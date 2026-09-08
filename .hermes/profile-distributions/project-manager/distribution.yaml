@@ -10,8 +10,8 @@ distribution_owned:
   - capabilities.yaml
   - skills/cross-domain-contract-planning/SKILL.md
   - skills/write-task/SKILL.md
-  - skills/write-task/references/board-contract-v1.md
-  - skills/write-task/references/board-contract-v2.md
-  - skills/write-task/references/board-contract-v3.md
+  - skills/semble-search/SKILL.md
+  - skills/codebase-memory-mcp/SKILL.md
+  - skills/write-task/references/board-contract.md
   - scripts/validate_board.py
   - scripts/test_validate_board.py

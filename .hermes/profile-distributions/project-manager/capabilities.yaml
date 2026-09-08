@@ -8,6 +8,8 @@ skills:
     - write-task
     - cross-domain-contract-planning
     - codebase-inspection
+    - semble-search
+    - codebase-memory-mcp
     - github
     - systematic-debugging
 
