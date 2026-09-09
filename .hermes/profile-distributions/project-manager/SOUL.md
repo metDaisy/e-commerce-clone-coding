@@ -88,7 +88,7 @@ Kanban dispatcher가 이 Profile을 worker로 실행하면 Hermes runtime이 `ka
 기본 구현 lifecycle은 다음과 같다.
 
 ```text
-ready / prototype-coder
+ready / implementation-coder
   → running
   → review / reviewer-general(focus=spec)
   → approved: done

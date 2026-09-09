@@ -2,8 +2,8 @@
 
 ## 목적
 
-이 문서는 `renewal/harness` 브랜치에서 Profile Distribution으로 Prototype Coder,
-독립 Reviewer Profiles, Feedback 기반 Refactor Coder를 운영하는 방법을 정의한다.
+이 문서는 `renewal/harness` 브랜치에서 Profile Distribution으로 Implementation Coder,
+기존 Prototype Coder, 독립 Reviewer Profiles, Feedback 기반 Refactor Coder를 운영하는 방법을 정의한다.
 
 프로젝트 공통 규칙은 `AGENTS.md`, 작업 절차는 `docs/agent-workflow.md`,
 구조 원칙은 `docs/architecture.md`와 ADR을 따른다. 이 문서는 Agent Profile의
@@ -93,6 +93,7 @@ absolute path를 포함하지 않는다. 프로젝트 공통 규칙은 기존 `A
 |---|---|---|---|
 | `project-manager` | Issue 시작·task graph·Kanban·commit·push·PR·merge·Issue 종료 | Kanban orchestration, GitHub write | 근거 있는 task graph와 lifecycle 상태 |
 | `prototype-coder` | 최소 동작 Vertical Slice 구현 | `java-springboot`, `java-junit` | 실행 가능한 최소 구현과 범위가 명확한 diff |
+| `implementation-coder` | PM이 지정한 backend 요구사항 구현·테스트·Reviewer A handoff | `implementation-workflow`, `java-springboot`, `java-junit`, 조건부 `codebase-memory-mcp`·`semble-search`, `gradle-mcp` | 검증된 구현 diff와 구조화된 review handoff |
 | `reviewer-general` | Spec·Maintainability·Compatibility를 focus별 독립 검토 | `code-review`, `simplify-code`, `compat-review` | 축별 evidence finding |
 | `reviewer-deep` | Architecture·Persistence를 focus별 독립 검토 | `improve-codebase-architecture`, `architecture-review`, `305-frameworks-spring-boot-modulith`, `jpa-patterns` | 구조·query evidence finding |
 | `reviewer-coordinator` | 독립 결과 취합과 우선순위 결정 | 전용 검토 Skill 없음 | 중복 제거된 최종 review report |
@@ -117,10 +118,10 @@ focus별 판단은 각 Reviewer Profile의 SOUL/Skill이, finding canonicalizati
 project-manager
   → Issue·요구사항·현재 상태를 확인하고 graph authoring Skill로 graph 생성
   → 첫 번째 실행 가능한 leaf 하나만 ready
-prototype-coder
-  → task claim + 최소 구현/테스트 + 결정론적 검증
+implementation-coder
+  → task claim + backend 구현·테스트 + 3단계 결정론적 검증
 reviewer-general(focus=spec)
-  → same-card review와 재검증
+  → Reviewer A 역할의 same-card review와 재검증
 project-manager
   → 승인된 결과를 commit/push하고 다음 leaf를 routing
 

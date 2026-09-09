@@ -1,0 +1,35 @@
+# implementation-coder capability policy distributed with this Profile.
+# No endpoints, credentials, sessions, state databases, or machine paths.
+profile: implementation-coder
+
+skills:
+  allowed:
+    - hermes-agent
+    - implementation-workflow
+    - codebase-memory-mcp
+    - semble-search
+    - java-springboot
+    - java-junit
+  external:
+    java-springboot: github/awesome-copilot
+    java-junit: github/awesome-copilot
+
+tools:
+  allowed_toolsets:
+    - terminal
+    - file
+    - skills
+    - kanban
+
+approvals:
+  mode: smart
+
+mcp:
+  allowed_servers:
+    - semble-mcp
+    - codebase-memory
+    - gradle-mcp
+  filters:
+    codebase-memory: codebase_read
+    gradle-mcp: gradle_project_coder
+    semble-mcp: semble_read
