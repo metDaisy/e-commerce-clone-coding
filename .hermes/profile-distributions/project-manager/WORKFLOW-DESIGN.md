@@ -4,10 +4,45 @@
 > 기록한다. 아직 `SOUL.md`, runtime Skill, `board-contract.md`, validator에 적용된
 > 동작이 아니다. 용어는 [TERMINOLOGY.md](TERMINOLOGY.md)를 따른다.
 
-## 1. 목표와 역할 경계
+## 0. Existing project reference baseline
+
+PM의 기본 planning 입력은 사용자 승인 requirement, freshness가 확인된 `current-state.md`, GitHub
+Issue다. requirement는 목표 계약이고, current-state는 구현 상태의 요약 기준이며, GitHub Issue는
+delivery tracking이다. PM은 이 문서들이 충분할 때 source·test·migration을 전수 조사하지 않는다.
+문서 부족·충돌 또는 Coder/Reviewer의 구현 불일치 보고가 있을 때만 필요한 범위의 source 조사를
+수행하거나 `needs-input`으로 사용자에게 올린다.
+
+이 workflow를 처음 도입할 때는 normal Issue planning보다 먼저 PM-owned
+`establish-reference-baseline`을 수행한다.
 
 ```text
-requirements + GitHub Issue tree + committed repository evidence
+clean repository
+→ requirement / current-state / derived reference docs / GitHub Issue tree inventory
+→ 문서 간 divergence를 사용자 decision 또는 제한적 source 조사로 해소
+→ requirement를 기준으로 architecture, ADR, glossary, ERD, index 등 derived docs 갱신
+→ GitHub Issue tree의 scope·status·dependency를 requirement와 대조해 갱신 및 read-back
+→ current-state.md를 제외한 reference docs commit
+→ update-current-state
+→ 이후 normal leaf Issue planning 허용
+```
+
+이 baseline task는 모든 문서를 한 번에 다시 쓰는 작업이 아니라, 불일치를 `user decision`,
+`documentation update`, `tracker update`, `no change`로 분류하고 필요한 작업을 routing하는
+reconciliation gate다. 문서·tracker 갱신이 완료되기 전에는 `current-state.md`를 최신 snapshot으로
+갱신하지 않는다. source와 requirement의 의미가 충돌하면 PM은 어느 쪽을 우선한다고 추측하지 않고
+사용자에게 결정 요청을 올린다.
+
+기준 baseline이 성립한 뒤의 일상 workflow에서는 PM이 매번 documentation readiness를 확인하고,
+불일치가 있을 때만 `sync-docs` task를 만든다. 이 task는
+`docs/current-state.md`를 제외한다.
+
+## 1. 목표와 역할 경계
+
+Project Manager는 **서비스 기획과 개발 작업 흐름을 정리하는 조율자**다. 요구사항, 현재 구현,
+작업 카드, 검토, release 흐름을 연결해 다음 작업이 무엇인지와 왜 필요한지를 분명하게 만든다.
+
+```text
+user-approved requirements + fresh current-state + GitHub Issue tree
 → Project Manager: planning, task contract, branch/lifecycle, checkpoint
 → implementation-coder: child card의 구현·테스트
 → Project Manager: commit checkpoint와 routing
@@ -20,9 +55,30 @@ requirements + GitHub Issue tree + committed repository evidence
 - Coder는 child card와 `docs/testing-guide.md`를 기본 실행 입력으로 사용한다. requirement를
   다시 기획하거나 task contract를 독자적으로 확장하지 않는다.
 - PM이 child card와 root review card를 모두 작성한다.
+- Issue aggregate review에는 Reviewer Profile 하나만 사용한다.
 - Reviewer가 PM의 review question 밖의 defect를 제기할 수 있는지는 **TBD**다.
 
-## 2. Planning admission
+### 1.1 서비스 기획과 UI 논의
+
+PM은 Amazon과 다른 e-commerce 서비스 조사, 기능 비교, 사용자 흐름, 화면 목적, UI 우선순위,
+불명확한 business policy의 선택지와 영향을 정리할 수 있다. UI와 frontend 방향도 PM과 논의한다.
+
+다만 PM은 조사 결과나 선호만으로 product policy·API semantics·UI 요구사항을 확정하지 않는다.
+사용자가 최종 결정을 내리면 PM은 그 결정을 requirement, derived docs, GitHub Issue, task contract로
+전파한다.
+
+별도 frontend manager/Profile은 현재 만들지 않는다. PM이 UI 기획을 맡고 Coder가 task contract에
+따라 구현한다. 반복적으로 design system, accessibility, visual QA, frontend architecture가 병목이
+될 때만 specialized Profile 도입을 재검토한다.
+
+### 1.2 Policy change와 requirement-rework
+
+사용자와 PM이 policy 변경을 논의하면, 사용자가 먼저 requirement를 갱신한다. PM은 승인된 변경을
+`build-task-graph`의 `requirement-rework` mode로 Coder contract에 투영한다. 파생 문서와 GitHub
+tracker 영향은 `sync-docs`가 다루며, PM은 requirement가 갱신되기 전 policy 변경을 구현 card로
+전환하지 않는다.
+
+## 2. Planning admission과 current-state 경계
 
 새 leaf Issue planning, delivery branch 생성, implementation task graph 생성은 repository가
 clean일 때만 시작한다.
@@ -35,84 +91,22 @@ clean = staged 변경 없음 + unstaged 변경 없음 + untracked 변경 없음
 source/test뿐 아니라 docs, `.hermes`, scripts, configuration, untracked 파일도 이 조건에
 포함한다. PM은 existing dirty 변경을 자동 commit, stash, reset, discard하지 않는다.
 
-### 2.1 `current-state.md` freshness
-
-- `current-state.md`는 committed implementation의 파생 snapshot이며, platform별 task/board
-  상태를 소유하지 않는다.
-- implementation snapshot이 stale이고 active workflow marker가 없으면, PM은 다음 leaf를
-  선택하지 않는다. PM-assigned `update-current-state` task 하나를 먼저 수행한다.
-- snapshot freshness는 snapshot SHA 이후 backend/frontend source·test, build/configuration,
-  Flyway migration의 committed 변경 여부로 판정한다.
-- requirement, 일반 문서, `.hermes`, agent setup script의 committed 변경은 implementation
-  snapshot을 stale로 만들지 않는다. 단, 미커밋 상태이면 clean admission은 통과하지 못한다.
-
-### 2.2 `update-current-state` task
-
-`update-current-state`는 특정 delivery Issue에 귀속하지 않는 PM maintenance task다.
+`update-current-state`의 schema, freshness 판정, inspection 범위, draft generator, active workflow
+marker의 field와 start/end transition은 [`skills/update-current-state/plan.md`](skills/update-current-state/plan.md)가
+소유하며 별도 session/branch에서 상세 설계한다. 이 workflow가 소비하는 integration fact는 다음뿐이다.
 
 ```text
-입력: clean inspection SHA, 이전 snapshot SHA,
-      committed source/test/configuration/migration/frontend evidence
-범위: docs/current-state.md만 갱신
-제외: source/test/configuration/migration/requirement/ADR 변경
-완료: inspection SHA·branch·사실 근거 확인,
-      문서만 변경된 docs commit과 post-commit read-back
+current-state: fresh | stale | insufficient
+active workflow: absent | present
 ```
 
-테스트를 새로 실행하지 않았으면 통과했다고 기록하지 않는다.
+- `fresh`일 때만 새 leaf planning을 시작한다.
+- `stale` 또는 `insufficient`이면 `update-current-state` 또는 `needs-input`으로 routing한다.
+- active workflow가 존재하면 `controll-task-graph`가 recovery 가능 여부를 판정한다. 동일 Issue에만
+  귀속 가능한 dirty delta와 유실된 Kanban 기록은 `restart-task`로 clean checkpoint를 복원할 수 있다.
+  unrelated 또는 unknown dirty 변경이 있으면 `needs-input`이다.
 
-## 3. 시작·종료 recovery anchor
-
-`current-state.md`는 implementation snapshot과 별도로 platform-independent active workflow
-marker를 가진다. marker에는 tracker/board/profile ID를 쓰지 않고 repository에서 복구할 수 있는
-사실만 둔다.
-
-```text
-- 상태: in-progress
-- 작업 추적 참조와 계통
-- delivery branch
-- 시작 기준 SHA
-- 시작 시점 implementation snapshot SHA
-- requirement locator
-- 짧은 작업 요약
-```
-
-### 3.1 정상 시작 순서
-
-```text
-clean 확인
-→ current-state freshness 확인
-→ stale이면 update-current-state 완료
-→ root-to-leaf Issue 선택
-→ base branch/base SHA와 delivery branch 확정
-→ delivery branch 생성·checkout
-→ active workflow marker만 current-state.md에 기록
-→ marker-only docs commit 및 read-back
-→ PM이 Kanban child/root graph 생성
-→ validator 통과
-→ 첫 child 하나만 ready
-→ Coder 구현 시작
-```
-
-Kanban graph보다 marker commit을 먼저 남긴다. 따라서 Kanban 실행 기록이 유실되어도 같은
-branch·기준 SHA·requirement locator를 recovery 출발점으로 사용한다.
-
-### 3.2 종료
-
-Issue workflow가 최종 구현·review·closure 조건을 만족한 뒤에만 최종 implementation snapshot을
-조사하여 `current-state.md`를 갱신하고 active marker를 종료한다. 문서에는 문서 commit SHA가
-아닌 조사한 implementation SHA를 기록한다.
-
-### 3.3 Dirty recovery
-
-active marker가 없는 dirty tree에서는 새 graph를 만들지 않는다.
-
-active marker가 있고 Kanban 기록도 유실된 dirty tree의 `restart-task` 예외는 **TBD**다.
-후보 방향은 PM이 marker·baseline SHA·dirty diff를 먼저 대조하고, 동일 작업과의 연결 근거가
-있을 때만 하나의 restart task로 clean committed checkpoint를 복원하는 방식이다. unrelated 또는
-unknown dirty 변경은 사용자 판단으로 올린다.
-
-## 4. Issue·branch 선택
+## 3. Issue·branch 선택
 
 1. PM은 domain root Issue부터 open descendant를 탐색한다.
 2. ancestor Issue 본문을 읽고, 구현할 open leaf Issue를 Issue 번호 오름차순으로 선택한다.
@@ -127,35 +121,41 @@ main → p2/issue137 → p2/issue138 → p2/issue139
 
 - target Issue branch가 아직 없으면, target 직전 canonical delivery branch의 committed HEAD를
   base로 사용한다.
-- target delivery branch가 이미 존재하면 새 branch를 만들지 않고, marker·Issue 상태·committed
-  code를 기준으로 재개, recovery, 또는 완료 여부를 판정한다.
+- target delivery branch가 이미 존재하면 새 branch를 만들지 않고, current-state integration fact·Issue
+  상태·필요한 범위의 evidence를 기준으로 재개, recovery, 또는 완료 여부를 판정한다.
 - 임시·test·experiment branch는 canonical delivery stack base가 아니다.
 - target branch 생성 뒤 base가 전진한 경우에만 PM이 base-sync를 소유한다.
 
-base-sync의 merge/rebase 선택, 영향 분석 format, conflict task body는 **TBD**다. 이미 공유·review된
-branch는 merge 또는 blocked 판단, 아직 공유·review되지 않은 child branch는 rebase 가능이라는
-방향만 합의했다. semantic conflict를 독자적으로 해결할 수 없으면 사용자 판단으로 올린다.
+### 3.1 Upstream correction과 B synchronization
 
-## 5. Requirement-to-task graph
+B 구현 중 발견한 결함이 A가 소유하는 공통 behavior·public contract·domain rule에 속하면, PM은
+B의 현재 task를 blocked로 전이하고 A rework task를 만든다. A rework가 committed checkpoint를
+만든 뒤 PM은 B base-sync task를 만든다. B 자체의 consumer/API-specific 처리만 필요한 경우에는
+B task에서 수정한다. requirement/policy의 owner 또는 의미가 불명확하면 사용자 판단으로 올린다.
 
-PM은 Issue만 요약하지 않는다. requirement의 domain index·policy·model·관계·API·error·state
-규칙을 committed implementation과 대조한 뒤 Coder가 실행 가능한 card contract로 투영한다.
+PM은 A correction의 의도, A/B requirement·source locator, 유지할 combined behavior, sync SHA와
+영향받는 B task를 context로 작성한다. Coder가 rebase/merge의 technical conflict를 해결하고
+검증한 뒤 PM checkpoint를 받는다. Coder가 semantic conflict를 독자적으로 결정하지 못하면
+`needs-input`으로 사용자에게 올린다.
 
-### 5.1 Existing implementation
+base-sync의 정확한 필요 판정, rebase/merge 선택, impact-analysis evidence, Coder conflict context,
+conflict task body는 **TBD**다. 이미 공유·review된 branch는 merge 또는 blocked 판단, 아직
+공유·review되지 않은 child branch는 rebase 가능이라는 방향만 합의했다. docs/policy 변경이 B task
+contract에 영향을 주면 source conflict가 없어도 영향을 받은 unfinished B task를 refresh한다.
 
-새 leaf Issue planning HEAD에서 requirement와 committed production source, tests, migrations,
-module boundary를 대조한다.
+## 4. build-task-graph
 
-```text
-결과: satisfied | gap | unknown
-```
+PM은 Issue를 요약하는 데 그치지 않고 requirement의 domain index·policy·model·관계·API·error·state
+규칙과 fresh current-state의 관련 section을 Coder가 실행 가능한 card contract로 투영한다.
 
-- 구현된 듯한 behavior는 `verify-existing`으로 확인한다.
-- 관련 automated test가 실제 requirement behavior를 exercise하고 현재 실행 가능하면 실행한다.
-- test 파일 존재, build 성공, historical prose는 behavior satisfaction의 충분한 증거가 아니다.
-- `unknown`은 구현 완료 추정이 아니라 investigation 또는 `needs-input`으로 다룬다.
+### 4.1 문서 우선 planning
 
-### 5.2 Decomposition과 dependency
+`build-task-graph`의 기본 입력은 requirement, current-state, Issue다. 문서가 충분하면 PM은 구현
+충족 여부를 source/test 존재만으로 재판정하지 않는다. 문서가 부족하거나 서로 충돌할 때, 또는
+Coder/Reviewer가 실제 구현과의 불일치를 보고할 때만 source locator를 제한적으로 조사한다.
+그 결과도 policy 해석이 필요한 경우에는 `needs-input`으로 routing한다.
+
+### 4.2 Decomposition과 dependency
 
 - data model/repository/migration이 필요하면 첫 child task로 만든다.
 - API task는 requirement의 API 순서로 chain dependency를 둔다.
@@ -164,7 +164,7 @@ module boundary를 대조한다.
 - Coder child task의 exact changed-file allowlist는 강제하지 않는다. PM은 HTTP,
   application, domain, error, persistence, test entry surface를 context로 제공한다.
 
-### 5.3 Child implementation card
+### 4.3 Child implementation card
 
 PM이 작성하며 다음을 포함한다.
 
@@ -175,16 +175,16 @@ PM이 작성하며 다음을 포함한다.
 - field semantics, state/invariant, error contract
 - explicit out_of_scope
 - acceptance criteria와 verification 목표
-- confirmed source/test/migration/module boundary locators
-- provenance와 dependency
+- requirement/current-state locator와 dependency
+- 예외적으로 확인한 source/test/migration/module boundary locator
 ```
 
 requirements가 명시한 `attributes` normalization, error code, authorization, transaction 범위는
 PM이 결정하는 것이 아니라 contract에 누락 없이 투영한다.
 
-## 6. Checkpoint와 aggregate review
+## 5. controll-task-graph
 
-### 6.1 Child checkpoint
+### 5.1 Child checkpoint
 
 ```text
 Coder 구현·self-verification
@@ -198,7 +198,7 @@ Coder 구현·self-verification
 
 PM checkpoint는 specialist code review를 대체하지 않는다.
 
-### 6.2 Root review
+### 5.2 Root review
 
 PM은 child card들과 함께 Reviewer-assigned `root-review-1` card를 만든다. root card는 Coder
 작업 본문이 아니라 Reviewer용 aggregate review contract다.
@@ -224,27 +224,59 @@ zero-ready rework draft를 생성할 수 있고, PM이 scope·out-of-scope·sour
 
 Reviewer scope와 finding schema의 상세는 **TBD**다.
 
-## 7. 아직 확정하지 않은 항목
+### 5.3 GitHub guide
 
-- `restart-task`의 허용 조건, owner, persisted body schema와 validator rule
-- active workflow marker의 최종 Markdown field 이름과 historical 표시 방식
-- current-state 갱신의 정확한 re-investigation 범위와 automation prompt/script
+GitHub Issue tree, PR, CI, merge, closing keyword, Issue auto-close와 mutation read-back의 PM 전용
+규칙은 향후 `controll-task-graph`의 `references/github-guide.md`가 소유한다. generic `github` Skill은
+이 workflow의 source of truth가 아니다.
+
+## 6. Finalization
+
+각 child implementation은 root review 전에 이미 PM checkpoint로 committed checkpoint가 된다.
+따라서 root review가 approved일 때 새 code commit은 만들지 않는다. PM은 그 HEAD를
+`final_implementation_sha`로 freeze한다.
+
+```text
+모든 child done
+→ root-review-{n} approved
+→ final_implementation_sha freeze + clean worktree 확인
+→ PM이 final implementation SHA를 조사해 current-state.md 갱신
+→ docs-only commit
+→ branch push
+→ main을 base로 PR 생성
+→ PR body에 Closes #<leaf-issue-number> 포함
+→ PR head의 CI 확인
+→ merge read-back
+→ GitHub가 leaf Issue를 자동 close했는지 read-back
+```
+
+`current-state.md` 문서 commit은 implementation을 바꾸지 않으므로 root review의 code verdict를
+무효화하지 않는다. 다만 PR head SHA는 docs commit을 포함하므로 `final_implementation_sha`와
+PR head SHA를 구분해 기록한다. CI는 실제 PR head에 대해 확인한다.
+
+GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 자동 Issue close에
+사용한다. PM은 별도 Issue close mutation을 하지 않고 merge 뒤 자동 close 상태를 read-back한다.
+
+## 8. 아직 확정하지 않은 항목
+
+- `service-planning`, `build-task-graph`, `controll-task-graph`, `sync-docs`, `update-current-state`의
+  SKILL.md 절차와 frontmatter
+- update-current-state의 정확한 re-investigation 범위와 draft script CLI/output schema
 - base-sync의 detailed procedure, conflict report body, impact-analysis evidence
 - Reviewer가 PM-authored review question 밖의 finding을 제기할 수 있는지
 - structured finding과 rework draft의 final schema/script
-- root review approved 뒤 final quality review, CI/PR, merge, Issue close sequence
-- v4 board contract, validator regression tests, write-task Skill, capability policy의 실제 변경
-- PM SOUL의 최종 identity/boundary 문안
+- v4 board contract와 validator regression tests
+- PM-focused Semble 절차와 `references/github-guide.md`
 
-## 8. 문서와 runtime 적용 순서
+## 9. 문서와 runtime 적용 순서
 
 이 design을 확정한 뒤에만 다음을 적용한다.
 
 ```text
-1. PM workflow Skill과 terminology reference 확정
-2. board-contract-v4 및 validator regression test
-3. write-task Skill 정렬
-4. PM SOUL을 identity·boundary·uncertainty·reporting 중심으로 축약
-5. capability/distribution manifest/README 정렬
+1. `service-planning`, `build-task-graph`, `controll-task-graph` Skill 확정
+2. `sync-docs`, `update-current-state`는 각 별도 session/branch에서 상세 설계
+3. board-contract-v4 및 validator regression test
+4. PM-focused Semble와 GitHub guide 정렬
+5. distribution manifest/README 정렬
 6. fresh profile 설치·runtime native Kanban 호출·read-back 검증
 ```

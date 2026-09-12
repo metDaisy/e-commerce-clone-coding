@@ -1,8 +1,8 @@
 # Project Manager 용어집
 
 > PM workflow를 설계·검토할 때 사용하는 용어의 기준이다. 이 문서는 용어의 의미만
-> 정의하며, 세부 절차는 workflow Skill, persisted field와 validator 규칙은
-> `skills/write-task/references/board-contract.md`가 소유한다.
+> 정의하며, 세부 절차는 각 workflow Skill, persisted field와 validator 규칙은 향후
+> `build-task-graph`의 board-contract reference가 소유한다.
 
 ## 저장소와 스냅샷
 
@@ -49,7 +49,10 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | 종료 checkpoint | 최종 implementation snapshot으로 `current-state.md`를 갱신하고 active workflow marker를 종료한 문서 commit |
 | interrupted workflow | active workflow marker가 남아 있지만 정상 workflow 기록 또는 실행이 이어지지 않은 상태 |
 | recovery | active workflow marker와 working-tree evidence를 바탕으로 중단된 동일 작업을 안전하게 재개하는 과정 |
+| restart-task | Kanban 기록이 유실된 interrupted workflow에서 PM이 작성하고 Coder에게 배정하는 단일 recovery implementation contract. clean committed checkpoint를 복원한 뒤 normal graph로 돌아간다. |
 | unattributed change | active workflow marker 또는 확인 가능한 작업 계약에 연결할 수 없는 dirty 변경 |
+| reference baseline | committed implementation, user-approved requirement, derived reference docs, delivery tracker가 서로 모순되지 않는다고 확인한 출발 기준. `current-state.md`는 이 기준이 성립한 뒤 갱신한다. |
+| sync-docs | `current-state.md`를 제외한 agent-readable reference docs의 불일치를 조사·갱신하는 PM task. requirement/policy 의미의 미결정은 사용자에게 routing한다. |
 
 ## 작업 단위와 review
 
@@ -68,12 +71,30 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | replacement task | stale 또는 obsolete unfinished task를 대체하기 위해 새로 만든 task |
 | archived task | replacement로 더 이상 실행하지 않는 historical task. 완료 기록을 수정하거나 되돌린다는 뜻이 아니다. |
 
+## PM Skill과 planning 방식
+
+| 용어 | 의미 |
+|---|---|
+| service-planning | PM이 기능·정책 선택지·경쟁 서비스·UI/user flow를 조사해 사용자 결정을 준비하는 Skill. PM은 결정을 대신하지 않는다. |
+| build-task-graph | 사용자 승인 requirement, fresh current-state, Issue를 Coder child card와 root-review contract로 투영하는 Skill. |
+| controll-task-graph | checkpoint, promotion, review routing, base-sync, recovery, PR·CI·merge·Issue close를 제어하는 Skill. |
+| new-delivery | 새 leaf Issue의 최초 graph를 만드는 build-task-graph mode. |
+| requirement-rework | 사용자가 requirement를 먼저 수정한 뒤 그 변경을 Coder rework contract로 바꾸는 mode. |
+| review-rework | Reviewer finding을 Coder rework contract로 바꾸는 mode. |
+| document-first planning | requirement·fresh current-state·Issue를 기본 입력으로 사용하고, 문서 부족·충돌·구현 불일치 보고 때만 source를 제한적으로 조사하는 방식. |
+| limited source investigation | PM이 policy를 재해석하지 않고 문서 부족·충돌·불일치를 확인하기 위해 필요한 범위에서만 source locator를 조사하는 예외 절차. |
+| GitHub guide | controll-task-graph이 참조할 Issue tree·PR·CI·merge·auto-close·read-back 운영 기준. |
+
 ## 문서 책임
 
 | 문서 | 소유하는 내용 |
 |---|---|
 | `SOUL.md` | PM identity, 권한 경계, 불확실성·보고 기본값 |
-| workflow Skill | planning admission, routing, checkpoint, recovery, finalization 절차 |
-| `board-contract.md` | task body field, graph 불변조건, validator 규칙 |
+| `service-planning` | 사용자 결정 전 기능·정책·UI 선택지와 requirement 변경 제안 |
+| `build-task-graph` | 문서 우선 task graph와 root review contract 작성 |
+| `controll-task-graph` | planning 뒤 routing, checkpoint, recovery, finalization |
+| `sync-docs` | current-state를 제외한 파생 문서와 tracker 동기화 |
+| `update-current-state` | current-state schema·snapshot·draft procedure의 별도 소유자 |
+| `board-contract.md` | build-task-graph이 사용하는 task body field, graph 불변조건, validator 규칙 |
 | `TERMINOLOGY.md` | 이 용어집의 개념적 의미 |
 | `README.md` | distribution 설치·구성·문서 안내 |
