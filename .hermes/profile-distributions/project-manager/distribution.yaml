@@ -14,7 +14,6 @@ distribution_owned:
   - skills/create-triage/scripts/triage.py
   - skills/create-triage/scripts/test_triage.py
   - skills/build-task-graph/SKILL.md
-  - skills/build-task-graph/plan.md
   - skills/build-task-graph/references/board-contract.md
   - skills/build-task-graph/scripts/build_task_graph.py
   - skills/build-task-graph/tests/test_build_task_graph.py
