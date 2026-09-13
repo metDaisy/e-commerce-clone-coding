@@ -9,11 +9,13 @@ distribution_owned:
   - SOUL.md
   - capabilities.yaml
   - skills/create-triage/SKILL.md
+  - skills/create-triage/README.md
   - skills/create-triage/plan.md
   - skills/create-triage/references/triage-contract.md
   - skills/create-triage/scripts/triage.py
   - skills/create-triage/scripts/test_triage.py
   - skills/build-task-graph/SKILL.md
+  - skills/build-task-graph/README.md
   - skills/build-task-graph/references/board-contract.md
   - skills/build-task-graph/scripts/build_task_graph.py
   - skills/build-task-graph/tests/test_build_task_graph.py
