@@ -103,9 +103,11 @@ absolute path를 포함하지 않는다. 프로젝트 공통 규칙은 기존 `A
 
 이 문서는 Profile topology와 high-level handoff만 설명한다. 실행 시점의 PM 정책은
 `.hermes/profile-distributions/project-manager/SOUL.md`, graph authoring은
-`.hermes/profile-distributions/project-manager/skills/write-task/SKILL.md`, 저장 task
-schema와 validator는 `.hermes/profile-distributions/project-manager/skills/write-task/references/board-contract.md`가
-각각 단일 source of truth다.
+`.hermes/profile-distributions/project-manager/skills/build-task-graph/SKILL.md`, 저장 task
+schema와 draft validator는
+`.hermes/profile-distributions/project-manager/skills/build-task-graph/references/board-contract.md`가
+각각 단일 source of truth다. v0.1은 `new-delivery` draft만 지원하며 native graph 생성은
+atomic Kanban capability가 제공될 때까지 `blocked`다.
 
 프로젝트 공통 hard rule은 `AGENTS.md`와 `docs/agent-workflow.md`가 소유한다. Reviewer의
 focus별 판단은 각 Reviewer Profile의 SOUL/Skill이, finding canonicalization과 conflict
@@ -116,8 +118,8 @@ focus별 판단은 각 Reviewer Profile의 SOUL/Skill이, finding canonicalizati
 
 ```text
 project-manager
-  → Issue·요구사항·현재 상태를 확인하고 graph authoring Skill로 graph 생성
-  → 첫 번째 실행 가능한 leaf 하나만 ready
+  → Issue·요구사항·현재 상태를 확인하고 graph authoring Skill로 v0.1 draft 검증
+  → atomic native graph-create capability가 있을 때만 첫 leaf 하나를 ready로 노출
 implementation-coder
   → task claim + backend 구현·테스트 + 3단계 결정론적 검증
 reviewer-general(focus=spec)
@@ -138,8 +140,10 @@ project-manager
 ## Project Manager와 Kanban 계약
 
 PM과 Kanban의 상세 입력·task-body·evidence·acceptance·verification·dependency 계약은
-`.hermes/profile-distributions/project-manager/skills/write-task/SKILL.md`와
-`.hermes/profile-distributions/project-manager/skills/write-task/references/board-contract.md`가 소유한다.
+`.hermes/profile-distributions/project-manager/skills/build-task-graph/SKILL.md`와
+`.hermes/profile-distributions/project-manager/skills/build-task-graph/references/board-contract.md`가
+소유한다. v0.1은 `new-delivery` JSON draft의 구조·topology만 검증하며, atomic graph-create
+capability가 없으면 native card mutation을 수행하지 않는다.
 PM의 lifecycle 상태 전이와 routing만
 `.hermes/profile-distributions/project-manager/SOUL.md`가 소유한다. 이 문서에서는
 필드나 validator 규칙을 재기록하지 않는다.
