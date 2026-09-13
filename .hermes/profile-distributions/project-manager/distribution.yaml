@@ -6,6 +6,7 @@ author: "Amaazon project"
 license: "MIT"
 
 distribution_owned:
+  - README.md
   - SOUL.md
   - capabilities.yaml
   - skills/create-triage/SKILL.md
