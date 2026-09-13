@@ -1,8 +1,9 @@
 # Project Manager Workflow Design
 
-> **Status: draft.** 이 문서는 현재까지 합의한 workflow 설계를 사람이 검토하기 위해
-> 기록한다. 아직 `SOUL.md`, runtime Skill, `board-contract.md`, validator에 적용된
-> 동작이 아니다. 용어는 [TERMINOLOGY.md](TERMINOLOGY.md)를 따른다.
+> **Status: partial implementation.** 이 문서는 합의한 workflow 설계를 사람이 검토하기 위해
+> 기록한다. `build-task-graph`의 `new-delivery` v0.1 Skill, board contract, draft validator와
+> fixture test는 적용됐다. rework mode와 native atomic graph-create는 아직 설계 항목이다.
+> 용어는 [TERMINOLOGY.md](TERMINOLOGY.md)를 따른다.
 
 ## 0. Existing project reference baseline
 
@@ -208,7 +209,8 @@ Coder/Reviewer가 실제 구현과의 불일치를 보고할 때만 source locat
 - data model/repository/migration이 필요하면 첫 child task로 만든다.
 - API task는 requirement의 API 순서로 chain dependency를 둔다.
 - graph에는 한 시점에 하나의 implementation child만 eligible하도록 dependency를 구성한다.
-  dispatcher가 전역적으로 하나만 ready로 승격한다는 보장은 전제하지 않는다.
+  v0.1 draft validator가 이를 검사하고, 미래 atomic creator만 이 child를 ready로 노출한다.
+  atomic capability가 없으면 PM은 graph mutation을 `blocked`로 보고한다.
 - Coder child task의 exact changed-file allowlist는 강제하지 않는다. PM은 HTTP,
   application, domain, error, persistence, test entry surface를 context로 제공한다.
 
@@ -307,13 +309,14 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 
 ## 8. 아직 확정하지 않은 항목
 
-- `create-triage`, `service-planning`, `build-task-graph`, `controll-task-graph`, `sync-docs`, `update-current-state`의
-  SKILL.md 절차와 frontmatter
+- `build-task-graph`의 `requirement-rework`, `review-rework` 절차와 native atomic graph-create
+  request/response schema
+- `create-triage`, `service-planning`, `controll-task-graph`, `sync-docs`, `update-current-state`의
+  남은 SKILL.md 절차와 frontmatter
 - update-current-state의 정확한 re-investigation 범위와 draft script CLI/output schema
 - base-sync의 detailed procedure, conflict report body, impact-analysis evidence
 - Reviewer가 PM-authored review question 밖의 finding을 제기할 수 있는지
 - structured finding과 rework draft의 final schema/script
-- v4 board contract와 validator regression tests
 - PM-focused Semble 절차와 `references/github-guide.md`
 
 ## 9. 문서와 runtime 적용 순서
@@ -321,9 +324,9 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 이 design을 확정한 뒤에만 다음을 적용한다.
 
 ```text
-1. `create-triage`, `service-planning`, `build-task-graph`, `controll-task-graph` Skill 확정
-2. `sync-docs`, `update-current-state`는 각 별도 session/branch에서 상세 설계
-3. board-contract-v4 및 validator regression test
+1. `build-task-graph`의 v0.1 draft authoring을 native atomic graph-create capability와 연결
+2. `create-triage`, `service-planning`, `controll-task-graph` Skill 확정
+3. `sync-docs`, `update-current-state`는 각 별도 session/branch에서 상세 설계
 4. PM-focused Semble와 GitHub guide 정렬
 5. distribution manifest/README 정렬
 6. fresh profile 설치·runtime native Kanban 호출·read-back 검증

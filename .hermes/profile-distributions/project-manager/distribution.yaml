@@ -13,6 +13,13 @@ distribution_owned:
   - skills/create-triage/references/triage-contract.md
   - skills/create-triage/scripts/triage.py
   - skills/create-triage/scripts/test_triage.py
+  - skills/build-task-graph/SKILL.md
+  - skills/build-task-graph/plan.md
+  - skills/build-task-graph/references/board-contract.md
+  - skills/build-task-graph/scripts/build_task_graph.py
+  - skills/build-task-graph/tests/test_build_task_graph.py
+  - skills/build-task-graph/tests/fixtures/valid-new-delivery.json
+  - skills/build-task-graph/tests/fixtures/invalid-missing-cards.json
   - skills/cross-domain-contract-planning/SKILL.md
   - skills/write-task/SKILL.md
   - skills/semble-search/SKILL.md

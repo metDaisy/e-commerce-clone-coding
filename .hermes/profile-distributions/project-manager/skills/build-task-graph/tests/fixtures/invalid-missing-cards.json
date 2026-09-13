@@ -1,0 +1,15 @@
+{
+  "schema": "build-task-graph-draft-v4",
+  "mode": "new-delivery",
+  "issue": {
+    "number": 138,
+    "title": "Seller product registration",
+    "url": "https://github.com/example/repo/issues/138"
+  },
+  "planning": {
+    "baseline_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "current_state_snapshot_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "state_freshness": "fresh"
+  },
+  "cards": []
+}

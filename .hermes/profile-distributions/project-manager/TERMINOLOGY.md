@@ -1,7 +1,7 @@
 # Project Manager 용어집
 
 > PM workflow를 설계·검토할 때 사용하는 용어의 기준이다. 이 문서는 용어의 의미만
-> 정의하며, 세부 절차는 각 workflow Skill, persisted field와 validator 규칙은 향후
+> 정의하며, 세부 절차는 각 workflow Skill, persisted field와 validator 규칙은
 > `build-task-graph`의 board-contract reference가 소유한다.
 
 ## 저장소와 스냅샷
@@ -80,11 +80,11 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | triage body | create-triage card의 canonical JSON 계획. 진행 중에는 수정할 수 있고, done 전환 시 freeze한다. 정책 판단은 linked service-planning card의 Markdown으로 사용자에게 제시한다. |
 | document impact | Issue 계획이 requirement·architecture·ADR·glossary·ERD·index에 미치는 영향을 `update`, `no-change`, `not-applicable`, `blocked`로 판정한 표. |
 | policy decision request | 정책 모순·누락의 문제, 근거, 선택지, 추천을 사용자에게 제시하는 구조화된 결정 요청. |
-| build-task-graph | 사용자 승인 requirement, fresh current-state, Issue를 Coder child card와 root-review contract로 투영하는 Skill. |
+| build-task-graph | 사용자 승인 requirement, fresh current-state, Issue를 Coder child card와 root-review contract로 투영하는 Skill. v0.1은 `new-delivery` draft authoring과 deterministic validation만 지원한다. |
 | controll-task-graph | checkpoint, promotion, review routing, base-sync, recovery, PR·CI·merge·Issue close를 제어하는 Skill. |
 | new-delivery | 새 leaf Issue의 최초 graph를 만드는 build-task-graph mode. |
-| requirement-rework | 사용자가 requirement를 먼저 수정한 뒤 그 변경을 Coder rework contract로 바꾸는 mode. |
-| review-rework | Reviewer finding을 Coder rework contract로 바꾸는 mode. |
+| requirement-rework | 사용자가 requirement를 먼저 수정한 뒤 그 변경을 Coder rework contract로 바꾸도록 계획된 mode. v0.1에서는 `blocked`다. |
+| review-rework | Reviewer finding을 Coder rework contract로 바꾸도록 계획된 mode. v0.1에서는 `blocked`다. |
 | document-first planning | requirement·fresh current-state·Issue를 기본 입력으로 사용하고, 문서 부족·충돌·구현 불일치 보고 때만 source를 제한적으로 조사하는 방식. |
 | limited source investigation | PM이 policy를 재해석하지 않고 문서 부족·충돌·불일치를 확인하기 위해 필요한 범위에서만 source locator를 조사하는 예외 절차. |
 | GitHub guide | controll-task-graph이 참조할 Issue tree·PR·CI·merge·auto-close·read-back 운영 기준. |
