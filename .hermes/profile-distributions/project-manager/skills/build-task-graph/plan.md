@@ -2,60 +2,168 @@
 
 ## 목적
 
-사용자 승인 requirement, GitHub Issue, freshness가 확인된 current-state를 Coder가 requirement 문서를 다시 기획하지 않고 구현할 수 있는 self-contained Kanban task graph로 바꾼다. 기존 `write-task`의 코드 전수 조사 중심 절차를 문서 우선 절차로 대체한다.
+frozen `create-triage` body, 사용자 승인 requirement, GitHub Issue, freshness가 확인된
+`current-state.md`를 Coder가
+다른 문서를 다시 찾거나 기획하지 않고 구현할 수 있는 self-contained Kanban task graph로
+투영한다. PM은 Issue로 delivery 범위와 lineage를 파악하고, requirement를 구현 계약의
+정확한 기준으로 사용한다. `current-state.md`는 목표가 아니라 검증된 committed
+implementation snapshot이다.
+
+기존 `write-task`의 코드 전수 조사 중심 authoring recipe를 문서 우선 절차로 대체한다.
+새 v4 board contract, deterministic draft tooling, validator, native graph creation surface는
+이 Skill이 소유한다.
 
 ## 사용할 때
 
 - open leaf Issue의 최초 구현 graph를 만들 때
-- 사용자가 requirement를 먼저 수정한 뒤 Coder rework를 만들 때
-- Reviewer finding을 구체적인 Coder rework contract로 바꿀 때
+- 사용자 승인 requirement 변경을 기존 delivery의 Coder rework contract로 바꿀 때
+- structured Reviewer finding을 Coder rework contract로 바꿀 때
 - Kanban graph가 유실된 뒤 `controll-task-graph`가 정상 graph 재생성을 허용할 때
+- frozen `create-triage` card가 있고 triage handoff가 graph authoring을 허용할 때
 
 ## mode
 
-- `new-delivery`: 새 leaf Issue의 최초 child/root graph 작성
-- `requirement-rework`: requirement 변경을 기존 Issue 또는 새 delivery scope의 rework graph로 변환
-- `review-rework`: structured Reviewer finding을 rework graph로 변환
+| Mode | 시작 조건 | 생성 결과 |
+|---|---|---|
+| `new-delivery` | clean delivery branch, active workflow marker, fresh current-state, open leaf Issue | 확정된 모든 child와 `root-review-1`; 첫 child만 ready |
+| `requirement-rework` | 사용자가 requirement 변경을 승인하고 requirement/Issue 동기화가 read-back됨 | affected unfinished card의 replacement child와 replacement root review |
+| `review-rework` | Reviewer의 completed verdict와 structured finding이 read-back됨 | finding을 해결하는 child와 다음 `root-review-{n+1}` |
 
-## 입력
+## 입력과 admission
 
-- GitHub root-to-leaf Issue lineage와 해당 Issue 본문
-- 사용자 승인 requirement locator
-- freshness가 확인된 current-state의 관련 section
-- 기존 Kanban card, dependency, review finding이 있으면 그 read-back
-- clean repository와 선택된 planning/delivery branch 정보
+다음은 graph mutation 전에 native 또는 Git read-back으로 확인한다.
 
-## 절차 초안
+- GitHub root-to-leaf Issue lineage와 선택한 leaf Issue 본문
+- completed `create-triage` card의 frozen body와 native read-back
+- 사용자 승인 requirement locator와 관련 requirement section
+- fresh `current-state.md`의 관련 section
+- 기존 Kanban card, dependency, completed review finding의 native read-back
+- clean repository, selected planning/delivery branch, committed active workflow marker
+- runtime에 주입된 native Kanban schema와 atomic graph-create action
 
-1. Issue가 delivery tracking인지 확인하고 requirement를 기능 목표의 기준으로 읽는다.
-2. current-state에서 관련 모듈·API·DB·테스트 상태를 파악한다. 문서가 충분하면 source 전수 조사를 하지 않는다.
-3. requirement, current-state, Issue가 충돌하거나 부족하면 `needs-input` 또는 제한적 조사로 routing한다.
-4. 구현 범위를 독립 검증 가능한 child로 나누고 dependency로 한 시점에 하나의 Coder child만 eligible하게 만든다.
-5. 각 Coder card에 Goal, scope, out-of-scope, actor, observable behavior, error/state semantics, acceptance, verification, current-state/requirement locator를 넣는다.
-6. 모든 child와 Reviewer-assigned `root-review-{n}` aggregate contract를 초안으로 만든다.
-7. board contract/validator로 draft와 생성 후 graph를 검증하고 native read-back한다.
+triage가 없거나 frozen handoff의 `build_task_graph.allowed`가 `false`이면 graph를 만들지 않는다.
+`current-state.md`가 `stale` 또는 `insufficient`이거나 active workflow/branch admission이
+충족되지 않으면 graph를 만들지 않는다. `controll-task-graph` 또는
+`update-current-state`로 정확한 blocker를 routing한다. native Kanban schema 또는 atomic
+create action이 없으면 mutation은 `blocked`이며 plugin/runtime 개선으로 routing한다.
 
-## 출력
+## requirement gap과 문서 동기화
 
-- PM-authored Coder child cards
-- immutable root-review contract와 PM-authored review questions
-- dependency graph 및 첫 ready child
-- source 문서 locator, unknown, blocked/needs-input 기록
+requirement에 task contract에 필수인 정보가 없으면 PM은 이를 임의로 메우지 않는다.
 
-## 경계
+1. 누락 사실, 선택지, 영향과 policy 변경 여부를 사용자에게 제시한다.
+2. 사용자가 승인하면 requirement를 갱신한다. business policy 변경도 이 사용자 승인이
+   있어야 한다.
+3. 같은 논리적 planning transition에서 `sync-docs`의 `derived-docs` mode로 직접 영향을
+   받는 파생 문서를 동기화하고 repository 문서를 commit한다.
+4. `sync-docs`의 `issue-tracker` mode로 Issue scope/body/status/dependency를 동기화하고
+   external state를 read-back한다.
+5. clean tree, current-state freshness, requirement locator, Issue 본문을 다시 확인한 뒤
+   같은 build run을 재개한다.
 
-- requirement의 policy 의미를 새로 결정하지 않는다.
-- Coder에게 requirement 문서 재해석을 지시하지 않는다.
-- Reviewer가 수행할 독립 review를 대신하지 않는다.
-- source 조사 필요성을 문서 불충분·충돌·불일치 보고의 예외로 제한한다.
+`current-state.md`는 구현 검증 뒤 `update-current-state`만 갱신한다. requirement 또는
+일반 문서 변경만으로 implementation snapshot을 갱신하거나 stale로 판정하지 않는다.
+
+## 제한적 source investigation
+
+문서가 충분하면 source/test/migration을 전수 조사하지 않는다. 다음 경우에만 필요한
+범위의 committed source locator를 조사한다.
+
+- requirement, current-state, Issue가 서로 충돌한다.
+- task contract에 필수인 정보가 누락되어 사용자 검토만으로 해소되지 않는다.
+- Coder 또는 Reviewer가 문서와 구현의 불일치를 보고한다.
+- module boundary, public contract, migration 등 명시적 structural constraint 확인이 필요하다.
+
+조사 결과가 business policy, authorization, consistency, error semantics의 결정을 요구하면
+`needs-input`으로 사용자에게 routing한다.
+
+## Child implementation contract
+
+각 child는 한 Coder owner와 하나의 독립적으로 검증 가능한 outcome을 갖는다. Coder는
+card 본문만 실행 입력으로 사용한다. requirement locator는 PM traceability를 위한 근거이며,
+Coder에게 문서를 다시 해석하라는 지시가 아니다.
+
+v4 child schema는 다음 공통 영역을 요구한다.
+
+- planning identity: Issue, requirement/current-state locator, planning baseline SHA, freshness,
+  dependency와 assignee
+- goal, scope, explicit out-of-scope, observable behavior
+- actor/authorization, field semantics, domain state/invariant, error behavior
+- acceptance criteria와 각 criterion에 연결된 executable `CHECK`/`EXPECT`
+- source/test/migration/module-boundary locator가 예외 조사에 사용된 경우 그 locator
+
+API contract, persistence/migration, UI flow, cross-module boundary 같은 조건부 영역은
+적용되는 구체적 계약을 쓰거나 `not_applicable_reason` 중 하나를 반드시 가진다. validator는
+field 존재와 형식을 검사하고, PM checklist와 사용자 requirement 검토는 의미적 완결성을
+확인한다.
+
+## Root review contract
+
+새 delivery는 확정된 모든 child와 Reviewer-assigned `root-review-1`을 함께 생성한다.
+dependency는 첫 implementation child 하나만 ready가 되도록 구성한다. 추측성 downstream
+work는 만들지 않는다.
+
+v4 root schema는 다음을 요구한다.
+
+- 대상 child task ID 집합
+- immutable aggregate contract, cross-boundary/API invariant, aggregate exclusion
+- child evidence read-back 요구
+- PM-authored review question
+- `approved | changes-requested | needs-input` verdict protocol
+- 후속 root의 rework/finding provenance
+
+Reviewer의 상세 rubric, requirement/current-state 직접 열람 여부, PM question 밖 finding 허용
+범위는 Reviewer Profile 설계가 소유한다.
+
+## Rework와 immutable history
+
+- completed root review의 `changes-requested` finding은 `review-rework` mode의 새 Coder child로
+  변환한다. child checkpoint 뒤 `root-review-{n+1}`을 생성하며, 이전 root, finding, 완료 child는
+  수정하지 않는다.
+- user-approved policy/requirement 변경으로 미완료 child가 obsolete가 되면 해당 child와 아직
+  실행되지 않은 root review를 archive한다. archive는 body, run, comment, ID를 바꾸지 않는
+  historical replacement이다.
+- 예를 들어 A만 변경되면 `rework-A`와 `rework-root-review-1`을 만들고, 영향 없는 B/C/D는
+  replacement root의 dependency로 재사용한다.
+- 미완료 root replacement는 `rework-root-review-{n}`으로, completed review verdict 뒤 finding
+  rework의 다음 root는 `root-review-{n+1}`으로 이름 짓는다.
+
+## Draft, validation, native creation
+
+`scripts/`의 deterministic draft generator는 child/root task body draft에 필요한 정보를
+빠뜨리지 않도록 JSON 또는 YAML draft를 생성한다. 이 draft는 PM authoring 보조물이며 그 자체를
+validator가 별도 판정하지 않는다.
+
+PM은 draft를 근거로 v4 task body를 작성한다. native plugin의 build-task-graph 전용 atomic
+graph-create action은 전체 candidate body와 topology를 v4 validator로 검사하고, 통과한
+graph만 한 번에 persist한다. atomic action은 single ready implementation child만 노출하며,
+실패한 candidate card를 dispatcher가 claim할 수 있는 중간 상태를 만들지 않는다.
+
+생성 뒤에는 native envelope, actual task ID, dependency, assignee, ready state를 read-back하고
+post validator로 persisted graph를 확인한다. validator는 task-body/graph 계약 검사기이며,
+Coder test, PM checkpoint, CI, requirement의 의미적 충족을 대신 판정하지 않는다.
+
+## 구현 산출물과 migration
+
+- `skills/build-task-graph/SKILL.md`: 이 plan의 ordered authoring procedure와 Korean report contract
+- `skills/build-task-graph/references/board-contract.md`: v4 persisted body schema, graph invariant,
+  finding schema, validator rule의 유일한 source of truth
+- `skills/build-task-graph/scripts/`: draft generator, v4 validator, fixture-based regression tests
+- Kanban plugin: atomic build-task-graph native creation/read-back surface
+
+v3의 planning SHA/freshness, actual task-ID dependency, typed locator, `CHECK`/`EXPECT`, review
+handoff, secret-redaction 장치를 v4에 이식한다. v4 validator와 regression test가 통과한 뒤
+`write-task`, v3 board contract, 기존 validator를 한 변경에서 삭제한다.
 
 ## 완료 기준
 
-모든 실행 card가 한 명의 owner, 명시적 scope/out-of-scope, acceptance, verification, 의존성을 가지며, validator와 native read-back이 이를 증명해야 한다.
+다음이 모두 실제 read-back 또는 regression result로 증명되어야 한다.
 
-## TBD
-
-- 새 board-contract v4의 task body schema
-- requirement-rework의 lineage 및 prior task 참조 형식
-- root-review finding schema와 rework draft generator
-- 문서 우선 planning에서 제한적 source investigation을 허용하는 정확한 조건
+- 모든 실행 card에는 owner, scope/out-of-scope, self-contained implementation contract,
+  acceptance, verification, dependency가 있다.
+- 모든 root card에는 complete aggregate contract와 review provenance가 있다.
+- graph는 첫 eligible implementation child 하나만 ready로 노출한다.
+- v4 validator와 fixture regression test가 valid/invalid child, root, requirement-rework,
+  review-rework topology를 판정한다.
+- native atomic creation과 post read-back이 persisted body, actual IDs, dependency, assignee,
+  ready state를 증명한다.

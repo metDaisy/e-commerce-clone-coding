@@ -10,7 +10,7 @@ PM의 기본 planning 입력은 사용자 승인 requirement, freshness가 확�
 Issue다. requirement는 목표 계약이고, current-state는 구현 상태의 요약 기준이며, GitHub Issue는
 delivery tracking이다. PM은 이 문서들이 충분할 때 source·test·migration을 전수 조사하지 않는다.
 문서 부족·충돌 또는 Coder/Reviewer의 구현 불일치 보고가 있을 때만 필요한 범위의 source 조사를
-수행하거나 `needs-input`으로 사용자에게 올린다.
+수행하거나 native `blocked`와 decision request로 사용자에게 올린다.
 
 이 workflow를 처음 도입할 때는 normal Issue planning보다 먼저 PM-owned
 `establish-reference-baseline`을 수행한다.
@@ -43,7 +43,10 @@ Project Manager는 **서비스 기획과 개발 작업 흐름을 정리하는 �
 
 ```text
 user-approved requirements + fresh current-state + GitHub Issue tree
-→ Project Manager: planning, task contract, branch/lifecycle, checkpoint
+→ Project Manager: current-state admission
+→ create-triage: Issue implementation idea, document impact, policy-gap review
+→ service-planning: user decision when triage finds a business-policy problem
+→ Project Manager: task contract, branch/lifecycle, checkpoint
 → implementation-coder: child card의 구현·테스트
 → Project Manager: commit checkpoint와 routing
 → Reviewer: PM이 작성한 root review card를 기준으로 aggregate review
@@ -51,9 +54,11 @@ user-approved requirements + fresh current-state + GitHub Issue tree
 ```
 
 - PM은 requirement/API/business semantics를 새로 정하지 않는다. 근거가 모순·누락되면
-  `needs-input`으로 사용자에게 올린다.
-- Coder는 child card와 `docs/testing-guide.md`를 기본 실행 입력으로 사용한다. requirement를
-  다시 기획하거나 task contract를 독자적으로 확장하지 않는다.
+  native `blocked` 상태와 decision request로 사용자에게 올린다.
+- Coder는 self-contained child card만 실행 입력으로 사용한다. testing-guide 또는 다른
+  문서의 의무가 있으면 PM이 child card에 구체적인 계약으로 materialize한다. Coder는
+  requirement·source·current-state를 다시 찾아 기획하거나 task contract를 독자적으로
+  확장하지 않는다.
 - PM이 child card와 root review card를 모두 작성한다.
 - Issue aggregate review에는 Reviewer Profile 하나만 사용한다.
 - Reviewer가 PM의 review question 밖의 defect를 제기할 수 있는지는 **TBD**다.
@@ -78,10 +83,51 @@ PM은 Amazon과 다른 e-commerce 서비스 조사, 기능 비교, 사용자 흐
 tracker 영향은 `sync-docs`가 다루며, PM은 requirement가 갱신되기 전 policy 변경을 구현 card로
 전환하지 않는다.
 
+`create-triage`가 policy 모순·누락을 발견하면 PM은 정책을 간단히 결정하지 않는다. triage card를
+`blocked`로 전환하고, 문제·근거·선택지·추천을 담은 별도 `service-planning` card를 linked
+relationship으로 만든다. 사용자가 결정한 뒤에만 requirement를 수정하고, `sync-docs`로 영향받은
+파생 문서와 Issue를 동기화한 다음 기존 triage card를 재개한다.
+
+### 1.3 create-triage
+
+모든 새 leaf Issue의 Kanban task 생성은 `create-triage`에서 시작한다. 이는 짧은 preflight가
+아니라 Issue를 구현하기 위한 아이디어·후보 vertical slice·후보 dependency·검증 방향과 문서
+영향을 정리하는 PM-owned planning card다. 구현 가능한 실행 계약은 `build-task-graph`가
+작성한다.
+
+native Kanban plugin의 상태는 다음과 같이 사용한다.
+
+```text
+triage → running → done
+          └──────→ blocked → running
+```
+
+`todo`와 `ready`는 plugin이 claim 전에 명시적 promotion을 요구하는 경우의 queue 상태다.
+`needs-input`은 Kanban 상태가 아니라 triage body의 `blocker.kind`와 decision request로
+기록하며 native 상태는 `blocked`로 유지한다.
+
+active leaf Issue당 active triage card는 하나만 허용한다. 문제가 없으면 body를 freeze하고
+`done` 처리한 뒤 `build-task-graph`로 넘긴다. 정책·요구사항 문제가 있으면 `blocked`로 유지하고
+service-planning 완료, requirement·문서·Issue read-back 뒤 같은 card를 재개한다. 완료된
+triage card는 graph runtime dependency가 아니며 graph provenance로만 참조한다.
+
+triage body의 정본은 JSON이다. requirement, architecture, ADR, glossary, ERD, index는 각각
+`update | no-change | not-applicable | blocked` 중 하나로 판정한다. `no-change`는 검토했지만
+수정할 필요가 없다는 뜻이다. `current-state.md`는 영향 문서 표가 아닌 read-only snapshot
+객체이며 triage에서 수정하지 않는다. 정책 판단이 필요할 때만 linked `service-planning` card가
+문제·근거·선택지·추천을 사람이 검토할 수 있는 Markdown으로 제공한다.
+
+`triage.py template`은 PM이 이미 read-back한 Issue identity, planning/current-state SHA,
+requirement/current-state locator만 받아 repository `.temp/triage/issue-<n>/`에 JSON draft를
+쓴다. 실제 native task ID는 body의 중복 field가 아니라 Kanban provenance다. 생성 뒤 PM은
+native `kanban_show`로 read-back하며, 필요할 때 `triage.py validate-card`가 공식 CLI를
+read-only로 호출해 ID·status·assignee·body JSON의 일치를 검사한다. script는 Kanban mutation을
+수행하지 않는다.
+
 ## 2. Planning admission과 current-state 경계
 
-새 leaf Issue planning, delivery branch 생성, implementation task graph 생성은 repository가
-clean일 때만 시작한다.
+새 leaf Issue planning, create-triage card 생성, delivery branch 생성, implementation task
+graph 생성은 repository가 clean일 때만 시작한다.
 
 ```text
 clean = staged 변경 없음 + unstaged 변경 없음 + untracked 변경 없음
@@ -101,10 +147,10 @@ active workflow: absent | present
 ```
 
 - `fresh`일 때만 새 leaf planning을 시작한다.
-- `stale` 또는 `insufficient`이면 `update-current-state` 또는 `needs-input`으로 routing한다.
+- `stale` 또는 `insufficient`이면 `update-current-state` 또는 native `blocked` 상태로 routing한다.
 - active workflow가 존재하면 `controll-task-graph`가 recovery 가능 여부를 판정한다. 동일 Issue에만
   귀속 가능한 dirty delta와 유실된 Kanban 기록은 `restart-task`로 clean checkpoint를 복원할 수 있다.
-  unrelated 또는 unknown dirty 변경이 있으면 `needs-input`이다.
+  unrelated 또는 unknown dirty 변경이 있으면 native `blocked`와 decision record로 올린다.
 
 ## 3. Issue·branch 선택
 
@@ -136,7 +182,7 @@ B task에서 수정한다. requirement/policy의 owner 또는 의미가 불명�
 PM은 A correction의 의도, A/B requirement·source locator, 유지할 combined behavior, sync SHA와
 영향받는 B task를 context로 작성한다. Coder가 rebase/merge의 technical conflict를 해결하고
 검증한 뒤 PM checkpoint를 받는다. Coder가 semantic conflict를 독자적으로 결정하지 못하면
-`needs-input`으로 사용자에게 올린다.
+native `blocked`와 decision request로 사용자에게 올린다.
 
 base-sync의 정확한 필요 판정, rebase/merge 선택, impact-analysis evidence, Coder conflict context,
 conflict task body는 **TBD**다. 이미 공유·review된 branch는 merge 또는 blocked 판단, 아직
@@ -145,15 +191,17 @@ contract에 영향을 주면 source conflict가 없어도 영향을 받은 unfin
 
 ## 4. build-task-graph
 
-PM은 Issue를 요약하는 데 그치지 않고 requirement의 domain index·policy·model·관계·API·error·state
+PM은 frozen `create-triage` body를 바탕으로 Issue를 요약하는 데 그치지 않고 requirement의
+domain index·policy·model·관계·API·error·state
 규칙과 fresh current-state의 관련 section을 Coder가 실행 가능한 card contract로 투영한다.
 
 ### 4.1 문서 우선 planning
 
-`build-task-graph`의 기본 입력은 requirement, current-state, Issue다. 문서가 충분하면 PM은 구현
+`build-task-graph`의 기본 입력은 frozen `create-triage` body, 승인 requirement, current-state,
+Issue다. 문서가 충분하면 PM은 구현
 충족 여부를 source/test 존재만으로 재판정하지 않는다. 문서가 부족하거나 서로 충돌할 때, 또는
 Coder/Reviewer가 실제 구현과의 불일치를 보고할 때만 source locator를 제한적으로 조사한다.
-그 결과도 policy 해석이 필요한 경우에는 `needs-input`으로 routing한다.
+그 결과도 policy 해석이 필요한 경우에는 `create-triage`와 `service-planning`으로 routing한다.
 
 ### 4.2 Decomposition과 dependency
 
@@ -259,7 +307,7 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 
 ## 8. 아직 확정하지 않은 항목
 
-- `service-planning`, `build-task-graph`, `controll-task-graph`, `sync-docs`, `update-current-state`의
+- `create-triage`, `service-planning`, `build-task-graph`, `controll-task-graph`, `sync-docs`, `update-current-state`의
   SKILL.md 절차와 frontmatter
 - update-current-state의 정확한 re-investigation 범위와 draft script CLI/output schema
 - base-sync의 detailed procedure, conflict report body, impact-analysis evidence
@@ -273,7 +321,7 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 이 design을 확정한 뒤에만 다음을 적용한다.
 
 ```text
-1. `service-planning`, `build-task-graph`, `controll-task-graph` Skill 확정
+1. `create-triage`, `service-planning`, `build-task-graph`, `controll-task-graph` Skill 확정
 2. `sync-docs`, `update-current-state`는 각 별도 session/branch에서 상세 설계
 3. board-contract-v4 및 validator regression test
 4. PM-focused Semble와 GitHub guide 정렬

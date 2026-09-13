@@ -8,6 +8,11 @@ license: "MIT"
 distribution_owned:
   - SOUL.md
   - capabilities.yaml
+  - skills/create-triage/SKILL.md
+  - skills/create-triage/plan.md
+  - skills/create-triage/references/triage-contract.md
+  - skills/create-triage/scripts/triage.py
+  - skills/create-triage/scripts/test_triage.py
   - skills/cross-domain-contract-planning/SKILL.md
   - skills/write-task/SKILL.md
   - skills/semble-search/SKILL.md

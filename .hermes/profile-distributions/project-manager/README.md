@@ -12,6 +12,8 @@ policy를 적용한다.
 ## Contents
 
 - `SOUL.md`: PM의 강제 운영 원칙·권한 경계
+- `skills/create-triage/`: Issue 구현 아이디어·문서 영향·정책 문제를 정리하고
+  `build-task-graph`로 handoff하는 PM-owned triage 절차
 - `skills/write-task/`: repository discovery preflight와 `board-contract` 기반 Kanban task 작성 절차
 - `skills/cross-domain-contract-planning/`: 다른 도메인의 미구현 capability를 Named Interface query, domain event projection 또는 `needs-input`으로 조율하는 contract-first 절차
 - `scripts/validate_board.py`: `board-contract` 생성 전 draft·생성 후 native read-back을 검사하는

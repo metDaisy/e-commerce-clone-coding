@@ -76,6 +76,10 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | 용어 | 의미 |
 |---|---|
 | service-planning | PM이 기능·정책 선택지·경쟁 서비스·UI/user flow를 조사해 사용자 결정을 준비하는 Skill. PM은 결정을 대신하지 않는다. |
+| create-triage | 모든 새 leaf Issue에 대해 구현 아이디어·후보 task 경계·문서 영향·정책 문제를 정리하고, 완료된 계획을 `build-task-graph`로 넘기는 PM-owned Kanban Skill. |
+| triage body | create-triage card의 canonical JSON 계획. 진행 중에는 수정할 수 있고, done 전환 시 freeze한다. 정책 판단은 linked service-planning card의 Markdown으로 사용자에게 제시한다. |
+| document impact | Issue 계획이 requirement·architecture·ADR·glossary·ERD·index에 미치는 영향을 `update`, `no-change`, `not-applicable`, `blocked`로 판정한 표. |
+| policy decision request | 정책 모순·누락의 문제, 근거, 선택지, 추천을 사용자에게 제시하는 구조화된 결정 요청. |
 | build-task-graph | 사용자 승인 requirement, fresh current-state, Issue를 Coder child card와 root-review contract로 투영하는 Skill. |
 | controll-task-graph | checkpoint, promotion, review routing, base-sync, recovery, PR·CI·merge·Issue close를 제어하는 Skill. |
 | new-delivery | 새 leaf Issue의 최초 graph를 만드는 build-task-graph mode. |
@@ -91,6 +95,7 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 |---|---|
 | `SOUL.md` | PM identity, 권한 경계, 불확실성·보고 기본값 |
 | `service-planning` | 사용자 결정 전 기능·정책·UI 선택지와 requirement 변경 제안 |
+| `create-triage` | Issue별 구현 계획, 문서 영향, 정책 decision request, build-task-graph handoff |
 | `build-task-graph` | 문서 우선 task graph와 root review contract 작성 |
 | `controll-task-graph` | planning 뒤 routing, checkpoint, recovery, finalization |
 | `sync-docs` | current-state를 제외한 파생 문서와 tracker 동기화 |
