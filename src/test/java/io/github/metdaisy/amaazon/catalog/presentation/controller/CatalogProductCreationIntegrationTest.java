@@ -92,9 +92,11 @@ class CatalogProductCreationIntegrationTest extends BaseIntegrationTest {
     mockMvc.perform(post(PRODUCTS_URL)
             .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin()))
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
+        .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-014"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-006"))
+        .andExpect(jsonPath("$.details.fields.identifiers.message")
+            .value("식별자 형식 또는 체크디지트를 확인해 주세요."));
     assertThat(productRepository.count()).isZero();
   }
 
@@ -139,8 +141,11 @@ class CatalogProductCreationIntegrationTest extends BaseIntegrationTest {
             .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin()))
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-017"));
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-006"))
+        .andExpect(jsonPath("$.details.fields.gtin.code").value("CATALOG-017"))
+        .andExpect(jsonPath("$.details.fields.gtin.message")
+            .value("이미 등록된 상품 식별자입니다."));
     assertThat(productRepository.count()).isEqualTo(1);
   }
 

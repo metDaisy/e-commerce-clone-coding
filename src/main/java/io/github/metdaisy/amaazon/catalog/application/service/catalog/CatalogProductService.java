@@ -13,11 +13,14 @@ import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCo
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,47 +81,86 @@ public class CatalogProductService {
     return mapper.toCommandDto(catalog);
   }
 
-  private void verifyIdentifier(UUID id, String type, String value) {
-    for (CatalogProductIdentifierVerifier verifier : verifiers) {
-      if (verifier.support(type)) {
-        verifier.verify(id, value);
-        return;
-      }
-    }
-  }
-
   private CatalogProduct findById(UUID id) {
     return repository.findWithDetailsById(id)
         .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
             AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
   }
 
+  private IdentifierVerificationResult verifyIdentifier(UUID id, String type, String value) {
+    for (CatalogProductIdentifierVerifier verifier : verifiers) {
+      if (verifier.support(type)) {
+        return verifier.verify(id, value);
+      }
+    }
+    return IdentifierVerificationResult.success();
+  }
+
   private void validateIdentifiers(UUID id,
       Map<String, String> identifiers, boolean required) {
     if (identifiers == null || identifiers.isEmpty()) {
       if (required) {
-        throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_INVALID);
+        throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
+            new AmaazonExceptionContext(
+                Map.of("fields", Map.of(
+                    "identifiers", Map.of(
+                        "code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode(),
+                        "message", CatalogProductErrorCode.IDENTIFIER_INVALID.getMessage()))),
+                Collections.emptyMap(), null));
       }
       return;
     }
-    boolean hasText = identifiers.values().stream().allMatch(StringUtils::hasText);
-    if (required && !hasText) {
-      throw new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_INVALID);
-    }
-    Map<String, String> failures = new LinkedHashMap<>();
-    Map<String, Object> logDetails = new LinkedHashMap<>();
-    identifiers.forEach((key, value) -> {
-      try {
-        verifyIdentifier(id, key, value);
-      } catch (CatalogProductException exception) {
-        failures.put(key, exception.getCode());
-        logDetails.putAll(exception.getLogDetails());
-      }
-    });
-    if (!failures.isEmpty()) {
+    IdentifierValidationFailures validation = collectIdentifierFailures(id, identifiers);
+    if (!validation.failures().isEmpty()) {
       throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          new AmaazonExceptionContext(Map.of("fields", failures), logDetails, null));
+          new AmaazonExceptionContext(
+              Map.of("fields", toClientFields(validation.failures())),
+              validation.logDetails(), null));
     }
+  }
+
+  private IdentifierValidationFailures collectIdentifierFailures(UUID id,
+      Map<String, String> identifiers) {
+    Map<String, IdentifierVerificationResult> failures = new LinkedHashMap<>();
+    Map<String, Object> logDetails = new LinkedHashMap<>();
+    identifiers.entrySet().forEach(entry ->
+        collectIdentifierFailure(id, entry, failures, logDetails));
+    return new IdentifierValidationFailures(failures, logDetails);
+  }
+
+  private Map<String, Map<String, String>> toClientFields(
+      Map<String, IdentifierVerificationResult> failures) {
+    return failures.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            entry -> Map.of(
+                "code", entry.getValue().code(),
+                "message", entry.getValue().message()),
+            (first, second) -> first,
+            LinkedHashMap::new));
+  }
+
+  private void collectIdentifierFailure(UUID id,
+      Map.Entry<String, String> entry,
+      Map<String, IdentifierVerificationResult> failures,
+      Map<String, Object> logDetails) {
+    String key = entry.getKey();
+    String value = entry.getValue();
+    if (!StringUtils.hasText(value)) {
+      failures.put(key, IdentifierVerificationResult.failure(
+          CatalogProductErrorCode.IDENTIFIER_INVALID));
+      return;
+    }
+    IdentifierVerificationResult result = verifyIdentifier(id, key, value);
+    if (!result.valid()) {
+      failures.put(key, result);
+      logDetails.putAll(result.logDetails());
+    }
+  }
+
+  private record IdentifierValidationFailures(
+      Map<String, IdentifierVerificationResult> failures,
+      Map<String, Object> logDetails) {
   }
 
 }

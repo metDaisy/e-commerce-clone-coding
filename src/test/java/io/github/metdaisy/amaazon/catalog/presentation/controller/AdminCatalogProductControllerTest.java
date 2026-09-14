@@ -120,19 +120,23 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         Map.of(CatalogIdentifierType.ASIN, "invalid-asin",
             CatalogIdentifierType.GTIN, "invalid-gtin"));
     CatalogProductException exception = new CatalogProductException(
-        CatalogProductErrorCode.IDENTIFIER_INVALID,
+        CatalogProductErrorCode.PRODUCT_CODE_ERROR,
         new AmaazonExceptionContext(
-            Map.of("fields", List.of(
-                Map.of("field", "asin", "reason", "invalid_format"),
-                Map.of("field", "gtin", "reason", "invalid_format"))),
+            Map.of("fields", Map.of(
+                "asin", Map.of("code", "CATALOG-014",
+                    "message", "식별자 형식 또는 체크디지트를 확인해 주세요."),
+                "gtin", Map.of("code", "CATALOG-014",
+                    "message", "식별자 형식 또는 체크디지트를 확인해 주세요."))),
             Map.of(), null));
     willThrow(exception).given(service).create(request);
 
     mockMvc.perform(postJson(PRODUCTS_URL, request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-014"))
-        .andExpect(jsonPath("$.details.fields[0].field").value("asin"))
-        .andExpect(jsonPath("$.details.fields[1].field").value("gtin"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-006"))
+        .andExpect(jsonPath("$.details.fields.asin.code").value("CATALOG-014"))
+        .andExpect(jsonPath("$.details.fields.asin.message")
+            .value("식별자 형식 또는 체크디지트를 확인해 주세요."))
+        .andExpect(jsonPath("$.details.fields.gtin.code").value("CATALOG-014"));
   }
 
   @Test
