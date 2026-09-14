@@ -103,15 +103,32 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
 | 400 | `CATALOG-013` | 이름·설명·브랜드·attributes 검증 실패 | 상품 정보를 확인해 주세요. | 실패 필드와 수정 가능한 reason | 내부 검증 원인 |
-| 400 | `CATALOG-014` | 식별자 형식·체크디지트 실패 또는 식별자 없음 | 상품 식별자 입력을 확인해 주세요. | `details.fields`에 필드·reason·안내 메시지 | 실제 입력값은 로그에만 기록 |
-| 400 | `CATALOG-015` | ISBN 외부 검증 실패 | 상품 식별자 입력을 확인해 주세요. | `field=isbn`, `reason=external_verification_failed` | 외부 응답 원문은 로그에만 기록 |
+| 400 | `CATALOG-006` | 식별자 형식·체크디지트 실패, ISBN 외부 검증 실패 또는 식별자 없음 | 상품 식별자 오류가 있습니다. 필드별 메시지를 확인해 주세요. | `details.fields`를 식별자 이름으로 구분하고 각 값에 내부 원인 코드와 클라이언트 안내 메시지를 포함 | 실제 입력값과 외부 응답 원문은 로그에만 기록 |
 | 404 | [CATEGORY-003](../p2/p2-category.md) | Category가 없음 | 카테고리를 찾을 수 없습니다. | 없음 | `categoryId`, requestId |
-| 409 | `CATALOG-017` | 식별자가 다른 CatalogProduct와 중복 | 이미 등록된 상품 식별자입니다. | 식별자 유형만 | 충돌 식별자 |
+| 400 | `CATALOG-006` | 식별자가 다른 CatalogProduct와 중복 | 상품 식별자 오류가 있습니다. 필드별 메시지를 확인해 주세요. | `details.fields`를 식별자 이름으로 구분하고 각 값에 내부 원인 코드와 클라이언트 안내 메시지를 포함 | 충돌 식별자 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
 | 500 | `CATALOG-018` | 저장소 또는 예상하지 못한 오류 | 요청을 처리하지 못했습니다. | 없음 | 내부 원인과 requestId |
 
-식별자 오류가 여러 개면 `details.fields`에 모든 실패 필드를 반환한다. 전체 식별자 값·SQL·외부 API 원문은 반환하지 않는다.
+모든 식별자 검증 오류는 `CATALOG-006`으로 반환한다. `details.fields`는 식별자 이름을 key로 사용하며, 각 값에 내부 원인 코드와 클라이언트가 수정할 수 있는 메시지를 포함한다. 전체 식별자 값·SQL·외부 API 원문은 반환하지 않는다.
+
+```json
+{
+  "exceptionCode": "CATALOG-006",
+  "details": {
+    "fields": {
+      "asin": {
+        "code": "CATALOG-014",
+        "message": "식별자 형식 또는 체크디지트를 확인해 주세요."
+      },
+      "gtin": {
+        "code": "CATALOG-017",
+        "message": "이미 등록된 상품 식별자입니다."
+      }
+    }
+  }
+}
+```
 
 ### 3-2. CatalogProduct 조회
 
@@ -210,10 +227,9 @@ P2는 Category·ProductVariant의 내부 모델을 응답에 복제하지 않는
 
 | HTTP | exceptionCode | 발생 조건 | client message | details | system message |
 |---:|---|---|---|---|---|
-| 400 | `CATALOG-014` | 형식·체크디지트 실패 또는 모든 식별자 삭제 | 상품 식별자 입력을 확인해 주세요. | `details.fields` | 내부 검증 원인 |
-| 400 | `CATALOG-015` | ISBN 외부 검증 실패 | 상품 식별자 입력을 확인해 주세요. | 실패 필드와 reason | 외부 응답 원문은 로그에만 기록 |
+| 400 | `CATALOG-006` | 형식·체크디지트 실패, ISBN 외부 검증 실패 또는 모든 식별자 삭제 | 상품 식별자 오류가 있습니다. 필드별 메시지를 확인해 주세요. | `details.fields`를 식별자 이름으로 구분하고 각 값에 내부 원인 코드와 클라이언트 안내 메시지를 포함 | 내부 검증 원인과 외부 응답 원문은 로그에만 기록 |
 | 404 | `CATALOG-019` | 상품 미존재 | 상품을 찾을 수 없습니다. | 없음 | 조회 원인과 ID |
-| 409 | `CATALOG-017` | 식별자 중복 | 이미 등록된 상품 식별자입니다. | 식별자 유형만 | 충돌 식별자 |
+| 400 | `CATALOG-006` | 식별자 중복 | 상품 식별자 오류가 있습니다. 필드별 메시지를 확인해 주세요. | `details.fields`를 식별자 이름으로 구분하고 각 값에 내부 원인 코드와 클라이언트 안내 메시지를 포함 | 충돌 식별자 |
 | 409 | `CATALOG-021` | `ARCHIVED` 상품 수정 | 보관된 상품은 변경할 수 없습니다. | 없음 | 현재 상태 |
 | 401 | [AUTH-001](../index.md#예외-응답) | — | — | — | — |
 | 403 | [ADMIN-001](../p7/p7-admin.md#4-공통-예외) | — | — | — | — |
