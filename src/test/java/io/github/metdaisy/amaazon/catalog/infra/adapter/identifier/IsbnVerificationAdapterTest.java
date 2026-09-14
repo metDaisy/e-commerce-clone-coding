@@ -1,15 +1,14 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn.IsbnExternalVerificationPort;
 import java.util.Locale;
 import java.util.UUID;
@@ -52,10 +51,14 @@ class IsbnVerificationAdapterTest {
     UUID productId = UUID.randomUUID();
     given(repository.existsIdentifier(productId, CatalogIdentifierType.ISBN,
         "9780306406157")).willReturn(true);
+    given(externalVerificationPort.verify("9780306406157"))
+        .willReturn(IdentifierVerificationResult.success());
 
-    assertThatThrownBy(() -> verifier.verify(productId, "978-0-306-40615-7"))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
+    IdentifierVerificationResult result = verifier.verify(productId, "978-0-306-40615-7");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
+    assertThat(result.logDetails()).containsEntry(CatalogIdentifierType.ISBN, "978-0-306-40615-7");
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.ISBN,
         "9780306406157");
@@ -73,8 +76,10 @@ class IsbnVerificationAdapterTest {
   @DisplayName("유효한 ISBN-10·ISBN-13과 구분자를 허용한다")
   void verify_shouldAcceptValidIsbnFormats(String value) {
     String normalized = value.replaceAll("[-\\s]", "").toUpperCase(Locale.ROOT);
+    given(externalVerificationPort.verify(normalized))
+        .willReturn(IdentifierVerificationResult.success());
 
-    assertThat(verifier.verify(null, value)).isEqualTo(value);
+    assertThat(verifier.verify(null, value).valid()).isTrue();
     then(externalVerificationPort).should().verify(normalized);
   }
 
@@ -88,9 +93,10 @@ class IsbnVerificationAdapterTest {
   })
   @DisplayName("체크디지트·길이·문자 형식이 잘못된 ISBN을 거부한다")
   void verify_shouldRejectInvalidIsbnFormats(String value) {
-    assertThatThrownBy(() -> verifier.verify(null, value))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
+    IdentifierVerificationResult result = verifier.verify(null, value);
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
 
     then(externalVerificationPort).shouldHaveNoInteractions();
     then(repository).shouldHaveNoInteractions();

@@ -1,9 +1,7 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn;
 
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
-import java.util.List;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -25,26 +23,25 @@ public class OpenLibraryIsbnVerificationAdapter implements IsbnExternalVerificat
   }
 
   @Override
-  public void verify(String isbn) {
+  public IdentifierVerificationResult verify(String isbn) {
     try {
       restClient.get()
           .uri("/isbn/{isbn}.json", isbn)
           .retrieve()
           .toBodilessEntity();
+      return IdentifierVerificationResult.success();
     } catch (RestClientResponseException exception) {
-      throw verificationFailed(isbn, exception.getStatusCode());
+      return verificationFailed(isbn, exception.getStatusCode());
     } catch (RestClientException exception) {
-      throw verificationFailed(isbn, null);
+      return verificationFailed(isbn, null);
     }
   }
 
-  private CatalogProductException verificationFailed(String isbn, HttpStatusCode status) {
-    Map<String, Object> clientDetails = Map.of(
-        "fields", List.of(Map.of("field", "isbn", "reason", "external_verification_failed")));
+  private IdentifierVerificationResult verificationFailed(String isbn, HttpStatusCode status) {
     Map<String, Object> logDetails = status == null
         ? Map.of("isbn", isbn, "reason", "external_verification_failed")
         : Map.of("isbn", isbn, "status", status.value());
-    return new CatalogProductException(CatalogProductErrorCode.ISBN_EXTERNAL_VERIFICATION_FAILED,
-        new AmaazonExceptionContext(clientDetails, logDetails, null));
+    return IdentifierVerificationResult.failure(
+        CatalogProductErrorCode.ISBN_EXTERNAL_VERIFICATION_FAILED, logDetails);
   }
 }

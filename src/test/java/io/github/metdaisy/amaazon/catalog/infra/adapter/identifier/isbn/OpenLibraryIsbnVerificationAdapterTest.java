@@ -1,12 +1,13 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +53,11 @@ class OpenLibraryIsbnVerificationAdapterTest {
         .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
     // when & then
-    assertThatThrownBy(() -> verificationPort.verify("9780306406157"))
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode
-            .ISBN_EXTERNAL_VERIFICATION_FAILED.getCode());
+    IdentifierVerificationResult result = verificationPort.verify("9780306406157");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode
+        .ISBN_EXTERNAL_VERIFICATION_FAILED.getCode());
     server.verify();
   }
 }

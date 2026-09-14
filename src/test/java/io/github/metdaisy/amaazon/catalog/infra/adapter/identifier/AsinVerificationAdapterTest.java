@@ -1,15 +1,14 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,9 +45,10 @@ class AsinVerificationAdapterTest {
     given(repository.existsIdentifier(productId, CatalogIdentifierType.ASIN,
         "B000123456")).willReturn(true);
 
-    assertThatThrownBy(() -> verifier.verify(productId, "B000123456"))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
+    IdentifierVerificationResult result = verifier.verify(productId, "B000123456");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.ASIN,
         "B000123456");
@@ -57,8 +57,9 @@ class AsinVerificationAdapterTest {
   @Test
   @DisplayName("잘못된 형식의 ASIN을 거부한다")
   void verify_shouldRejectInvalidAsin() {
-    assertThatThrownBy(() -> verifier.verify(null, "invalid"))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
+    IdentifierVerificationResult result = verifier.verify(null, "invalid");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
   }
 }

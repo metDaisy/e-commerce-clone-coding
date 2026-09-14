@@ -1,5 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier.isbn;
 
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -8,7 +9,8 @@ import org.springframework.stereotype.Component;
 public class DevIsbnExternalVerificationAdapter implements IsbnExternalVerificationPort {
 
   @Override
-  public void verify(String isbn) {
+  public IdentifierVerificationResult verify(String isbn) {
     // dev/test에서는 ISBN 형식·체크디지트 검증만 수행한다.
+    return IdentifierVerificationResult.success();
   }
 }
