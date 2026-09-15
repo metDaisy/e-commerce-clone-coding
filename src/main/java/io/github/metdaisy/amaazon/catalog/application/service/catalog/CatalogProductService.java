@@ -56,10 +56,10 @@ public class CatalogProductService {
   public CatalogProductCommandDto update(UUID id, CatalogProductUpdateRequest request) {
     CatalogProduct catalog = findById(id);
     catalog.validateActive();
-    List<CatalogProductTag> tags = tagService.findAndCreate(request.tags())
-        .stream()
-        .map(tag -> CatalogProductTag.of(catalog, tag))
-        .toList();
+    List<CatalogProductTag> tags = request.tags() == null ? null
+        : tagService.findAndCreate(request.tags()).stream()
+            .map(tag -> CatalogProductTag.of(catalog, tag))
+            .toList();
     mapper.update(catalog, tags, request);
     return mapper.toCommandDto(catalog);
   }
@@ -93,7 +93,7 @@ public class CatalogProductService {
         return verifier.verify(id, value);
       }
     }
-    return IdentifierVerificationResult.success();
+    return IdentifierVerificationResult.failure(CatalogProductErrorCode.IDENTIFIER_INVALID);
   }
 
   private void validateIdentifiers(UUID id,

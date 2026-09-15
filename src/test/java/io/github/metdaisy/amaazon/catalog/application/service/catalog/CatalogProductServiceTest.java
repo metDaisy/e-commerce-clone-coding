@@ -1,18 +1,17 @@
 package io.github.metdaisy.amaazon.catalog.application.service.catalog;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.never;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture.createRequest;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture.createRequestWithoutIdentifiers;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture.product;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture.updateRequest;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture.category;
 import static io.github.metdaisy.amaazon.catalog.support.fixture.TagFixture.tag;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
@@ -25,6 +24,7 @@ import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.application.service.category.CategoryQueryService;
 import io.github.metdaisy.amaazon.catalog.application.service.tag.TagService;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
+import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProductTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
@@ -239,16 +239,17 @@ class CatalogProductServiceTest {
   void update_shouldHandleNullTags() {
     UUID productId = UUID.randomUUID();
     CatalogProduct product = product(category());
+    CatalogProductTag existingTag = CatalogProductTag.of(product, tag());
+    product.setTags(List.of(existingTag));
     CatalogProductUpdateRequest request = new CatalogProductUpdateRequest(
         "Updated laptop", null, null, null, null);
     given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
-    given(tagService.findAndCreate(null)).willReturn(List.of());
 
     CatalogProductCommandDto response = service.update(productId, request);
 
     assertThat(response.name()).isEqualTo("Updated laptop");
-    assertThat(product.getTags()).isEmpty();
-    then(tagService).should().findAndCreate(null);
+    assertThat(product.getTags()).containsExactly(existingTag);
+    then(tagService).shouldHaveNoInteractions();
   }
 
   @Test
@@ -267,6 +268,28 @@ class CatalogProductServiceTest {
 
     then(asinVerifier).should().verify(productId, "B000123456");
     assertThat(response.asin()).isEqualTo("B000123456");
+  }
+
+  @Test
+  @DisplayName("식별자 수정 실패: 지원하지 않는 식별자 키는 유효하지 않은 식별자로 처리한다")
+  void updateIdentifier_shouldRejectUnsupportedIdentifier() {
+    UUID productId = UUID.randomUUID();
+    CatalogProduct product = product(category());
+    Map<String, String> request = Map.of("unsupported", "value");
+    given(repository.findWithDetailsById(productId)).willReturn(Optional.of(product));
+
+    assertThatThrownBy(() -> service.updateIdentifier(productId, request))
+        .isInstanceOfSatisfying(CatalogProductException.class, exception -> {
+          assertThat(exception.getCode())
+              .isEqualTo(CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+          assertThat(exception.getClientDetails().get("fields"))
+              .isEqualTo(Map.of(
+                  "unsupported", Map.of(
+                      "code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode(),
+                      "message", CatalogProductErrorCode.IDENTIFIER_INVALID.getMessage())));
+        });
+
+    then(mapper).should(never()).updateIdentifierFields(any(), any());
   }
 
   @Test
