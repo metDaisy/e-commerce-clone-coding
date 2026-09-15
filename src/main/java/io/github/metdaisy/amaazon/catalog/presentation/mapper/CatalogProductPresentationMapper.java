@@ -1,7 +1,8 @@
 package io.github.metdaisy.amaazon.catalog.presentation.mapper;
 
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductCommandDto;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductTagDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductQueryDto;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.TagDto;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogIdentifierUpdateResponse;
@@ -19,16 +20,17 @@ import org.mapstruct.Mapping;
 public interface CatalogProductPresentationMapper {
 
   @Mapping(target = "categoryId", source = "category.id")
-  CatalogProductResponse toResponse(CatalogProductDto source);
+  CatalogProductResponse toResponse(CatalogProductCommandDto source);
 
   @Mapping(target = "categoryId", source = "category.id")
-  CatalogProductQueryResponse toQueryResponse(CatalogProductDto source);
+  CatalogProductQueryResponse toQueryResponse(CatalogProductQueryDto source);
 
-  CatalogIdentifierUpdateResponse toIdentifierResponse(CatalogProductDto source);
+  CatalogIdentifierUpdateResponse toIdentifierResponse(CatalogProductCommandDto source);
 
-  CatalogArchivedResponse toArchivedResponse(CatalogProductDto source);
+  CatalogArchivedResponse toArchivedResponse(CatalogProductCommandDto source);
 
-  PageResult<CatalogProductQueryResponse> toQueryResponse(PageResult<CatalogProductDto> source);
+  PageResult<CatalogProductQueryResponse> toQueryResponse(
+      PageResult<CatalogProductQueryDto> source);
 
   default List<String> toTagNames(List<CatalogProductTagDto> tags) {
     if (tags == null || tags.isEmpty()) {

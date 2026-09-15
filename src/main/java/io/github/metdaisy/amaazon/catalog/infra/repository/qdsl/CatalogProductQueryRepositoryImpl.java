@@ -1,16 +1,16 @@
-package io.github.metdaisy.amaazon.catalog.infra.repository;
+package io.github.metdaisy.amaazon.catalog.infra.repository.qdsl;
 
 import static io.github.metdaisy.amaazon.catalog.domain.entity.QCatalogProduct.catalogProduct;
+import static io.github.metdaisy.amaazon.catalog.domain.entity.QCatalogProductTag.catalogProductTag;
+import static io.github.metdaisy.amaazon.catalog.domain.entity.QProductVariant.productVariant;
+import static io.github.metdaisy.amaazon.catalog.domain.entity.QTag.tag;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.StringPath;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import io.github.metdaisy.amaazon.catalog.domain.entity.QCatalogProductTag;
-import io.github.metdaisy.amaazon.catalog.domain.entity.QProductVariant;
-import io.github.metdaisy.amaazon.catalog.domain.entity.QTag;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
@@ -24,10 +24,18 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 @Repository
 @RequiredArgsConstructor
 public class CatalogProductQueryRepositoryImpl implements CatalogProductQueryRepository {
+
+  private static final Map<String, StringPath> IDENTIFIER_PATHS = Map.of(
+      CatalogIdentifierType.ASIN, catalogProduct.asin,
+      CatalogIdentifierType.GTIN, catalogProduct.gtin,
+      CatalogIdentifierType.UPC, catalogProduct.upc,
+      CatalogIdentifierType.EAN, catalogProduct.ean,
+      CatalogIdentifierType.ISBN, catalogProduct.isbn);
 
   private final JPAQueryFactory queryFactory;
 
@@ -53,7 +61,7 @@ public class CatalogProductQueryRepositoryImpl implements CatalogProductQueryRep
   }
 
   @Override
-  public boolean existsIdentifier(UUID id, CatalogIdentifierType type, String value) {
+  public boolean existsIdentifier(UUID id, String type, String value) {
     BooleanBuilder predicate = new BooleanBuilder(identifierPath(type).eq(value));
     if (id != null) {
       predicate.and(catalogProduct.id.ne(id));
@@ -66,15 +74,17 @@ public class CatalogProductQueryRepositoryImpl implements CatalogProductQueryRep
 
   private BooleanBuilder createPredicate(Set<UUID> categoryIds, String keyword, String tag,
       ArchiveStatus catalogPublicationStatus, ArchiveStatus variantPublicationStatus) {
-    BooleanBuilder predicate = new BooleanBuilder(
-        catalogProduct.publicationStatus.eq(catalogPublicationStatus));
+    BooleanBuilder predicate = new BooleanBuilder();
+    if (catalogPublicationStatus != null) {
+      predicate.and(catalogProduct.publicationStatus.eq(catalogPublicationStatus));
+    }
     if (categoryIds != null && !categoryIds.isEmpty()) {
       predicate.and(catalogProduct.category.id.in(categoryIds));
     }
-    if (keyword != null && !keyword.isBlank()) {
+    if (StringUtils.hasText(keyword)) {
       predicate.and(keywordPredicate(keyword, variantPublicationStatus));
     }
-    if (tag != null && !tag.isBlank()) {
+    if (StringUtils.hasText(tag)) {
       predicate.and(tagPredicate(tag));
     }
     return predicate;
@@ -83,26 +93,27 @@ public class CatalogProductQueryRepositoryImpl implements CatalogProductQueryRep
   private Predicate keywordPredicate(String keyword,
       ArchiveStatus variantPublicationStatus) {
     String normalizedKeyword = keyword.trim();
-    QProductVariant variant = new QProductVariant("variant");
+    BooleanBuilder variantPredicate = new BooleanBuilder(
+        productVariant.catalogProduct.eq(catalogProduct));
+    if (variantPublicationStatus != null) {
+      variantPredicate.and(productVariant.publicationStatus.eq(variantPublicationStatus));
+    }
     return catalogProduct.name.containsIgnoreCase(normalizedKeyword)
         .or(catalogProduct.description.containsIgnoreCase(normalizedKeyword))
         .or(catalogProduct.brand.containsIgnoreCase(normalizedKeyword))
         .or(JPAExpressions.selectOne()
-            .from(variant)
-            .where(variant.catalogProduct.eq(catalogProduct),
-                variant.publicationStatus.eq(variantPublicationStatus),
-                variant.displayName.containsIgnoreCase(normalizedKeyword))
+            .from(productVariant)
+            .where(variantPredicate,
+                productVariant.displayName.containsIgnoreCase(normalizedKeyword))
             .exists());
   }
 
   private Predicate tagPredicate(String tagName) {
     String normalizedTag = tagName.trim().toLowerCase(Locale.ROOT);
-    QCatalogProductTag productTag = new QCatalogProductTag("productTag");
-    QTag tag = new QTag("tag");
     return JPAExpressions.selectOne()
-        .from(productTag)
-        .join(productTag.tag, tag)
-        .where(productTag.catalogProduct.eq(catalogProduct),
+        .from(catalogProductTag)
+        .join(catalogProductTag.tag, tag)
+        .where(catalogProductTag.catalogProduct.eq(catalogProduct),
             tag.name.equalsIgnoreCase(normalizedTag))
         .exists();
   }
@@ -125,13 +136,7 @@ public class CatalogProductQueryRepositoryImpl implements CatalogProductQueryRep
     };
   }
 
-  private StringPath identifierPath(CatalogIdentifierType type) {
-    Map<CatalogIdentifierType, StringPath> paths = Map.of(
-        CatalogIdentifierType.ASIN, catalogProduct.asin,
-        CatalogIdentifierType.GTIN, catalogProduct.gtin,
-        CatalogIdentifierType.UPC, catalogProduct.upc,
-        CatalogIdentifierType.EAN, catalogProduct.ean,
-        CatalogIdentifierType.ISBN, catalogProduct.isbn);
-    return paths.get(type);
+  private StringPath identifierPath(String type) {
+    return IDENTIFIER_PATHS.get(type);
   }
 }

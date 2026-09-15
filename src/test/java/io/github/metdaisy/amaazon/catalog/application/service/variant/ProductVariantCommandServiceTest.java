@@ -1,20 +1,17 @@
-package io.github.metdaisy.amaazon.catalog.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service.variant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.never;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantDto;
 import io.github.metdaisy.amaazon.catalog.application.mapper.ProductVariantMapper;
 import io.github.metdaisy.amaazon.catalog.application.mapper.ProductVariantMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductTagMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.ArchiveStatus;
@@ -27,7 +24,6 @@ import io.github.metdaisy.amaazon.catalog.domain.repository.ProductVariantReposi
 import io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.ProductVariantFixture;
-import io.github.metdaisy.amaazon.common.mapper.UtilMapper;
 import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("상품 옵션 서비스")
-class ProductVariantServiceTest {
+class ProductVariantCommandServiceTest {
 
   @Mock
   private ProductVariantRepository repository;
@@ -50,16 +46,10 @@ class ProductVariantServiceTest {
   private CatalogProductRepository catalogProductRepository;
 
   @Spy
-  private ProductVariantMapper mapper = new ProductVariantMapperImpl(
-      new CatalogProductMapperImpl(new CategoryMapperImpl(new UtilMapperImpl()),
-          new CatalogProductTagMapperImpl(new TagMapperImpl()), new UtilMapperImpl()),
-      new UtilMapperImpl());
-
-  @Spy
-  private UtilMapper utilMapper = new UtilMapperImpl();
+  private ProductVariantMapper mapper = new ProductVariantMapperImpl(new UtilMapperImpl());
 
   @InjectMocks
-  private ProductVariantService service;
+  private ProductVariantCommandService service;
 
   @Test
   @DisplayName("상품 옵션 생성: 활성 상품에 옵션을 저장하고 관리자 응답으로 변환한다")
@@ -67,14 +57,21 @@ class ProductVariantServiceTest {
     CatalogProduct product = CatalogProductFixture.persistedProduct(
         CategoryFixture.category());
     ProductVariantCreateRequest request = ProductVariantFixture.createRequest();
-    given(catalogProductRepository.findById(product.getId())).willReturn(Optional.of(product));
+    given(catalogProductRepository.existsById(product.getId())).willReturn(true);
+    given(catalogProductRepository.existsByIdAndPublicationStatus(product.getId(),
+        ArchiveStatus.ACTIVE)).willReturn(true);
+    given(catalogProductRepository.getReferenceById(product.getId())).willReturn(product);
     given(repository.save(any(ProductVariant.class))).willAnswer(invocation -> invocation.getArgument(0));
 
     ProductVariantDto result = service.create(product.getId(), request);
 
-    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
+    assertThat(result.catalogProductId()).isEqualTo(product.getId());
     assertThat(result.displayName()).isEqualTo("Black / 256GB");
     then(repository).should().save(any(ProductVariant.class));
+    then(catalogProductRepository).should().existsById(product.getId());
+    then(catalogProductRepository).should().existsByIdAndPublicationStatus(product.getId(),
+        ArchiveStatus.ACTIVE);
+    then(catalogProductRepository).should().getReferenceById(product.getId());
   }
 
   @Test
@@ -83,7 +80,9 @@ class ProductVariantServiceTest {
     CatalogProduct product = CatalogProductFixture.persistedProduct(
         CategoryFixture.category());
     product.setPublicationStatus(ArchiveStatus.ARCHIVED);
-    given(catalogProductRepository.findById(product.getId())).willReturn(Optional.of(product));
+    given(catalogProductRepository.existsById(product.getId())).willReturn(true);
+    given(catalogProductRepository.existsByIdAndPublicationStatus(product.getId(),
+        ArchiveStatus.ACTIVE)).willReturn(false);
 
     assertThatThrownBy(() -> service.create(product.getId(), ProductVariantFixture.createRequest()))
         .isInstanceOf(CatalogProductException.class)
@@ -94,39 +93,13 @@ class ProductVariantServiceTest {
   @DisplayName("상품 옵션 생성 실패: 존재하지 않는 상품은 CATALOG-019로 거절한다")
   void create_shouldRejectUnknownCatalogProduct() {
     UUID productId = UUID.randomUUID();
-    given(catalogProductRepository.findById(productId)).willReturn(Optional.empty());
+    given(catalogProductRepository.existsById(productId)).willReturn(false);
 
     assertThatThrownBy(() -> service.create(productId, ProductVariantFixture.createRequest()))
         .isInstanceOf(CatalogProductException.class)
         .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.CATALOG_NOT_FOUND.getCode());
-  }
-
-  @Test
-  @DisplayName("상품 옵션 공개 조회: 보관 옵션은 CATALOG-031로 거절한다")
-  void findPublic_shouldRejectArchivedVariant() {
-    CatalogProduct product = CatalogProductFixture.persistedProduct(
-        CategoryFixture.category());
-    ProductVariant variant = ProductVariantFixture.variant(product);
-    variant.archive();
-    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
-
-    assertThatThrownBy(() -> service.findPublic(variant.getId()))
-        .isInstanceOf(ProductVariantException.class)
-        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_NOT_FOUND.getCode());
-  }
-
-  @Test
-  @DisplayName("상품 옵션 공개 조회 실패: 보관된 상품에 속한 옵션은 CATALOG-031로 거절한다")
-  void findPublic_shouldRejectVariantOfArchivedCatalogProduct() {
-    CatalogProduct product = CatalogProductFixture.persistedProduct(
-        CategoryFixture.category());
-    product.setPublicationStatus(ArchiveStatus.ARCHIVED);
-    ProductVariant variant = ProductVariantFixture.variant(product);
-    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
-
-    assertThatThrownBy(() -> service.findPublic(variant.getId()))
-        .isInstanceOf(ProductVariantException.class)
-        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_NOT_FOUND.getCode());
+    then(catalogProductRepository).should(never())
+        .existsByIdAndPublicationStatus(productId, ArchiveStatus.ACTIVE);
   }
 
   @Test
@@ -143,7 +116,7 @@ class ProductVariantServiceTest {
     assertThat(result.displayName()).isEqualTo("Black / 512GB");
     assertThat(result.attributes()).containsOnlyKeys("storage");
     assertThat(result.id()).isEqualTo(variant.getId());
-    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
+    assertThat(result.catalogProductId()).isEqualTo(product.getId());
   }
 
   @Test
@@ -167,39 +140,14 @@ class ProductVariantServiceTest {
         CategoryFixture.category());
     ProductVariant variant = ProductVariantFixture.variant(product);
     variant.archive();
-    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
+    given(repository.findById(variant.getId())).willReturn(Optional.of(variant));
 
     assertThatThrownBy(() -> service.archive(variant.getId()))
         .isInstanceOf(ProductVariantException.class)
         .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_ALREADY_ARCHIVED
             .getCode());
+    then(repository).should().findById(variant.getId());
+    then(repository).should(never()).findWithCatalogProductById(variant.getId());
   }
 
-  @Test
-  @DisplayName("관리자 상품 옵션 조회: 보관된 옵션도 내부 상태를 포함해 반환한다")
-  void findAdmin_shouldReturnArchivedVariant() {
-    CatalogProduct product = CatalogProductFixture.persistedProduct(
-        CategoryFixture.category());
-    ProductVariant variant = ProductVariantFixture.variant(product);
-    variant.archive();
-    given(repository.findWithCatalogProductById(variant.getId())).willReturn(Optional.of(variant));
-
-    ProductVariantDto result = service.findAdmin(variant.getId());
-
-    assertThat(result.id()).isEqualTo(variant.getId());
-    assertThat(result.catalogProduct().id()).isEqualTo(product.getId());
-    assertThat(result.publicationStatus()).isEqualTo(ArchiveStatus.ARCHIVED.name());
-    assertThat(result.archivedAt()).isNotNull();
-  }
-
-  @Test
-  @DisplayName("상품 옵션 조회 실패: 존재하지 않는 옵션은 CATALOG-031로 거절한다")
-  void findAdmin_shouldRejectUnknownVariant() {
-    UUID variantId = UUID.randomUUID();
-    given(repository.findWithCatalogProductById(variantId)).willReturn(Optional.empty());
-
-    assertThatThrownBy(() -> service.findAdmin(variantId))
-        .isInstanceOf(ProductVariantException.class)
-        .hasFieldOrPropertyWithValue("code", ProductVariantErrorCode.VARIANT_NOT_FOUND.getCode());
-  }
 }

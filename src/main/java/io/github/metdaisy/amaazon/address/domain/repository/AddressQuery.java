@@ -1,9 +1,9 @@
-package io.github.metdaisy.amaazon.address.infra.repository;
+package io.github.metdaisy.amaazon.address.domain.repository;
 
 import io.github.metdaisy.amaazon.address.domain.entity.Address;
 import java.util.UUID;
 
-public interface AddressQuerydslRepository {
+public interface AddressQuery {
 
   void deleteAndUpdatePrimary(UUID userId, UUID addressId);
 

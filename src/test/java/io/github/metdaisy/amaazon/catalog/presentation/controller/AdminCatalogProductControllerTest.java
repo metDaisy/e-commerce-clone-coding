@@ -18,12 +18,12 @@ import static io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductF
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogIdentifierUpdateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.CatalogProductUpdateRequest;
-import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductDto;
+import io.github.metdaisy.amaazon.catalog.application.dto.response.CatalogProductCommandDto;
 import io.github.metdaisy.amaazon.catalog.application.dto.response.CategoryDto;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogArchivedResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogIdentifierUpdateResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.CatalogProductResponse;
-import io.github.metdaisy.amaazon.catalog.application.service.CatalogProductService;
+import io.github.metdaisy.amaazon.catalog.application.service.catalog.CatalogProductService;
 import io.github.metdaisy.amaazon.catalog.presentation.mapper.CatalogProductPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
@@ -67,7 +67,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         .name("Laptop")
         .tags(List.of("office"))
         .build();
-    CatalogProductDto dto = productDto(response.id(), categoryId, response.name());
+    CatalogProductCommandDto dto = productDto(response.id(), categoryId, response.name());
     given(service.create(request)).willReturn(dto);
     given(presentationMapper.toResponse(dto)).willReturn(response);
 
@@ -120,19 +120,23 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         Map.of(CatalogIdentifierType.ASIN, "invalid-asin",
             CatalogIdentifierType.GTIN, "invalid-gtin"));
     CatalogProductException exception = new CatalogProductException(
-        CatalogProductErrorCode.IDENTIFIER_INVALID,
+        CatalogProductErrorCode.PRODUCT_CODE_ERROR,
         new AmaazonExceptionContext(
-            Map.of("fields", List.of(
-                Map.of("field", "asin", "reason", "invalid_format"),
-                Map.of("field", "gtin", "reason", "invalid_format"))),
+            Map.of("fields", Map.of(
+                "asin", Map.of("code", "CATALOG-014",
+                    "message", "식별자 형식 또는 체크디지트를 확인해 주세요."),
+                "gtin", Map.of("code", "CATALOG-014",
+                    "message", "식별자 형식 또는 체크디지트를 확인해 주세요."))),
             Map.of(), null));
     willThrow(exception).given(service).create(request);
 
     mockMvc.perform(postJson(PRODUCTS_URL, request))
         .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-014"))
-        .andExpect(jsonPath("$.details.fields[0].field").value("asin"))
-        .andExpect(jsonPath("$.details.fields[1].field").value("gtin"));
+        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-006"))
+        .andExpect(jsonPath("$.details.fields.asin.code").value("CATALOG-014"))
+        .andExpect(jsonPath("$.details.fields.asin.message")
+            .value("식별자 형식 또는 체크디지트를 확인해 주세요."))
+        .andExpect(jsonPath("$.details.fields.gtin.code").value("CATALOG-014"));
   }
 
   @Test
@@ -144,7 +148,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
         .id(productId)
         .name("Updated laptop")
         .build();
-    CatalogProductDto dto = productDto(productId, null, response.name());
+    CatalogProductCommandDto dto = productDto(productId, null, response.name());
     given(service.update(productId, request)).willReturn(dto);
     given(presentationMapper.toResponse(dto)).willReturn(response);
 
@@ -205,7 +209,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     CatalogIdentifierUpdateResponse response =
         new CatalogIdentifierUpdateResponse(productId, "B000123456", null, null, null,
             null);
-    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    CatalogProductCommandDto dto = productDto(productId, null, "Laptop");
     given(service.updateIdentifier(productId, identifiers)).willReturn(dto);
     given(presentationMapper.toIdentifierResponse(dto)).willReturn(response);
 
@@ -241,7 +245,7 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     UUID productId = UUID.randomUUID();
     CatalogArchivedResponse response = new CatalogArchivedResponse(productId,
         "ARCHIVED", Instant.now(), Instant.now());
-    CatalogProductDto dto = productDto(productId, null, "Laptop");
+    CatalogProductCommandDto dto = productDto(productId, null, "Laptop");
     given(service.archive(productId)).willReturn(dto);
     given(presentationMapper.toArchivedResponse(dto)).willReturn(response);
 
@@ -253,11 +257,10 @@ class AdminCatalogProductControllerTest extends RestControllerTest {
     then(service).should().archive(productId);
   }
 
-  private CatalogProductDto productDto(UUID productId, UUID categoryId, String name) {
-    return new CatalogProductDto(productId, null, null,
+  private CatalogProductCommandDto productDto(UUID productId, UUID categoryId, String name) {
+    return new CatalogProductCommandDto(productId, null, null,
         categoryId == null ? null : new CategoryDto(
             categoryId, null, null, null, "Computers", 1, List.of()),
-        List.of(), name, null, null, null, null, null, null, null, Map.of(), "ACTIVE", null,
-        List.of());
+        List.of(), name, null, null, null, null, null, null, null, Map.of(), "ACTIVE", null);
   }
 }

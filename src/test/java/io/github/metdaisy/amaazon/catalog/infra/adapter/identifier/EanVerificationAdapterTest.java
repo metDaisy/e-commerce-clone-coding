@@ -1,15 +1,14 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,9 +45,10 @@ class EanVerificationAdapterTest {
     given(repository.existsIdentifier(productId, CatalogIdentifierType.EAN,
         "4006381333931")).willReturn(true);
 
-    assertThatThrownBy(() -> verifier.verify(productId, "4006381333931"))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.PRODUCT_CODE_ERROR.getCode());
+    IdentifierVerificationResult result = verifier.verify(productId, "4006381333931");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_DUPLICATE.getCode());
 
     then(repository).should().existsIdentifier(productId, CatalogIdentifierType.EAN,
         "4006381333931");
@@ -57,8 +57,9 @@ class EanVerificationAdapterTest {
   @Test
   @DisplayName("잘못된 형식의 EAN을 거부한다")
   void verify_shouldRejectInvalidEan() {
-    assertThatThrownBy(() -> verifier.verify(null, "4006381333930"))
-        .isInstanceOf(CatalogProductException.class)
-        .hasFieldOrPropertyWithValue("code", CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
+    IdentifierVerificationResult result = verifier.verify(null, "4006381333930");
+
+    assertThat(result.valid()).isFalse();
+    assertThat(result.code()).isEqualTo(CatalogProductErrorCode.IDENTIFIER_INVALID.getCode());
   }
 }

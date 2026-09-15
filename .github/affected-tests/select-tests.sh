@@ -29,13 +29,35 @@ fi
 
 : "${BASE_SHA:?BASE_SHA is required}"
 
+affected_tests_args=(
+  "-PaffectedTestsBaseRef=$BASE_SHA"
+)
+
+# gradle.properties is currently a performance-only setting.  Keep the
+# affected-tests fail-safe for every other property change; only this exact
+# one-line file may be ignored.
+if [[ -f gradle.properties ]] && awk '
+  {
+    line = $0
+    sub(/\r$/, "", line)
+    sub(/^[[:space:]]*/, "", line)
+    sub(/[[:space:]]*$/, "", line)
+    if (line == "" || substr(line, 1, 1) == "#") next
+    if (line == "org.gradle.workers.max=1") { matches++; next }
+    invalid = 1
+  }
+  END { exit !(invalid == 0 && matches == 1) }
+' gradle.properties; then
+  affected_tests_args+=("-PaffectedTestsIgnorePerformanceProperties=true")
+fi
+
 set -o pipefail
 ./gradlew \
   -I .github/affected-tests/init.gradle \
   affectedTest \
   --explain \
   --explain-format=json \
-  -PaffectedTestsBaseRef="$BASE_SHA" \
+  "${affected_tests_args[@]}" \
   --console=plain 2>&1 | tee affected-tests.log
 
 selection_json="$(sed -n '/^{.*}$/p' affected-tests.log | tail -n 1)"

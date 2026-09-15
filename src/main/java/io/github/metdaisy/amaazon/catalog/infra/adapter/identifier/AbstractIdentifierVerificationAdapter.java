@@ -1,12 +1,9 @@
 package io.github.metdaisy.amaazon.catalog.infra.adapter.identifier;
 
-import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductErrorCode;
-import io.github.metdaisy.amaazon.catalog.domain.exception.CatalogProductException;
 import io.github.metdaisy.amaazon.catalog.domain.repository.CatalogProductRepository;
 import io.github.metdaisy.amaazon.catalog.domain.verifier.CatalogProductIdentifierVerifier;
-import io.github.metdaisy.amaazon.common.exception.AmaazonExceptionContext;
-import java.util.List;
+import io.github.metdaisy.amaazon.catalog.domain.verifier.IdentifierVerificationResult;
 import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -17,19 +14,29 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     CatalogProductIdentifierVerifier {
 
   private final CatalogProductRepository repository;
-  private final CatalogIdentifierType type;
+  private final String type;
 
   @Override
-  public final String verify(UUID id, String identifierValue) {
+  public final IdentifierVerificationResult verify(UUID id, String identifierValue) {
     String normalizedValue = normalize(identifierValue);
-    validateFormat(normalizedValue);
-    afterFormatValidation(normalizedValue);
-    validateUniqueness(id, normalizedValue);
-    return normalizedValue;
+    if (!isValidFormat(normalizedValue)) {
+      return IdentifierVerificationResult.failure(CatalogProductErrorCode.IDENTIFIER_INVALID);
+    }
+    IdentifierVerificationResult additionalValidation =
+        afterFormatValidation(normalizedValue);
+    if (!additionalValidation.valid()) {
+      return additionalValidation;
+    }
+    if (repository.existsIdentifier(id, type, normalizedValue)) {
+      return IdentifierVerificationResult.failure(
+          CatalogProductErrorCode.IDENTIFIER_DUPLICATE,
+          Map.of(type, identifierValue));
+    }
+    return IdentifierVerificationResult.success();
   }
 
   @Override
-  public final boolean support(CatalogIdentifierType type) {
+  public final boolean support(String type) {
     return this.type.equals(type);
   }
 
@@ -39,8 +46,9 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     return identifierValue;
   }
 
-  protected void afterFormatValidation(String identifierValue) {
+  protected IdentifierVerificationResult afterFormatValidation(String identifierValue) {
     // 식별자별 추가 검증이 필요한 adapter에서 확장한다.
+    return IdentifierVerificationResult.success();
   }
 
   protected boolean isValidNumericIdentifier(String value, int... lengths) {
@@ -55,19 +63,6 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     return false;
   }
 
-  private void validateFormat(String identifierValue) {
-    if (!isValidFormat(identifierValue)) {
-      throw createInvalidFormatException(identifierValue);
-    }
-  }
-
-  private void validateUniqueness(UUID id, String identifierValue) {
-    if (repository.existsIdentifier(id, type, identifierValue)) {
-      throw new CatalogProductException(CatalogProductErrorCode.PRODUCT_CODE_ERROR,
-          AmaazonExceptionContext.logDetails(Map.of(type.name(), identifierValue)));
-    }
-  }
-
   private boolean isValidModuloTenCheckDigit(String value) {
     int sum = 0;
     int lastIndex = value.length() - 1;
@@ -79,12 +74,4 @@ public abstract class AbstractIdentifierVerificationAdapter implements
     return expected == value.charAt(lastIndex) - '0';
   }
 
-  private CatalogProductException createInvalidFormatException(String value) {
-    String field = type.name().toLowerCase();
-    return new CatalogProductException(CatalogProductErrorCode.IDENTIFIER_INVALID,
-        new AmaazonExceptionContext(
-            Map.of("fields", List.of(
-                Map.of("field", field, "reason", "invalid_format"))),
-            Map.of(type.name(), value), null));
-  }
 }

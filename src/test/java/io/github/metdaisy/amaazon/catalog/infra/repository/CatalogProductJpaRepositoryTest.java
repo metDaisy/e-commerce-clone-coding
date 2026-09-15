@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.hibernate.Hibernate;
+import org.hibernate.proxy.HibernateProxy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,6 +72,36 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
     assertThat(repository.existsIdentifier(product.getId(), CatalogIdentifierType.ASIN,
         product.getAsin())).isFalse();
 
+    ensureQueryCount(1);
+  }
+
+  @Test
+  @DisplayName("활성 카탈로그 상품 존재 여부를 한 번의 쿼리로 확인한다")
+  void existsByIdAndPublicationStatus_shouldCheckActiveProductWithOneQuery() {
+    CatalogProduct product = persistProduct("B000123456");
+    flushAndClear();
+
+    assertThat(repository.existsByIdAndPublicationStatus(product.getId(), ArchiveStatus.ACTIVE))
+        .isTrue();
+
+    ensureQueryCount(1);
+  }
+
+  @Test
+  @DisplayName("카탈로그 상품 참조를 초기화되지 않은 프록시로 반환한다")
+  void getReferenceById_shouldReturnUninitializedProxy() {
+    CatalogProduct product = persistProduct("B000123456");
+    flushAndClear();
+
+    CatalogProduct reference = repository.getReferenceById(product.getId());
+
+    assertThat(reference).isInstanceOf(HibernateProxy.class);
+    assertThat(Hibernate.isInitialized(reference)).isFalse();
+    assertThat(reference.getId()).isEqualTo(product.getId());
+    ensureQueryCount(0);
+
+    assertThat(reference.getName()).isEqualTo("Laptop");
+    assertThat(Hibernate.isInitialized(reference)).isTrue();
     ensureQueryCount(1);
   }
 
@@ -302,13 +334,18 @@ class CatalogProductJpaRepositoryTest extends BaseRepositoryTest {
         .name("Laptop")
         .description("Portable computer");
 
-    switch (type) {
-      case "asin" -> builder.asin(value);
-      case "gtin" -> builder.gtin(value);
-      case "upc" -> builder.upc(value);
-      case "ean" -> builder.ean(value);
-      case "isbn" -> builder.isbn(value);
-      default -> throw new IllegalArgumentException("Unknown identifier type: " + type);
+    if ("asin".equals(type)) {
+      builder.asin(value);
+    } else if ("gtin".equals(type)) {
+      builder.gtin(value);
+    } else if ("upc".equals(type)) {
+      builder.upc(value);
+    } else if ("ean".equals(type)) {
+      builder.ean(value);
+    } else if ("isbn".equals(type)) {
+      builder.isbn(value);
+    } else {
+      throw new IllegalArgumentException("Unknown identifier type: " + type);
     }
 
     assertThatThrownBy(() -> repository.saveAndFlush(builder.build()))

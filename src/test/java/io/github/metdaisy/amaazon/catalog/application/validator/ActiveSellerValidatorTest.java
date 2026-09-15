@@ -37,11 +37,13 @@ class ActiveSellerValidatorTest {
   }
 
   @Test
-  @DisplayName("판매자 검증: 관리자는 판매자 상태 조회 없이 통과한다")
-  void validate_shouldAllowAdminWithoutSellerLookup() {
+  @DisplayName("판매자 검증 실패: 관리자는 Product Manager 권한이 없어 거절된다")
+  void validate_shouldRejectAdminWithoutProductManagerRole() {
     authenticateAs("ADMIN", UUID.randomUUID());
 
-    new ActiveSellerValidator(sellerPort).validate(joinPoint, activeSeller);
+    assertThatThrownBy(() -> new ActiveSellerValidator(sellerPort)
+        .validate(joinPoint, activeSeller))
+        .isInstanceOf(AccessDeniedException.class);
 
     then(sellerPort).shouldHaveNoInteractions();
   }

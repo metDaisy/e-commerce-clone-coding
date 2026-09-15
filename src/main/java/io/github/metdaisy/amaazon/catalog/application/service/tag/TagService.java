@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service.tag;
 
 import io.github.metdaisy.amaazon.catalog.domain.entity.Tag;
 import io.github.metdaisy.amaazon.catalog.domain.repository.TagRepository;

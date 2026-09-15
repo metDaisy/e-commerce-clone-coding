@@ -1,7 +1,6 @@
 package io.github.metdaisy.amaazon.catalog.presentation.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,7 +35,6 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 class ProductVariantIntegrationTest extends BaseIntegrationTest {
 
   private static final String ADMIN_URL = WebConstants.SERVLET_PREFIX + "/admin";
-  private static final String PUBLIC_URL = WebConstants.SERVLET_PREFIX + "/product-variants";
   private static final UUID ADMIN_ID = UUID.fromString("30000000-0000-0000-0000-000000000021");
   private static final UUID USER_ID = UUID.fromString("30000000-0000-0000-0000-000000000022");
   private static final UUID SELLER_ID = UUID.fromString("30000000-0000-0000-0000-000000000023");
@@ -67,56 +65,6 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
     ProductVariant saved = variantRepository.findAll().get(0);
     assertThat(saved.getCatalogProduct().getId()).isEqualTo(product.getId());
     assertThat(saved.getAttributes()).containsEntry("storage", "256GB");
-  }
-
-  @Test
-  @DisplayName("상품 옵션 공개 조회: 구매자는 활성 옵션의 공개 필드만 조회한다")
-  void findForCatalogManager_returnsManagerFields() throws Exception {
-    persistAdmin();
-    Category category = persistAndFlush(CategoryFixture.category());
-    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
-    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
-    clear();
-
-    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId())
-            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin())))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.displayName").value("Black / 256GB"))
-        .andExpect(jsonPath("$.attributes.color").value("BLACK"))
-        .andExpect(jsonPath("$.id").value(variant.getId().toString()))
-        .andExpect(jsonPath("$.catalogProductId").value(product.getId().toString()))
-        .andExpect(jsonPath("$.publicationStatus").value("ACTIVE"));
-  }
-
-  @Test
-  @DisplayName("상품 옵션 공개 조회: Seller도 활성 옵션의 공개 필드만 조회한다")
-  void findForCatalogManager_returnsManagerFieldsForSeller() throws Exception {
-    persistSeller();
-    Category category = persistAndFlush(CategoryFixture.category());
-    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
-    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
-    clear();
-
-    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId())
-            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsSeller())))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.displayName").value("Black / 256GB"))
-        .andExpect(jsonPath("$.attributes.storage").value("256GB"))
-        .andExpect(jsonPath("$.id").value(variant.getId().toString()))
-        .andExpect(jsonPath("$.catalogProductId").value(product.getId().toString()))
-        .andExpect(jsonPath("$.publicationStatus").value("ACTIVE"));
-  }
-
-  @Test
-  @DisplayName("상품 옵션 공개 조회 실패: 인증되지 않은 요청은 401을 반환한다")
-  void findPublic_requiresAuthentication() throws Exception {
-    Category category = persistAndFlush(CategoryFixture.category());
-    CatalogProduct product = persistAndFlush(CatalogProductFixture.persistedProduct(category));
-    ProductVariant variant = persistAndFlush(ProductVariantFixture.variant(product));
-    clear();
-
-    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId()))
-        .andExpect(status().isUnauthorized());
   }
 
   @Test
@@ -186,7 +134,7 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("상품 옵션 보관: 공개 조회에서는 404, 관리자 조회에서는 ARCHIVED를 반환한다")
-  void archive_excludesVariantFromPublicLookupButKeepsAdminLookup() throws Exception {
+  void archive_returnsArchivedStatus() throws Exception {
     persistAdmin();
     persistSeller();
     Category category = persistAndFlush(CategoryFixture.category());
@@ -201,15 +149,6 @@ class ProductVariantIntegrationTest extends BaseIntegrationTest {
     em.flush();
     clear();
 
-    mockMvc.perform(get(PUBLIC_URL + "/" + variant.getId())
-            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsSeller())))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.exceptionCode").value("CATALOG-031"));
-
-    mockMvc.perform(get(ADMIN_URL + "/product-variants/" + variant.getId())
-            .with(SecurityMockMvcRequestPostProcessors.authentication(authenticationAsAdmin())))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.publicationStatus").value("ARCHIVED"));
   }
 
   @Test

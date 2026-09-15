@@ -1,4 +1,4 @@
-package io.github.metdaisy.amaazon.catalog.application.service;
+package io.github.metdaisy.amaazon.catalog.application.service.variant;
 
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantCreateRequest;
 import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariantUpdateRequest;
@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class ProductVariantService {
+public class ProductVariantCommandService {
 
   private final ProductVariantRepository repository;
   private final CatalogProductRepository catalogProductRepository;
@@ -35,34 +35,13 @@ public class ProductVariantService {
     CatalogProduct catalogProduct = findActiveCatalogProduct(catalogProductId);
     ProductVariant variant = ProductVariant.of(catalogProduct, request.displayName(),
         request.attributes());
-    return mapper.toDto(repository.save(variant));
-  }
-
-  public ProductVariantDto findPublic(UUID id) {
-    ProductVariant variant = findById(id);
-    if (!variant.isActive() || variant.getCatalogProduct().getPublicationStatus()
-        != ArchiveStatus.ACTIVE) {
-      throw variantNotFound(id);
-    }
-    return mapper.toDto(variant);
-  }
-
-  public ProductVariantDto findAdmin(UUID id) {
-    return mapper.toDto(findById(id));
-  }
-
-  public ProductVariantDto findForCatalogManager(UUID id) {
-    ProductVariant variant = findById(id);
-    if (!variant.isActive() || variant.getCatalogProduct().getPublicationStatus()
-        != ArchiveStatus.ACTIVE) {
-      throw variantNotFound(id);
-    }
+    repository.save(variant);
     return mapper.toDto(variant);
   }
 
   @Transactional
   public ProductVariantDto update(UUID id, ProductVariantUpdateRequest request) {
-    ProductVariant variant = findById(id);
+    ProductVariant variant = findWithCatalogProductById(id);
     if (variant.getCatalogProduct().getPublicationStatus() != ArchiveStatus.ACTIVE) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
           AmaazonExceptionContext.logDetails(
@@ -81,19 +60,25 @@ public class ProductVariantService {
   }
 
   private ProductVariant findById(UUID id) {
+    return repository.findById(id)
+        .orElseThrow(() -> variantNotFound(id));
+  }
+
+  private ProductVariant findWithCatalogProductById(UUID id) {
     return repository.findWithCatalogProductById(id)
         .orElseThrow(() -> variantNotFound(id));
   }
 
   private CatalogProduct findActiveCatalogProduct(UUID id) {
-    CatalogProduct catalogProduct = catalogProductRepository.findById(id)
-        .orElseThrow(() -> new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
-            AmaazonExceptionContext.logDetails(Map.of("catalogId", id))));
-    if (catalogProduct.getPublicationStatus() != ArchiveStatus.ACTIVE) {
+    if (!catalogProductRepository.existsById(id)) {
       throw new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
           AmaazonExceptionContext.logDetails(Map.of("catalogId", id)));
     }
-    return catalogProduct;
+    if (!catalogProductRepository.existsByIdAndPublicationStatus(id, ArchiveStatus.ACTIVE)) {
+      throw new CatalogProductException(CatalogProductErrorCode.CATALOG_NOT_FOUND,
+          AmaazonExceptionContext.logDetails(Map.of("catalogId", id)));
+    }
+    return catalogProductRepository.getReferenceById(id);
   }
 
   private ProductVariantException variantNotFound(UUID id) {

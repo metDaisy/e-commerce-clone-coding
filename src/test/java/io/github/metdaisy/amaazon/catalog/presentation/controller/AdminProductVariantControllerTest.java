@@ -13,7 +13,7 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariant
 import io.github.metdaisy.amaazon.catalog.application.dto.response.ProductVariantDto;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantAdminResponse;
 import io.github.metdaisy.amaazon.catalog.presentation.dto.ProductVariantArchivedResponse;
-import io.github.metdaisy.amaazon.catalog.application.service.ProductVariantService;
+import io.github.metdaisy.amaazon.catalog.application.service.variant.ProductVariantCommandService;
 import io.github.metdaisy.amaazon.catalog.presentation.mapper.ProductVariantPresentationMapper;
 import io.github.metdaisy.amaazon.catalog.support.fixture.ProductVariantFixture;
 import io.github.metdaisy.amaazon.support.RestControllerTest;
@@ -35,7 +35,7 @@ class AdminProductVariantControllerTest extends RestControllerTest {
   private static final String ADMIN_URL = API_PREFIX + "/admin";
 
   @MockitoBean
-  private ProductVariantService service;
+  private ProductVariantCommandService service;
 
   @MockitoBean
   private ProductVariantPresentationMapper presentationMapper;

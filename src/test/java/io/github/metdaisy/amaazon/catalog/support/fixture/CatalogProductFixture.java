@@ -7,7 +7,6 @@ import io.github.metdaisy.amaazon.catalog.domain.entity.Category;
 import io.github.metdaisy.amaazon.catalog.domain.entity.constant.CatalogIdentifierType;
 import java.util.List;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +42,7 @@ public final class CatalogProductFixture {
   }
 
   public static CatalogProductCreateRequest createRequest(UUID categoryId,
-      Map<CatalogIdentifierType, String> identifiers) {
+      Map<String, String> identifiers) {
     return createRequest(categoryId, Set.of(), Map.of(), identifiers);
   }
 
@@ -53,11 +52,10 @@ public final class CatalogProductFixture {
   }
 
   public static CatalogProductCreateRequest createRequest(UUID categoryId, Set<String> tags,
-      Map<String, Object> attributes, Map<CatalogIdentifierType, String> identifiers) {
+      Map<String, Object> attributes, Map<String, String> identifiers) {
     return new CatalogProductCreateRequest(categoryId, "Laptop", "Portable computer", "Brand",
         tags, attributes, identifiers.entrySet().stream()
-            .collect(Collectors.toMap(
-                entry -> entry.getKey().name().toLowerCase(Locale.ROOT), Map.Entry::getValue,
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                 (first, second) -> second, LinkedHashMap::new)));
   }
 

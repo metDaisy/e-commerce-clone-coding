@@ -25,7 +25,7 @@ public interface ProductVariantJpaRepository extends JpaRepository<ProductVarian
   @Override
   @Query("select variant from ProductVariant variant "
       + "where variant.catalogProduct.id in :catalogProductIds "
-      + "and variant.publicationStatus = :publicationStatus "
+      + "and (:publicationStatus is null or variant.publicationStatus = :publicationStatus) "
       + "order by variant.id")
   List<ProductVariant> findByCatalogProductIdsAndPublicationStatus(
       @Param("catalogProductIds") Collection<UUID> catalogProductIds,

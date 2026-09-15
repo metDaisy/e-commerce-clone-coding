@@ -6,10 +6,6 @@ import io.github.metdaisy.amaazon.catalog.application.dto.request.ProductVariant
 import io.github.metdaisy.amaazon.catalog.domain.entity.CatalogProduct;
 import io.github.metdaisy.amaazon.catalog.domain.entity.ProductVariant;
 import io.github.metdaisy.amaazon.common.mapper.UtilMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CatalogProductTagMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.CategoryMapperImpl;
-import io.github.metdaisy.amaazon.catalog.application.mapper.TagMapperImpl;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CatalogProductFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.CategoryFixture;
 import io.github.metdaisy.amaazon.catalog.support.fixture.ProductVariantFixture;
@@ -21,10 +17,7 @@ import org.junit.jupiter.api.Test;
 @DisplayName("상품 옵션 매퍼")
 class ProductVariantMapperTest {
 
-  private final ProductVariantMapper mapper = new ProductVariantMapperImpl(
-      new CatalogProductMapperImpl(new CategoryMapperImpl(new UtilMapperImpl()),
-          new CatalogProductTagMapperImpl(new TagMapperImpl()), new UtilMapperImpl()),
-      new UtilMapperImpl());
+  private final ProductVariantMapper mapper = new ProductVariantMapperImpl(new UtilMapperImpl());
 
   @Test
   @DisplayName("상품 옵션 수정: 표시명과 attributes를 JSON Merge Patch 규칙으로 반영한다")
