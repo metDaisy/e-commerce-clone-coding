@@ -12,5 +12,28 @@ initscript {
 gradle.beforeProject { project ->
     if (project == gradle.rootProject) {
         project.pluginManager.apply(AffectedTestsPlugin)
+
+        // This repository currently uses gradle.properties only to limit the
+        // Gradle worker count.  Ignore that performance-only setting only
+        // when CI explicitly proves that no other property is present.
+        if (project.findProperty('affectedTestsIgnorePerformanceProperties') == 'true') {
+            def extension = project.extensions.getByName('affectedTests')
+            // Setting this property replaces the plugin defaults, so retain
+            // them here as well as the repository-specific performance file.
+            extension.getIgnorePaths().set([
+                '**/generated/**',
+                '*.md', '**/*.md',
+                '*.txt', '**/*.txt',
+                'LICENSE', '**/LICENSE',
+                'LICENSE.*', '**/LICENSE.*',
+                'CHANGELOG*', '**/CHANGELOG*',
+                '*.png', '**/*.png',
+                '*.jpg', '**/*.jpg',
+                '*.jpeg', '**/*.jpeg',
+                '*.svg', '**/*.svg',
+                '*.gif', '**/*.gif',
+                'gradle.properties'
+            ])
+        }
     }
 }
