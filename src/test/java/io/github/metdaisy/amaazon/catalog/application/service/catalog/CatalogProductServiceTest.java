@@ -137,6 +137,9 @@ class CatalogProductServiceTest {
   void create_shouldRejectUnknownCategory() {
     UUID categoryId = UUID.randomUUID();
     CatalogProductCreateRequest request = createRequest(categoryId);
+    given(gtinVerifier.support(CatalogIdentifierType.GTIN)).willReturn(true);
+    given(gtinVerifier.verify(null, "4006381333931"))
+        .willReturn(IdentifierVerificationResult.success());
     given(categoryQueryService.getProxy(categoryId)).willThrow(new CategoryException(
         CategoryErrorCode.CATEGORY_NOT_FOUND));
 
