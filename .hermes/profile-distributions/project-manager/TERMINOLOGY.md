@@ -62,12 +62,15 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | leaf Issue | 하위 work item이 없으며 구현 대상으로 선택할 수 있는 work item |
 | delivery branch | 선택된 leaf Issue를 구현하기 위해 사용하는 branch |
 | child implementation card | Coder가 수행하는 하나의 독립적으로 검증 가능한 구현 계약 |
-| root-review-{n} card | 모든 관련 child implementation card가 완료된 뒤 Reviewer가 수행하는 aggregate review 계약 |
-| aggregate contract | root-review card에 PM이 작성하는 child contract의 공통 불변조건·교차 API 일관성·제외 범위의 요약 |
+| semantic Issue root | `G{N}-Issue{M}`. Issue의 effective behavior·generation·inherited evidence를 담고 aggregate Review 뒤 PM이 finalization하는 card. native dependency상 Review의 child다. |
+| aggregate Review card | `G{N}-Issue{M}-Review{Q}`. 관련 Impl과 inherited behavior를 검토하는 Reviewer contract. native dependency상 모든 Impl의 child이며 Issue root의 parent다. |
+| aggregate contract | aggregate Review에 PM이 작성하는 child contract의 공통 불변조건·교차 API 일관성·제외 범위의 요약 |
 | review question | PM이 root-review card에 작성하는 Reviewer 검토 관점 또는 확인 질문 |
 | PM checkpoint | Coder의 self-verification 뒤 PM이 같은 child card에서 evidence·commit boundary·read-back을 확인하고 완료시키는 운영 gate |
 | review handoff | 구현자가 완료 전 reviewer에게 task와 검증 evidence를 넘기는 lifecycle 전이 |
-| rework draft | review finding에서 기계적으로 추출한 후속 작업의 초안. PM이 scope·context·AC를 보완하기 전에는 실행 계약이 아니다. |
+| effective behavior | 현재 requirement revision에서 관찰 가능해야 하는 완전한 behavior. 예: `A′ = A + AA`; Coder는 A/AA history가 아니라 A′를 구현한다. |
+| inherited completed behavior | done task evidence를 새 effective behavior와 source/test로 재확인하여 새 generation root/Review가 참조하는 behavior. 새 card를 복제하거나 re-done하지 않는다. |
+| rework draft | requirement Git diff의 후보와 PM이 작성한 behavior delta를 보존하는 planning draft. hunk 자체는 Coder task 경계가 아니다. |
 | replacement task | stale 또는 obsolete unfinished task를 대체하기 위해 새로 만든 task |
 | archived task | replacement로 더 이상 실행하지 않는 historical task. 완료 기록을 수정하거나 되돌린다는 뜻이 아니다. |
 
@@ -80,11 +83,11 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | triage body | create-triage card의 canonical JSON 계획. 진행 중에는 수정할 수 있고, done 전환 시 freeze한다. 정책 판단은 linked service-planning card의 Markdown으로 사용자에게 제시한다. |
 | document impact | Issue 계획이 requirement·architecture·ADR·glossary·ERD·index에 미치는 영향을 `update`, `no-change`, `not-applicable`, `blocked`로 판정한 표. |
 | policy decision request | 정책 모순·누락의 문제, 근거, 선택지, 추천을 사용자에게 제시하는 구조화된 결정 요청. |
-| build-task-graph | 사용자 승인 requirement, fresh current-state, Issue를 Coder child card와 root-review contract로 투영하는 Skill. v0.1은 `new-delivery` draft authoring과 deterministic validation만 지원한다. |
+| build-task-graph | 승인 requirement, fresh current-state, Issue를 manual native Kanban graph로 투영하는 Skill. `new`와 `requirement-rework` 절차를 소유한다. |
 | controll-task-graph | checkpoint, promotion, review routing, base-sync, recovery, PR·CI·merge·Issue close를 제어하는 Skill. |
-| new-delivery | 새 leaf Issue의 최초 graph를 만드는 build-task-graph mode. |
-| requirement-rework | 사용자가 requirement를 먼저 수정한 뒤 그 변경을 Coder rework contract로 바꾸도록 계획된 mode. v0.1에서는 `blocked`다. |
-| review-rework | Reviewer finding을 Coder rework contract로 바꾸도록 계획된 mode. v0.1에서는 `blocked`다. |
+| new | 새 leaf Issue의 최초 G1 graph를 만드는 build-task-graph mode. |
+| requirement-rework | aggregate Review 승인 전, 사용자가 승인한 requirement revision으로 active generation을 G{N+1}로 supersede하는 mode. |
+| review-rework | Reviewer finding을 Coder corrective contract로 바꾸는 mode. finding schema 확정 전에는 지원하지 않는다. |
 | document-first planning | requirement·fresh current-state·Issue를 기본 입력으로 사용하고, 문서 부족·충돌·구현 불일치 보고 때만 source를 제한적으로 조사하는 방식. |
 | limited source investigation | PM이 policy를 재해석하지 않고 문서 부족·충돌·불일치를 확인하기 위해 필요한 범위에서만 source locator를 조사하는 예외 절차. |
 | GitHub guide | controll-task-graph이 참조할 Issue tree·PR·CI·merge·auto-close·read-back 운영 기준. |

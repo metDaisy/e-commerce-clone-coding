@@ -1,223 +1,116 @@
 ---
 name: build-task-graph-board-contract
-version: 4.0.0-draft
+version: 5.0.0-draft
 ---
 
-# build-task-graph board contract v4
+# build-task-graph board contract v5
 
-This is the single source of truth for `new-delivery` v0.1 draft shape, persisted
-card bodies, and deterministic validator rules. Native Kanban owns task IDs, status,
-assignee, links, comments, and runs. The card body owns only the PM-authored contract.
+이 문서는 **현재 합의된** `build-task-graph` 계약만 소유한다. JSON field·helper CLI·native
+mutation response처럼 아직 결정되지 않은 상세는 이 문서에 추측으로 추가하지 않고
+[`../plan.md`](../plan.md)의 `아직 결정하지 않은 사항`에서 결정한다.
 
-## Scope
+Native Kanban은 status, task ID, assignee, parent link, run, comment, event를 소유한다. PM은
+behavior contract, generation lineage, evidence, task promotion 결정을 소유한다.
 
-- Supports only `mode: "new-delivery"`.
-- `requirement-rework` and `review-rework` are unsupported in v0.1.
-- The graph draft is JSON. Each persisted child/root body is a separate JSON object.
-- A frozen triage is an admission input only. No triage task ID or body is copied into
-  an execution card.
-- Manual verification is recorded but cannot satisfy acceptance coverage in v0.1.
+## Mode
 
-## Typed locator
+| Mode | 시작 조건 | 결과 |
+|---|---|---|
+| `new` | 승인된 leaf Issue와 planning admission | G1 graph |
+| `requirement-rework` | aggregate Review 승인 전, 승인된 requirement revision | G{N+1} superseding graph |
+| `review-rework` | Reviewer finding | finding contract 미결정으로 아직 지원하지 않음 |
 
-Every evidence locator is one of these objects.
+aggregate Review가 승인된 뒤 requirement가 바뀌면 기존 graph를 바꾸지 않는다. 새 Issue와
+`new` graph를 만든다.
 
-```json
-{"kind":"repository","path":"docs/requirement/p2.md","heading":"상품 등록"}
-{"kind":"repository","path":"docs/current-state.md","lines":"10-24"}
-{"kind":"issue","url":"https://github.com/owner/repo/issues/138","heading":"완료 기준"}
-{"kind":"task","task_id":"t_<native-id>"}
+## Card identity와 native topology
+
+```text
+G<N>-Issue<M>-Impl<P> ─┐
+G<N>-Issue<M>-Impl<P> ─┼→ G<N>-Issue<M>-Review<Q> → G<N>-Issue<M>
+G<N>-Issue<M>-Impl<P> ─┘
 ```
 
-A `repository` locator has exactly one of `heading` or `lines`. A `task` locator is
-allowed only after native persistence.
+- `G<N>-Issue<M>`: semantic Issue root. active Issue implementation data와 effective behavior를
+  보존하고 PM finalization 뒤 `done`이 된다.
+- `G<N>-Issue<M>-Impl<P>`: Coder가 수행하는 하나의 self-contained implementation contract.
+- `G<N>-Issue<M>-Review<Q>`: Impl과 inherited behavior를 aggregate review하는 Reviewer contract.
+- `G`는 승인 requirement revision마다 증가한다. `Impl`과 `Review`의 numbering 상세 규칙은
+  generation 내부의 monotonic identity를 유지해야 한다.
 
-## Graph draft
+native parent link는 scheduling prerequisite다. 따라서 모든 Impl은 Review의 native parent이고,
+Review는 Issue root의 native parent다. semantic containment를 표현하려고 이 방향을 역전하지
+않는다.
 
-The draft generator and validator consume one UTF-8 JSON object.
+## Manual graph construction
 
-```json
-{
-  "schema": "build-task-graph-draft-v4",
-  "mode": "new-delivery",
-  "issue": {"number": 138, "url": "https://.../issues/138", "title": "..."},
-  "planning": {
-    "baseline_sha": "<40 lowercase hex>",
-    "current_state_snapshot_sha": "<40 lowercase hex>",
-    "state_freshness": "fresh"
-  },
-  "cards": ["<child or root draft card>"]
-}
-```
+1. PM은 built-in decomposer를 사용하지 않는다.
+2. 신규 Impl과 Review를 하나씩 `todo`로 만들고, 각각의 native body/ID/assignee/status를
+   read-back한다.
+3. parent link를 만든 뒤 native read-back으로 topology를 확인한다.
+4. replacement graph가 완성될 때까지 신규 card를 `ready`로 만들지 않는다.
+5. graph가 검증된 뒤 PM은 첫 eligible Impl 하나만 `ready`로 promotion한다.
 
-Every draft card has `card_key`, `title`, `assignee`, `depends_on_card_keys`, and
-`body`. `card_key` is unique and uses lowercase letters, digits, and `-`. The root
-uses child `card_key` values in its draft `target_children`; an atomic native creator
-must replace them with actual task IDs before persisting the root body.
+`ready → running`은 dispatcher의 claim/spawn lifecycle이다. model 선택은 assignment/dispatch
+설정일 수 있지만 전이 자체의 대체가 아니다.
 
-## Common persisted body envelope
+## Requirement-rework
 
-Every persisted body starts with this shape.
+### Admission
 
-```json
-{
-  "schema": "build-task-card-v4",
-  "card_type": "implementation | root-review",
-  "issue": {"number": 138, "url": "https://.../issues/138", "title": "..."},
-  "planning": {
-    "baseline_sha": "<40 lowercase hex>",
-    "current_state_snapshot_sha": "<40 lowercase hex>",
-    "state_freshness": "fresh"
-  },
-  "assignee": "implementation-coder | reviewer-general",
-  "evidence": ["<evidence entry>"],
-  "scope": ["Korean owned outcome"],
-  "out_of_scope": ["Korean explicit exclusion"]
-}
-```
+active graph의 aggregate Review가 아직 승인되지 않았고, user-approved revised requirement,
+관련 Issue/derived-document read-back, active graph의 `requirement_basis_sha`가 있어야 한다.
+기준 requirement revision과 revised revision의 deterministic Git diff를 만든다. diff hunk는
+behavior delta를 뒷받침하는 evidence이며 Coder task boundary가 아니다.
 
-An evidence entry has `role: "goal" | "state" | "constraint"`, `source`, and
-`supports`. Each implementation card requires at least one `goal` and one `state`
-entry. `constraint` is optional.
+### Effective behavior
 
-## Applicability object
+PM은 새 root에 requirement의 complete effective behavior를 작성한다. 예를 들어 AA가 A를
+변경하면 새 behavior는 `A′ = A + AA`다. Coder에게 A/AA history를 읽게 하지 않으며, 새 Impl의
+contract는 A′ 전체를 구현하도록 쓴다.
 
-The following implementation areas always exist and use exactly one shape:
-`actor_authorization`, `field_semantics`, `state_invariants`, `error_contract`,
-`api_contract`, `persistence`, `ui_flow`, `module_boundary`.
+PM은 각 effective behavior를 current committed code와 비교해 다음 중 하나로 판정한다.
 
-```json
-{"applicable":true,"details":["Korean literal contract"]}
-{"applicable":false,"not_applicable_reason":"Korean specific reason"}
-```
+| Implementation state | 조치 |
+|---|---|
+| `implemented` | new requirement를 계속 충족함을 re-confirm한 done evidence로 inherited 처리 |
+| `partial` | A′ 전체를 목표로 하는 새 Impl 생성 |
+| `absent` | A′ 전체를 목표로 하는 새 Impl 생성 |
+| `unknown` | 제한적 investigation을 계속하거나 실제 policy blocker로 route |
 
-## Implementation card body
+Codebase Memory와 Semble은 후보 locator를 찾는 데 사용한다. 결과만으로 판정하지 않고 PM이
+committed source/test/migration을 직접 read-back해 state evidence를 쓴다.
 
-An implementation body extends the common envelope with:
+### Supersession history
 
-```json
-{
-  "card_type": "implementation",
-  "depends_on_task_ids": ["t_<native-id>"],
-  "implementation": {
-    "observable_behavior": ["..."],
-    "actor_authorization": {"applicable": true, "details": ["..."]},
-    "field_semantics": {"applicable": false, "not_applicable_reason": "..."},
-    "state_invariants": {"applicable": true, "details": ["..."]},
-    "error_contract": {"applicable": true, "details": ["..."]},
-    "api_contract": {"applicable": true, "details": ["..."]},
-    "persistence": {"applicable": false, "not_applicable_reason": "..."},
-    "ui_flow": {"applicable": false, "not_applicable_reason": "..."},
-    "module_boundary": {"applicable": true, "details": ["..."]}
-  },
-  "acceptance_criteria": [
-    {"id":"AC-CREATE-SUCCESS","outcome":"..."}
-  ],
-  "acceptance_coverage": [
-    {"acceptance_id":"AC-CREATE-SUCCESS","check_ids":["check-create-success"]}
-  ],
-  "verification": ["<verification check>"],
-  "manual_verification": ["<deferred manual check>"],
-  "review_handoff_contract": {
-    "action":"request-review",
-    "reviewer":"project-manager",
-    "required_metadata":["verified_sha","check_results","changed_paths","residual_risk"],
-    "reviewer_readback":["show","runs","comments"]
-  }
-}
-```
+- `done` card의 body, ID, run, comment, checkpoint evidence는 immutable이다.
+- affected running card는 requirement superseded라는 실제 사유로 block하고 worker 종료를
+  read-back한 뒤 archive한다.
+- unfinished obsolete Impl, Review, root만 archive한다.
+- 새 root에는 prior root, requirement revision, effective behavior, inherited done evidence,
+  archived unfinished work의 lineage를 기록한다.
+- `current-state.md`는 requirement rework 중간에 갱신하지 않는다.
 
-`depends_on_task_ids` is empty for the first persisted child. Draft dependencies are
-stored outside the body as `depends_on_card_keys`; the atomic creator replaces them
-with actual IDs.
+## Blocker와 checkpoint
 
-### Verification check
+구현 위치 또는 충족 범위를 확인하기 위한 source investigation은 normal planning work다.
+요구사항 policy, ownership, authorization, consistency, error semantics, external prerequisite를
+조사만으로 결정할 수 없을 때만 native `blocked`와 사용자 결정을 사용한다.
 
-One check describes exactly one execution or observation operation.
+Coder의 `running → review` handoff 뒤 PM checkpoint는 verification evidence, changed paths,
+commit boundary, verified SHA, clean worktree를 read-back한다. 이 checkpoint는 independent
+aggregate Review를 대체하지 않는다.
 
-```json
-{
-  "id": "check-create-success",
-  "kind": "behavioral | structural | style | state",
-  "execution": {
-    "executor": "gradle-mcp | npm | terminal | browser",
-    "operation": "...",
-    "target": "...",
-    "cwd": "repository-relative-or-absolute-workspace-path",
-    "request": {}
-  },
-  "expectation": {
-    "success_condition": "Korean observable success condition",
-    "evidence": "Korean evidence to record after execution"
-  }
-}
-```
+## Evidence boundary
 
-The validator checks the executor vocabulary and common fields. Executor-specific
-`request` schemas are deferred to a later reference. A `gradle-mcp` request names
-Gradle tasks and actual discovered test FQCNs; it never contains a shell Gradle
-command.
+- Coder card는 goal, scope, explicit out-of-scope, current effective behavior, current state
+  evidence, applicable contract details, acceptance criteria, verification을 self-contained하게
+  가진다.
+- requirement/source/task locator는 PM traceability evidence다. Coder에게 다른 문서를 다시
+  해석하라고 지시하지 않는다.
+- credential, raw tool output, prompt, hidden reasoning은 card나 draft에 저장하지 않는다.
+- deterministic validator는 draft syntax/topology만 확인한다. native read-back은 persisted
+  status/link/ID를 확인한다. behavior completion은 PM checkpoint와 Review evidence로 확인한다.
 
-Each acceptance criterion is covered by one or more check IDs. The referenced check
-must be `behavioral`. Structural, style, and state checks are supplementary only.
-
-### Deferred manual verification
-
-```json
-{
-  "id": "manual-product-form",
-  "procedure": ["..."],
-  "expected_result": "...",
-  "deferral_reason": "manual verification policy is not finalized"
-}
-```
-
-Manual entries cannot appear in `acceptance_coverage` in v0.1.
-
-## Root-review body
-
-A root body extends the common envelope with:
-
-```json
-{
-  "card_type": "root-review",
-  "target_child_task_ids": ["t_<native-id>"],
-  "aggregate_contract": ["..."],
-  "cross_boundary_invariants": ["..."],
-  "aggregate_exclusions": ["..."],
-  "child_evidence_readback": ["show","runs","comments"],
-  "review_questions": ["..."],
-  "verdict_protocol": ["approved","changes-requested","needs-input"]
-}
-```
-
-The draft root uses `target_children` with child `card_key` values. A persisted root
-uses `target_child_task_ids` with actual native IDs and depends on every child.
-
-## Draft validator invariants
-
-A valid `new-delivery` draft has all of the following.
-
-1. Exactly one root-review card and one or more implementation cards.
-2. Unique `card_key` values and no dependency cycle.
-3. Every dependency points to another draft card; no implementation card depends on
-   the root.
-4. The root targets and depends on every implementation child exactly once.
-5. Exactly one implementation child has no implementation dependency; that is the
-   only initially eligible child.
-6. Children use `implementation-coder` and root uses `reviewer-general`, unless a
-   future exception contract is added.
-7. Every child has goal/state evidence, scope, out-of-scope, all applicability
-   objects, non-empty acceptance criteria, behavioral acceptance coverage, and
-   unique verification check IDs.
-8. Every conditional object is either applicable with non-empty details or
-   inapplicable with a non-empty reason.
-9. No task ID is invented in a draft or embedded as triage provenance.
-10. No secrets, raw tool output, prompt, or reasoning appear in a body.
-
-## Runtime boundary
-
-A draft passing this contract is not permission to create native cards. v0.1 requires
-a runtime atomic graph-create capability. If it is absent, report `blocked` with the
-missing capability and retain the validated draft outside the board. Do not emulate
-atomicity with sequential creation, temporary false blockers, or a mechanical gate.
+구체적인 persisted JSON schema와 validator field rules는 plan의 미결 항목이 확정된 뒤에만 이
+문서에 추가한다.

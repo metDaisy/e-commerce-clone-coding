@@ -1,8 +1,8 @@
 # Project Manager Workflow Design
 
-> **Status: partial implementation.** 이 문서는 합의한 workflow 설계를 사람이 검토하기 위해
-> 기록한다. `build-task-graph`의 `new-delivery` v0.1 Skill, board contract, draft validator와
-> fixture test는 적용됐다. rework mode와 native atomic graph-create는 아직 설계 항목이다.
+> **Status: partial implementation.** 수동 native graph와 `requirement-rework`의 procedure,
+> v5 board contract는 합의됐다. v5 helper/validator 및 `review-rework` finding schema는 아직
+> 구현 항목이다.
 > 용어는 [TERMINOLOGY.md](TERMINOLOGY.md)를 따른다.
 
 ## 0. Existing project reference baseline
@@ -208,9 +208,9 @@ Coder/Reviewer가 실제 구현과의 불일치를 보고할 때만 source locat
 
 - data model/repository/migration이 필요하면 첫 child task로 만든다.
 - API task는 requirement의 API 순서로 chain dependency를 둔다.
-- graph에는 한 시점에 하나의 implementation child만 eligible하도록 dependency를 구성한다.
-  v0.1 draft validator가 이를 검사하고, 미래 atomic creator만 이 child를 ready로 노출한다.
-  atomic capability가 없으면 PM은 graph mutation을 `blocked`로 보고한다.
+- native dependency는 `Impl → Review → Issue root`로 구성한다. PM은 모든 신규 card를 `todo`로
+  수동 생성·read-back한 뒤 graph 전체가 검증되었을 때 하나의 eligible Impl만 `ready`로 올린다.
+  atomic graph-create나 decomposer를 사용하지 않는다.
 - Coder child task의 exact changed-file allowlist는 강제하지 않는다. PM은 HTTP,
   application, domain, error, persistence, test entry surface를 context로 제공한다.
 
@@ -250,12 +250,13 @@ PM checkpoint는 specialist code review를 대체하지 않는다.
 
 ### 5.2 Root review
 
-PM은 child card들과 함께 Reviewer-assigned `root-review-1` card를 만든다. root card는 Coder
-작업 본문이 아니라 Reviewer용 aggregate review contract다.
+PM은 semantic `G{N}-Issue{M}` root, Reviewer-assigned `G{N}-Issue{M}-Review{Q}`, Coder Impl
+card를 만든다. root에는 effective behavior, generation, inherited evidence를 기록하고 Review에는
+aggregate review contract를 기록한다.
 
 ```text
-root card body
-- 대상 child task IDs
+aggregate Review body
+- 대상 implementation task IDs와 inherited completed behavior
 - aggregate contract
 - cross-API consistency와 module boundary
 - aggregate exclusions
@@ -264,9 +265,9 @@ root card body
 - verdict protocol: approved | changes-requested | needs-input
 ```
 
-모든 child가 done이면 `root-review-1`이 ready가 된다. root body는 immutable aggregate contract이며,
-child 완료마다 source locator를 중복 기록하지 않는다. 상세 execution evidence는 child card의
-body/run/comment에서 read-back한다.
+모든 Impl이 done이면 Review가 ready가 되고, Review 완료 뒤 Issue root가 ready가 된다. root는
+PM finalization checkpoint 뒤 done 처리한다. 상세 execution evidence는 child body/run/comment에서
+read-back한다.
 
 review finding은 structured finding으로 남긴다. script는 provenance·affected task·기본 AC가 담긴
 zero-ready rework draft를 생성할 수 있고, PM이 scope·out-of-scope·source context·AC·verification을
@@ -309,8 +310,7 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 
 ## 8. 아직 확정하지 않은 항목
 
-- `build-task-graph`의 `requirement-rework`, `review-rework` 절차와 native atomic graph-create
-  request/response schema
+- `build-task-graph` v5 helper/validator와 `review-rework` finding schema
 - `create-triage`, `service-planning`, `controll-task-graph`, `sync-docs`, `update-current-state`의
   남은 SKILL.md 절차와 frontmatter
 - update-current-state의 정확한 re-investigation 범위와 draft script CLI/output schema
@@ -324,7 +324,7 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 이 design을 확정한 뒤에만 다음을 적용한다.
 
 ```text
-1. `build-task-graph`의 v0.1 draft authoring을 native atomic graph-create capability와 연결
+1. `build-task-graph` v5 helper/validator와 manual native create/read-back 절차를 연결
 2. `create-triage`, `service-planning`, `controll-task-graph` Skill 확정
 3. `sync-docs`, `update-current-state`는 각 별도 session/branch에서 상세 설계
 4. PM-focused Semble와 GitHub guide 정렬

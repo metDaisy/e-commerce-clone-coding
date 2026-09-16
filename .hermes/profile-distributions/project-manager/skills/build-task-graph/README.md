@@ -1,86 +1,55 @@
 # build-task-graph
 
-`build-task-graph`는 완료된 triage와 승인된 requirement를 바탕으로, Coder가 다른 문서를
-다시 찾아 해석하지 않아도 구현할 수 있는 **self-contained task graph 초안**을 만드는
-Project Manager Skill입니다.
+`build-task-graph`는 승인된 Issue contract를 수동 native Kanban graph로 바꾸는 Project
+Manager Skill입니다. PM은 graph를 작성하고 하나의 다음 Impl만 `ready`로 promotion합니다.
+Coder는 자신의 self-contained card에 기록된 현재 behavior를 구현합니다.
 
-각 Coder card는 하나의 독립적으로 검증 가능한 결과를 설명하고, root-review card는
-전체 delivery를 검토할 공통 계약을 설명합니다.
+## 사용 조건
 
-## 언제 사용하나요?
+- 선택된 leaf Issue, 승인 requirement, fresh `current-state.md`, clean planning baseline이 있다.
+- `create-triage`는 완료되어 planning provenance를 제공한다.
+- `requirement-rework`이면 active graph의 aggregate Review가 아직 승인되지 않았고, 새
+  requirement revision과 Issue/derived-document read-back이 있다.
 
-다음 조건이 충족된 뒤 사용합니다.
-
-- 선택된 leaf Issue가 있음
-- `create-triage`가 완료되고 graph authoring을 허용함
-- requirement가 사용자 승인 상태임
-- `current-state.md`가 fresh 상태임
-- planning baseline과 working tree admission이 확인됨
-
-## 동작 과정
+## Graph
 
 ```text
-완료된 triage
-  + 승인된 requirement
-  + fresh current-state
-  + leaf Issue
-       ↓
-PM이 Coder child와 root-review 계약 작성
-       ↓
-JSON draft 검증
-       ↓
-atomic native graph-create capability 확인
-       ↓
-그래프 생성 또는 blocked 보고
+G<N>-Issue<M>-Impl<P> ─┐
+G<N>-Issue<M>-Impl<P> ─┼→ G<N>-Issue<M>-Review<Q> → G<N>-Issue<M>
+G<N>-Issue<M>-Impl<P> ─┘
 ```
 
-1. **입력 확인** — Issue lineage, triage handoff, requirement, current-state, planning 기준을
-   다시 확인합니다.
-2. **작업 분해** — triage의 후보 작업을 그대로 복사하지 않고, 승인된 문서 근거로 가장 작은
-   완전한 Coder 작업 단위로 정리합니다.
-3. **Coder 계약 작성** — 각 child에 목표, 범위, 제외 범위, actor/authorization, API·UI·저장소
-   영향, 오류·상태 의미, acceptance criteria와 검증 방법을 명시합니다.
-4. **검토 계약 작성** — root-review에 모든 child의 공통 결과, 경계 불변조건, 제외 범위와
-   검토 질문을 기록합니다.
-5. **초안 검증** — JSON validator가 evidence, acceptance coverage, dependency cycle, assignee,
-   root 구성, 처음 실행 가능한 child가 하나인지 등을 확인합니다.
+`G<N>-Issue<M>`은 semantic root이며 effective behavior와 inherited evidence를 갖는 final
+aggregate child다. native parent link는 prerequisite만 표현한다. 모든 신규 card는 `todo`로
+생성·read-back하고, 전체 graph가 검증된 뒤 첫 eligible Impl 하나만 `ready`로 만든다.
 
-## v0.1의 범위
+## Mode
 
-현재는 `new-delivery`만 지원합니다.
+| Mode | 결과 |
+|---|---|
+| `new` | 최초 G1 root, Impl, Review graph |
+| `requirement-rework` | 승인 requirement revision에 따른 G{N+1} superseding graph |
+| `review-rework` | Reviewer finding schema 확정 전 미지원 |
 
-- 지원: 새 leaf Issue의 최초 delivery graph 초안
-- 보류: requirement 변경 rework, Reviewer finding rework
-- 보류: native Kanban graph 생성
+rework root는 delta가 아니라 A′ 같은 effective behavior model을 기록합니다. PM은 현재
+committed code가 A′ 전체를 `implemented`, `partial`, `absent`, `unknown` 중 어디까지
+충족하는지 조사합니다. `partial`/`absent`만 새 Impl이 되며, Coder card의 goal은 AA 같은
+변경 조각이 아니라 A′ 전체입니다.
 
-특히 현재 runtime에 **atomic graph-create capability**가 없으면 이 Skill은 검증된 JSON draft를
-남기고 `blocked`를 보고합니다. card를 하나씩 만들어 임시로 연결하지 않습니다. 부분 graph가
-Dispatcher에 노출되어 잘못 claim되는 것을 막기 위한 경계입니다.
+`done` task는 immutable history입니다. requirement가 supersede한 running task는 사실대로
+block하고 worker 종료를 read-back한 뒤 archive합니다. unfinished Impl/Review/root만 archive할
+수 있습니다. aggregate Review 승인 후 requirement 변경은 새 Issue의 `new` graph로 처리합니다.
 
-## 결과
+## 근거와 검증
 
-검증된 draft는 다음을 포함합니다.
+Codebase Memory와 Semble은 source/document 후보 탐색에 사용합니다. PM은 committed
+source/test/migration을 직접 read-back해 state evidence를 기록합니다. 검색 결과만으로
+implemented/unaffected verdict를 확정하지 않습니다.
 
-- `implementation-coder`에게 배정될 self-contained child card들
-- `reviewer-general`에게 배정될 root-review card
-- child 간 dependency와 하나의 초기 eligible child
-- requirement 기반 `goal` evidence와 current-state 기반 `state` evidence
-- 행동 검증에 연결된 acceptance criteria
+정책, authorization, consistency, error semantics, ownership, external prerequisite를
+조사만으로 결정할 수 없을 때만 `blocked`와 사용자 결정을 사용합니다. 단순한 source 위치 또는
+구현 범위 확인은 normal investigation입니다.
 
-실제 native task ID와 ready 상태는 future atomic creator가 graph 전체를 한 번에 저장한 뒤에만
-생깁니다.
-
-## 다음 단계와 관련 Skill
-
-```text
-create-triage
-  → build-task-graph
-  → controll-task-graph
-```
-
-- `create-triage`: Issue 계획과 정책/문서 문제를 정리합니다.
-- `build-task-graph`: 실행 가능한 Coder/Reviewer contract 초안을 만듭니다.
-- `controll-task-graph`: 구현 checkpoint, review routing, PR·merge lifecycle을 제어합니다.
-
-정확한 JSON field, validator 규칙과 실행 절차는 `SKILL.md`와
-[`references/board-contract.md`](references/board-contract.md)를 따릅니다.
+정확한 persisted body, draft shape, validator invariant는
+[`references/board-contract.md`](references/board-contract.md)를 따릅니다. 실행 순서는
+[`SKILL.md`](SKILL.md), tool rollout은 [`plan.md`](plan.md)를 따릅니다.

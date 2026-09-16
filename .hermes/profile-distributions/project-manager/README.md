@@ -44,12 +44,15 @@ PM은 Issue의 구현 아이디어, 후보 작업 경계, 문서 영향, 정책 
 
 ### 3. `build-task-graph`: 실행 계약 작성
 
-PM은 완료된 triage를 Coder별 self-contained card와 전체 root-review contract로 바꿉니다. 각
-card에는 범위, 제외 범위, 필요한 행위·상태·오류·API/UI/저장소 계약, acceptance criteria,
-검증 방법이 포함됩니다.
+PM은 완료된 triage를 Coder별 self-contained card, aggregate Review, semantic Issue root로
+바꿉니다. native dependency는 `Impl → Review → Issue root`이며, root는 implementation data와
+effective behavior를 기록하는 final aggregate child입니다. 모든 신규 card를 `todo`로 수동 생성·
+read-back한 뒤, PM이 첫 eligible Impl 하나만 `ready`로 올립니다.
 
-현재 v0.1은 새 delivery의 JSON draft를 만들고 검증합니다. native atomic graph-create capability가
-아직 없으면 실제 Kanban card를 부분적으로 만들지 않고, 검증된 draft와 정확한 blocker를 남깁니다.
+`new`는 G1 graph를 만들고, `requirement-rework`은 aggregate Review 승인 전의 active graph를
+G{N+1}로 supersede합니다. rework root는 delta가 아니라 A′ 같은 현재 effective behavior를
+기록하며, Coder card는 그 완전한 behavior만 구현합니다. `done` card는 immutable history이고,
+obsolete unfinished card만 archive합니다.
 
 자세한 설명: [`skills/build-task-graph/README.md`](skills/build-task-graph/README.md)
 
@@ -74,9 +77,9 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 | 기능 | 상태 |
 |---|---|
 | Issue triage와 정책/문서 blocker routing | 지원 |
-| 새 delivery task graph JSON draft 및 deterministic validation | 지원 |
-| native atomic task graph 생성 | runtime capability 대기 |
-| requirement-rework / review-rework graph | 후속 구현 |
+| 새 delivery와 수동 native graph authoring procedure | 지원 |
+| requirement-rework procedure와 v5 persisted contract | 지원 |
+| v5 helper/validator 및 review-rework finding schema | 후속 구현 |
 
 ## 설치와 구성
 
