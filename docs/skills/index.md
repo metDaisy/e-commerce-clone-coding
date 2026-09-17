@@ -23,7 +23,7 @@
 | React·TypeScript UI | `frontend-design` | `read_file`, `search_files`, `patch` | `npm run lint`, `npm run build` |
 | 브라우저 QA | `agent-browser` | Browser Use CLI | 재현 시나리오와 화면 결과 |
 | Harness·Hermes plugin | `hermes-agent`, `hermes-desktop-plugin-engineering` | `skill_view`, `read_file`, `write_file`, `terminal` | Plugin Doctor, runtime discovery, callback/runtime test |
-| PM task graph authoring | `build-task-graph` | `read_file`, `clarify`, `code_execution`, `kanban` | versioned draft validator/fixture regression test, manual native create/read-back, Review finding rework routing |
+| PM task graph authoring | `build-task-graph` | `read_file`, `clarify`, `code_execution`, `kanban` | v4 JSON draft validator, fixture regression test, atomic native graph-create read-back |
 | 변경 review | `code-review` | `git diff`, `read_file`, `search_files` | diff 검토, 관련 validator, CI |
 
 ## Harness 연결
