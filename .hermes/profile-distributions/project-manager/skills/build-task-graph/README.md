@@ -14,13 +14,14 @@ Coder는 자신의 self-contained card에 기록된 현재 behavior를 구현합
 ## Graph
 
 ```text
-G<N>-Issue<M>-Impl<P> ─┐
-G<N>-Issue<M>-Impl<P> ─┼→ G<N>-Issue<M>-Review<Q> → G<N>-Issue<M>
-G<N>-Issue<M>-Impl<P> ─┘
+G<N>-Issue<M>-Triage
+Impl → Review<Q> → Summary
+Review<Q> → corrective Impl → Review<Q+1> → Summary
 ```
 
-`G<N>-Issue<M>`은 semantic root이며 effective behavior와 inherited evidence를 갖는 final
-aggregate child다. native parent link는 prerequisite만 표현한다. 모든 신규 card는 `todo`로
+`G<N>-Issue<M>-Summary`는 semantic root이며 immutable finalization contract를 갖는다. task
+membership은 body 목록이 아니라 native direct parent read-back으로 확인한다. native parent link는
+prerequisite만 표현한다. 모든 신규 card는 `todo`로
 생성·read-back하고, 전체 graph가 검증된 뒤 첫 eligible Impl 하나만 `ready`로 만든다.
 
 ## Mode
@@ -29,12 +30,16 @@ aggregate child다. native parent link는 prerequisite만 표현한다. 모든 �
 |---|---|
 | `new` | 최초 G1 root, Impl, Review graph |
 | `requirement-rework` | 승인 requirement revision에 따른 G{N+1} superseding graph |
-| `review-rework` | Reviewer finding schema 확정 전 미지원 |
+| `review-rework` | done Review의 finding verdict에 따른 same-G corrective/context/decision append |
 
 rework root는 delta가 아니라 A′ 같은 effective behavior model을 기록합니다. PM은 현재
 committed code가 A′ 전체를 `implemented`, `partial`, `absent`, `unknown` 중 어디까지
 충족하는지 조사합니다. `partial`/`absent`만 새 Impl이 되며, Coder card의 goal은 AA 같은
 변경 조각이 아니라 A′ 전체입니다.
+
+Review finding은 requirement delta가 아니다. corrective Impl은 A + AA = A′를 만들지 않고 기존 A를
+충족하도록 AA가 보인 구현 결함을 고친다. `decision-required` finding은 PM이 같은 G의 blocked
+Decision card로 routing하며, 사용자 결정이 완료 계약을 무효화할 때만 G{N+1} requirement-rework가 된다.
 
 `done` task는 immutable history입니다. requirement가 supersede한 running task는 사실대로
 block하고 worker 종료를 read-back한 뒤 archive합니다. unfinished Impl/Review/root만 archive할

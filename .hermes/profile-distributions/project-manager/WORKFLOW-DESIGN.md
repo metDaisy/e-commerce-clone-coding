@@ -1,8 +1,7 @@
 # Project Manager Workflow Design
 
-> **Status: partial implementation.** 수동 native graph와 `requirement-rework`의 procedure,
-> v5 board contract는 합의됐다. v5 helper/validator 및 `review-rework` finding schema는 아직
-> 구현 항목이다.
+> **Status: partial implementation.** 수동 native graph와 세 rework mode의 procedure·finding
+> contract는 합의됐다. helper/validator와 native E2E는 별도 구현·검증 항목이다.
 > 용어는 [TERMINOLOGY.md](TERMINOLOGY.md)를 따른다.
 
 ## 0. Existing project reference baseline
@@ -62,7 +61,8 @@ user-approved requirements + fresh current-state + GitHub Issue tree
   확장하지 않는다.
 - PM이 child card와 root review card를 모두 작성한다.
 - Issue aggregate review에는 Reviewer Profile 하나만 사용한다.
-- Reviewer가 PM의 review question 밖의 defect를 제기할 수 있는지는 **TBD**다.
+- Reviewer는 명시 AC/review question과 task에 materialize된 security, compatibility,
+  module-boundary constraint 위반을 finding으로 기록한다. business policy를 독자 결정하지 않는다.
 
 ### 1.1 서비스 기획과 UI 논의
 
@@ -208,8 +208,10 @@ Coder/Reviewer가 실제 구현과의 불일치를 보고할 때만 source locat
 
 - data model/repository/migration이 필요하면 첫 child task로 만든다.
 - API task는 requirement의 API 순서로 chain dependency를 둔다.
-- native dependency는 `Impl → Review → Issue root`로 구성한다. PM은 모든 신규 card를 `todo`로
-  수동 생성·read-back한 뒤 graph 전체가 검증되었을 때 하나의 eligible Impl만 `ready`로 올린다.
+- initial Impl은 Review1과 Summary의 parent다. Review finding으로 생긴 Impl/Decision은 source
+  Review의 child이고, corrective Impl은 다음 Review와 Summary의 parent다. 모든 Review/Decision은
+  Summary의 parent다. PM은 모든 신규 card를 `todo`로 수동 생성·read-back한 뒤 graph 전체가
+  검증되었을 때 하나의 eligible Impl만 `ready`로 올린다.
   atomic graph-create나 decomposer를 사용하지 않는다.
 - Coder child task의 exact changed-file allowlist는 강제하지 않는다. PM은 HTTP,
   application, domain, error, persistence, test entry surface를 context로 제공한다.
@@ -262,18 +264,20 @@ aggregate Review body
 - aggregate exclusions
 - child evidence read-back 요구
 - PM-authored review questions
-- verdict protocol: approved | changes-requested | needs-input
+- immutable Review contract; Reviewer completion metadata의 per-finding verdict
 ```
 
-모든 Impl이 done이면 Review가 ready가 되고, Review 완료 뒤 Issue root가 ready가 된다. root는
-PM finalization checkpoint 뒤 done 처리한다. 상세 execution evidence는 child body/run/comment에서
+모든 initial Impl이 done이면 Review가 ready가 된다. Review 완료 뒤 Summary가 바로 ready가 되는 것이
+아니다. 모든 Summary direct parent가 done이고 latest Review의 blocking finding이 모두 resolved일 때만
+PM이 Summary promotion/finalization을 수행한다. 상세 execution evidence는 child body/run/comment에서
 read-back한다.
 
-review finding은 structured finding으로 남긴다. script는 provenance·affected task·기본 AC가 담긴
-zero-ready rework draft를 생성할 수 있고, PM이 scope·out-of-scope·source context·AC·verification을
-보완한 뒤 actual rework task를 만든다. rework 뒤에는 `root-review-2`를 만든다.
-
-Reviewer scope와 finding schema의 상세는 **TBD**다.
+Review는 `done` completion metadata의 `findings[]`로 PM에 handoff한다. PM은 creator-session
+terminal wake-up 또는 recovery에서 task/run/metadata를 read-back한다. `correction-required` finding은
+기존 behavior를 충족시키는 corrective Impl로, `context-required`는 source read-back 뒤 새 Review로,
+`decision-required`는 same-G blocked Decision card로 routing한다. 이전 finding은 후속 Review에서
+`resolved` 또는 다시 열린 verdict를 가져야 하며 조용히 사라질 수 없다. Review body·done history는
+수정하지 않고 새 work와 link를 append한다.
 
 ### 5.3 GitHub guide
 
@@ -289,7 +293,7 @@ GitHub Issue tree, PR, CI, merge, closing keyword, Issue auto-close와 mutation 
 
 ```text
 모든 child done
-→ root-review-{n} approved
+→ latest aggregate Review의 모든 blocking finding resolved
 → final_implementation_sha freeze + clean worktree 확인
 → PM이 final implementation SHA를 조사해 current-state.md 갱신
 → docs-only commit
@@ -310,7 +314,7 @@ GitHub closing keyword는 PR이 repository default branch를 base로 할 때만 
 
 ## 8. 아직 확정하지 않은 항목
 
-- `build-task-graph` v5 helper/validator와 `review-rework` finding schema
+- `build-task-graph` v5 helper/validator와 native rework E2E
 - `create-triage`, `service-planning`, `controll-task-graph`, `sync-docs`, `update-current-state`의
   남은 SKILL.md 절차와 frontmatter
 - update-current-state의 정확한 re-investigation 범위와 draft script CLI/output schema

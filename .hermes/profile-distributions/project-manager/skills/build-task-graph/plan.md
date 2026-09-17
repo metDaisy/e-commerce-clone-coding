@@ -13,17 +13,17 @@ delta history가 아니라 자기 card의 완전한 현재 behavior contract만 
 - Kanban decomposer는 사용하지 않는다.
 - card는 PM이 하나씩 `todo`로 생성하고 native read-back한다. 모든 생성·link·body 검증 후
   첫 eligible Impl 하나만 `ready`로 만든다. atomic graph-create는 요구하지 않는다.
-- semantic Issue root의 native execution 위치는 final aggregate child다.
+- semantic Issue root는 `G{N}-Issue{M}-Summary` finalization child다. Triage는 별도 planning card다.
 
 ```text
-G<N>-Issue<M>-Impl<P> ─┐
-G<N>-Issue<M>-Impl<P> ─┼→ G<N>-Issue<M>-Review<Q> → G<N>-Issue<M>
-G<N>-Issue<M>-Impl<P> ─┘
+Triage; initial Impl → Review1/Summary; Review → corrective Impl or Decision;
+corrective Impl → Review{Q+1}/Summary; every Review/Decision → Summary
 ```
 
-- root는 active Issue implementation data와 effective behavior catalog를 보존한다.
-  root의 `done`은 aggregate Review 완료와 PM finalization checkpoint 뒤에만 가능하다.
-- title은 `G{N}-Issue{M}`, `G{N}-Issue{M}-Impl{P}`, `G{N}-Issue{M}-Review{Q}`를 쓴다.
+- Summary는 immutable finalization contract를 보존한다. membership은 native direct parent read-back으로
+  계산하며 Summary의 `done`은 aggregate Review와 PM finalization checkpoint 뒤에만 가능하다.
+- title은 `G{N}-Issue{M}-Triage`, `G{N}-Issue{M}-Impl{P}`, `G{N}-Issue{M}-Review{Q}`,
+  `G{N}-Issue{M}-Decision{R}`, `G{N}-Issue{M}-Summary`를 쓴다.
   `rework`라는 문자열을 title에 넣지 않는다.
 - `requirement-rework`은 aggregate Review 승인 전 active generation에만 허용한다. 승인 후
   requirement 변경은 새 Issue와 `new` graph를 만든다.
@@ -52,7 +52,7 @@ source of truth다. `SKILL.md`는 ordered procedure만 보유한다.
 1. `scripts/task_graph.py`를 구현한다.
    - `new template|validate`
    - `requirement-rework diff|template|validate`
-   - `review-rework template|validate`는 finding schema 확정 전 명시적으로 unsupported 한다.
+   - `review-rework template|validate`는 완료된 Review metadata의 per-finding verdict를 검증한다.
 2. `requirement-rework diff`는 read-only Git helper다. `.temp/requirement-rework/.../comparison.json`
    에 stable hunk ID와 provenance만 만든다. behavior delta를 자동으로 확정하지 않는다.
 3. v5 validator는 title/generation, behavior disposition, inherited evidence, native topology,
@@ -66,19 +66,20 @@ source of truth다. `SKILL.md`는 ordered procedure만 보유한다.
 아래는 **현재 Skill/board contract의 확정 규칙이 아니다.** 구현 전 이 문서에서 사용자와
 결정하고, 결정된 항목만 board contract와 helper/fixture에 옮긴다.
 
-### 1. `review-rework`의 실행 계약
+### 1. `review-rework`의 실행 계약 — 확정
 
-- Reviewer finding의 최소 body: finding ID, 관찰된 사실, 영향 범위, evidence, required
-  outcome, decision owner의 정확한 field/ownership.
-- finding 하나가 새 G generation을 만드는지, 같은 generation의 새 Impl/Review round를 만드는지.
-- previous Review card와 새 Review card의 native link 및 root lifecycle.
+- Reviewer는 done Review completion metadata의 `findings[]`에 canonical finding을 기록한다.
+  PM은 creator-session terminal wake-up 또는 recovery에서 task/run/metadata를 read-back한다.
+- finding verdict는 `correction-required`, `context-required`, `decision-required`, `resolved`다.
+  PM은 observation을 routing input으로 사용하지 않는다.
+- corrective Impl은 requirement delta가 아니라 existing effective behavior A의 self-contained correction이다.
+- Decision은 같은 G의 native `blocked` card다. 사용자 결정이 완료 contract를 무효화할 때만
+  `requirement-rework` G{N+1}로 전환한다.
+- old task body/link/history를 바꾸지 않고 append-only topology와 idempotency key/read-back으로 recovery한다.
 
 ### 2. Requirement-rework persisted schema의 상세
 
-- root/Impl/Review가 실제로 보존할 최소 field와 JSON version naming.
-- root body에서 graph membership을 native task ID, stable logical key, 또는 다른 native
-  metadata 중 무엇으로 참조할지. 현재 합의는 **semantic membership과 native prerequisite를
-  구분한다**는 원칙까지다.
+- Summary/Impl/Review/Decision이 실제로 보존할 최소 field와 JSON version naming.
 - inherited completed behavior의 evidence shape와 source/test 재확인 규칙의 machine-checkable
   최소 요건.
 - behavior catalog key의 namespace·normalization·card별 reference 형태. key는 comparison
@@ -89,8 +90,8 @@ source of truth다. `SKILL.md`는 ordered procedure만 보유한다.
 - task create, parent link, `todo → ready`, running worker stop/block/archive가 현재 Hermes
   native API에서 각각 어떤 action/response/state semantics를 갖는지.
 - running task requirement supersession 시 worker termination 확인 시점과 archive 허용 조건.
-- Issue root의 `triage → todo → ready → running → done` 전이를 UI/dispatcher와 함께 실제
-  E2E로 검증할 방법.
+- Summary의 `todo → ready → running → done` 전이와 Review done-event PM resume을 UI/dispatcher와
+  함께 실제 E2E로 검증할 방법.
 
 ### 4. v5 helper와 validator의 범위
 

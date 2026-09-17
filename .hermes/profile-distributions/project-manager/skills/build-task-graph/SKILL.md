@@ -28,8 +28,8 @@ It owns persisted body shapes and validator rules. `SOUL.md` owns role boundarie
 - `requirement-rework`: replace an active, unfinished generation after an approved
   requirement revision. Do not use after its aggregate review has completed; create a
   new Issue instead.
-- `review-rework`: preserve a Reviewer finding and create only the new corrective
-  work. Its detailed schema remains unsupported until the finding contract is defined.
+- `review-rework`: completed aggregate Review finding을 읽어 같은 generation에 필요한 corrective
+  work, context re-review, 또는 policy Decision을 append한다.
 
 ## Native graph model
 
@@ -38,15 +38,17 @@ before its child becomes eligible, so the semantic Issue root is a native aggreg
 child rather than the native parent of its implementation cards.
 
 ```text
-G<N>-Issue<M>-Impl<P> ─┐
-G<N>-Issue<M>-Impl<P> ─┼→ G<N>-Issue<M>-Review<Q> → G<N>-Issue<M>
-G<N>-Issue<M>-Impl<P> ─┘
+G<N>-Issue<M>-Triage
+Impl → Review<Q> → Summary
+Review<Q> → corrective Impl → Review<Q+1> → Summary
+Review<Q> → Decision → corrective Impl
 ```
 
-- `G<N>-Issue<M>` is the semantic Issue root and PM finalization card.
+- `G<N>-Issue<M>-Triage` is immutable planning provenance after completion.
+- `G<N>-Issue<M>-Summary` is the semantic Issue root and PM finalization card.
 - `G<N>-Issue<M>-Impl<P>` is one Coder contract.
 - `G<N>-Issue<M>-Review<Q>` is one aggregate Reviewer task.
-- `G` increments only for a user-approved requirement revision. `Impl` increments
+- `G` increments only for a user-approved requirement revision. `Impl`, `Decision`, and `Review` increment
   for new work within that generation; `Review` increments for aggregate review
   rounds. Do not put `rework`, `replacement`, or `corrective` in titles.
 
@@ -63,8 +65,9 @@ has passed the draft and native read-back checks.
 
 1. Create every new Impl and Review card in `todo`; use actual task IDs only after
    each native read-back.
-2. Link every Impl as a native parent of its Review card; link the Review card as a
-   native parent of the semantic Issue root.
+2. Link initial Impl to Review1 and Summary. Link every Review to Summary. A Review-originated
+   Impl is its child and is a parent of the next Review and Summary; Decision is a Review child and
+   Summary parent.
 3. Verify all bodies, assignees, links, and `todo` statuses through native read-back.
 4. Promote exactly one eligible Impl card to `ready`.
 
@@ -123,6 +126,25 @@ but is not the lifecycle transition itself.
    fully read back. Promote only the first eligible new Impl card. Completion: the
    new generation is the only dispatchable active plan.
 
+## Review-rework procedure
+
+1. **Read the handoff.** PM creator-session resume 또는 fresh recovery에서 done Review의 latest
+   run metadata, task body, comments, children, Summary parents를 read-back한다. `findings`만
+   routing input으로 사용한다.
+2. **Route every finding.** `correction-required`는 기존 effective behavior A를 충족하는
+   self-contained Impl로 materialize한다. A의 구현 결함 AA는 requirement delta A′가 아니다.
+   `context-required`는 approved source를 직접 확인한다. `decision-required`는 같은 G의
+   `Decision<R>`을 native `blocked`로 만든다; PM은 정책을 채우지 않는다.
+3. **Append without rewriting history.** completed Review/Impl/Summary body를 수정하거나 link를
+   제거하지 않는다. source Review→Impl/Decision, new Impl→next Review/Summary, every
+   Review/Decision→Summary link를 create/read-back한다.
+4. **Create the next review last.** 모든 blocking finding의 context와 corrective contract가
+   확정된 뒤 Review<Q+1>을 만든다. 이전 finding마다 새 disposition을 요구하며 aggregate scope는
+   complete effective behavior다.
+5. **Recover idempotently.** source Review/finding provenance와 idempotency key로 기존 children과
+   Summary parents를 확인한다. 없는 card만 만들고, graph read-back 뒤 하나의 eligible Impl만
+   `ready`로 promotion한다.
+
 ## Blockers and review
 
 - Continue source investigation while evidence is merely incomplete. Use native
@@ -131,11 +153,10 @@ but is not the lifecycle transition itself.
 - A Coder uses `running → review` to request the PM checkpoint. PM reads the
   verification evidence, commit boundary, changed paths, SHA, and clean worktree;
   only then does the Impl card become `done`.
-- `Review<Q>` is a Reviewer-owned aggregate task, normally `todo → ready → running
-  → done`. It is eligible only after all its Impl parents are done.
-- The semantic Issue root becomes `ready` only after Review<Q> is done. PM claims it,
-  verifies final delivery conditions, then completes it; requirement rework archives
-  an unfinished root rather than reopening or editing historical cards.
+- `Review<Q>` is a Reviewer-owned aggregate task, normally `todo → ready → running → done`.
+  `done` means review execution finished; finding disposition, not status alone, determines Summary eligibility.
+- Summary becomes `ready` only after every direct parent is done and latest Review has no unresolved or
+  new blocking finding. PM claims it, verifies final delivery conditions, then completes it.
 
 ## Report
 
@@ -143,7 +164,7 @@ Report in Korean:
 
 ```text
 ## build-task-graph report
-- mode: new | requirement-rework | blocked
+- mode: new | requirement-rework | review-rework | blocked
 - generation / root:
 - requirement_basis / revised_requirement:
 - behavior_classification:

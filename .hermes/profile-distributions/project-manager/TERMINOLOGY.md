@@ -62,8 +62,9 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | leaf Issue | 하위 work item이 없으며 구현 대상으로 선택할 수 있는 work item |
 | delivery branch | 선택된 leaf Issue를 구현하기 위해 사용하는 branch |
 | child implementation card | Coder가 수행하는 하나의 독립적으로 검증 가능한 구현 계약 |
-| semantic Issue root | `G{N}-Issue{M}`. Issue의 effective behavior·generation·inherited evidence를 담고 aggregate Review 뒤 PM이 finalization하는 card. native dependency상 Review의 child다. |
-| aggregate Review card | `G{N}-Issue{M}-Review{Q}`. 관련 Impl과 inherited behavior를 검토하는 Reviewer contract. native dependency상 모든 Impl의 child이며 Issue root의 parent다. |
+| semantic Issue root / Summary | `G{N}-Issue{M}-Summary`. immutable finalization contract를 보존하고 모든 direct parent의 native read-back 뒤 PM이 finalization하는 card. |
+| aggregate Review card | `G{N}-Issue{M}-Review{Q}`. 관련 Impl과 inherited behavior를 검토하는 Reviewer contract. 완료 run metadata의 finding verdict가 Summary eligibility를 결정한다. |
+| Decision card | `G{N}-Issue{M}-Decision{R}`. Reviewer finding이 요구한 사용자 정책 결정을 보존하는 PM-owned native `blocked` card. |
 | aggregate contract | aggregate Review에 PM이 작성하는 child contract의 공통 불변조건·교차 API 일관성·제외 범위의 요약 |
 | review question | PM이 root-review card에 작성하는 Reviewer 검토 관점 또는 확인 질문 |
 | PM checkpoint | Coder의 self-verification 뒤 PM이 같은 child card에서 evidence·commit boundary·read-back을 확인하고 완료시키는 운영 gate |
@@ -87,7 +88,7 @@ H3  최종 구현 H2를 조사하고 current-state를 갱신한 docs commit
 | controll-task-graph | checkpoint, promotion, review routing, base-sync, recovery, PR·CI·merge·Issue close를 제어하는 Skill. |
 | new | 새 leaf Issue의 최초 G1 graph를 만드는 build-task-graph mode. |
 | requirement-rework | aggregate Review 승인 전, 사용자가 승인한 requirement revision으로 active generation을 G{N+1}로 supersede하는 mode. |
-| review-rework | Reviewer finding을 Coder corrective contract로 바꾸는 mode. finding schema 확정 전에는 지원하지 않는다. |
+| review-rework | done Review의 per-finding verdict를 읽어 같은 G에 corrective Impl, context re-review, 또는 Decision을 append하는 mode. |
 | document-first planning | requirement·fresh current-state·Issue를 기본 입력으로 사용하고, 문서 부족·충돌·구현 불일치 보고 때만 source를 제한적으로 조사하는 방식. |
 | limited source investigation | PM이 policy를 재해석하지 않고 문서 부족·충돌·불일치를 확인하기 위해 필요한 범위에서만 source locator를 조사하는 예외 절차. |
 | GitHub guide | controll-task-graph이 참조할 Issue tree·PR·CI·merge·auto-close·read-back 운영 기준. |

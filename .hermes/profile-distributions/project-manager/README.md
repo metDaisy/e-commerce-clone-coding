@@ -44,15 +44,16 @@ PM은 Issue의 구현 아이디어, 후보 작업 경계, 문서 영향, 정책 
 
 ### 3. `build-task-graph`: 실행 계약 작성
 
-PM은 완료된 triage를 Coder별 self-contained card, aggregate Review, semantic Issue root로
-바꿉니다. native dependency는 `Impl → Review → Issue root`이며, root는 implementation data와
-effective behavior를 기록하는 final aggregate child입니다. 모든 신규 card를 `todo`로 수동 생성·
+PM은 완료된 triage를 Coder별 self-contained card, aggregate Review, Decision, Summary로
+바꿉니다. initial Impl은 Review1/Summary의 parent이고, Review finding에서 생긴 work는 append-only로
+다음 Review와 Summary에 연결합니다. Summary는 native direct parent read-back으로 membership을 확인하는
+immutable finalization card입니다. 모든 신규 card를 `todo`로 수동 생성·
 read-back한 뒤, PM이 첫 eligible Impl 하나만 `ready`로 올립니다.
 
-`new`는 G1 graph를 만들고, `requirement-rework`은 aggregate Review 승인 전의 active graph를
-G{N+1}로 supersede합니다. rework root는 delta가 아니라 A′ 같은 현재 effective behavior를
-기록하며, Coder card는 그 완전한 behavior만 구현합니다. `done` card는 immutable history이고,
-obsolete unfinished card만 archive합니다.
+`new`는 G1 graph를 만들고, `requirement-rework`은 완료 contract를 무효화하는 승인 requirement
+revision에만 G{N+1}을 만듭니다. `review-rework`은 Review completion metadata의 per-finding verdict를
+읽어 same-G corrective Impl, context re-review, 또는 blocked Decision을 append합니다. `done` card는
+immutable history이고, obsolete unfinished card만 archive합니다.
 
 자세한 설명: [`skills/build-task-graph/README.md`](skills/build-task-graph/README.md)
 
@@ -79,7 +80,8 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 | Issue triage와 정책/문서 blocker routing | 지원 |
 | 새 delivery와 수동 native graph authoring procedure | 지원 |
 | requirement-rework procedure와 v5 persisted contract | 지원 |
-| v5 helper/validator 및 review-rework finding schema | 후속 구현 |
+| review-rework finding contract와 procedure | 지원 |
+| v5 helper/validator 및 native E2E | 후속 구현 |
 
 ## 설치와 구성
 

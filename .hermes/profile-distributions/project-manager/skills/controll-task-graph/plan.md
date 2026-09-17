@@ -27,9 +27,9 @@
 1. Coder handoff마다 acceptance·verification evidence, changed paths, commit boundary, clean tree를 확인한다.
 2. PM이 same-card operational checkpoint commit을 만들고 SHA와 worktree를 read-back한 뒤 같은 child를 완료한다.
 3. dependency를 만족한 다음 child만 진행시킨다. 누락된 evidence, semantic ambiguity, unrelated dirty change는 blocked 또는 needs-input으로 routing한다.
-4. 모든 Impl 완료 뒤 Reviewer-assigned `G{N}-Issue{M}-Review{Q}`를 진행하고, 승인 뒤 semantic `G{N}-Issue{M}` root를 PM finalization한다. PM은 review body를 작성하지만 verdict를 대체하지 않는다.
-5. changes-requested는 finding을 보존하고 `build-task-graph`의 review-rework mode로 새 contract를 만든다.
-6. approved면 `final_implementation_sha`를 freeze하고, `update-current-state` 완료 뒤 PR·CI·merge·Issue auto-close read-back을 수행한다.
+4. 모든 Impl 완료 뒤 Reviewer-assigned `G{N}-Issue{M}-Review{Q}`를 진행한다. PM은 review body를 작성하지만 finding verdict를 대체하지 않는다. 모든 direct parent 완료 및 latest Review의 blocking finding resolved 뒤 `G{N}-Issue{M}-Summary`를 PM finalization한다.
+5. done Review metadata의 per-finding verdict를 read-back한다. correction/context/decision route는 `build-task-graph` review-rework가 same-G append로 만들고, 완료 contract를 무효화하는 사용자 결정만 requirement-rework로 전환한다.
+6. Summary finalization 뒤 `final_implementation_sha`를 freeze하고, `update-current-state` 완료 뒤 PR·CI·merge·Issue auto-close read-back을 수행한다.
 
 ## exception mode
 
@@ -59,5 +59,4 @@
 
 - base-sync 필요 판정과 rebase/merge 선택 기준
 - Coder에게 전달할 conflict context schema
-- Reviewer finding의 확정 schema
 - CI failure와 PR feedback의 rework routing 기준
