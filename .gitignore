@@ -24,14 +24,12 @@
 # hermes
 .hermes/*
 !.hermes/
+!.hermes/profiles
+!.hermes/scripts/
 !.hermes/README.md
-!.hermes/profile-capabilities/
-!.hermes/profile-capabilities/**
 !.hermes/plugins/
 !.hermes/plugins/agent-audit/
 !.hermes/plugins/agent-audit/**
-!.hermes/profile-distributions/
-!.hermes/profile-distributions/**
 .hermes/plugins/agent-audit/__pycache__/
 .hermes/events.jsonl
 .hermes/events.jsonl.*
@@ -60,3 +58,4 @@ replay_pid*
 *.zip
 *.tar.gz
 *.rar
+**/__pycache__/**

@@ -28,19 +28,22 @@ use the profile/plugin reload flow after activation.
 ## Capability policy
 
 The operational Profiles use repository-managed capability policies. The
-[`profile-capabilities/`](./profile-capabilities/) directory contains shared
-defaults and the non-Project-Manager Profile policies. The Project Manager
-Distribution keeps its policy in
+[`profile-capabilities/`](./profile-capabilities/) directory
+MCP tool definitions and the non-Project-Manager Profile policies. The Project
+Manager Distribution keeps its policy in
 [`profile-distributions/project-manager/capabilities.yaml`](./profile-distributions/project-manager/capabilities.yaml),
-including its GitHub write allowlist. These files declare disabled Skills,
-disabled built-in Toolsets, approval mode, allowed MCP server names, and MCP
-tool allowlists without storing endpoints or credentials.
+including its Skill/toolset/MCP/GitHub write allowlists. Each Profile must
+declare its complete `skills.allowed`, `tools.allowed_toolsets`, and
+`mcp.allowed_servers`/`mcp.filters` set. These files contain no endpoints or
+credentials.
 
-The setup scripts apply this policy to each machine-local Hermes Profile through
-`hermes config set`:
+The common `.hermes/scripts/apply-hermes-capabilities.py` compiles the declared
+Skill and built-in toolset allowlists into Hermes' native deny-list settings,
+disables configured MCP servers outside the declared allowlist, applies exact
+MCP `tools.include` filters, and reads the effective state back:
 
 ```bash
-python scripts/apply-hermes-capabilities.py \
+python .hermes/scripts/apply-hermes-capabilities.py \
   --policy .hermes/profile-capabilities
 ```
 

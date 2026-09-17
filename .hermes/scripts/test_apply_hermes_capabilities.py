@@ -1,0 +1,153 @@
+"""Focused tests for portable Hermes capability policy application."""
+
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+
+
+_SCRIPT = Path(__file__).parents[1] / ".hermes" / "scripts" / "apply-hermes-capabilities.py"
+_SPEC = importlib.util.spec_from_file_location("apply_hermes_capabilities", _SCRIPT)
+assert _SPEC and _SPEC.loader
+_POLICY = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(_POLICY)
+
+
+def _raw(
+    enabled_plugins=None,
+    allowed_skills=None,
+    allowed_toolsets=None,
+    allowed_servers=None,
+    filters=None,
+):
+    entry = {
+        "skills": {"allowed": allowed_skills or ["hermes-agent", "write-task"]},
+        "tools": {
+            "allowed_toolsets": allowed_toolsets or ["terminal", "file"],
+            "platform_toolsets": {},
+        },
+        "approvals": {"mode": "smart"},
+        "stt": None,
+        "mcp": {
+            "allowed_servers": allowed_servers or [],
+            "filters": filters or {},
+        },
+    }
+    if enabled_plugins is not None:
+        entry["plugins"] = {"enabled": enabled_plugins}
+    return {"version": 1, "profiles": {"project-manager": entry}}
+
+
+def test_profile_expected_preserves_explicit_plugin_allowlist() -> None:
+    expected = _POLICY.profile_expected(_raw(["agent-audit"]), "project-manager")
+
+    assert expected["plugins_enabled"] == ["agent-audit"]
+    assert expected["skills_allowed"] == ["hermes-agent", "write-task"]
+    assert expected["toolsets_allowed"] == ["terminal", "file"]
+
+
+def test_profile_expected_leaves_unspecified_plugins_untouched() -> None:
+    expected = _POLICY.profile_expected(_raw(), "project-manager")
+
+    assert expected["plugins_enabled"] is None
+
+
+def test_apply_profile_sets_explicit_plugin_allowlist() -> None:
+    writes = []
+    original_set_config = _POLICY.set_config
+    original_get_mcp_servers = _POLICY.get_mcp_servers
+    original_verify = _POLICY.verify
+    try:
+        _POLICY.set_config = lambda profile, key, value: writes.append((profile, key, value))
+        _POLICY.get_mcp_servers = lambda _profile: {}
+        _POLICY.verify = lambda _profile, _expected, _project_root=None: None
+
+        _POLICY.discover_skill_names = lambda _profile, _cwd=None: {
+            "hermes-agent",
+            "write-task",
+            "rss-feeds",
+        }
+        _POLICY.discover_toolsets = lambda _profile: {
+            "terminal",
+            "file",
+            "web",
+        }
+        _POLICY.apply_profile(_raw(["agent-audit"]), "project-manager")
+    finally:
+        _POLICY.set_config = original_set_config
+        _POLICY.get_mcp_servers = original_get_mcp_servers
+        _POLICY.verify = original_verify
+
+    assert ("project-manager", "plugins.enabled", ["agent-audit"]) in writes
+    assert (
+        "project-manager",
+        "skills.disabled",
+        ["rss-feeds"],
+    ) in writes
+    assert (
+        "project-manager",
+        "agent.disabled_toolsets",
+        ["web"],
+    ) in writes
+
+
+def test_parse_skill_list_rejects_truncated_names() -> None:
+    output = "│ very-long-skill… │ category │ builtin │ builtin │ enabled │"
+
+    try:
+        _POLICY.parse_skill_names(output)
+    except ValueError as exc:
+        assert "truncated" in str(exc)
+    else:
+        raise AssertionError("truncated skill names must fail closed")
+
+
+def test_parse_toolset_list_reads_builtin_and_plugin_toolsets() -> None:
+    output = """Built-in toolsets (cli):
+  ✓ enabled  terminal  shell
+  ✗ disabled web  browser
+Plugin toolsets (cli):
+  ✓ enabled  kanban  board
+"""
+
+    assert _POLICY.parse_toolset_names(output) == {"terminal", "web", "kanban"}
+
+
+def test_profile_expected_requires_mcp_include_filter_for_every_server() -> None:
+    raw = _raw(allowed_servers=["codebase-memory"])
+
+    try:
+        _POLICY.profile_expected(raw, "project-manager")
+    except ValueError as exc:
+        assert "every allowed MCP server" in str(exc)
+    else:
+        raise AssertionError("unfiltered MCP server must fail")
+
+
+def test_repository_policies_use_explicit_allowlists() -> None:
+    root = Path(__file__).parents[1]
+    raw = _POLICY.load_policy(root / ".hermes" / "profile-capabilities", list(_POLICY.PROFILES))
+
+    for profile in _POLICY.PROFILES:
+        expected = _POLICY.profile_expected(raw, profile)
+        assert expected["skills_allowed"]
+        assert expected["toolsets_allowed"]
+
+
+def test_profile_expected_requires_explicit_allowlists() -> None:
+    raw = _raw()
+    del raw["profiles"]["project-manager"]["skills"]["allowed"]
+
+    try:
+        _POLICY.profile_expected(raw, "project-manager")
+    except ValueError as exc:
+        assert "skills.allowed" in str(exc)
+    else:
+        raise AssertionError("missing Skill allowlist must fail")
+
+
+if __name__ == "__main__":
+    for name, test in sorted(globals().items()):
+        if name.startswith("test_"):
+            test()
+    print("capability policy tests: passed")

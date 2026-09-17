@@ -11,36 +11,12 @@ $rootDir = Split-Path -Parent $PSScriptRoot
 $profiles = @(
   'project-manager'
   'prototype-coder'
+  'implementation-coder'
   'reviewer-general'
   'reviewer-deep'
   'reviewer-coordinator'
   'refactor-coder'
 )
-$skills = @{
-  'project-manager' = @(
-  )
-  'prototype-coder' = @(
-    'skills-sh/github/awesome-copilot/java-springboot'
-    'skills-sh/github/awesome-copilot/java-junit'
-  )
-  'reviewer-general' = @(
-    'skills-sh/mattpocock/skills/code-review'
-    'skills-sh/alannkl/skills/simplify-code'
-    'skills-sh/toss/es-toolkit/compat-review'
-  )
-  'reviewer-deep' = @(
-    'skills-sh/mattpocock/skills/improve-codebase-architecture'
-    'skills-sh/getsentry/warden/architecture-review'
-    'skills-sh/jabrena/plinth/305-frameworks-spring-boot-modulith'
-    'skills-sh/affaan-m/ecc/jpa-patterns'
-  )
-  'reviewer-coordinator' = @()
-  'refactor-coder' = @(
-    'skills-sh/github/awesome-copilot/java-refactoring-extract-method'
-    'skills-sh/github/awesome-copilot/java-refactoring-remove-parameter'
-  )
-}
-
 Push-Location $rootDir
 try {
   foreach ($profile in $profiles) {
@@ -53,6 +29,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to configure project cwd: $profile"
     }
+    hermes --profile $profile config set kanban.auto_decompose false
+    if ($LASTEXITCODE -ne 0) {
+      throw "Failed to disable automatic Kanban decomposition: $profile"
+    }
     if ($profile -eq 'project-manager') {
       hermes --profile $profile config set skills.external_dirs '[]'
       if ($LASTEXITCODE -ne 0) {
@@ -64,20 +44,9 @@ try {
   Pop-Location
 }
 
-foreach ($profile in $profiles) {
-  foreach ($identifier in $skills[$profile]) {
-    $output = (& hermes --profile $profile skills install $identifier --yes 2>&1 | Out-String)
-    if ($LASTEXITCODE -ne 0 -or $output -match 'Error:|Installation blocked:' -or ($output -notmatch 'Installed:' -and $output -notmatch 'already installed')) {
-      Write-Error $output
-      throw "Failed to install skills.sh Skill '$identifier' for Profile '$profile'"
-    }
-    Write-Output "skills.sh: $identifier -> $profile"
-  }
-}
-
-$policyScript = Join-Path $rootDir 'scripts\apply-hermes-capabilities.py'
+$policyScript = Join-Path $rootDir '.hermes\scripts\apply-hermes-capabilities.py'
 $policyFile = Join-Path $rootDir '.hermes\profile-capabilities'
-python $policyScript --policy $policyFile
+python $policyScript --policy $policyFile --project-root $rootDir
 if ($LASTEXITCODE -ne 0) {
   throw 'Failed to apply the YAML capability policy.'
 }
