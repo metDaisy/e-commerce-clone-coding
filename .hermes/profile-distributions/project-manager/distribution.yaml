@@ -9,6 +9,8 @@ distribution_owned:
   - README.md
   - SOUL.md
   - capabilities.yaml
+  - skills/service-planning/SKILL.md
+  - skills/service-planning/plan.md
   - skills/create-triage/SKILL.md
   - skills/create-triage/README.md
   - skills/create-triage/plan.md
@@ -22,6 +24,12 @@ distribution_owned:
   - skills/build-task-graph/tests/test_build_task_graph.py
   - skills/build-task-graph/tests/fixtures/valid-new-delivery.json
   - skills/build-task-graph/tests/fixtures/invalid-missing-cards.json
+  - skills/controll-task-graph/SKILL.md
+  - skills/controll-task-graph/plan.md
+  - skills/sync-docs/SKILL.md
+  - skills/sync-docs/plan.md
+  - skills/update-current-state/SKILL.md
+  - skills/update-current-state/plan.md
   - skills/cross-domain-contract-planning/SKILL.md
   - skills/write-task/SKILL.md
   - skills/semble-search/SKILL.md

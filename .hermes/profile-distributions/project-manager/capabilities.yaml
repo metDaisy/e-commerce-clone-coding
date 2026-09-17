@@ -5,13 +5,16 @@ profile: project-manager
 skills:
   allowed:
     - hermes-agent
-    - write-task
-    - cross-domain-contract-planning
-    - codebase-inspection
+    # Planned distribution-owned PM Skills. The policy becomes applicable after
+    # each corresponding Skill is added to this Distribution.
+    - service-planning
+    - create-triage
+    - build-task-graph
+    - controll-task-graph
+    - sync-docs
+    - update-current-state
+    # Retained for PM-focused documentation search; its content will be revised.
     - semble-search
-    - codebase-memory-mcp
-    - github
-    - systematic-debugging
 
 plugins:
   enabled:
@@ -24,6 +27,13 @@ tools:
     - skills
     - clarify
     - kanban
+    # Research, deterministic planning drafts, and PM session continuity.
+    - web
+    - browser
+    - code_execution
+    - todo
+    - memory
+    - session_search
 
 approvals:
   mode: smart
@@ -32,12 +42,6 @@ stt:
   enabled: false
 
 mcp_tools:
-  codebase_project_manager:
-    include:
-      - index_status
-      - search_graph
-      - trace_path
-
   github_project_manager:
     include:
       - add_issue_comment
@@ -55,10 +59,9 @@ mcp_tools:
 
 mcp:
   allowed_servers:
+    - codebase-memory-mcp
     - semble-mcp
-    - codebase-memory
     - github-mcp
   filters:
-    codebase-memory: codebase_project_manager
     github-mcp: github_project_manager
     semble-mcp: semble_read
