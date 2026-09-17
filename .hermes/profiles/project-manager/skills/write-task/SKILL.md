@@ -128,7 +128,7 @@ before each validator gate, confirm repository `HEAD` still equals every task's 
 Run the native post gate from the repository root:
 
 ```text
-python .hermes/profile-distributions/project-manager/scripts/validate_board.py --board <slug> --phase post --profile project-manager --repository <repository-root>
+python .hermes/profiles/project-manager/scripts/validate_board.py --board <slug> --phase post --profile project-manager --repository <repository-root>
 ```
 
 **Completion:** every live envelope and link is read back, the post validator exits `0`, and exactly

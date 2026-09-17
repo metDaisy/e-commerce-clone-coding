@@ -83,7 +83,7 @@ The template takes only facts PM has already read; it does not infer an Issue's
 requirements. Write its generated artifact under the current repository's `.temp`:
 
 ```text
-TRIAGE_PY=.hermes/profile-distributions/project-manager/skills/create-triage/scripts/triage.py
+TRIAGE_PY=.hermes/profiles/project-manager/skills/create-triage/scripts/triage.py
 python "$TRIAGE_PY" template --issue 138 --title "Issue #138 triage" \
   --issue-url <Issue-URL> --planning-sha <SHA> --current-state-sha <SHA> \
   --requirement-locator <path#locator> --current-state-locator <path#locator> \

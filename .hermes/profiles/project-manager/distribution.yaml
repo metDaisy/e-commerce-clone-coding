@@ -8,6 +8,8 @@ license: "MIT"
 distribution_owned:
   - README.md
   - SOUL.md
+  - TERMINOLOGY.md
+  - WORKFLOW-DESIGN.md
   - capabilities.yaml
   - skills/service-planning/SKILL.md
   - skills/service-planning/plan.md

@@ -83,10 +83,15 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 | review-rework finding contract와 procedure | 지원 |
 | v5 helper/validator 및 native E2E | 후속 구현 |
 
+## Workflow reference
+
+- [PM workflow design](WORKFLOW-DESIGN.md): 역할 경계, handoff, lifecycle, 다른 Profile 설계에 재사용할 기준
+- [PM terminology](TERMINOLOGY.md): workflow에서 쓰는 개념과 문서 책임
+
 ## 설치와 구성
 
 ```text
-hermes profile install ./.hermes/profile-distributions/project-manager --name project-manager --alias
+hermes profile install ./.hermes/profiles/project-manager --name project-manager --alias
 ```
 
 `capabilities.yaml`은 installer가 자동 적용하지 않습니다. 프로젝트 bootstrap이 Profile 설치 뒤
