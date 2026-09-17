@@ -52,9 +52,10 @@ Review<Q> → Decision → corrective Impl
   for new work within that generation; `Review` increments for aggregate review
   rounds. Do not put `rework`, `replacement`, or `corrective` in titles.
 
-Card bodies preserve semantic membership and generation lineage; native links express
-only actual prerequisites. The exact persisted field schema is owned by the board
-contract after the remaining plan decisions are settled.
+Card bodies preserve immutable semantic contracts and generation lineage. Summary
+membership is computed from native direct-parent read-back, while native links express
+actual prerequisites. The exact persisted field schema is owned by the board contract
+once the remaining implementation-schema TBDs are settled.
 
 ## Manual authoring rule
 
@@ -80,7 +81,7 @@ but is not the lifecycle transition itself.
 1. **Admit.** Read the leaf Issue, approved requirement, clean repository and
    baseline, active workflow marker, fresh `current-state` snapshot, and existing
    native cards. Completion: all input facts are read back or routed to their owner.
-2. **Author the root.** Create `G1-Issue<M>` in `triage` with the complete delivery
+2. **Author triage.** Create `G1-Issue<M>-Triage` in `triage` with the complete delivery
    behavior model, document evidence, scope, exclusions, aggregate acceptance, and
    graph membership plan. Completion: its body is validated and read back.
 3. **Classify each behavior.** When its domain tools are exposed in the fresh PM
@@ -94,10 +95,10 @@ but is not the lifecycle transition itself.
    scope/exclusions, conditional API/UI/persistence/state/error contracts,
    acceptance criteria, and behavioral verification. Completion: every new card is
    self-contained and assigned.
-5. **Add review and start.** Create `Review1`, link the dependency graph, complete
-   the manual authoring rule, then move the root to `todo` and promote one Impl card
-   to `ready`. Completion: native read-back shows one ready Impl and every other new
-   execution card in `todo`.
+5. **Add review and start.** Create `Review1` and `Summary`, link the dependency graph,
+   complete the manual authoring rule, complete the Triage artifact, then promote one
+   Impl card to `ready`. Completion: native read-back shows one ready Impl and every
+   other new execution card in `todo`.
 
 ## Requirement-rework procedure
 
@@ -111,8 +112,8 @@ but is not the lifecycle transition itself.
    for its run to terminate. Archive unfinished Impl cards and an unfinished Review
    after their replacement plan is ready. Completion: no obsolete task remains
    dispatchable.
-3. **Create the next root.** Create `G<N+1>-Issue<M>` in `triage`. Its body records
-   the prior root, archived unfinished tasks, inherited done evidence, new requirement
+3. **Create the next triage artifact.** Create `G<N+1>-Issue<M>-Triage` in `triage`.
+   Its body records the prior Summary, archived unfinished tasks, inherited done evidence, new requirement
    revision, and an effective behavior model such as `A′ = A + AA`. Completion: the
    new root can explain every desired behavior without asking a Coder to read G<N>.
 4. **Classify effective behaviors.** For every behavior in the new root, inspect the
@@ -121,10 +122,11 @@ but is not the lifecycle transition itself.
    satisfies the new behavior. Create new Impl cards for confirmed `partial` or
    `absent` behavior. Completion: every behavior is inherited, planned, or explicitly
    unknown.
-5. **Build and start the next graph.** Follow the manual authoring rule, then archive
-   the superseded root and its unfinished descendants after the replacement graph is
-   fully read back. Promote only the first eligible new Impl card. Completion: the
-   new generation is the only dispatchable active plan.
+5. **Build and start the next graph.** Follow the manual authoring rule, complete the
+   new Triage artifact, then archive only superseded unfinished execution cards after
+   the replacement graph is fully read back. Preserve done history. Promote only the
+   first eligible new Impl card. Completion: the new generation is the only
+   dispatchable active plan.
 
 ## Review-rework procedure
 
