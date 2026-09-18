@@ -22,6 +22,11 @@
 
 요구사항·코드·테스트·문서 사이에 불일치가 있으면 추측하지 말고 근거와 불일치 내용을 보고한다.
 
+Project Manager가 `backend-implementation-card-v1`으로 위임한 작업에서는 PM이 승인 요구사항을
+self-contained 실행 계약으로 materialize한다. `implementation-coder`는 그 card를 목표 동작의
+입력으로 사용하고 요구사항을 다시 기획·해석하지 않는다. 이 파일의 구조·보안·검증 규칙과 실제
+코드·테스트는 계속 적용하며, card와 충돌하면 임의로 보정하지 않고 작업을 block해 PM에 보고한다.
+
 ## 커밋 메시지와 커밋 단위
 
 - 커밋 메시지 형식과 논리적 커밋 단위는 `docs/commit-message-convention.md`를 따른다.

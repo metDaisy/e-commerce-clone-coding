@@ -1,7 +1,11 @@
 # implementation-workflow
 
-`implementation-coder`가 PM-assigned backend implementation task를 수신한 뒤
-요구사항 구현, 테스트 작성, 3단계 검증, Reviewer A handoff를 수행하는 절차다.
+`implementation-coder`가 PM-authored backend Impl card를 구현하고 두 단계 검증을 거쳐 같은
+card의 PM checkpoint를 요청하는 절차다.
 
-상세 규칙은 `SKILL.md`를 따르고, 테스트 assertion·fixture·scope 세부사항은
-repository의 `docs/testing-guide.md`를 따른다.
+- [`references/execution-contract.md`](references/execution-contract.md): PM/Coder 권한과 lifecycle
+- [`references/implementation-card-contract.md`](references/implementation-card-contract.md): body와 handoff schema
+- [`SKILL.md`](SKILL.md): Coder 실행 순서
+
+검증은 focused tests 다음 backend 전체 Gradle test 순서이며, 모든 Gradle 작업은
+`gradle-mcp`로 실행한다.
