@@ -9,6 +9,15 @@ version: 5.0.0-draft
 mutation response처럼 아직 결정되지 않은 상세는 이 문서에 추측으로 추가하지 않고
 [`../plan.md`](../plan.md)의 `아직 결정하지 않은 사항`에서 결정한다.
 
+Backend Impl card body, Coder handoff, PM checkpoint field schema는 project root의 Coder contract가
+소유한다.
+
+- `.hermes/profiles/coder/skills/implementation-workflow/references/execution-contract.md`
+- `.hermes/profiles/coder/skills/implementation-workflow/references/implementation-card-contract.md`
+
+PM은 Impl card를 작성하기 전에 두 contract를 읽는다. 이 board contract는 graph identity,
+generation, topology와 promotion만 소유하며 worker contract schema를 복제하지 않는다.
+
 Native Kanban은 status, task ID, assignee, parent link, run, comment, event를 소유한다. PM은
 behavior contract, generation lineage, evidence, task promotion 결정을 소유한다.
 
@@ -131,20 +140,29 @@ work를 재생성하지 않는다.
 요구사항 policy, ownership, authorization, consistency, error semantics, external prerequisite를
 조사만으로 결정할 수 없을 때만 native `blocked`와 사용자 결정을 사용한다.
 
-Coder의 `running → review` handoff 뒤 PM checkpoint는 verification evidence, changed paths,
-commit boundary, verified SHA, clean worktree를 read-back한다. 이 checkpoint는 independent
-aggregate Review를 대체하지 않는다.
+Coder의 `running → review` handoff 뒤 PM checkpoint는 verification evidence, changed paths와
+commit boundary를 확인하고 commit한다. PM은 result commit SHA, committed paths와 clean worktree를
+read-back한다. 이 checkpoint는 independent aggregate Review를 대체하지 않는다.
 
 ## Evidence boundary
 
-- Coder card는 goal, scope, explicit out-of-scope, current effective behavior, current state
-  evidence, applicable contract details, acceptance criteria, verification을 self-contained하게
-  가진다.
-- requirement/source/task locator는 PM traceability evidence다. Coder에게 다른 문서를 다시
+- Backend Coder card는 `backend-implementation-card-v1`을 사용한다. Goal, scope, explicit
+  out-of-scope, current effective behavior, confirmed implementation context, applicable contract
+  dimensions, acceptance criteria, focused verification, full backend verification과 traceability를
+  self-contained하게 가진다.
+- Requirement/source/task locator는 PM traceability evidence다. Coder에게 다른 문서를 다시
   해석하라고 지시하지 않는다.
-- credential, raw tool output, prompt, hidden reasoning은 card나 draft에 저장하지 않는다.
-- deterministic validator는 draft syntax/topology만 확인한다. native read-back은 persisted
-  status/link/ID를 확인한다. behavior completion은 PM checkpoint와 Review evidence로 확인한다.
+- Baseline/planning SHA, assignee, status, dependency, workspace와 실행 결과는 Impl body에
+  저장하지 않는다. PM admission과 native Kanban이 이 값을 소유한다.
+- 모든 acceptance criterion은 하나 이상의 focused verification에 연결한다. PM은 behavior,
+  test level과 required scenario를 정의하고, Coder는 실제 source를 조사한 뒤 정확한 test FQCN을
+  선택하거나 작성한다.
+- Full backend verification은 `gradle-mcp` backend `test` task다. Frontend/npm/browser 검증은
+  이 contract 범위가 아니다.
+- Credential, raw tool output, prompt, hidden reasoning은 card나 draft에 저장하지 않는다.
+- Deterministic validator는 draft syntax/topology만 확인한다. Native read-back은 persisted
+  status/link/ID를 확인한다. Behavior completion은 PM checkpoint와 Review evidence로 확인한다.
 
-구체적인 persisted JSON schema와 validator field rules는 plan의 미결 항목이 확정된 뒤에만 이
-문서에 추가한다.
+Coder는 focused와 full backend verification이 모두 통과한 뒤 native same-card review를 요청한다.
+PM은 `review` 상태에서 commit하고 result SHA, committed paths와 clean worktree를 read-back한 뒤에만
+card를 완료한다. Canonical field shape는 위 Coder contract 한 곳에서만 관리한다.

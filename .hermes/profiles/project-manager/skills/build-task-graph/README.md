@@ -58,3 +58,6 @@ implemented/unaffected verdict를 확정하지 않습니다.
 정확한 persisted body, draft shape, validator invariant는
 [`references/board-contract.md`](references/board-contract.md)를 따릅니다. 실행 순서는
 [`SKILL.md`](SKILL.md), tool rollout은 [`plan.md`](plan.md)를 따릅니다.
+
+Backend Impl body와 Coder/PM handoff의 field-level schema는 board contract가 연결하는 Coder
+`implementation-workflow/references/implementation-card-contract.md`가 canonical owner입니다.

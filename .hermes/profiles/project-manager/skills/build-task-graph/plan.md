@@ -28,7 +28,10 @@ helper/fixture에 옮긴다.
 
 ### 1. Persisted schema 상세
 
-- Summary/Impl/Review/Decision이 실제로 보존할 최소 field와 JSON version naming.
+- Summary/Review/Decision이 실제로 보존할 최소 field와 JSON version naming.
+- Backend Impl body와 Coder handoff/PM checkpoint는 `backend-implementation-card-v1`,
+  `backend-implementation-handoff-v1`, `backend-implementation-checkpoint-v1`로 확정됐다. v5
+  helper와 fixture를 이 canonical contract로 migration해야 한다.
 - inherited completed behavior의 evidence shape와 source/test 재확인 규칙의 machine-checkable
   최소 요건.
 - behavior catalog key의 namespace·normalization·card별 reference 형태. key는 comparison

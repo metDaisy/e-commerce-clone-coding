@@ -113,10 +113,15 @@ frozen triage, approved requirement, fresh current-state, Issue를 입력으로 
 Coder가 다른 문서를 다시 해석하지 않도록 Impl card에는 다음을 materialize한다.
 
 - goal, scope, explicit out-of-scope
-- actor/authorization, request·response 또는 UI contract가 적용되는 경우 그 literal contract
-- field·state invariant·error semantics, API/persistence/module-boundary constraint
+- actor/authorization와 input/output contract가 적용되는 경우 그 literal contract
+- state invariant·error semantics, API/persistence/transaction/event/module/external-system constraint
 - acceptance criteria와 실제 verification 목표
-- dependency와 PM traceability locator
+- PM traceability locator; dependency는 native Kanban link로 관리
+
+Backend Impl의 canonical field shape는 Coder의
+`implementation-workflow/references/implementation-card-contract.md`가 소유한다. PM은 이를 읽고
+`backend-implementation-card-v1` body를 작성하며 baseline SHA, native assignee/status/link/workspace와
+실행 결과를 body에 복제하지 않는다.
 
 PM은 built-in decomposer를 사용하지 않는다. 새 Impl·Review는 `todo`로 하나씩 생성·read-back하고,
 body·assignee·link·status를 검증한 뒤 첫 eligible Impl **하나만** `ready`로 promotion한다.
@@ -139,11 +144,12 @@ Review<Q> → Decision → corrective Impl 또는 user decision
 ### Child checkpoint
 
 ```text
-Coder implementation + self-verification
-→ same-card PM review 요청
-→ PM: evidence, changed paths, staged diff, commit boundary, SHA, clean worktree read-back
-→ PM commit + Git read-back
-→ PM이 동일 Impl card를 done
+Coder implementation + focused tests + backend full test
+→ native same-card PM review 요청 (`running → review`)
+→ PM: evidence, changed paths, staged diff, commit boundary 확인
+→ PM commit
+→ PM: result commit SHA, committed paths, clean worktree read-back
+→ PM이 동일 Impl card를 `review → done`
 → 다음 eligible Impl promotion
 ```
 

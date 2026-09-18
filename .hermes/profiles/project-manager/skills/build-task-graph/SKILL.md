@@ -18,9 +18,10 @@ dependencies, task IDs, assignees, runs, comments, and evidence. Coder cards rem
 self-contained: they implement the current behavior contract, never a history of its
 requirement deltas.
 
-Read [`references/board-contract.md`](references/board-contract.md) before drafting.
-It owns persisted body shapes and validator rules. `SOUL.md` owns role boundaries;
-`controll-task-graph` owns checkpoint, review routing, and release closure.
+Read [`references/board-contract.md`](references/board-contract.md) before drafting. For every backend
+Impl, also read the Coder execution and implementation-card contracts linked there. The board contract
+owns graph identity, topology and promotion; the Coder contract owns Impl body and handoff field shapes.
+`SOUL.md` owns role boundaries; `controll-task-graph` owns checkpoint, review routing, and release closure.
 
 ## Modes
 
@@ -52,10 +53,9 @@ Review<Q> → Decision → corrective Impl
   for new work within that generation; `Review` increments for aggregate review
   rounds. Do not put `rework`, `replacement`, or `corrective` in titles.
 
-Card bodies preserve immutable semantic contracts and generation lineage. Summary
-membership is computed from native direct-parent read-back, while native links express
-actual prerequisites. The exact persisted field schema is owned by the board contract
-once the remaining implementation-schema TBDs are settled.
+Card bodies preserve immutable semantic contracts and generation lineage. Summary membership is
+computed from native direct-parent read-back, while native links express actual prerequisites. Backend
+Impl bodies use the canonical `backend-implementation-card-v1` schema linked from the board contract.
 
 ## Manual authoring rule
 
@@ -63,6 +63,10 @@ Do not use the built-in Kanban decomposer. Create cards manually through native
 Kanban actions. Atomic graph creation is not required when every new Impl/Review
 card is created in `todo`, read back, and no card is promoted before the entire graph
 has passed the draft and native read-back checks.
+
+The checked-in v4 helper and fixtures still contain the superseded planning SHA, frontend, and
+`request-review` shapes. Do not use their generated Impl body as `backend-implementation-card-v1` until
+the v5 migration in `plan.md` is implemented. Author and validate the canonical JSON body directly.
 
 1. Create every new Impl and Review card in `todo`; use actual task IDs only after
    each native read-back.
@@ -90,11 +94,11 @@ but is not the lifecycle transition itself.
    or unknown behavior, then confirm candidates directly. Classify each behavior as
    `implemented`, `partial`, `absent`, or `unknown`. Completion: every behavior has
    source-backed state evidence or an explicit unresolved fact.
-4. **Author work.** Create an Impl card only for `partial` or `absent` behavior.
-   Give it the full desired behavior contract, current state evidence, explicit
-   scope/exclusions, conditional API/UI/persistence/state/error contracts,
-   acceptance criteria, and behavioral verification. Completion: every new card is
-   self-contained and assigned.
+4. **Author work.** Create an Impl card only for `partial` or `absent` behavior. Give it the full
+   desired behavior contract, confirmed implementation context, explicit scope/exclusions, every backend
+   applicability dimension, acceptance criteria, focused verification, full backend verification, and
+   traceability. Do not add a baseline SHA or frontend contract. Completion: every new card validates as
+   `backend-implementation-card-v1`, is self-contained, and is assigned.
 5. **Add review and start.** Create `Review1` and `Summary`, link the dependency graph,
    complete the manual authoring rule, complete the Triage artifact, then promote one
    Impl card to `ready`. Completion: native read-back shows one ready Impl and every
@@ -152,9 +156,9 @@ but is not the lifecycle transition itself.
 - Continue source investigation while evidence is merely incomplete. Use native
   `blocked` only when requirement policy, ownership, authorization, consistency,
   error semantics, or an external prerequisite cannot be resolved by investigation.
-- A Coder uses `running → review` to request the PM checkpoint. PM reads the
-  verification evidence, commit boundary, changed paths, SHA, and clean worktree;
-  only then does the Impl card become `done`.
+- A Coder uses `running → review` only after focused tests and the backend full test suite pass. PM reads
+  the canonical handoff, verifies the diff and commit boundary, commits, and reads back the result SHA,
+  committed paths, and clean worktree; only then does the Impl card become `done`.
 - `Review<Q>` is a Reviewer-owned aggregate task, normally `todo → ready → running → done`.
   `done` means review execution finished; finding disposition, not status alone, determines Summary eligibility.
 - Summary becomes `ready` only after every direct parent is done and latest Review has no unresolved or

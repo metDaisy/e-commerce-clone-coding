@@ -5,17 +5,18 @@ version: 3.0.0
 
 # Board Contract
 
-이 문서는 `project-manager`가 생성하는 Amaazon Kanban graph의 유일한 동결 계약이다.
-이 문서와 `scripts/validate_board.py`로 판정한다. 새로운 규칙은 새 contract version과
-failing regression test를 먼저 추가한 뒤 다음 graph부터 적용한다.
+> **Legacy board-contract-v3.** 현재 PM workflow나 backend Impl card의 authority가 아니다.
+> Graph는 `build-task-graph/references/board-contract.md`, backend Impl body와 handoff는
+> `.hermes/profiles/coder/skills/implementation-workflow/references/` contract를 따른다.
+
+이 문서는 archived `board-contract-v3` fixture와 `scripts/validate_board.py`의 과거 판정 규칙만
+설명한다. Current graph나 task를 생성·수정하는 기준으로 사용하지 않는다.
 
 ## Authority
 
-이 문서는 persisted task body의 schema, planning identity, verification/handoff 형식과
-validator가 판정하는 graph 조건의 유일한 기준이다. `write-task`는 committed-evidence
-discovery와 이 계약을 적용하는 authoring 순서를, `SOUL.md`는 PM의 권한과 lifecycle을
-소유한다. 세 문서가 같은 field 또는 validator 결과를 다르게 설명하면 이 계약과 validator를
-따른다.
+이 문서는 v3 fixture의 persisted task body, planning identity, verification/handoff 형식과
+legacy validator 조건만 설명한다. Current workflow와 충돌하면 `build-task-graph`와 Coder
+implementation contract를 따른다.
 
 ## Contract boundary
 

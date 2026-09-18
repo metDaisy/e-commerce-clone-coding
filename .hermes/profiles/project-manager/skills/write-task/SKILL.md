@@ -13,14 +13,18 @@ metadata:
 
 # Write Task
 
-Use when the Project Manager creates or repairs an Issue task graph. This is the
-**authoring recipe**, not the task-body contract or PM lifecycle policy.
+> **Legacy v3 — current PM distribution에서 사용하지 않는다.** Backend Impl card는
+> `build-task-graph`와 `.hermes/profiles/coder/skills/implementation-workflow/references/`
+> contract를 따른다. 이 Skill과 v3 validator는 migration 참고용이며 새 graph의 authority가 아니다.
+
+This archived recipe documents the v3 graph authoring path. It is not invoked by the current Project
+Manager distribution and must not author or repair current tasks.
 
 ## Authority map
 
 - `SOUL.md` owns PM identity, mutation limits, routing, approval, failure handling, and the Issue lifecycle.
-- [`references/board-contract.md`](references/board-contract.md) owns every persisted task-body
-  field, planning-identity/freshness rule, graph invariant, verification/handoff format, and validator condition.
+- [`references/board-contract.md`](references/board-contract.md) owns only the archived v3 fixture and
+  validator field set.
 - `cross-domain-contract-planning` owns only a missing or uncertain public seam between modules.
 - This Skill owns committed-evidence discovery and the ordered authoring work that turns that evidence
   into a validated graph.
