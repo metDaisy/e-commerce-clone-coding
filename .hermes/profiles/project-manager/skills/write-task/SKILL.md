@@ -13,9 +13,10 @@ metadata:
 
 # Write Task
 
-> **Legacy v3 — current PM distribution에서 사용하지 않는다.** Backend Impl card는
-> `build-task-graph`와 `.hermes/profiles/coder/skills/run-impl-card/references/`
-> contract를 따른다. 이 Skill과 v3 validator는 migration 참고용이며 새 graph의 authority가 아니다.
+> **Legacy v3 — current PM distribution에서 사용하지 않는다.** Backend Impl card authoring은
+> `build-task-graph/references/implementation-card-contract.md`, checkpoint는
+> `controll-task-graph/references/execution-contract.md`를 따른다. 이 Skill과 v3 validator는 migration
+> 참고용이며 새 graph의 authority가 아니다.
 
 This archived recipe documents the v3 graph authoring path. It is not invoked by the current Project
 Manager distribution and must not author or repair current tasks.

@@ -27,5 +27,6 @@ clean working tree를 확인해야 card가 `done`이 된다. 독립 aggregate re
 - `semble-search`: 구현 위치가 불명확할 때 의미 기반 위치 탐색
 - `java-springboot`, `java-junit`: Java/Spring Boot 구현·테스트 보조
 
-`run-impl-card/references/`는 PM/Coder execution contract와 Impl card schema를 소유한다.
+`run-impl-card/references/`는 Coder execution contract, Impl card 소비 규칙과 handoff schema를 소유한다.
+PM의 card authoring과 checkpoint 계약은 Project Manager Distribution이 소유한다.
 `docs/testing-guide.md`와 `docs/agent-workflow.md`는 repository의 테스트·작업 절차 source of truth다.

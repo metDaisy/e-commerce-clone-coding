@@ -9,14 +9,10 @@ version: 5.0.0-draft
 mutation response처럼 아직 결정되지 않은 상세는 이 문서에 추측으로 추가하지 않고
 [`../plan.md`](../plan.md)의 `아직 결정하지 않은 사항`에서 결정한다.
 
-Backend Impl card body, Coder handoff, PM checkpoint field schema는 project root의 Coder contract가
-소유한다.
-
-- `.hermes/profiles/coder/skills/run-impl-card/references/execution-contract.md`
-- `.hermes/profiles/coder/skills/run-impl-card/references/implementation-card-contract.md`
-
-PM은 Impl card를 작성하기 전에 두 contract를 읽는다. 이 board contract는 graph identity,
-generation, topology와 promotion만 소유하며 worker contract schema를 복제하지 않는다.
+Backend Impl card authoring semantics와 body validation은
+[`implementation-card-contract.md`](implementation-card-contract.md)가 소유한다. PM checkpoint 실행과
+field schema는 `controll-task-graph/references/execution-contract.md`가 소유한다. 이 board contract는
+graph identity, generation, topology와 promotion만 소유하며 worker execution contract를 복제하지 않는다.
 
 Native Kanban은 status, task ID, assignee, parent link, run, comment, event를 소유한다. PM은
 behavior contract, generation lineage, evidence, task promotion 결정을 소유한다.
@@ -169,4 +165,5 @@ read-back한다. 이 checkpoint는 independent aggregate Review를 대체하지 
 
 Coder는 focused와 full backend verification이 모두 통과한 뒤 native same-card review를 요청한다.
 PM은 `review` 상태에서 commit하고 result SHA, committed paths와 clean worktree를 read-back한 뒤에만
-card를 완료한다. Canonical field shape는 위 Coder contract 한 곳에서만 관리한다.
+card를 완료한다. Card authoring shape는 PM implementation-card contract와 validator에서 관리하고,
+Coder는 자신의 consumption contract로 동일 body를 admission한다.

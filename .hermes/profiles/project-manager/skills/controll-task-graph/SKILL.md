@@ -1,7 +1,7 @@
 ---
 name: controll-task-graph
 description: Use when handling Coder review handoffs and PM checkpoints.
-version: 0.1.0
+version: 0.2.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -18,10 +18,10 @@ Handle the active native review run created when `implementation-coder` requests
 checkpoint. This Skill owns checkpoint validation, commit, changes-requested routing, and native read-back.
 It does not replace aggregate Review or implement source changes.
 
-Before acting, read the project-root Coder contracts:
-
-- `.hermes/profiles/coder/skills/run-impl-card/references/execution-contract.md`
-- `.hermes/profiles/coder/skills/run-impl-card/references/implementation-card-contract.md`
+Before acting, read the PM-owned
+[`references/execution-contract.md`](references/execution-contract.md). It owns checkpoint authority,
+changes-request and completion metadata. Card authoring semantics remain in
+`../build-task-graph/references/implementation-card-contract.md`.
 
 Use the adjacent `checkpoint.py` for deterministic handoff, change-request, and checkpoint evidence
 validation. Resolve its installed Skill path instead of assuming the repository-relative path exists.

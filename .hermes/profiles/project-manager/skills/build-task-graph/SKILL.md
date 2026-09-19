@@ -1,7 +1,7 @@
 ---
 name: build-task-graph
 description: "Build manual Kanban graphs from approved Issue contracts."
-version: 0.3.0
+version: 0.4.0
 license: MIT
 metadata:
   hermes:
@@ -19,8 +19,10 @@ self-contained: they implement the current behavior contract, never a history of
 requirement deltas.
 
 Read [`references/board-contract.md`](references/board-contract.md) before drafting. For every backend
-Impl, also read the Coder execution and implementation-card contracts linked there. The board contract
-owns graph identity, topology and promotion; the Coder contract owns Impl body and handoff field shapes.
+Impl, also read the PM-owned
+[`references/implementation-card-contract.md`](references/implementation-card-contract.md). The board
+contract owns graph identity, topology and promotion; the implementation-card contract owns PM authoring
+semantics and body validation.
 `SOUL.md` owns role boundaries; `controll-task-graph` owns checkpoint, review routing, and release closure.
 
 ## Modes

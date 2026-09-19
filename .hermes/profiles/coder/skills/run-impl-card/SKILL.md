@@ -1,14 +1,14 @@
 ---
 name: run-impl-card
 description: Use when admitting and running a PM-authored backend Impl card through its PM checkpoint.
-version: 0.4.0
+version: 0.5.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [implementation, backend, testing, kanban, checkpoint]
-    related_skills: [implement, codebase-memory-mcp, semble-search, java-springboot, java-junit]
+    related_skills: [implement]
 requires_toolsets: [kanban]
 ---
 
@@ -17,10 +17,10 @@ requires_toolsets: [kanban]
 PM이 작성한 self-contained Impl card를 backend code와 test로 구현하고 같은 card의 PM
 checkpoint로 넘긴다. 시작 전에 다음 reference를 읽는다.
 
-- [`references/execution-contract.md`](references/execution-contract.md): PM/Coder 권한,
-  검증, blocker와 lifecycle 경계
+- [`references/execution-contract.md`](references/execution-contract.md): Coder 입력, 권한,
+  검증, blocker와 handoff 경계
 - [`references/implementation-card-contract.md`](references/implementation-card-contract.md):
-  card body, Coder handoff와 PM checkpoint schema
+  card body 소비, Coder handoff와 changes-request input schema
 
 Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java test 작성 규칙을
 소유한다. Requirement와 Triage는 Coder의 입력이 아니다.

@@ -6,8 +6,8 @@ version: 3.0.0
 # Board Contract
 
 > **Legacy board-contract-v3.** 현재 PM workflow나 backend Impl card의 authority가 아니다.
-> Graph는 `build-task-graph/references/board-contract.md`, backend Impl body와 handoff는
-> `.hermes/profiles/coder/skills/run-impl-card/references/` contract를 따른다.
+> Graph와 backend Impl body authoring은 `build-task-graph/references/`, PM checkpoint는
+> `controll-task-graph/references/execution-contract.md`를 따른다.
 
 이 문서는 archived `board-contract-v3` fixture와 `scripts/validate_board.py`의 과거 판정 규칙만
 설명한다. Current graph나 task를 생성·수정하는 기준으로 사용하지 않는다.

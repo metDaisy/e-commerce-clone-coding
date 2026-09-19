@@ -120,10 +120,10 @@ Coder가 다른 문서를 다시 해석하지 않도록 Impl card에는 다음�
 - acceptance criteria와 실제 verification 목표
 - PM traceability locator; dependency는 native Kanban link로 관리
 
-Backend Impl의 canonical field shape는 Coder의
-`run-impl-card/references/implementation-card-contract.md`가 소유한다. PM은 이를 읽고
-`backend-implementation-card-v1` body를 작성하며 baseline SHA, native assignee/status/link/workspace와
-실행 결과를 body에 복제하지 않는다.
+Backend Impl body의 authoring semantics와 validation은 PM의
+`build-task-graph/references/implementation-card-contract.md`가 소유한다. Coder의 consumption contract는
+같은 body를 admission하고 handoff를 작성하는 데 필요한 의미만 소유한다. PM은 baseline SHA, native
+assignee/status/link/workspace와 실행 결과를 body에 복제하지 않는다.
 
 PM은 built-in decomposer를 사용하지 않는다. 새 Impl·Review는 `todo`로 하나씩 생성·read-back하고,
 body·assignee·link·status를 검증한 뒤 첫 eligible Impl **하나만** `ready`로 promotion한다.

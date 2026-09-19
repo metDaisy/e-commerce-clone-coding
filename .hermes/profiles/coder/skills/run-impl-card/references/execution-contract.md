@@ -1,91 +1,84 @@
 # Coder execution contract
 
-이 문서는 Project Manager와 `implementation-coder` 사이의 backend 구현 계약을 소유한다.
-PM은 이 계약을 만족하는 Impl card를 작성하고, Coder는 card를 실행하며, PM은 같은 card의
-checkpoint를 검수한다. 세부 field shape는
-[`implementation-card-contract.md`](implementation-card-contract.md)가 소유하고, 실행 순서는
+이 문서는 `implementation-coder`가 admitted backend Impl card를 실행하는 권한과 경계를 소유한다.
+Card body를 소비하는 규칙과 Coder handoff shape는
+[`implementation-card-contract.md`](implementation-card-contract.md)가 소유하고, 구체적인 실행 순서는
 [`../SKILL.md`](../SKILL.md)가 소유한다.
 
-## 입력과 기준
+PM의 card 작성, checkpoint review, commit, changes-request 작성과 task completion 절차는 PM
+`build-task-graph`와 `controll-task-graph` 계약이 소유한다.
 
-Coder의 유일한 제품 동작 입력은 자신에게 배정된 self-contained Impl card다. Requirement,
-Triage, 이전 대화와 다른 Profile의 Memory는 PM의 traceability 근거이며 Coder가 다시 해석할
-입력이 아니다.
+## Coder 입력
 
-질문별 기준은 다음과 같다.
+Coder가 구현할 제품 동작의 유일한 입력은 자신에게 배정되고 admission을 통과한 self-contained Impl
+card다. Requirement, Triage, 이전 대화와 다른 Profile의 Memory는 PM의 traceability 근거이며 Coder가
+다시 해석할 입력이 아니다.
 
-1. 구현할 동작과 완료 조건: Impl card의 `effective_behavior`, `contracts`,
-   `acceptance_criteria`.
+Coder는 다음 기준을 사용한다.
+
+1. 구현할 동작과 완료 조건: card의 `effective_behavior`, `contracts`, `acceptance_criteria`.
 2. 현재 구현 사실: checkout된 production source, test, configuration, migration.
 3. 구조와 작업 제약: `AGENTS.md`, architecture, ADR, package boundary, repository validator.
 4. 실행 상태: native Kanban task/run/comment와 실제 Git 상태.
 
-Card와 repository 제약이 양립하지 않거나 card의 현재 상태 설명이 실제 source와 달라
-acceptance 범위가 바뀌면 Coder가 의미를 보정하지 않고 PM에 사실과 영향을 보고한다.
+Card와 repository 제약이 양립하지 않거나 `implementation_context.current_behavior`가 실제 source와
+달라 acceptance 또는 public contract가 변하면 의미를 보정하지 않고 block한다.
 
-## 권한
+## Coder 권한
 
-Coder는 card의 동작을 구현하기 위한 내부 구현 방식, 테스트 위치와 수준, 기존 의미를
-보존하는 국소 수정을 결정한다. 컴파일·동작·테스트에 필수적인 caller, consumer, DTO,
-mapping, adapter와 test 전파는 scope 확장이 아니라 구현의 일부다.
+Coder는 card 동작을 구현하기 위한 내부 구현 방식, 테스트 위치와 수준, 기존 의미를 보존하는 국소
+수정을 결정한다. 컴파일·동작·테스트에 필수적인 caller, consumer, DTO, mapping, adapter,
+persistence와 test 전파는 구현의 일부다.
 
-다음은 Coder가 결정하지 않는다.
+Coder는 다음을 결정하거나 수행하지 않는다.
 
 - 새로운 business behavior, authorization, transaction/consistency 또는 error semantics
 - card에 없는 public API, event 또는 cross-domain contract
 - acceptance criteria를 바꾸는 대안 설계
 - unrelated refactor, optimization, abstraction 또는 defect repair
-- requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow 문서의 수정
-- commit, push, merge와 Impl card의 최종 `done` 전환
+- requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow 문서 수정
+- commit, push, merge 또는 Impl card의 최종 `done` 전환
 
-문서 영향은 수정하지 않고 handoff의 `documentation_impact`로 보고한다. Database migration,
-configuration처럼 실행에 필요한 non-document artifact는 card scope에 포함된 경우 구현할 수 있다.
+문서 영향은 수정하지 않고 handoff의 `documentation_impact`로 보고한다. Migration과 configuration처럼
+실행에 필요한 non-document artifact는 card scope에 포함된 경우 구현할 수 있다.
 
-## 작업 및 검증
+## 실행 모드
 
-Coder는 production code와 해당 테스트를 함께 구현한다. 검증은 반드시 다음 순서다.
+- **Initial run:** card의 모든 behavior와 acceptance를 구현한다. 시작 시 dirty path가 하나라도 있으면
+  보존한 채 block한다.
+- **Changes-requested rework:** latest native transition과 직전 handoff에 결합된 valid change-request를
+  확인한다. 직전 handoff의 dirty path만 인수하고 각 finding의 `path`, `symbol`, `allowed_scope` 안에서만
+  수정한다. 원래 card의 모든 focused 및 full backend verification을 다시 실행한다.
 
-1. **Focused verification:** 변경 동작의 success와 필요한 rejection/failure path를 가장 작은
-   적절한 unit, slice, repository, integration 또는 Modulith test로 실행한다.
-2. **Full backend verification:** focused verification이 통과한 뒤 backend 전체 Gradle test
-   suite를 실행한다.
+## 검증
 
-모든 Gradle 호출은 `gradle-mcp`를 사용한다. 실패하면 원인을 수정하고 영향받은 focused
-verification부터 다시 실행한 뒤 full backend verification을 반복한다. 테스트 삭제·비활성화,
-assertion 약화, validator 우회로 성공을 만들지 않는다. 전체 테스트가 통과하기 전에는 PM
-checkpoint를 요청하지 않는다.
+Production code와 관련 테스트를 함께 구현하고 다음 순서를 지킨다.
+
+1. **Focused verification:** card의 success, rejection/failure, boundary와 persistence scenario를 가장
+   작은 적절한 test level로 실행한다.
+2. **Full backend verification:** focused verification이 모두 통과한 뒤 backend 전체 Gradle `test`를
+   실행한다.
+
+모든 Gradle 호출은 `gradle-mcp`만 사용한다. 실패 원인을 수정한 뒤 영향받은 focused verification부터
+다시 실행하고 full backend verification을 반복한다. 테스트 삭제·비활성화, assertion 약화, validator
+우회 또는 검증 축소로 성공을 만들지 않는다.
 
 ## Blocker
 
-예상하지 못한 dirty path, 안전하게 분리할 수 없는 기존 변경, 미정 policy, contract 충돌,
-외부 prerequisite 부재, `gradle-mcp` 사용 불가 또는 허용 범위 밖 결정이 필요하면 native
-`blocked`로 중단한다. 보고에는 확인한 사실, 근거, 영향과 재개에 필요한 결정 또는 조건을
-포함한다.
+예상하지 못한 dirty path, 분리할 수 없는 기존 변경, 미정 policy, contract 충돌, 외부 prerequisite
+부재, `gradle-mcp` 사용 불가 또는 허용 범위 밖 결정이 필요하면 native `blocked`로 중단한다. 확인한
+사실, 근거, 영향과 재개에 필요한 owner·조건을 기록한다. 구현 위치가 불명확한 것만으로는 blocker가
+아니며 source와 test를 조사한다.
 
-단순한 구현 위치 부족은 blocker가 아니다. Coder가 source와 test를 조사해 해결한다.
+## Handoff 경계
 
-## Handoff와 완료
+Focused verification과 full backend verification이 모두 통과하면 Coder는 canonical
+`backend-implementation-handoff-v1`을 작성하고 `kanban_request_review(reviewer="project-manager")`로 같은
+card의 checkpoint를 요청한다. Coder는 다음 사실을 read-back한다.
 
-Focused verification과 full backend verification이 모두 통과하면 Coder는
-`kanban_request_review`로 같은 card의 PM checkpoint를 요청한다. 이 호출은 native lifecycle을
-`running → review`로 전환한다. Handoff는 구현 동작, 변경 경로, acceptance별 결과, 실제 검증,
-문서 영향과 residual risk를 보존한다.
+- task status가 `review`다.
+- reviewer가 `project-manager`다.
+- 이번 handoff metadata가 저장됐다.
 
-PM은 review 상태에서 handoff, diff와 commit boundary를 확인하고 변경을 commit한다. PM이 result
-commit SHA, committed paths와 clean working tree를 read-back한 뒤에만 card를 `done`으로
-전환한다. 따라서 card lifecycle은 다음과 같다.
-
-```text
-ready → running → review → done
-                   └────→ native request-changes → ready 또는 dependency-gated todo
-                                                   └→ dispatcher claim → running
-running/review → blocked → resumed source phase
-```
-
-Coder handoff는 구현 완료 주장이나 Reviewer의 aggregate verdict가 아니다. `done`은 PM checkpoint와
-clean committed boundary가 확인되었다는 뜻이며, 독립 aggregate Review는 그 뒤 별도 card에서
-수행한다.
-
-PM이 changes를 요청할 때는 native `request-changes` 직전에 canonical
-`backend-implementation-change-request-v1`을 durable comment로 남긴다. Native reason만으로는 실행
-범위를 정하지 않는다. Coder는 해당 payload의 finding만 수정하고 두 단계 검증과 handoff를 반복한다.
+이 시점은 Coder 실행의 끝이지 card의 `done`이나 commit 완료가 아니다. PM의 후속 checkpoint 절차를
+Coder가 대신 수행하지 않는다.

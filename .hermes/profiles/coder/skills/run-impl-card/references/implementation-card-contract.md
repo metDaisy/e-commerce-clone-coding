@@ -1,14 +1,16 @@
-# Backend Impl card contract v1
+# Coder Impl card consumption contract v1
 
-이 문서는 PM이 작성하고 `implementation-coder`가 소비하는 Impl card body와 실행 handoff의
-canonical schema를 소유한다. Graph identity, topology, generation과 promotion은 PM의 board
-contract가 소유하며, native Kanban이 task ID, title, assignee, status, links, workspace, run,
-comment와 event를 소유한다. 이 schema는 그 값을 body에 복제하지 않는다.
+이 문서는 `implementation-coder`가 admitted `backend-implementation-card-v1`을 해석하고
+`backend-implementation-handoff-v1`을 작성하는 계약을 소유한다. PM의 card authoring shape와
+validation은 PM `build-task-graph/references/implementation-card-contract.md`가 소유한다. Native
+Kanban이 task ID, title, assignee, status, links, workspace, run, comment와 event를 소유하며 이
+schema는 그 값을 body에 복제하지 않는다.
 
-## Body format
+## Coder input example
 
-Body는 아래 shape의 valid JSON object다. 모든 설명문은 한국어로 쓰고 ID, path, symbol, enum과
-도구 이름은 literal을 보존한다.
+Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예시는 각 field가 구현과 검증에서
+어떻게 결합되는지 보여준다. 모든 설명문은 한국어이며 ID, path, symbol, enum과 도구 이름은 literal을
+보존한다.
 
 ```json
 {
@@ -113,17 +115,16 @@ Body는 아래 shape의 valid JSON object다. 모든 설명문은 한국어로 �
 }
 ```
 
-## Required invariants
+## Admission invariants
 
 - `schema`는 정확히 `backend-implementation-card-v1`, `card_type`은 `implementation`이다.
 - `issue.number`, `issue.url`, `goal`, `effective_behavior`, `scope`, `out_of_scope`,
   `implementation_context`, `contracts`, `acceptance_criteria`, `focused_verification`,
   `full_backend_verification`, `traceability`가 존재한다.
-- Body에는 baseline/planning SHA, assignee, status, dependency, workspace와 실행 후 결과를 넣지
-  않는다. PM admission과 native Kanban이 그 상태를 소유한다.
+- Body에는 baseline/planning SHA, assignee, status, dependency, workspace와 실행 후 결과가 없어야 한다.
+  Coder는 해당 실행 상태를 native Kanban에서 read-back한다.
 - `effective_behavior`는 requirement history나 delta가 아니라 이번 card가 완성할 현재 동작이다.
-- `entry_points`는 PM이 직접 확인한 시작점이며 Coder의 필수 caller/consumer 조사를 제한하는
-  allowlist가 아니다.
+- `entry_points`는 확인된 조사 시작점이며 필수 caller/consumer 조사를 제한하는 allowlist가 아니다.
 - 모든 `contracts` dimension은 존재한다. 적용되면 `applicable: true`와 비어 있지 않은
   `rules`, 적용되지 않으면 `applicable: false`와 구체적인 `not_applicable_reason`을 갖는다.
   누락을 비적용으로 해석하지 않는다.
@@ -131,18 +132,16 @@ Body는 아래 shape의 valid JSON object다. 모든 설명문은 한국어로 �
   중복되지 않는다.
 - 모든 acceptance ID는 하나 이상의 focused verification에 연결되고, 존재하지 않는 ID를
   참조하지 않는다.
-- `test_level`은 `unit | slice | repository | integration | modulith` 중 하나다. PM은 검증할
-  behavior와 scenario를 정하고, Coder는 실제 source를 조사한 뒤 정확한 test FQCN을 선택하거나
-  작성한다. 아직 존재하지 않는 test command를 PM이 발명하지 않는다.
+- `test_level`은 `unit | slice | repository | integration | modulith` 중 하나다. Card의 behavior와
+  scenario는 고정 입력이며 Coder는 실제 source를 조사한 뒤 정확한 test FQCN을 선택하거나 작성한다.
 - `full_backend_verification`은 `gradle-mcp`의 backend 전체 `test` task로 고정한다. Frontend,
   browser와 npm 검증은 이 schema 범위가 아니다.
-- `traceability`는 PM의 근거다. Coder에게 source 문서를 다시 해석하거나 재기획하도록 지시하지
-  않는다.
+- `traceability`는 provenance locator이지 source 문서를 다시 해석하거나 재기획하라는 지시가 아니다.
 - Credential, raw tool output, prompt와 hidden reasoning은 body나 handoff에 기록하지 않는다.
 
 ## Applicability dimensions
 
-| Field | PM이 확정해 materialize할 의미 |
+| Field | Coder가 구현에서 해석할 의미 |
 |---|---|
 | `actor_authorization` | actor, 인증·인가와 거절 조건 |
 | `input_output` | 입력 field 의미, 반환 값과 null/format 규칙 |
@@ -155,8 +154,8 @@ Body는 아래 shape의 valid JSON object다. 모든 설명문은 한국어로 �
 | `module_boundary` | named interface, allowed dependency와 ownership |
 | `external_system` | 외부 port/adapter, timeout·failure 의미 |
 
-새 제품 의미가 필요한 dimension을 `not_applicable`로 숨기지 않는다. PM이 결정할 수 없는 정책은
-card 생성 전에 사용자 결정으로 route한다.
+`not_applicable`은 누락된 제품 의미를 보충하라는 뜻이 아니다. 적용 여부, rules 또는 비적용 사유가
+불완전하거나 구현에 새 정책 결정이 필요하면 Coder는 추측하지 않고 block한다.
 
 ## Coder review handoff metadata
 
@@ -219,11 +218,11 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 `changed_paths`에는 실제 task 변경만 기록하고 문서 path를 포함하지 않는다. 실행하지 못한 검증,
 실패, dirty conflict 또는 미정 policy는 handoff가 아니라 `kanban_block` 대상이다.
 
-## PM changes-requested comment
+## Changes-request input
 
-Native `kanban_request_changes` accepts a reason but no metadata object. PM therefore appends the following
-validated JSON object as a durable comment immediately before requesting changes. This comment is the
-canonical structured rework payload; the native reason contains its finding IDs and a concise summary.
+Changes-requested rework에서 Coder는 latest native `request-changes` transition 직전 durable comment의
+다음 valid JSON object만 structured rework input으로 사용한다. Native reason이나 prose summary는 이
+payload를 대체하지 않는다.
 
 ```json
 {
@@ -244,33 +243,8 @@ canonical structured rework payload; the native reason contains its finding IDs 
 }
 ```
 
-`source_handoff_id`는 active review가 검토한 handoff ID와 같고 `source_review_run_id`는 native active
-PM review run ID와 같다. Coder는 latest native `request-changes` transition 직전 comment의 두 ID를
-task run history와 대조한다. `finding_id`는 해당 request 안에서 중복되지 않는다. 각 finding은 정확한 path·symbol, 관찰된 문제,
-기대 결과, 허용 범위와 다시 실행할 검증을 모두 가진다. 일반적인 개선 요청이나 card의 제품 의미를
-바꾸는 요청은 허용하지 않는다. Coder는 latest validated change-request comment만 수행하고 focused 및
-full backend verification을 다시 실행한다.
-
-## PM checkpoint evidence
-
-PM은 dispatcher가 시작한 active native review run에서 Coder handoff와 diff를 검증하고 commit한 뒤
-다음 사실을 `kanban_complete` metadata에 기록한다. Comment나 일반 PM session의 서술은 completion
-metadata를 대체하지 않는다.
-
-```json
-{
-  "schema": "backend-implementation-checkpoint-v1",
-  "source_handoff_id": "handoff-7f3d87b2",
-  "result": "pass",
-  "committed_paths": ["src/main/java/example/product/...", "src/test/java/example/product/..."],
-  "commit_sha": "<40-character result commit SHA>",
-  "full_backend_verification_readback": "pass",
-  "clean_worktree": true
-}
-```
-
-`source_handoff_id`는 검수한 Coder handoff와 정확히 같고 `committed_paths`는 그 handoff의
-`changed_paths`와 중복 없이 정확히 같아야 한다. PM이 commit SHA,
-committed paths, full backend evidence와 clean working tree를 read-back하기 전에는 Impl card를
-`done`으로 전환하지 않는다. `request-changes`이면 같은 body를 유지하고 위 canonical finding comment를
-Coder에게 돌려보낸다.
+Coder는 `source_handoff_id`를 직전 handoff ID와, `source_review_run_id`를 changes를 요청한 PM review
+run과 대조한다. `finding_id`는 request 안에서 고유해야 한다. 각 finding은 exact path·symbol, 관찰된
+문제, 기대 결과, 허용 범위와 다시 실행할 검증을 모두 가져야 한다. 누락, ID 불일치, 일반적인 개선
+요청 또는 card의 제품 의미 변경이 있으면 추측하지 않고 block한다. Valid latest request의 finding만
+수정하고 card의 focused 및 full backend verification을 모두 다시 실행한다.
