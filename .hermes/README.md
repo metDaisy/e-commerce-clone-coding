@@ -75,6 +75,6 @@ failure, the hook gives the Agent a bounded diagnostic nudge so it can correct
 the code and verify again. It does not block tool calls and it does not invoke
 Gradle directly.
 
-The project-level Skill selection and portfolio map are documented in
-[`../docs/skills/index.md`](../docs/skills/index.md). The Rule contract is in
-[`../docs/validator-contract.md`](../docs/validator-contract.md).
+Profile Skill·tool 선택은 각 `profiles/<source-name>/capabilities.yaml`과 README가 소유한다.
+The supported audit behavior and verification procedure are documented beside the implementation in
+[`plugins/agent-audit/README.md`](plugins/agent-audit/README.md).
