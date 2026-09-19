@@ -1,7 +1,7 @@
 ---
 name: implement
-description: Use when coding and verifying an admitted backend Impl card.
-version: 0.1.0
+description: 승인된 backend Impl card를 구현하고 검증할 때 사용한다.
+version: 0.2.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -12,136 +12,138 @@ metadata:
 requires_toolsets: [file, terminal]
 ---
 
-# Implement
+# 구현
 
-Turn one admitted `backend-implementation-card-v1` into the smallest verified backend code change.
-`run-impl-card` owns admission, Kanban transitions, blocker routing, and handoff; this Skill owns the
-coding loop between admission and handoff.
+Admission을 통과한 `backend-implementation-card-v1` 하나를 검증된 최소 backend code 변경으로 만든다.
+`run-impl-card`는 admission, Kanban 전이, blocker routing과 handoff를 소유하고, 이 Skill은 admission과
+handoff 사이의 coding loop를 소유한다.
 
-## When to Use
+## 사용 시점
 
-- Use after `run-impl-card` has admitted an initial or changes-requested run.
-- Use for Java/Spring backend production code, tests, configuration, migration, and directly required code artifacts.
-- Do not use to reinterpret requirements, author cards, edit documentation, commit, or complete a Kanban task.
+- `run-impl-card`가 initial run 또는 changes-requested run을 admission한 뒤 사용한다.
+- Java/Spring backend production code, test, configuration, migration과 직접 필요한 code artifact에 사용한다.
+- Requirement 재해석, card 작성, 문서 편집, commit 또는 Kanban task 완료에는 사용하지 않는다.
 
-## Prerequisites
+## 사전 조건
 
-- The active native task is assigned to `implementation-coder` and is `running`.
-- The immutable card and, for rework, correlated change-request passed `run-impl-card` admission.
-- The worktree satisfies the initial-run or rework dirty-path rule.
-- `gradle-mcp` exposes `gradle` and `query_build`. If unavailable, block instead of using Gradle through `terminal`.
+- 활성 native task가 `implementation-coder`에게 배정되어 있고 status가 `running`이다.
+- Immutable card와 rework의 correlated change-request가 `run-impl-card` admission을 통과했다.
+- Worktree가 initial-run 또는 rework dirty-path 규칙을 만족한다.
+- `gradle-mcp`가 `gradle`과 `query_build`를 제공한다. 사용할 수 없으면 `terminal`로 Gradle을 실행하지
+  않고 block한다.
 
-## Execution Mode
+## 실행 모드
 
-- **Initial run:** implement every behavior and acceptance in the validated card.
-- **Changes-requested rework:** edit only each correlated finding's exact `path`, `symbol`, and `allowed_scope`.
-  Use the original card only to preserve its invariants and determine the full verification contract. Do not remap,
-  improve, or simplify unrelated card code. Rerun every card-required focused verification and the full backend
-  verification even when a finding names a narrower test.
+- **Initial run:** 검증된 card의 모든 behavior와 acceptance를 구현한다.
+- **Changes-requested rework:** correlated finding마다 정확한 `path`, `symbol`, `allowed_scope`만 수정한다.
+  원래 card는 invariant를 보존하고 전체 verification contract를 결정하는 용도로만 사용한다. 관련 없는
+  card code를 다시 mapping하거나 개선·단순화하지 않는다. Finding이 더 좁은 test를 지정하더라도
+  card가 요구하는 모든 focused verification과 full backend verification을 다시 실행한다.
 
-## Procedure
+## 절차
 
-### 1. Build the implementation map
+### 1. 구현 map 작성
 
-1. Read every card entry point and nearest test, then trace definitions, callers, consumers, DTOs, mappings,
-   adapters, repositories, events, and `package-info.java` boundaries with `search_files` and `read_file`.
-2. Use `semble-search` only to locate uncertain code and `codebase-memory-mcp` only to inspect cross-domain or
-   public-seam impact; confirm every result in repository files.
-3. On an initial run, map each `effective_behavior.id` and acceptance criterion to a code seam and focused
-   verification ID. On rework, map only validated findings to edit seams while retaining the card's full verification
-   map.
+1. Card의 모든 entry point와 가장 가까운 test를 읽은 다음 `search_files`와 `read_file`로 definition,
+   caller, consumer, DTO, mapping, adapter, repository, event와 `package-info.java` boundary를 추적한다.
+2. `semble-search`는 불확실한 code 위치를 찾을 때만 사용하고, `codebase-memory-mcp`는 cross-domain 또는
+   public seam 영향을 조사할 때만 사용한다. 모든 결과를 repository file에서 직접 확인한다.
+3. Initial run에서는 각 `effective_behavior.id`와 acceptance criterion을 code seam과 focused
+   verification ID에 연결한다. Rework에서는 card의 전체 verification map을 유지하면서 검증된 finding만
+   수정 seam에 연결한다.
 
-Completion criterion: every initial-run behavior or rework finding has a concrete edit/test location, or the task is
-blocked with the exact missing contract or decision.
+완료 조건: 모든 initial-run behavior 또는 rework finding에 구체적인 수정·test 위치가 있거나, 누락된
+contract 또는 결정 사항을 정확히 기록하고 task를 block했다.
 
-### 2. Establish a failing test where possible
+### 2. 가능한 경우 실패 test 확립
 
-1. For a defect or changed rule, add the smallest test that reproduces the missing behavior before production code.
-   During rework, add or change tests only when a validated finding requires it.
-2. On an initial run, cover every card-required success, rejection, failure, boundary, and persistence scenario at
-   the declared `test_level`. During rework, preserve unrelated tests and add only finding-required coverage. Reuse
-   existing fixtures and test conventions instead of creating a parallel test framework.
-3. Execute only the new or nearest focused test through `gradle-mcp` and confirm it fails for the expected reason.
-   If the seam cannot produce a meaningful red test, record why and continue only when the card's verification
-   contract still provides deterministic coverage.
+1. Defect 또는 변경된 rule은 production code보다 먼저 누락된 behavior를 재현하는 가장 작은 test를
+   추가한다. Rework에서는 검증된 finding이 요구할 때만 test를 추가하거나 수정한다.
+2. Initial run에서는 card가 요구한 모든 success, rejection, failure, boundary와 persistence scenario를
+   선언된 `test_level`로 검증한다. Rework에서는 관련 없는 test를 보존하고 finding이 요구하는 coverage만
+   추가한다. 별도 test framework를 만들지 않고 기존 fixture와 test convention을 재사용한다.
+3. 새 test 또는 가장 가까운 focused test만 `gradle-mcp`로 실행해 예상한 이유로 실패하는지 확인한다.
+   Seam에서 의미 있는 red test를 만들 수 없다면 이유를 기록하고, card의 verification contract가 계속
+   결정론적 coverage를 제공할 때만 진행한다.
 
-Completion criterion: the behavior gap is demonstrated by a relevant failure, or the justified non-red seam and
-its replacement coverage are explicit.
+완료 조건: 관련 failure로 behavior gap을 입증했거나, red test가 적합하지 않은 이유와 이를 대체하는
+coverage를 명시했다.
 
-### 3. Implement the smallest complete change
+### 3. 완전한 최소 변경 구현
 
-1. Change the deepest correct seam that fixes the whole card-defined behavior on an initial run, or the exact
-   finding-defined defect on rework, not a caller-specific symptom.
-2. Propagate only what compilation and the confirmed contract require across callers, DTOs, mappings, adapters,
-   persistence, configuration, migrations, and tests.
-3. Preserve public contracts, transaction semantics, module boundaries, exception conventions, and existing style
-   unless the card explicitly changes them.
-4. Do not add speculative abstractions, unrelated defect repairs, broad refactors, or compatibility behavior absent
-   from the card. Do not weaken or remove tests.
+1. Initial run에서는 caller별 symptom이 아니라 card가 정의한 behavior 전체를 바로잡는 가장 깊고 올바른
+   seam을 수정한다. Rework에서도 caller별 symptom이 아니라 finding이 정의한 정확한 defect를 수정한다.
+2. Compilation과 확인된 contract가 요구하는 변경만 caller, DTO, mapping, adapter, persistence,
+   configuration, migration과 test에 전파한다.
+3. Card가 명시적으로 변경하지 않는 한 public contract, transaction semantics, module boundary,
+   exception convention과 기존 style을 유지한다.
+4. Card에 없는 speculative abstraction, 관련 없는 defect repair, 광범위한 refactor 또는 compatibility
+   behavior를 추가하지 않는다. Test를 약화하거나 제거하지 않는다.
 
-Completion criterion: production and test changes explain every changed path and no edit depends on an invented
-product decision.
+완료 조건: production과 test 변경으로 모든 changed path를 설명할 수 있고, 어떤 수정도 임의로 만든
+product decision에 의존하지 않는다.
 
-### 4. Run the tight verification loop
+### 4. 긴밀한 검증 loop 실행
 
-1. Run the nearest affected tests through `gradle-mcp`; fix root causes and repeat until green.
-2. Run every card `focused_verification` with its exact tests and required scenarios through `gradle-mcp`.
-3. Associate each passing focused result with all covered acceptance IDs. Do not substitute compilation or a nearby
-   test for a named scenario.
+1. 가장 가까운 affected test를 `gradle-mcp`로 실행하고 root cause를 수정해 green이 될 때까지 반복한다.
+2. Card의 모든 `focused_verification`을 지정된 test와 required scenario로 `gradle-mcp`에서 실행한다.
+3. 통과한 focused result를 coverage 대상인 모든 acceptance ID와 연결한다. Compilation이나 인접 test를
+   지정된 scenario 대신 사용하지 않는다.
 
-Completion criterion: every focused verification and required scenario passes through `gradle-mcp`.
+완료 조건: 모든 focused verification과 required scenario가 `gradle-mcp`에서 통과했다.
 
-### 5. Perform bounded simplification
+### 5. 범위가 제한된 단순화 수행
 
-On an initial run, review only the current task diff and minimal surrounding code. On rework, review only code
-changed for the validated findings and skip every unrelated simplification:
+Initial run에서는 현재 task diff와 최소한의 주변 code만 검토한다. Rework에서는 검증된 finding 때문에
+변경한 code만 검토하고 관련 없는 단순화는 모두 건너뛴다.
 
-- **Reuse:** replace new duplication with an already-proven local helper when behavior is identical.
-- **Quality:** remove redundant state, needless nesting, copy-paste variation, and comments that restate code.
-- **Efficiency:** remove repeated work or avoidable queries only when the diff introduced them or the card requires it.
-- **Altitude:** replace a shallow special case with the correct shared-seam fix when it remains inside card scope.
+- **재사용:** behavior가 같다면 새 중복을 이미 검증된 local helper로 대체한다.
+- **품질:** 불필요한 state, 불필요한 nesting, copy-paste variation과 code를 반복 설명하는 comment를 제거한다.
+- **효율:** diff가 새로 만들었거나 card가 요구한 경우에만 반복 작업 또는 불필요한 query를 제거한다.
+- **추상화 수준:** card scope 안에서 유지된다면 얕은 special case를 올바른 shared-seam 수정으로 바꾼다.
 
-Do not launch a broad cleanup, change behavior, rename public contracts, or expand into unrelated files. Re-run the
-affected focused tests after any simplification; revert simplification that cannot be proven behavior-preserving.
+광범위한 cleanup을 시작하거나 behavior를 변경하거나 public contract 이름을 바꾸거나 관련 없는 file로
+범위를 넓히지 않는다. 단순화 뒤 affected focused test를 다시 실행한다. Behavior 보존을 증명할 수 없는
+단순화는 되돌린다.
 
-Completion criterion: no material in-scope simplification remains and focused verification is still green.
+완료 조건: scope 안에 실질적인 단순화 항목이 남지 않았고 focused verification이 계속 green이다.
 
-### 6. Run full backend verification
+### 6. 전체 backend 검증 실행
 
-Execute the card's exact `full_backend_verification` task through `gradle-mcp` only after focused verification is
-green. On failure, determine whether the cause is in scope:
+Focused verification이 green인 뒤에만 card의 정확한 `full_backend_verification` task를 `gradle-mcp`로
+실행한다. 실패하면 원인이 scope 안인지 판정한다.
 
-- Fix an in-scope regression, then repeat affected focused verification and the full task.
-- Block on an external prerequisite, policy gap, unexpected pre-existing failure, or fix requiring out-of-scope work.
+- Scope 안의 regression을 수정한 다음 affected focused verification과 full task를 반복한다.
+- External prerequisite, policy gap, 예상하지 못한 기존 failure 또는 scope 밖 수정이 필요하면 block한다.
 
-Completion criterion: the full backend task passes, or the task is blocked with observed evidence and a recovery
-owner. Never hand off a failed or unexecuted full verification as passing.
+완료 조건: full backend task가 통과했거나, 관찰한 evidence와 recovery owner를 기록하고 task를 block했다.
+실패했거나 실행하지 않은 full verification을 통과한 것으로 handoff하지 않는다.
 
-### 7. Self-review and return to the workflow
+### 7. 자체 검토 후 workflow로 반환
 
-1. Read Git status and the complete diff. Check behavior, security, module boundaries, persistence, migration order,
-   tests, and accidental generated or document files.
-2. Confirm changed paths are exactly task code artifacts and every card behavior, acceptance, and scenario has
-   passing evidence. Report documentation impact without editing documentation.
-3. Return control to `run-impl-card` to construct the canonical handoff and request the PM checkpoint.
+1. Git status와 전체 diff를 읽는다. Behavior, security, module boundary, persistence, migration 순서,
+   test와 의도하지 않은 generated file 또는 document file을 확인한다.
+2. Changed path가 정확히 task code artifact인지, 모든 card behavior, acceptance와 scenario에 통과 evidence가
+   있는지 확인한다. 문서를 수정하지 않고 documentation impact만 보고한다.
+3. Canonical handoff를 작성하고 PM checkpoint를 요청하도록 제어를 `run-impl-card`에 반환한다.
 
-Completion criterion: the diff is scoped and reviewable, both verification phases pass, and no unresolved risk is
-hidden. The Coder has not staged, committed, pushed, or completed the card.
+완료 조건: diff가 scope 안에 있고 review 가능하며 두 verification 단계가 통과했고 unresolved risk를
+숨기지 않았다. Coder는 stage, commit, push 또는 card 완료를 수행하지 않았다.
 
-## Block Instead of Guessing
+## 추측하지 말고 Block할 조건
 
-Block through `run-impl-card` when implementation needs an unspecified business, authorization,
-transaction, consistency, API, event, or error contract; when unexpected dirty paths appear; when the card conflicts
-with repository architecture; or when required verification cannot run. Preserve the workspace and never use reset,
-stash, clean, validator bypasses, or weakened assertions as recovery.
+구현에 명시되지 않은 business, authorization, transaction, consistency, API, event 또는 error contract가
+필요하거나, 예상하지 못한 dirty path가 있거나, card가 repository architecture와 충돌하거나, 필수
+verification을 실행할 수 없으면 `run-impl-card`를 통해 block한다. Workspace를 보존하고 reset, stash,
+clean, validator 우회 또는 약화된 assertion을 recovery 수단으로 사용하지 않는다.
 
-## Verification
+## 검증
 
-Before returning to `run-impl-card`, verify:
+`run-impl-card`로 반환하기 전에 다음을 확인한다.
 
-- all effective behaviors and acceptance criteria map to implemented code and tests;
-- all required focused scenarios passed through `gradle-mcp`;
-- the card's full backend task passed through `gradle-mcp`;
-- the complete diff contains no documentation or unrelated paths;
-- simplification did not change the card contract;
-- no commit, push, or native completion was performed.
+- 모든 effective behavior와 acceptance criterion이 구현 code와 test에 연결됐다.
+- 모든 필수 focused scenario가 `gradle-mcp`에서 통과했다.
+- Card의 full backend task가 `gradle-mcp`에서 통과했다.
+- 전체 diff에 document 또는 관련 없는 path가 없다.
+- 단순화가 card contract를 변경하지 않았다.
+- Commit, push 또는 native completion을 수행하지 않았다.
