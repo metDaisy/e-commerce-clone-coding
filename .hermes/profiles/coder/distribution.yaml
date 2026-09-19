@@ -9,11 +9,10 @@ distribution_owned:
   - SOUL.md
   - README.md
   - capabilities.yaml
-  - skills/implementation-workflow/SKILL.md
-  - skills/implementation-workflow/README.md
-  - skills/implementation-workflow/references/execution-contract.md
-  - skills/implementation-workflow/references/implementation-card-contract.md
-  - skills/implement-backend-card/SKILL.md
-  - skills/hermes-agent/SKILL.md
+  - skills/run-impl-card/SKILL.md
+  - skills/run-impl-card/README.md
+  - skills/run-impl-card/references/execution-contract.md
+  - skills/run-impl-card/references/implementation-card-contract.md
+  - skills/implement/SKILL.md
   - skills/codebase-memory-mcp/SKILL.md
   - skills/semble-search/SKILL.md

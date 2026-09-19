@@ -1,6 +1,6 @@
 ---
-name: implementation-workflow
-description: Use when implementing a PM-authored backend Impl card.
+name: run-impl-card
+description: Use when admitting and running a PM-authored backend Impl card through its PM checkpoint.
 version: 0.4.0
 author: "Amaazon project"
 license: MIT
@@ -8,11 +8,11 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [implementation, backend, testing, kanban, checkpoint]
-    related_skills: [implement-backend-card, codebase-memory-mcp, semble-search, java-springboot, java-junit]
+    related_skills: [implement, codebase-memory-mcp, semble-search, java-springboot, java-junit]
 requires_toolsets: [kanban]
 ---
 
-# Backend Implementation Workflow
+# Run Impl Card
 
 PM이 작성한 self-contained Impl card를 backend code와 test로 구현하고 같은 card의 PM
 checkpoint로 넘긴다. 시작 전에 다음 reference를 읽는다.
@@ -48,7 +48,7 @@ Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java t
 
 ### 2. Implementation execution
 
-1. `implement-backend-card` Skill을 load하고 implementation map, test-first seam, 최소 구현, focused
+1. `implement` Skill을 load하고 implementation map, test-first seam, 최소 구현, focused
    loop, bounded simplification, full backend verification과 self-review 절차를 순서대로 수행한다.
 2. 기존 code와 card의 `implementation_context.current_behavior`가 달라 acceptance나 public contract가
    변하면 제품 의미를 다시 해석하지 않고 근거와 영향으로 block한다.

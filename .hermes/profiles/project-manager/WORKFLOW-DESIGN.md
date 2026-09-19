@@ -121,7 +121,7 @@ Coder가 다른 문서를 다시 해석하지 않도록 Impl card에는 다음�
 - PM traceability locator; dependency는 native Kanban link로 관리
 
 Backend Impl의 canonical field shape는 Coder의
-`implementation-workflow/references/implementation-card-contract.md`가 소유한다. PM은 이를 읽고
+`run-impl-card/references/implementation-card-contract.md`가 소유한다. PM은 이를 읽고
 `backend-implementation-card-v1` body를 작성하며 baseline SHA, native assignee/status/link/workspace와
 실행 결과를 body에 복제하지 않는다.
 

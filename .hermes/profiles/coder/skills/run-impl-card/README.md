@@ -1,4 +1,4 @@
-# implementation-workflow
+# run-impl-card
 
 `implementation-coder`가 PM-authored backend Impl card를 구현하고 두 단계 검증을 거쳐 같은
 card의 PM checkpoint를 요청하는 절차다.

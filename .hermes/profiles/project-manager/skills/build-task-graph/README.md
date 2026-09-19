@@ -62,7 +62,7 @@ implemented/unaffected verdict를 확정하지 않습니다.
 [`SKILL.md`](SKILL.md), tool rollout은 [`plan.md`](plan.md)를 따릅니다.
 
 Backend Impl body와 Coder/PM handoff의 field-level schema는 board contract가 연결하는 Coder
-`implementation-workflow/references/implementation-card-contract.md`가 canonical owner입니다.
+`run-impl-card/references/implementation-card-contract.md`가 canonical owner입니다.
 
 ## Backend Impl helper
 

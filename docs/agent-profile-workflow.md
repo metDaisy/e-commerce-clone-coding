@@ -93,7 +93,7 @@ absolute path를 포함하지 않는다. 프로젝트 공통 규칙은 기존 `A
 |---|---|---|---|
 | `project-manager` | Issue 시작·task graph·Kanban·commit·push·PR·merge·Issue 종료 | Kanban orchestration, GitHub write | 근거 있는 task graph와 lifecycle 상태 |
 | `prototype-coder` | 최소 동작 Vertical Slice 구현 | `java-springboot`, `java-junit` | 실행 가능한 최소 구현과 범위가 명확한 diff |
-| `implementation-coder` | PM이 지정한 backend 요구사항 구현·테스트·PM checkpoint handoff | `implementation-workflow`, `implement-backend-card`, `java-springboot`, `java-junit`, 조건부 `codebase-memory-mcp`·`semble-search`, `gradle-mcp` | 검증된 구현 diff와 구조화된 checkpoint handoff |
+| `implementation-coder` | PM이 지정한 backend 요구사항 구현·테스트·PM checkpoint handoff | `run-impl-card`, `implement`, `java-springboot`, `java-junit`, 조건부 `codebase-memory-mcp`·`semble-search`, `gradle-mcp` | 검증된 구현 diff와 구조화된 checkpoint handoff |
 | `reviewer-general` | Spec·Maintainability·Compatibility를 focus별 독립 검토 | `code-review`, `simplify-code`, `compat-review` | 축별 evidence finding |
 | `reviewer-deep` | Architecture·Persistence를 focus별 독립 검토 | `improve-codebase-architecture`, `architecture-review`, `305-frameworks-spring-boot-modulith`, `jpa-patterns` | 구조·query evidence finding |
 | `reviewer-coordinator` | 독립 결과 취합과 우선순위 결정 | 전용 검토 Skill 없음 | 중복 제거된 최종 review report |
@@ -143,7 +143,7 @@ PM과 Kanban의 상세 입력·task-body·evidence·acceptance·verification·de
 `.hermes/profiles/project-manager/skills/build-task-graph/references/board-contract.md`가
 소유한다. Coder handoff, changes-request와 commit checkpoint는
 `.hermes/profiles/project-manager/skills/controll-task-graph/SKILL.md`가 실행하고,
-canonical payload schema는 Coder의 `implementation-workflow` reference가 소유한다.
+canonical payload schema는 Coder의 `run-impl-card` reference가 소유한다.
 PM의 lifecycle 권한과 routing invariant는 `.hermes/profiles/project-manager/SOUL.md`가
 소유한다. 이 문서에서는 필드나 validator 규칙을 재기록하지 않는다.
 

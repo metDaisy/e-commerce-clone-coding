@@ -1,6 +1,6 @@
 ---
-name: implement-backend-card
-description: Use when coding a validated backend Impl card.
+name: implement
+description: Use when coding and verifying an admitted backend Impl card.
 version: 0.1.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
@@ -8,26 +8,26 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [implementation, backend, java, testing, cleanup]
-    related_skills: [implementation-workflow, codebase-memory-mcp, semble-search, java-springboot, java-junit]
+    related_skills: [run-impl-card, codebase-memory-mcp, semble-search, java-springboot, java-junit]
 requires_toolsets: [file, terminal]
 ---
 
-# Implement Backend Card
+# Implement
 
 Turn one admitted `backend-implementation-card-v1` into the smallest verified backend code change.
-`implementation-workflow` owns admission, Kanban transitions, blocker routing, and handoff; this Skill owns the
+`run-impl-card` owns admission, Kanban transitions, blocker routing, and handoff; this Skill owns the
 coding loop between admission and handoff.
 
 ## When to Use
 
-- Use after `implementation-workflow` has admitted an initial or changes-requested run.
+- Use after `run-impl-card` has admitted an initial or changes-requested run.
 - Use for Java/Spring backend production code, tests, configuration, migration, and directly required code artifacts.
 - Do not use to reinterpret requirements, author cards, edit documentation, commit, or complete a Kanban task.
 
 ## Prerequisites
 
 - The active native task is assigned to `implementation-coder` and is `running`.
-- The immutable card and, for rework, correlated change-request passed `implementation-workflow` admission.
+- The immutable card and, for rework, correlated change-request passed `run-impl-card` admission.
 - The worktree satisfies the initial-run or rework dirty-path rule.
 - `gradle-mcp` exposes `gradle` and `query_build`. If unavailable, block instead of using Gradle through `terminal`.
 
@@ -123,21 +123,21 @@ owner. Never hand off a failed or unexecuted full verification as passing.
    tests, and accidental generated or document files.
 2. Confirm changed paths are exactly task code artifacts and every card behavior, acceptance, and scenario has
    passing evidence. Report documentation impact without editing documentation.
-3. Return control to `implementation-workflow` to construct the canonical handoff and request the PM checkpoint.
+3. Return control to `run-impl-card` to construct the canonical handoff and request the PM checkpoint.
 
 Completion criterion: the diff is scoped and reviewable, both verification phases pass, and no unresolved risk is
 hidden. The Coder has not staged, committed, pushed, or completed the card.
 
 ## Block Instead of Guessing
 
-Block through `implementation-workflow` when implementation needs an unspecified business, authorization,
+Block through `run-impl-card` when implementation needs an unspecified business, authorization,
 transaction, consistency, API, event, or error contract; when unexpected dirty paths appear; when the card conflicts
 with repository architecture; or when required verification cannot run. Preserve the workspace and never use reset,
 stash, clean, validator bypasses, or weakened assertions as recovery.
 
 ## Verification
 
-Before returning to `implementation-workflow`, verify:
+Before returning to `run-impl-card`, verify:
 
 - all effective behaviors and acceptance criteria map to implemented code and tests;
 - all required focused scenarios passed through `gradle-mcp`;

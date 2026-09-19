@@ -20,8 +20,8 @@ It does not replace aggregate Review or implement source changes.
 
 Before acting, read the project-root Coder contracts:
 
-- `.hermes/profiles/coder/skills/implementation-workflow/references/execution-contract.md`
-- `.hermes/profiles/coder/skills/implementation-workflow/references/implementation-card-contract.md`
+- `.hermes/profiles/coder/skills/run-impl-card/references/execution-contract.md`
+- `.hermes/profiles/coder/skills/run-impl-card/references/implementation-card-contract.md`
 
 Use the adjacent `checkpoint.py` for deterministic handoff, change-request, and checkpoint evidence
 validation. Resolve its installed Skill path instead of assuming the repository-relative path exists.

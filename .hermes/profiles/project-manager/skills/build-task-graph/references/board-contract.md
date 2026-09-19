@@ -12,8 +12,8 @@ mutation response처럼 아직 결정되지 않은 상세는 이 문서에 추�
 Backend Impl card body, Coder handoff, PM checkpoint field schema는 project root의 Coder contract가
 소유한다.
 
-- `.hermes/profiles/coder/skills/implementation-workflow/references/execution-contract.md`
-- `.hermes/profiles/coder/skills/implementation-workflow/references/implementation-card-contract.md`
+- `.hermes/profiles/coder/skills/run-impl-card/references/execution-contract.md`
+- `.hermes/profiles/coder/skills/run-impl-card/references/implementation-card-contract.md`
 
 PM은 Impl card를 작성하기 전에 두 contract를 읽는다. 이 board contract는 graph identity,
 generation, topology와 promotion만 소유하며 worker contract schema를 복제하지 않는다.
