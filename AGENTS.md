@@ -4,21 +4,25 @@
 
 - 이 파일은 이 저장소의 코드·테스트·설정·문서를 변경할 때 적용되는 프로젝트 규칙이다.
 - 작업 전에 현재 Git 상태와 요청 범위를 확인하고, 관련 코드·테스트·문서를 먼저 조사한다.
-- 작업 유형별 조사·도구 선택·수정·검증 절차는 `docs/agent-workflow.md`를 따른다.
+- 백엔드 구현은 `docs/backend-development-guide.md`, 백엔드 테스트는
+  `docs/backend-test-guide.md`를 따른다.
 
 ## 프로젝트 개요
 
 - 백엔드: Java 17, Spring Boot, Spring Modulith, PostgreSQL, Flyway.
 - 프런트엔드: `amaazon-front/`의 React, TypeScript, Vite 애플리케이션.
 - 문서 지도는 `docs/index.md`를 사용한다.
-- 현재 구현 구조와 모듈 목록은 `docs/architecture.md`, 각 `package-info.java`, `docs/current-state.md`를 기준으로 확인한다. 이 파일에 모듈 목록을 중복해서 기록하지 않는다.
+- 현재 구현 구조와 모듈 목록은 코드와 각 `package-info.java`에서 확인한다. 이 파일과
+  `docs/architecture.md`에 현재 목록을 중복해서 기록하지 않는다.
 
 ## 기준 문서
 
 1. 현재 동작: 커밋된 코드, 테스트, 설정, Flyway 마이그레이션.
 2. 목표 동작: `docs/requirement/index.md`와 해당 P1~P12 요구사항 문서.
 3. 구조 원칙: `docs/architecture.md`와 관련 `docs/adr/` 문서.
-4. 현재 구현 상태: `docs/current-state.md`. 요구사항 문서만으로 구현 완료를 판단하지 않는다.
+
+`docs/current-state.md`는 특정 Git SHA를 기록한 파생 스냅샷이며 현재 동작의 기준이 아니다.
+요구사항 문서나 상태 스냅샷만으로 구현 완료를 판단하지 않는다.
 
 요구사항·코드·테스트·문서 사이에 불일치가 있으면 추측하지 말고 근거와 불일치 내용을 보고한다.
 
@@ -42,18 +46,17 @@ self-contained 실행 계약으로 materialize한다. `implementation-coder`는 
 - 버그 수정은 가능하면 실패를 재현하는 테스트를 먼저 추가하고, 테스트의 assertion을 약화하거나 삭제해서 문제를 숨기지 않는다.
 - 기존 미커밋 변경을 덮어쓰지 않는다.
 
-## 아키텍처 규칙
+## 백엔드 구조와 보안
 
-- 모듈 내부는 `presentation`, `application`, `domain`, `infra`의 책임을 분리한다.
-- 모듈 간 통신은 공개된 `@NamedInterface` 또는 이벤트를 사용한다. 다른 모듈의 내부 패키지·구현·저장소·JPA 엔티티를 직접 참조하지 않는다.
-- `package-info.java`의 `allowedDependencies`를 모듈 의존성의 기준으로 따른다.
-- 이벤트는 발생한 사실을 표현한다. 명령 성격으로 사용하는 경우 트랜잭션 결합과 실패 의미를 ADR에 기록한다.
-- 외부 시스템은 port와 adapter 뒤에 격리한다. 도메인 코드가 외부 SDK나 저장 기술에 직접 의존하지 않게 한다.
-- 데이터베이스 스키마 변경은 새 Flyway 마이그레이션으로 추가한다. 기존 마이그레이션을 임의로 수정하지 않는다.
+- 안정적인 구조 원칙은 `docs/architecture.md`, 코드 배치·Spring·persistence convention은
+  `docs/backend-development-guide.md`가 소유한다.
+- `package-info.java`의 `allowedDependencies`를 현재 모듈 의존성의 executable contract로 따른다.
 - 비밀번호, 토큰, API key와 기타 credential을 코드·로그·응답·문서에 노출하지 않는다.
 
 ## 검증
 
+- 모든 Gradle 작업은 `gradle-mcp`로 실행한다. 터미널·셸·IDE에서 `gradle`, `gradlew`,
+  `gradlew.bat`을 직접 실행하지 않으며, `gradle-mcp`가 불가능하면 우회하지 않고 blocker를 보고한다.
 - 백엔드 변경: 가장 가까운 관련 테스트를 실행한다.
 - 모듈 경계·공개 계약·이벤트 변경: Modulith 구조 검증과 관련 통합 테스트를 추가로 실행한다.
 - Flyway·JPA·저장소 변경: 관련 데이터베이스 테스트와 migration 검증을 실행한다.

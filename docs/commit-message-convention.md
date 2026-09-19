@@ -88,7 +88,7 @@
 - `docs/requirement/p2/**`의 P2 관련 변경 → P2 요구사항 문서 커밋
 - `docs/requirement/p9/**`의 P9 관련 변경 → P9 요구사항 문서 커밋
 - `.hermes/plugins/agent-audit/**`와 이에 반드시 필요한 `.hermes/README.md` → `agent-audit` plugin 커밋
-- `docs/validator-contract.md` → validator 계약 문서 커밋
+- `.hermes/plugins/agent-audit/README.md` → plugin 구현·test와 함께 검토하는 지원 계약
 - `docs/architecture.md`, ADR, `docs/index.md` 등의 구조 문서 → 각 결정·문서 목적에 따른 문서 커밋
 - `.gitignore`, `AGENTS.md`, `README.md` 등 저장소 운영 규칙 변경 → 각각의 목적에 맞는 별도 문서·설정 커밋
 
@@ -109,7 +109,7 @@ Google 문서에는 커밋 크기에 대한 절대 기준이 없다. 이 저장�
 
 ## 변경 유형별 검증 범위
 
-모든 커밋이 저장소의 모든 검증기를 통과해야 하는 것은 아니다. 검증기는 변경 경로와 변경 목적에 따라 적용한다. 적용 대상이 아닌 Rule은 `not_required`로 보고하며, 필요한 Rule을 실행하지 않은 `not_run`과 구분한다.
+모든 커밋이 저장소의 모든 검증기를 통과해야 하는 것은 아니다. 검증은 변경 경로와 변경 목적에 따라 선택하고, 실행하지 않은 검증을 통과했다고 기록하지 않는다.
 
 | 변경 유형 | 기본 검증 | 적용하지 않는 검증의 예 |
 |---|---|---|
@@ -118,9 +118,7 @@ Google 문서에는 커밋 크기에 대한 절대 기준이 없다. 이 저장�
 | `.hermes` plugin 변경 | Python compile·plugin 회귀 테스트, manifest 변경 시 Plugin Doctor·runtime 확인 | Java 전용 검증 |
 | 문서와 소스가 함께 변경 | 각 변경 유형의 검증을 모두 실행 | 해당 없는 Rule만 제외 |
 
-Markdown 문서가 `docs/validator-contract.md`처럼 실행 규칙·공개 계약을 설명하는 경우에는 문서 검사만으로 끝내지 않고, 변경된 계약을 구현·테스트가 따르는지 관련 검증을 추가한다. 반대로 `docs/requirement/p2/**`와 같은 요구사항 문서만 변경하고 제품 동작을 변경하지 않았다면 Java·Gradle 검증을 억지로 실행하지 않는다. 요구사항 변경을 구현하는 작업은 문서 커밋과 별도의 구현 커밋으로 나누고, 구현 커밋에서 소스 범위의 검증을 수행한다.
-
-문서 link checker가 아직 연결되지 않은 Rule은 성공한 것으로 간주하지 않는다. 현재 `DOC-LINK-001`은 계약상 예약 Rule이므로, 전용 checker가 연결되기 전에는 `agent-audit`의 자동 요구 대상이 아니다. 다만 문서 workflow 또는 CI에 연결된 결정론적 검사가 있으면 그 결과를 기록하고 실패를 수정한다.
+Plugin README처럼 실행 계약을 설명하는 문서를 바꾸면 구현과 회귀 테스트가 같은 계약을 따르는지 확인한다. 반대로 `docs/requirement/p2/**`와 같은 요구사항 문서만 변경하고 제품 동작을 변경하지 않았다면 Java·Gradle 검증을 억지로 실행하지 않는다. 요구사항 변경을 구현하는 작업은 문서 커밋과 별도의 구현 커밋으로 나누고, 구현 커밋에서 소스 범위의 검증을 수행한다.
 
 ## 커밋의 품질 기준
 
