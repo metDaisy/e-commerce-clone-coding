@@ -6,7 +6,7 @@ credential, Memory, session, state database, log, machine-specific path를 포�
 ## 설치
 
 ```text
-hermes profile install ./.hermes/profiles/coder --name implementation-coder --alias
+hermes profile install ./.hermes/profiles/coder --name implementation-coder --alias --force --yes
 ```
 
 전체 Profile bootstrap은 `.hermes/scripts/setup-hermes.sh` 또는 `.hermes/scripts/setup-hermes.ps1`를 사용한다.
@@ -22,6 +22,7 @@ clean working tree를 확인해야 card가 `done`이 된다. 독립 aggregate re
 ## 전속 Skill
 
 - `implementation-workflow`: Kanban task 수신부터 구현·2단계 검증·PM checkpoint까지의 순서
+- `implement-backend-card`: admitted Impl card를 최소 code·test 변경으로 구현하고 검증하는 coding loop
 - `codebase-memory-mcp`: public API caller/callee와 cross-domain 영향 탐색
 - `semble-search`: 구현 위치가 불명확할 때 의미 기반 위치 탐색
 - `java-springboot`, `java-junit`: Java/Spring Boot 구현·테스트 보조

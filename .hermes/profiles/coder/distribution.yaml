@@ -1,5 +1,5 @@
 name: implementation-coder
-version: 0.3.0
+version: 0.4.0
 description: "Implements assigned Amaazon backend requirements with tests and verified review handoff."
 hermes_requires: ">=0.12.0"
 author: "Amaazon project"
@@ -13,6 +13,7 @@ distribution_owned:
   - skills/implementation-workflow/README.md
   - skills/implementation-workflow/references/execution-contract.md
   - skills/implementation-workflow/references/implementation-card-contract.md
+  - skills/implement-backend-card/SKILL.md
   - skills/hermes-agent/SKILL.md
   - skills/codebase-memory-mcp/SKILL.md
   - skills/semble-search/SKILL.md

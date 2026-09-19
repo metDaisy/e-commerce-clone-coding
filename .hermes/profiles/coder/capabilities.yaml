@@ -6,6 +6,7 @@ skills:
   allowed:
     - hermes-agent
     - implementation-workflow
+    - implement-backend-card
     - codebase-memory-mcp
     - semble-search
     - java-springboot

@@ -1,14 +1,14 @@
 ---
 name: implementation-workflow
 description: Use when implementing a PM-authored backend Impl card.
-version: 0.3.0
+version: 0.4.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [implementation, backend, testing, kanban, checkpoint]
-    related_skills: [codebase-memory-mcp, semble-search, java-springboot, java-junit]
+    related_skills: [implement-backend-card, codebase-memory-mcp, semble-search, java-springboot, java-junit]
 requires_toolsets: [kanban]
 ---
 
@@ -46,51 +46,18 @@ Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java t
 5. Card가 불완전하거나 서로 모순되면 task body를 고치지 않고 정확한 누락·충돌과 필요한 PM
    조치를 block reason에 기록한다.
 
-### 2. Source investigation
+### 2. Implementation execution
 
-1. `implementation_context.entry_points`에서 production source와 기존 test를 읽고 정의와 실제
-   usage를 추적한다. Entry point는 allowlist가 아니므로 필수 caller, consumer, DTO, mapping,
-   adapter와 test propagation을 확인한다.
-2. 위치가 불명확하면 `semble-search`로 후보를 찾고 실제 파일에서 확인한다. Cross-domain
-   caller/callee 또는 public seam 영향은 `codebase-memory-mcp`로 찾되 source, test와
-   `package-info.java`에서 재확인한다. MCP가 unavailable이면 bounded local search로 계속한다.
-3. 기존 code가 card의 `implementation_context.current_behavior`와 달라도 card의 제품 의미를
-   바꾸지 않는다. 차이로 인해 acceptance 범위나 public contract가 달라지면 사실·근거·영향을
-   기록하고 block한다.
-4. Card에 확정되지 않은 business, authorization, transaction/consistency, error, API, event 또는
-   cross-domain 의미가 필요하면 발명하지 않고 `kanban_block(kind="needs_input")`으로 PM에 돌린다.
+1. `implement-backend-card` Skill을 load하고 implementation map, test-first seam, 최소 구현, focused
+   loop, bounded simplification, full backend verification과 self-review 절차를 순서대로 수행한다.
+2. 기존 code와 card의 `implementation_context.current_behavior`가 달라 acceptance나 public contract가
+   변하면 제품 의미를 다시 해석하지 않고 근거와 영향으로 block한다.
+3. 모든 Gradle 작업은 `gradle-mcp`로만 실행한다. Terminal, shell 또는 IDE의 Gradle 실행,
+   test 약화·비활성화, validator 우회와 검증 범위 축소는 금지한다.
+4. Requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow와 사용자 문서를
+   수정하지 않는다. 문서 영향은 handoff로만 보고한다.
 
-### 3. Implement code and tests
-
-1. `effective_behavior`와 `acceptance_criteria`를 만족하는 가장 작은 production change를 구현한다.
-2. 구현에 필수적인 caller, DTO, mapping, adapter, persistence와 test를 같은 task에서 전파한다.
-3. 각 focused verification의 `test_level`과 `required_scenarios`를 따라 가장 작은 적절한 test를
-   작성하거나 수정한다. Success와 요구된 rejection/failure path를 포함한다.
-4. Existing convention, public contract와 module boundary를 보존한다. Card 밖 refactor,
-   optimization, abstraction 또는 unrelated defect repair를 섞지 않는다.
-5. Requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow와 사용자 문서를
-   수정하지 않는다. 문서 영향은 나중에 handoff로만 보고한다.
-
-### 4. Two-phase verification
-
-모든 Gradle 작업은 `gradle-mcp`로 실행한다. Terminal, shell 또는 IDE에서 `gradle`, `gradlew`,
-`gradlew.bat`을 실행하지 않는다.
-
-1. **Focused verification**
-   - 변경한 behavior에 대응하는 test FQCN을 확인한다.
-   - Card의 focused verification별 success와 rejection/failure scenario를 실행한다.
-   - Acceptance ID마다 하나 이상의 passing focused verification을 연결한다.
-2. **Full backend verification**
-   - 모든 focused verification이 통과한 뒤 card의 `full_backend_verification`에 따라 backend 전체
-     Gradle `test` task를 실행한다.
-   - Frontend, npm과 browser 검증은 실행하지 않는다.
-3. 어느 단계든 실패하면 원인을 수정하고 영향받은 focused verification부터 다시 실행한 뒤 full
-   backend verification을 반복한다. 전체 test suite가 통과할 때까지 handoff하지 않는다.
-4. Test 삭제·비활성화, assertion 약화, validator 우회 또는 검증 범위 축소로 통과시키지 않는다.
-5. `gradle-mcp`가 unavailable하거나 외부 prerequisite 때문에 전체 test를 실행할 수 없으면
-   우회하지 않고 `kanban_block(kind="capability")`으로 중단한다.
-
-### 5. PM checkpoint handoff
+### 3. PM checkpoint handoff
 
 1. Git status와 diff를 읽고 모든 changed path가 card scope 또는 필수 propagation인지 확인한다.
    문서 path나 설명할 수 없는 path가 있으면 review를 요청하지 않는다.
@@ -106,7 +73,7 @@ Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java t
 PM은 review 상태에서 diff와 검증 evidence를 확인하고 commit한다. Result commit SHA, committed
 paths와 clean worktree를 read-back한 뒤에만 PM이 card를 `done`으로 만든다.
 
-### 6. Changes requested
+### 4. Changes requested
 
 PM이 같은 card에 changes를 요청하면 `kanban_show`에서 native route와 latest durable comment를
 read-back한다. Comment는 valid `backend-implementation-change-request-v1`이어야 하며 각 finding의
