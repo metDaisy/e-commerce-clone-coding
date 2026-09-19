@@ -1,386 +1,128 @@
 {
-  "schema": "build-task-graph-draft-v4",
-  "mode": "new-delivery",
+  "schema": "backend-implementation-card-v1",
+  "card_type": "implementation",
   "issue": {
     "number": 138,
-    "title": "Seller product registration",
-    "url": "https://github.com/example/repo/issues/138"
+    "url": "https://github.com/example/repository/issues/138"
   },
-  "planning": {
-    "baseline_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "current_state_snapshot_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "state_freshness": "fresh"
+  "goal": "판매자가 유효한 상품을 등록할 수 있다.",
+  "effective_behavior": [
+    {
+      "id": "behavior-product-create",
+      "outcome": "인증된 판매자의 유효한 요청은 상품을 저장하고 생성 결과를 반환한다."
+    }
+  ],
+  "scope": [
+    "상품 등록 application/API 동작과 직접 필요한 persistence를 구현한다."
+  ],
+  "out_of_scope": [
+    "상품 이미지 업로드와 frontend는 변경하지 않는다."
+  ],
+  "implementation_context": {
+    "current_behavior": [
+      "상품 등록 application/API가 존재하지 않는다."
+    ],
+    "entry_points": [
+      {
+        "path": "src/main/java/example/product",
+        "symbol": "example.product",
+        "reason": "상품 모듈의 확인된 구현 시작점이다."
+      }
+    ],
+    "constraints": [
+      "다른 모듈의 내부 package나 repository를 직접 참조하지 않는다."
+    ]
   },
-  "cards": [
-    {
-      "card_key": "product-api",
-      "title": "Implement product registration API",
-      "assignee": "implementation-coder",
-      "depends_on_card_keys": [],
-      "body": {
-        "schema": "build-task-card-v4",
-        "card_type": "implementation",
-        "assignee": "implementation-coder",
-        "issue": {
-          "number": 138,
-          "title": "Seller product registration",
-          "url": "https://github.com/example/repo/issues/138"
-        },
-        "planning": {
-          "baseline_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "current_state_snapshot_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "state_freshness": "fresh"
-        },
-        "evidence": [
-          {
-            "role": "goal",
-            "supports": "Seller can register a valid product.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/requirement/p2/product.md",
-              "heading": "Product registration"
-            }
-          },
-          {
-            "role": "state",
-            "supports": "Product module currently lacks registration endpoint.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/current-state.md",
-              "heading": "Product"
-            }
-          }
-        ],
-        "scope": [
-          "Create the seller product-registration application/API behavior."
-        ],
-        "out_of_scope": [
-          "Product image upload is not part of this card."
-        ],
-        "implementation": {
-          "observable_behavior": [
-            "An authorized seller receives a created product representation for valid input."
-          ],
-          "actor_authorization": {
-            "applicable": true,
-            "details": [
-              "Only an authenticated seller may register a product."
-            ]
-          },
-          "field_semantics": {
-            "applicable": true,
-            "details": [
-              "Name, price, and stock are required product fields."
-            ]
-          },
-          "state_invariants": {
-            "applicable": true,
-            "details": [
-              "A successful request persists one product owned by the seller."
-            ]
-          },
-          "error_contract": {
-            "applicable": true,
-            "details": [
-              "Invalid input returns the project validation error contract."
-            ]
-          },
-          "api_contract": {
-            "applicable": true,
-            "details": [
-              "Expose the documented product registration endpoint."
-            ]
-          },
-          "persistence": {
-            "applicable": true,
-            "details": [
-              "Persist product fields through the product module boundary."
-            ]
-          },
-          "ui_flow": {
-            "applicable": false,
-            "not_applicable_reason": "This card has no browser UI responsibility."
-          },
-          "module_boundary": {
-            "applicable": true,
-            "details": [
-              "Keep product persistence and application behavior inside the product module."
-            ]
-          }
-        },
-        "acceptance_criteria": [
-          {
-            "id": "ac-product-created",
-            "outcome": "Valid seller input creates a product and returns the created representation."
-          }
-        ],
-        "verification": [
-          {
-            "id": "check-product-registration",
-            "kind": "behavioral",
-            "execution": {
-              "executor": "gradle-mcp",
-              "operation": "test",
-              "target": "product registration integration test",
-              "cwd": ".",
-              "request": {
-                "task": "test",
-                "tests": "com.example.product.ProductRegistrationIntegrationTest"
-              }
-            },
-            "expectation": {
-              "success_condition": "The focused integration test passes.",
-              "evidence": "Gradle MCP test result for the named test class."
-            }
-          }
-        ],
-        "acceptance_coverage": [
-          {
-            "acceptance_id": "ac-product-created",
-            "check_ids": [
-              "check-product-registration"
-            ]
-          }
-        ],
-        "manual_verification": [],
-        "review_handoff_contract": {
-          "action": "request-review",
-          "reviewer": "project-manager",
-          "required_metadata": [
-            "verified_sha",
-            "check_results",
-            "changed_paths",
-            "residual_risk"
-          ],
-          "reviewer_readback": [
-            "show",
-            "runs",
-            "comments"
-          ]
-        }
-      }
+  "contracts": {
+    "actor_authorization": {
+      "applicable": true,
+      "rules": [
+        "인증된 판매자만 상품을 등록한다."
+      ]
     },
-    {
-      "card_key": "product-ui",
-      "title": "Implement product registration UI",
-      "assignee": "implementation-coder",
-      "depends_on_card_keys": [
-        "product-api"
-      ],
-      "body": {
-        "schema": "build-task-card-v4",
-        "card_type": "implementation",
-        "assignee": "implementation-coder",
-        "issue": {
-          "number": 138,
-          "title": "Seller product registration",
-          "url": "https://github.com/example/repo/issues/138"
-        },
-        "planning": {
-          "baseline_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "current_state_snapshot_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "state_freshness": "fresh"
-        },
-        "evidence": [
-          {
-            "role": "goal",
-            "supports": "Seller can submit a product registration form.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/requirement/p2/product.md",
-              "heading": "Product registration"
-            }
-          },
-          {
-            "role": "state",
-            "supports": "Existing frontend has no product registration page.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/current-state.md",
-              "heading": "Frontend"
-            }
-          }
-        ],
-        "scope": [
-          "Add the seller product-registration form using the completed API contract."
-        ],
-        "out_of_scope": [
-          "Do not change product persistence or API semantics."
-        ],
-        "implementation": {
-          "observable_behavior": [
-            "A seller can submit valid product fields and see the created result."
-          ],
-          "actor_authorization": {
-            "applicable": true,
-            "details": [
-              "The form is available only in the authenticated seller flow."
-            ]
-          },
-          "field_semantics": {
-            "applicable": true,
-            "details": [
-              "The form collects name, price, and stock."
-            ]
-          },
-          "state_invariants": {
-            "applicable": false,
-            "not_applicable_reason": "The UI consumes the API state contract without owning persistence."
-          },
-          "error_contract": {
-            "applicable": true,
-            "details": [
-              "API validation failures are rendered as actionable form feedback."
-            ]
-          },
-          "api_contract": {
-            "applicable": true,
-            "details": [
-              "Submit the product registration request defined by product-api."
-            ]
-          },
-          "persistence": {
-            "applicable": false,
-            "not_applicable_reason": "The frontend does not access persistence directly."
-          },
-          "ui_flow": {
-            "applicable": true,
-            "details": [
-              "Seller opens the form, enters fields, submits, and receives success or validation feedback."
-            ]
-          },
-          "module_boundary": {
-            "applicable": true,
-            "details": [
-              "Keep product form behavior within the product frontend feature boundary."
-            ]
-          }
-        },
-        "acceptance_criteria": [
-          {
-            "id": "ac-product-form-submits",
-            "outcome": "A seller can submit valid fields and observe successful registration."
-          }
-        ],
-        "verification": [
-          {
-            "id": "check-product-form",
-            "kind": "behavioral",
-            "execution": {
-              "executor": "npm",
-              "operation": "test",
-              "target": "product registration form test",
-              "cwd": "amaazon-front",
-              "request": {
-                "script": "test",
-                "test": "ProductRegistrationPage"
-              }
-            },
-            "expectation": {
-              "success_condition": "The focused form test passes.",
-              "evidence": "npm test output for the named form test."
-            }
-          }
-        ],
-        "acceptance_coverage": [
-          {
-            "acceptance_id": "ac-product-form-submits",
-            "check_ids": [
-              "check-product-form"
-            ]
-          }
-        ],
-        "manual_verification": [],
-        "review_handoff_contract": {
-          "action": "request-review",
-          "reviewer": "project-manager",
-          "required_metadata": [
-            "verified_sha",
-            "check_results",
-            "changed_paths",
-            "residual_risk"
-          ],
-          "reviewer_readback": [
-            "show",
-            "runs",
-            "comments"
-          ]
-        }
-      }
+    "input_output": {
+      "applicable": true,
+      "rules": [
+        "이름, 가격과 재고를 입력받고 생성된 상품 표현을 반환한다."
+      ]
     },
+    "state_invariants": {
+      "applicable": true,
+      "rules": [
+        "성공한 요청은 판매자 소유 상품 하나를 저장한다."
+      ]
+    },
+    "error_semantics": {
+      "applicable": true,
+      "rules": [
+        "유효하지 않은 입력은 기존 validation error contract로 거절한다."
+      ]
+    },
+    "api": {
+      "applicable": true,
+      "rules": [
+        "승인된 상품 등록 endpoint와 HTTP contract를 구현한다."
+      ]
+    },
+    "persistence": {
+      "applicable": true,
+      "rules": [
+        "상품 모듈 내부 persistence boundary를 사용한다."
+      ]
+    },
+    "transaction_consistency": {
+      "applicable": true,
+      "rules": [
+        "상품 생성과 저장은 하나의 transaction 결과다."
+      ]
+    },
+    "event": {
+      "applicable": false,
+      "not_applicable_reason": "이 card는 event 발행이나 소비 계약을 변경하지 않는다."
+    },
+    "module_boundary": {
+      "applicable": true,
+      "rules": [
+        "상품 모듈의 공개 seam과 allowedDependencies를 유지한다."
+      ]
+    },
+    "external_system": {
+      "applicable": false,
+      "not_applicable_reason": "외부 시스템 협업이 없다."
+    }
+  },
+  "acceptance_criteria": [
     {
-      "card_key": "root-review-1",
-      "title": "Review seller product registration delivery",
-      "assignee": "reviewer-general",
-      "depends_on_card_keys": [
-        "product-api",
-        "product-ui"
+      "id": "AC-PRODUCT-CREATE",
+      "outcome": "유효한 판매자 입력으로 상품이 저장되고 생성 결과가 반환된다."
+    }
+  ],
+  "focused_verification": [
+    {
+      "id": "FV-PRODUCT-CREATE",
+      "acceptance_ids": [
+        "AC-PRODUCT-CREATE"
       ],
-      "body": {
-        "schema": "build-task-card-v4",
-        "card_type": "root-review",
-        "assignee": "reviewer-general",
-        "issue": {
-          "number": 138,
-          "title": "Seller product registration",
-          "url": "https://github.com/example/repo/issues/138"
-        },
-        "planning": {
-          "baseline_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "current_state_snapshot_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "state_freshness": "fresh"
-        },
-        "evidence": [
-          {
-            "role": "goal",
-            "supports": "Seller product registration is the delivery goal.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/requirement/p2/product.md",
-              "heading": "Product registration"
-            }
-          },
-          {
-            "role": "state",
-            "supports": "The review starts from the recorded current implementation snapshot.",
-            "source": {
-              "kind": "repository",
-              "path": "docs/current-state.md",
-              "heading": "Product"
-            }
-          }
-        ],
-        "scope": [
-          "Review the aggregate API and frontend delivery for product registration."
-        ],
-        "out_of_scope": [
-          "Do not review unrelated catalog features."
-        ],
-        "target_children": [
-          "product-api",
-          "product-ui"
-        ],
-        "aggregate_contract": [
-          "An authorized seller can register a valid product through the UI and receive the created result."
-        ],
-        "cross_boundary_invariants": [
-          "The frontend request matches the product API contract.",
-          "The API preserves seller ownership when persisting the product."
-        ],
-        "aggregate_exclusions": [
-          "Image upload remains outside this delivery."
-        ],
-        "child_evidence_readback": [
-          "Read each child task body, latest run, and review handoff metadata before verdict."
-        ],
-        "review_questions": [
-          "Does the delivered UI/API behavior satisfy the aggregate contract without policy drift?"
-        ],
-        "verdict_protocol": [
-          "approved",
-          "changes-requested",
-          "needs-input"
-        ]
+      "test_level": "integration",
+      "required_scenarios": [
+        "유효한 입력의 성공",
+        "유효하지 않은 입력의 거절"
+      ]
+    }
+  ],
+  "full_backend_verification": {
+    "executor": "gradle-mcp",
+    "task": "test",
+    "expectation": "backend 전체 Gradle test suite가 통과한다."
+  },
+  "traceability": [
+    {
+      "role": "goal",
+      "supports": "상품 등록 목표 동작",
+      "source": {
+        "kind": "repository",
+        "path": "docs/requirement/p2/product.md",
+        "heading": "상품 등록"
       }
     }
   ]

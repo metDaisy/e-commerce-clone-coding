@@ -15,11 +15,13 @@ Coder는 자신의 self-contained card에 기록된 현재 behavior를 구현합
 
 ```text
 G<N>-Issue<M>-Triage
-Impl → Review<Q> → Summary
+Triage → first eligible Impl → Review<Q> → Summary
 Review<Q> → corrective Impl → Review<Q+1> → Summary
 ```
 
-`G<N>-Issue<M>-Summary`는 semantic root이며 immutable finalization contract를 갖는다. task
+Triage는 graph 작성 중 PM creator-session이 소유하는 `running` planning gate이며 first eligible
+Impl의 native parent입니다. parent 없는 task는 생성 즉시 `ready`가 되므로 이 gate를 완료하기 전에는
+실행 card가 dispatchable하지 않습니다. `G<N>-Issue<M>-Summary`는 semantic root이며 immutable finalization contract를 갖는다. task
 membership은 body 목록이 아니라 native direct parent read-back으로 확인한다. native parent link는
 prerequisite만 표현한다. 모든 신규 card는 `todo`로
 생성·read-back하고, 전체 graph가 검증된 뒤 첫 eligible Impl 하나만 `ready`로 만든다.
@@ -61,3 +63,16 @@ implemented/unaffected verdict를 확정하지 않습니다.
 
 Backend Impl body와 Coder/PM handoff의 field-level schema는 board contract가 연결하는 Coder
 `implementation-workflow/references/implementation-card-contract.md`가 canonical owner입니다.
+
+## Backend Impl helper
+
+`scripts/build_task_graph.py`는 canonical backend Impl body의 scaffold와 결정론적 validator를
+제공합니다. 출력은 repository의 `.temp` 아래에만 만들 수 있습니다.
+
+```text
+python scripts/build_task_graph.py template --issue <number> --issue-url <url> --output .temp/task-graphs/<issue>/impl-1.json
+python scripts/build_task_graph.py validate .temp/task-graphs/<issue>/impl-1.json
+```
+
+이 helper는 native task ID, assignee, status, link 또는 graph promotion을 생성·검증하지 않습니다.
+그 값은 native Kanban create/link/promotion 후 별도로 read-back합니다.

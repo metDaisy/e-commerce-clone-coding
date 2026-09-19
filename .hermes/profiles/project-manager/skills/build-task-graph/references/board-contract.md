@@ -35,7 +35,7 @@ aggregate Review가 승인된 뒤 requirement가 바뀌면 기존 graph를 바�
 ## Card identity와 native topology
 
 ```text
-G<N>-Issue<M>-Triage
+G<N>-Issue<M>-Triage ─→ first eligible G<N>-Issue<M>-Impl<P>
 G<N>-Issue<M>-Impl<P> ─→ G<N>-Issue<M>-Review<Q> ─→ G<N>-Issue<M>-Summary
 G<N>-Issue<M>-Decision<R> ─────────────────────────→ G<N>-Issue<M>-Summary
 ```
@@ -50,19 +50,23 @@ G<N>-Issue<M>-Decision<R> ──────────────────
 - `G`는 승인 requirement revision마다 증가한다. `Impl`과 `Review`의 numbering 상세 규칙은
   generation 내부의 monotonic identity를 유지해야 한다.
 
-native parent link는 scheduling prerequisite다. initial Impl은 Review1과 Summary의 parent다.
+native parent link는 scheduling prerequisite다. Triage는 PM creator-session이 graph를 작성하는 동안
+`running`인 planning gate이며 first eligible Impl의 parent다. initial Impl은 Review1과 Summary의 parent다.
 Review finding으로 만든 Impl은 source Review의 child이며 다음 Review와 Summary의 parent다.
 모든 Review와 Decision은 Summary의 parent다. semantic containment를 표현하려고 이 방향을
 역전하지 않는다.
 
 ## Manual graph construction
 
-1. PM은 built-in decomposer를 사용하지 않는다.
-2. 신규 Impl과 Review를 하나씩 `todo`로 만들고, 각각의 native body/ID/assignee/status를
-   read-back한다.
+1. PM은 built-in decomposer를 사용하지 않는다. Triage를 PM-owned `running` creator-session
+   gate로 유지한다. parent 없는 일반 task는 생성 즉시 `ready`가 되므로 first eligible Impl도
+   반드시 Triage를 parent로 가진다.
+2. 신규 Impl과 Review를 하나씩 parent와 함께 `todo`로 만들고, 각각의 native
+   body/ID/assignee/status를 read-back한다.
 3. parent link를 만든 뒤 native read-back으로 topology를 확인한다.
 4. replacement graph가 완성될 때까지 신규 card를 `ready`로 만들지 않는다.
-5. graph가 검증된 뒤 PM은 첫 eligible Impl 하나만 `ready`로 promotion한다.
+5. graph가 검증된 뒤 PM은 Triage를 완료한다. native dependency promotion read-back에서 first
+   eligible Impl 하나만 `ready`이고 나머지 execution card는 `todo`여야 한다.
 
 `ready → running`은 dispatcher의 claim/spawn lifecycle이다. model 선택은 assignment/dispatch
 설정일 수 있지만 전이 자체의 대체가 아니다.

@@ -1,7 +1,7 @@
 ---
 name: build-task-graph
 description: "Build manual Kanban graphs from approved Issue contracts."
-version: 0.2.0
+version: 0.3.0
 license: MIT
 metadata:
   hermes:
@@ -40,7 +40,7 @@ child rather than the native parent of its implementation cards.
 
 ```text
 G<N>-Issue<M>-Triage
-Impl → Review<Q> → Summary
+Triage → first eligible Impl → Review<Q> → Summary
 Review<Q> → corrective Impl → Review<Q+1> → Summary
 Review<Q> → Decision → corrective Impl
 ```
@@ -64,17 +64,21 @@ Kanban actions. Atomic graph creation is not required when every new Impl/Review
 card is created in `todo`, read back, and no card is promoted before the entire graph
 has passed the draft and native read-back checks.
 
-The checked-in v4 helper and fixtures still contain the superseded planning SHA, frontend, and
-`request-review` shapes. Do not use their generated Impl body as `backend-implementation-card-v1` until
-the v5 migration in `plan.md` is implemented. Author and validate the canonical JSON body directly.
+Use `scripts/build_task_graph.py template` to create a fact-only backend Impl scaffold under `.temp`,
+then author it from approved inputs and run `validate`. The helper enforces the canonical
+`backend-implementation-card-v1` body only; graph topology and native persisted state remain separate
+manual read-back gates.
 
-1. Create every new Impl and Review card in `todo`; use actual task IDs only after
-   each native read-back.
+1. Keep Triage as the PM-owned `running` creator-session gate. Create the first eligible Impl with
+   Triage as its parent; a parentless native task becomes `ready` immediately. Create every other new
+   Impl and Review with its actual prerequisite parent so it starts in `todo`. Use task IDs only after
+   native read-back.
 2. Link initial Impl to Review1 and Summary. Link every Review to Summary. A Review-originated
    Impl is its child and is a parent of the next Review and Summary; Decision is a Review child and
    Summary parent.
 3. Verify all bodies, assignees, links, and `todo` statuses through native read-back.
-4. Promote exactly one eligible Impl card to `ready`.
+4. Complete Triage only after the graph passes read-back. Verify its dependency promotion makes exactly
+   one eligible Impl `ready` and leaves every other execution card in `todo`.
 
 The PM decides `todo → ready`. The native dispatcher claims a ready assigned card and
 spawns its worker, causing `ready → running`; a model override affects that dispatch
@@ -85,7 +89,8 @@ but is not the lifecycle transition itself.
 1. **Admit.** Read the leaf Issue, approved requirement, clean repository and
    baseline, active workflow marker, fresh `current-state` snapshot, and existing
    native cards. Completion: all input facts are read back or routed to their owner.
-2. **Author triage.** Create `G1-Issue<M>-Triage` in `triage` with the complete delivery
+2. **Author triage.** Create or claim `G1-Issue<M>-Triage` as the PM creator-session's `running`
+   planning gate with the complete delivery
    behavior model, document evidence, scope, exclusions, aggregate acceptance, and
    graph membership plan. Completion: its body is validated and read back.
 3. **Classify each behavior.** When its domain tools are exposed in the fresh PM
@@ -100,8 +105,8 @@ but is not the lifecycle transition itself.
    traceability. Do not add a baseline SHA or frontend contract. Completion: every new card validates as
    `backend-implementation-card-v1`, is self-contained, and is assigned.
 5. **Add review and start.** Create `Review1` and `Summary`, link the dependency graph,
-   complete the manual authoring rule, complete the Triage artifact, then promote one
-   Impl card to `ready`. Completion: native read-back shows one ready Impl and every
+   complete the manual authoring rule, then complete the Triage artifact so native dependency promotion
+   releases the first Impl. Completion: native read-back shows one ready Impl and every
    other new execution card in `todo`.
 
 ## Requirement-rework procedure
