@@ -11,9 +11,8 @@ handoff를 기록한다. 실행 가능한 Coder contract는 작성하지 않는�
 Kanban plugin의 native 상태를 사용한다.
 
 ```text
-triage → running → done
-                    ↑
-triage → running → blocked → running
+triage → running planning → frozen running graph gate → done
+          └──────────────→ blocked → running planning
 ```
 
 - 초기 상태는 `triage`다.
@@ -21,7 +20,8 @@ triage → running → blocked → running
 - 정책·요구사항 문제가 있으면 `blocked`로 전이한다.
 - `needs-input`은 native 상태가 아니라 body의 `blocker.kind`와 decision request로 표현한다.
 - active leaf Issue당 active triage card는 하나만 허용한다.
-- 완료된 body는 freeze하며 triage card는 graph runtime dependency가 아니다.
+- 완료된 body는 freeze한다. Triage는 Coder 입력은 아니지만 graph authoring 중 first eligible Impl을
+  `todo`로 유지하는 native scheduling parent다.
 
 ## Admission
 
@@ -72,10 +72,11 @@ Markdown body를 사용한다.
    생성 뒤 native `kanban_show`로 read-back하고, 필요하면 read-only
    `triage.py validate-card --task-id <actual-id> --board <board>`로 재검증한다.
 5. PM이 native claim 후 `running`에서 문서와 requirement를 대조한다.
-6. 문제가 없으면 `build_task_graph.allowed: true`로 기록하고 done/freeze한다.
+6. 문제가 없으면 `build_task_graph.allowed: true`로 기록하고 body를 freeze하되 `running` gate로 유지한다.
 7. 정책·요구사항 결정이 필요하면 `blocked`로 전환하고 linked service-planning card를 만든다.
 8. 사용자 결정, requirement 수정, `sync-docs` 결과, Issue read-back 후 같은 card를 재개한다.
-9. triage body를 freeze하고 `build-task-graph`에 provenance로 넘긴다.
+9. triage body를 freeze하고 `build-task-graph`에 provenance이자 first Impl의 scheduling parent로 넘긴다.
+10. `build-task-graph`가 전체 graph를 검증한 뒤 Triage를 완료하고 exactly-one-ready를 read-back한다.
 
 ## service-planning handoff
 
@@ -97,8 +98,8 @@ triage card를 `running`으로 재개한다. 정책 승인 전에는 requirement
 - unresolved policy finding 없음
 - current-state freshness read-back 완료
 - `build_task_graph.allowed: true`
-- native `done` read-back
-- triage body freeze
+- frozen triage body와 native `running` gate read-back
+- graph 검증 뒤 `build-task-graph`가 수행한 native `done`과 first Impl `ready` read-back
 
 ### 문제 있음
 
@@ -112,7 +113,7 @@ triage card를 `running`으로 재개한다. 정책 승인 전에는 requirement
 - 사용자 결정 read-back
 - requirement·affected docs·Issue sync read-back
 - body 재검증
-- triage done/freeze
+- triage freeze와 `running` graph gate read-back
 - build-task-graph handoff 가능
 
 ## 검증 도구

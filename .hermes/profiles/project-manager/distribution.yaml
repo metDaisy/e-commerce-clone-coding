@@ -1,5 +1,5 @@
 name: project-manager
-version: 0.6.3
+version: 0.7.0
 description: "Owns the Amaazon Issue lifecycle from requirement-based task graph creation through verified PR merge."
 hermes_requires: ">=0.12.0"
 author: "Amaazon project"
@@ -28,6 +28,8 @@ distribution_owned:
   - skills/build-task-graph/tests/fixtures/invalid-missing-sections.json
   - skills/controll-task-graph/SKILL.md
   - skills/controll-task-graph/plan.md
+  - skills/controll-task-graph/checkpoint.py
+  - skills/controll-task-graph/test_checkpoint.py
   - skills/sync-docs/SKILL.md
   - skills/sync-docs/plan.md
   - skills/update-current-state/SKILL.md

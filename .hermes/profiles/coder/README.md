@@ -6,10 +6,10 @@ credential, Memory, session, state database, log, machine-specific path를 포�
 ## 설치
 
 ```text
-hermes profile install ./.hermes/profile-distributions/implementation-coder --name implementation-coder --alias
+hermes profile install ./.hermes/profiles/coder --name implementation-coder --alias
 ```
 
-전체 Profile bootstrap은 `scripts/setup-hermes.sh` 또는 `scripts/setup-hermes.ps1`를 사용한다.
+전체 Profile bootstrap은 `.hermes/scripts/setup-hermes.sh` 또는 `.hermes/scripts/setup-hermes.ps1`를 사용한다.
 설치 후 bootstrap이 Profile별 capability policy와 프로젝트 root를 적용한다.
 
 ## 책임

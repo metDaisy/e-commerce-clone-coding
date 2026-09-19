@@ -7,20 +7,16 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
   throw 'Python is required to apply the YAML capability policy.'
 }
 
-$rootDir = Split-Path -Parent $PSScriptRoot
+$rootDir = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $profiles = @(
-  'project-manager'
-  'prototype-coder'
-  'implementation-coder'
-  'reviewer-general'
-  'reviewer-deep'
-  'reviewer-coordinator'
-  'refactor-coder'
+  @{ Name = 'project-manager'; Source = 'project-manager' }
+  @{ Name = 'implementation-coder'; Source = 'coder' }
 )
 Push-Location $rootDir
 try {
-  foreach ($profile in $profiles) {
-    $source = ".\.hermes\profile-distributions\$profile"
+  foreach ($entry in $profiles) {
+    $profile = $entry.Name
+    $source = ".\.hermes\profiles\$($entry.Source)"
     hermes profile install $source --name $profile --alias --force --yes
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to install Hermes Profile Distribution: $profile"
@@ -45,15 +41,16 @@ try {
 }
 
 $policyScript = Join-Path $rootDir '.hermes\scripts\apply-hermes-capabilities.py'
-$policyFile = Join-Path $rootDir '.hermes\profile-capabilities'
-python $policyScript --policy $policyFile --project-root $rootDir
+$policyFile = Join-Path $rootDir '.hermes\profiles'
+python $policyScript --policy $policyFile --profile project-manager --profile implementation-coder --project-root $rootDir
 if ($LASTEXITCODE -ne 0) {
   throw 'Failed to apply the YAML capability policy.'
 }
 
 if ($env:HERMES_MODEL) {
   $provider = if ($env:HERMES_PROVIDER) { $env:HERMES_PROVIDER } else { 'custom' }
-  foreach ($profile in $profiles) {
+  foreach ($entry in $profiles) {
+    $profile = $entry.Name
     hermes --profile $profile config set model.provider $provider
     hermes --profile $profile config set model.default $env:HERMES_MODEL
     if ($env:HERMES_BASE_URL) {

@@ -24,6 +24,21 @@ tools:
 approvals:
   mode: smart
 
+mcp_tools:
+  codebase_read:
+    include:
+      - index_status
+      - search_graph
+      - trace_path
+  gradle_project_coder:
+    include:
+      - gradle
+      - query_build
+  semble_read:
+    include:
+      - search
+      - find_related
+
 mcp:
   allowed_servers:
     - semble-mcp

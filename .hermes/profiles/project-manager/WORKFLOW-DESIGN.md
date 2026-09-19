@@ -94,8 +94,10 @@ main → p2/issue137 → p2/issue138 → p2/issue139
 - policy contradiction·omission과 user decision request
 - `build-task-graph` handoff에 필요한 baseline evidence
 
-완료된 triage body는 freeze되며 graph의 runtime dependency가 아니라 planning provenance다. active leaf Issue당
-active triage card는 하나만 허용한다.
+완료된 triage body는 freeze되며 planning provenance로 남는다. Native Kanban에서 parent 없는 task가
+즉시 `ready`가 되므로 graph authoring 동안에는 first eligible Impl의 temporary scheduling parent이기도
+하다. PM이 graph 전체를 read-back한 뒤 triage를 완료하면 그 Impl 하나만 `ready`로 승격된다. active
+leaf Issue당 active triage card는 하나만 허용한다.
 
 ```text
 triage → running → done
@@ -127,7 +129,7 @@ PM은 built-in decomposer를 사용하지 않는다. 새 Impl·Review는 `todo`�
 body·assignee·link·status를 검증한 뒤 첫 eligible Impl **하나만** `ready`로 promotion한다.
 
 ```text
-G<N>-Issue<M>-Triage                 (planning provenance)
+G<N>-Issue<M>-Triage → first eligible Impl
 Impl → Review<Q> → Summary
 Review<Q> → corrective Impl → Review<Q+1> → Summary
 Review<Q> → Decision → corrective Impl 또는 user decision
@@ -251,8 +253,9 @@ mutation 대신 default-branch PR의 closing keyword와 merge 뒤 auto-close rea
 다음은 **결정된 workflow**이지만 아직 모두 runtime으로 검증된 것은 아니다.
 
 - manual native graph, `new`·`requirement-rework`·`review-rework` procedure와 finding contract는 설계 기준으로 합의됐다.
-- `build-task-graph` helper/validator는 v4 new-delivery 기준선만 구현되어 있다. v5 persisted schema, rework helper, native E2E는 후속 항목이다.
-- `service-planning`, `controll-task-graph`, `sync-docs`, `update-current-state`는 role boundary와 계획이 있으나 일부 SKILL.md procedure/frontmatter가 아직 비어 있거나 초안이다.
+- `build-task-graph` helper/validator는 `backend-implementation-card-v1` body와 native Triage gate E2E를 지원한다. graph-level Review·Summary·Decision validator와 rework helper는 후속 항목이다.
+- `controll-task-graph`는 backend Impl handoff·changes-request·checkpoint validator와 same-card review 절차를 지원한다. release, base-sync와 interrupted-workflow 절차는 아직 초안이다.
+- `service-planning`, `sync-docs`, `update-current-state`는 role boundary와 계획이 있으나 일부 SKILL.md procedure/frontmatter가 아직 비어 있거나 초안이다.
 - base-sync의 detailed procedure, GitHub guide, finding/rework draft schema, PM-focused Semble의 runtime E2E는 미확정 또는 미검증이다.
 
 따라서 이 문서를 Profile topology와 ownership의 기준으로 사용하되, 실제 mutation 전에 해당 Skill,

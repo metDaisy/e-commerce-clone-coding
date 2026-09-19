@@ -56,7 +56,7 @@ H3  H2를 조사해 current-state를 갱신한 docs-only commit
 |---|---|
 | root Issue / leaf Issue | domain 또는 delivery 범위의 최상위 work item / 하위 work item이 없어 구현 대상으로 선택할 수 있는 work item. |
 | delivery branch | 선택된 leaf Issue를 구현하는 canonical branch. 같은 domain에서는 선행 canonical delivery branch를 기반으로 stacked chain을 만들 수 있다. |
-| triage card | 새 leaf Issue의 하나뿐인 PM-owned planning provenance. 구현 아이디어, 후보 slice·dependency, 문서 영향, policy blocker를 정리하며 done 뒤 freeze된다. Coder 입력이나 graph runtime dependency는 아니다. |
+| triage card | 새 leaf Issue의 하나뿐인 PM-owned planning provenance. 구현 아이디어, 후보 slice·dependency, 문서 영향, policy blocker를 정리하고 body를 freeze한 뒤 graph authoring 동안 `running`을 유지한다. Coder 입력은 아니지만 first eligible Impl을 `todo`로 유지하는 native scheduling parent이며 graph 검증 뒤 `done`이 된다. |
 | child implementation (Impl) card | Coder가 수행하는 하나의 독립적으로 검증 가능한 self-contained 구현 계약. |
 | aggregate Review card | 관련 Impl과 inherited completed behavior를 하나의 aggregate contract로 검토하는 Reviewer-owned card. completion metadata의 finding verdict가 Summary eligibility를 결정한다. |
 | Decision card | finding이 요구한 사용자 정책 결정을 보존하는 PM-owned native `blocked` card. PM은 정책을 대신 결정하지 않는다. |

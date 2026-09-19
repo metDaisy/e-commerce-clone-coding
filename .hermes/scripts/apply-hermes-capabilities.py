@@ -57,7 +57,8 @@ def load_policy(policy_path: Path, profiles: list[str]) -> dict[str, Any]:
     if not policy_path.is_dir():
         raise ValueError(f"policy path does not exist: {policy_path}")
 
-    common = load_yaml(policy_path / "common.yaml")
+    common_path = policy_path / "common.yaml"
+    common = load_yaml(common_path) if common_path.is_file() else {"version": 1, "mcp_tools": {}}
     if common.get("version") != 1:
         raise ValueError("common capability policy version must be 1")
     common_mcp_tools = common.get("mcp_tools", {})
@@ -68,12 +69,15 @@ def load_policy(policy_path: Path, profiles: list[str]) -> dict[str, Any]:
     for profile in profiles:
         profile_path = policy_path / f"{profile}.yaml"
         if not profile_path.is_file():
-            profile_path = (
-                policy_path.parent
-                / "profile-distributions"
-                / profile
-                / "capabilities.yaml"
-            )
+            matches = []
+            for candidate in policy_path.glob("*/capabilities.yaml"):
+                if load_yaml(candidate).get("profile") == profile:
+                    matches.append(candidate)
+            if len(matches) != 1:
+                raise ValueError(
+                    f"{policy_path}: expected one capabilities.yaml for {profile}, found {len(matches)}"
+                )
+            profile_path = matches[0]
         entry = load_yaml(profile_path)
         if entry.get("profile") != profile:
             raise ValueError(f"{profile_path}: profile name does not match filename")

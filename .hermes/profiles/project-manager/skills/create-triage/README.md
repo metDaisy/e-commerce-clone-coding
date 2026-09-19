@@ -41,8 +41,9 @@ Issue와 요구사항 확인
 - 정책 결정 요청 또는 해결 근거
 - `build-task-graph`로 넘길 수 있는지 여부
 
-Triage card는 구현 graph의 runtime dependency가 아니며, Coder가 직접 읽는 계약도 아닙니다.
-그 다음 단계에서 PM은 이 기록과 승인된 문서를 바탕으로 Coder별 task card를 만듭니다.
+Triage card는 Coder가 직접 읽는 계약은 아니지만, graph authoring 중 first eligible Impl을
+`todo`로 유지하는 native scheduling parent입니다. PM은 이 기록과 승인된 문서를 바탕으로 Coder별
+task card를 모두 만든 뒤 Triage를 완료해 첫 Impl 하나만 `ready`로 승격합니다.
 
 ## 막히는 경우
 

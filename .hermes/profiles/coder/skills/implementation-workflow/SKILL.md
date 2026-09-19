@@ -1,7 +1,7 @@
 ---
 name: implementation-workflow
 description: Use when implementing a PM-authored backend Impl card.
-version: 0.2.0
+version: 0.3.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -37,9 +37,12 @@ Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java t
 3. Card의 goal, effective behavior, scope, exclusions, contracts, acceptance, focused verification와
    full backend verification을 읽는다. Traceability locator는 PM 근거이며 requirement를 다시
    해석하라는 지시가 아니다.
-4. Git branch와 status를 읽는다. 시작 worktree에 staged, unstaged 또는 untracked path가 하나라도
-   있으면 덮어쓰기·commit·stash·reset·clean하지 않고 `kanban_block(kind="needs_input")`으로
-   중단한다.
+4. Git branch와 status 및 native run history를 읽어 initial run과 changes-requested rework를 구분한다.
+   Initial run은 staged, unstaged 또는 untracked path가 하나라도 있으면 덮어쓰기·commit·stash·reset·
+   clean하지 않고 `kanban_block(kind="needs_input")`으로 중단한다. Rework run은 latest native
+   `request-changes` transition, 직전 `review_requested` handoff와 correlated change-request comment를
+   먼저 검증하고, dirty paths가 직전 handoff의 `changed_paths`와 정확히 같을 때만 이어서 작업한다.
+   다른 dirty path 또는 ID 불일치는 block한다.
 5. Card가 불완전하거나 서로 모순되면 task body를 고치지 않고 정확한 누락·충돌과 필요한 PM
    조치를 block reason에 기록한다.
 
@@ -91,7 +94,8 @@ Repository의 `AGENTS.md`가 강제 규칙을, `docs/testing-guide.md`가 Java t
 
 1. Git status와 diff를 읽고 모든 changed path가 card scope 또는 필수 propagation인지 확인한다.
    문서 path나 설명할 수 없는 path가 있으면 review를 요청하지 않는다.
-2. Canonical `backend-implementation-handoff-v1` metadata를 작성한다. Actual changed paths,
+2. 이번 요청에 새 `handoff_id`를 부여하고 canonical `backend-implementation-handoff-v1` metadata를
+   작성한다. Actual changed paths,
    acceptance별 focused verification, full backend result, documentation impact와 residual risk만
    기록한다. Raw output, credential, prompt와 reasoning은 기록하지 않는다.
 3. 한국어 summary와 metadata로 `kanban_request_review(reviewer="project-manager")`를 호출한다.
@@ -104,9 +108,13 @@ paths와 clean worktree를 read-back한 뒤에만 PM이 card를 `done`으로 만
 
 ### 6. Changes requested
 
-PM이 같은 card에 changes를 요청하면 path/symbol, observed problem, expected result, allowed scope와
-verification을 읽는다. 정보가 부족하면 추측하지 않고 clarification을 요청한다. 구체적인 finding만
-수정한 뒤 focused verification과 full backend verification을 모두 다시 실행하고 새 handoff를
+PM이 같은 card에 changes를 요청하면 `kanban_show`에서 native route와 latest durable comment를
+read-back한다. Comment는 valid `backend-implementation-change-request-v1`이어야 하며 각 finding의
+path/symbol, observed problem, expected result, allowed scope와 verification을 모두 포함해야 한다.
+`source_handoff_id`가 직전 handoff와 같고 `source_review_run_id`가 changes를 요청한 PM review run과
+같아야 한다. Native reason만 있거나 payload가 불완전하면 추측하지 않고 block한다. 직전 handoff의
+dirty path만 인수하고 구체적인 finding만 수정한 뒤
+focused verification과 full backend verification을 모두 다시 실행하고 같은 card에서 새 handoff를
 요청한다.
 
 Aggregate Reviewer finding은 PM이 새 self-contained Impl card로 작성한 경우에만 수행한다.

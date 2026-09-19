@@ -22,14 +22,20 @@
 - GitHub Issue/PR/CI read-back
 - current-state integration facts: freshness와 active workflow marker 상태
 
-## 절차 초안
+## 구현된 backend checkpoint 절차
 
-1. Coder handoff마다 acceptance·verification evidence, changed paths, commit boundary, clean tree를 확인한다.
-2. PM이 same-card operational checkpoint commit을 만들고 SHA와 worktree를 read-back한 뒤 같은 child를 완료한다.
-3. dependency를 만족한 다음 child만 진행시킨다. 누락된 evidence, semantic ambiguity, unrelated dirty change는 blocked 또는 needs-input으로 routing한다.
-4. 모든 Impl 완료 뒤 Reviewer-assigned `G{N}-Issue{M}-Review{Q}`를 진행한다. PM은 review body를 작성하지만 finding verdict를 대체하지 않는다. 모든 direct parent 완료 및 latest Review의 blocking finding resolved 뒤 `G{N}-Issue{M}-Summary`를 PM finalization한다.
-5. done Review metadata의 per-finding verdict를 read-back한다. correction/context/decision route는 `build-task-graph` review-rework가 same-G append로 만들고, 완료 contract를 무효화하는 사용자 결정만 requirement-rework로 전환한다.
-6. Summary finalization 뒤 `final_implementation_sha`를 freeze하고, `update-current-state` 완료 뒤 PR·CI·merge·Issue auto-close read-back을 수행한다.
+1. Dispatcher가 만든 active PM review run에서 Coder handoff metadata를 읽고 `checkpoint.py handoff`로 card 대비 exact coverage를 검증한다.
+2. PM이 same-card operational checkpoint commit을 만들고 SHA, committed paths와 clean worktree를 read-back한다.
+3. `checkpoint.py checkpoint`가 통과하면 canonical checkpoint metadata로 같은 child를 완료한다.
+4. 수정이 필요하면 canonical change-request comment를 검증·추가한 뒤 native `request-changes`로 original Coder에게 돌린다.
+5. 누락된 evidence, semantic ambiguity, unrelated dirty change는 완료하지 않고 정확한 recovery owner로 routing한다.
+
+## 후속 controller 절차
+
+1. dependency를 만족한 다음 child만 진행시킨다.
+2. 모든 Impl 완료 뒤 Reviewer-assigned `G{N}-Issue{M}-Review{Q}`를 진행한다. PM은 review body를 작성하지만 finding verdict를 대체하지 않는다. 모든 direct parent 완료 및 latest Review의 blocking finding resolved 뒤 `G{N}-Issue{M}-Summary`를 PM finalization한다.
+3. done Review metadata의 per-finding verdict를 read-back한다. correction/context/decision route는 `build-task-graph` review-rework가 same-G append로 만들고, 완료 contract를 무효화하는 사용자 결정만 requirement-rework로 전환한다.
+4. Summary finalization 뒤 `final_implementation_sha`를 freeze하고, `update-current-state` 완료 뒤 PR·CI·merge·Issue auto-close read-back을 수행한다.
 
 ## exception mode
 

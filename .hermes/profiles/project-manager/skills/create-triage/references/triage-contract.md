@@ -30,7 +30,9 @@ It must not duplicate `task_id` or a lifecycle state.
 ```
 
 `current_state.usage` is always `read-only`; triage never updates `current-state.md`.
-`build_task_graph.allowed` stays `false` until the completed triage has no blocker.
+`build_task_graph.allowed` stays `false` until the running triage plan has no blocker and its body is ready
+to freeze. The card remains `running` as the first Impl's scheduling parent until `build-task-graph`
+validates the complete graph and completes it.
 
 ## Document impact
 

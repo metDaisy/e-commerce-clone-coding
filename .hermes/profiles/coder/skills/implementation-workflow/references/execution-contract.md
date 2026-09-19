@@ -77,10 +77,15 @@ commit SHA, committed paths와 clean working tree를 read-back한 뒤에만 card
 
 ```text
 ready → running → review → done
-                   └────→ changes requested → ready/running
+                   └────→ native request-changes → ready 또는 dependency-gated todo
+                                                   └→ dispatcher claim → running
 running/review → blocked → resumed source phase
 ```
 
 Coder handoff는 구현 완료 주장이나 Reviewer의 aggregate verdict가 아니다. `done`은 PM checkpoint와
 clean committed boundary가 확인되었다는 뜻이며, 독립 aggregate Review는 그 뒤 별도 card에서
 수행한다.
+
+PM이 changes를 요청할 때는 native `request-changes` 직전에 canonical
+`backend-implementation-change-request-v1`을 durable comment로 남긴다. Native reason만으로는 실행
+범위를 정하지 않는다. Coder는 해당 payload의 finding만 수정하고 두 단계 검증과 handoff를 반복한다.

@@ -19,7 +19,7 @@ active profile's Desktop plugin door separately.
 Project-local Hermes plugins are opt-in. Start Hermes with:
 
 ```bash
-HERMES_ENABLE_PROJECT_PLUGINS=true hermes --profile coder
+HERMES_ENABLE_PROJECT_PLUGINS=true hermes --profile implementation-coder
 ```
 
 For the Desktop app, enable the same environment variable before launching or
@@ -27,11 +27,8 @@ use the profile/plugin reload flow after activation.
 
 ## Capability policy
 
-The operational Profiles use repository-managed capability policies. The
-[`profile-capabilities/`](./profile-capabilities/) directory
-MCP tool definitions and the non-Project-Manager Profile policies. The Project
-Manager Distribution keeps its policy in
-[`profile-distributions/project-manager/capabilities.yaml`](./profile-distributions/project-manager/capabilities.yaml),
+The operational Profiles use repository-managed capability policies. Each
+Profile Distribution keeps its policy in `profiles/<source-name>/capabilities.yaml`,
 including its Skill/toolset/MCP/GitHub write allowlists. Each Profile must
 declare its complete `skills.allowed`, `tools.allowed_toolsets`, and
 `mcp.allowed_servers`/`mcp.filters` set. These files contain no endpoints or
@@ -44,7 +41,10 @@ MCP `tools.include` filters, and reads the effective state back:
 
 ```bash
 python .hermes/scripts/apply-hermes-capabilities.py \
-  --policy .hermes/profile-capabilities
+  --policy .hermes/profiles \
+  --profile project-manager \
+  --profile implementation-coder \
+  --project-root .
 ```
 
 MCP servers must already be configured in the local Profile. Servers not listed

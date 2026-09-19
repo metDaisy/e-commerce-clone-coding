@@ -166,6 +166,7 @@ Body는 수정하지 않는다.
 ```json
 {
   "schema": "backend-implementation-handoff-v1",
+  "handoff_id": "handoff-7f3d87b2",
   "implemented_behavior_ids": ["behavior-product-create"],
   "changed_paths": ["src/main/java/example/product/...", "src/test/java/example/product/..."],
   "acceptance_results": [
@@ -203,6 +204,8 @@ Body는 수정하지 않는다.
 
 Handoff는 다음 coverage invariant를 모두 만족한다.
 
+- `handoff_id`는 Coder가 review 요청 시도마다 새로 만드는 비어 있지 않은 opaque ID다. PM checkpoint와
+  changes-request는 이 ID를 참조해 최신 handoff와 결합한다.
 - `implemented_behavior_ids`는 card의 모든 `effective_behavior.id`를 중복 없이 정확히 한 번씩
   포함하고 존재하지 않는 ID를 포함하지 않는다.
 - `acceptance_results`는 모든 `acceptance_criteria.id`를 중복 없이 정확히 한 번씩 포함하며 각
@@ -216,14 +219,48 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 `changed_paths`에는 실제 task 변경만 기록하고 문서 path를 포함하지 않는다. 실행하지 못한 검증,
 실패, dirty conflict 또는 미정 policy는 handoff가 아니라 `kanban_block` 대상이다.
 
+## PM changes-requested comment
+
+Native `kanban_request_changes` accepts a reason but no metadata object. PM therefore appends the following
+validated JSON object as a durable comment immediately before requesting changes. This comment is the
+canonical structured rework payload; the native reason contains its finding IDs and a concise summary.
+
+```json
+{
+  "schema": "backend-implementation-change-request-v1",
+  "source_handoff_id": "handoff-7f3d87b2",
+  "source_review_run_id": "run-review-17",
+  "findings": [
+    {
+      "finding_id": "PM-CHK-1",
+      "path": "src/main/java/example/product/ProductService.java",
+      "symbol": "ProductService.register",
+      "observed_problem": "유효하지 않은 가격을 저장한다.",
+      "expected_result": "유효하지 않은 가격을 기존 validation error contract로 거절한다.",
+      "allowed_scope": ["상품 등록 validation과 직접 관련된 테스트"],
+      "verification": ["FV-PRODUCT-CREATE", "backend 전체 test"]
+    }
+  ]
+}
+```
+
+`source_handoff_id`는 active review가 검토한 handoff ID와 같고 `source_review_run_id`는 native active
+PM review run ID와 같다. Coder는 latest native `request-changes` transition 직전 comment의 두 ID를
+task run history와 대조한다. `finding_id`는 해당 request 안에서 중복되지 않는다. 각 finding은 정확한 path·symbol, 관찰된 문제,
+기대 결과, 허용 범위와 다시 실행할 검증을 모두 가진다. 일반적인 개선 요청이나 card의 제품 의미를
+바꾸는 요청은 허용하지 않는다. Coder는 latest validated change-request comment만 수행하고 focused 및
+full backend verification을 다시 실행한다.
+
 ## PM checkpoint evidence
 
-PM은 native review에서 Coder handoff와 diff를 검증하고 commit한 뒤 다음 사실을 review completion
-metadata 또는 durable comment에 기록한다.
+PM은 dispatcher가 시작한 active native review run에서 Coder handoff와 diff를 검증하고 commit한 뒤
+다음 사실을 `kanban_complete` metadata에 기록한다. Comment나 일반 PM session의 서술은 completion
+metadata를 대체하지 않는다.
 
 ```json
 {
   "schema": "backend-implementation-checkpoint-v1",
+  "source_handoff_id": "handoff-7f3d87b2",
   "result": "pass",
   "committed_paths": ["src/main/java/example/product/...", "src/test/java/example/product/..."],
   "commit_sha": "<40-character result commit SHA>",
@@ -232,5 +269,8 @@ metadata 또는 durable comment에 기록한다.
 }
 ```
 
-PM이 commit SHA, committed paths와 clean working tree를 read-back하기 전에는 Impl card를 `done`으로
-전환하지 않는다. `request-changes`이면 같은 body를 유지하고 구체적인 finding을 Coder에게 돌려보낸다.
+`source_handoff_id`는 검수한 Coder handoff와 정확히 같고 `committed_paths`는 그 handoff의
+`changed_paths`와 중복 없이 정확히 같아야 한다. PM이 commit SHA,
+committed paths, full backend evidence와 clean working tree를 read-back하기 전에는 Impl card를
+`done`으로 전환하지 않는다. `request-changes`이면 같은 body를 유지하고 위 canonical finding comment를
+Coder에게 돌려보낸다.

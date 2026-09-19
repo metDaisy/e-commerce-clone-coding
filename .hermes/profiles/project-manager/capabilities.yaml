@@ -5,8 +5,7 @@ profile: project-manager
 skills:
   allowed:
     - hermes-agent
-    # Planned distribution-owned PM Skills. The policy becomes applicable after
-    # each corresponding Skill is added to this Distribution.
+    # Distribution-owned PM workflow Skills.
     - service-planning
     - create-triage
     - build-task-graph
@@ -42,6 +41,11 @@ stt:
   enabled: false
 
 mcp_tools:
+  codebase_read:
+    include:
+      - index_status
+      - search_graph
+      - trace_path
   github_project_manager:
     include:
       - add_issue_comment
@@ -56,12 +60,17 @@ mcp_tools:
       - search_issues
       - search_pull_requests
       - update_pull_request
+  semble_read:
+    include:
+      - search
+      - find_related
 
 mcp:
   allowed_servers:
-    - codebase-memory-mcp
+    - codebase-memory
     - semble-mcp
     - github-mcp
   filters:
+    codebase-memory: codebase_read
     github-mcp: github_project_manager
     semble-mcp: semble_read

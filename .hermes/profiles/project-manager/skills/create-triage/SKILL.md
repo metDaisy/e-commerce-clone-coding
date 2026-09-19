@@ -43,9 +43,8 @@ a duplicate.
 Use the native Kanban statuses exactly as read back from the plugin:
 
 ```text
-triage → running → done
-          ├──────→ blocked → running
-          └──────→ done
+triage → running planning → frozen running graph gate → done
+          └──────────────→ blocked → running planning
 ```
 
 `todo` and `ready` are valid native queue states when the plugin requires an
@@ -57,8 +56,10 @@ the body, then promote it to `ready` before claiming.
 `needs-input` Kanban status: represent the reason as `blocker.kind` and keep the
 native status `blocked`.
 
-A completed triage card is frozen. The card is not a runtime dependency of the
-execution graph; its ID is provenance for PM and `build-task-graph` only.
+A completed triage body is frozen and remains PM planning provenance, not a Coder
+input. During graph authoring the running Triage card is also the native scheduling
+parent that keeps the first eligible Impl in `todo`; `build-task-graph` completes it
+only after the whole graph is read back.
 
 ## Required body
 
@@ -138,10 +139,10 @@ assuming the process working directory is the skill directory.
    missing structural constraint, or current-state discrepancy. Completion
    criterion: every finding has evidence and an impact classification.
 5. **Handle a clean plan.** If no policy decision or unresolved requirement gap
-   remains, set `build_task_graph.allowed: true`, record the selected handoff,
-   complete the card through the native Kanban action, and read it back as
-   `done`. Freeze the body. Completion criterion: the frozen body is sufficient
-   for PM to author the Coder graph without reopening the same planning question.
+   remains, set `build_task_graph.allowed: true`, record the selected handoff, and
+   freeze the body while keeping the claimed card `running`. It remains the creator-session scheduling gate
+   until `build-task-graph` has created and read back every card and link. Completion criterion: the frozen
+   body is sufficient for PM to author the Coder graph without reopening the same planning question.
 6. **Handle a policy or requirement blocker.** Set native status `blocked` and
    record structured blocker and decision-request data in JSON. Create a linked
    `Issue #<number> service-planning` card with a human-readable Markdown body.
@@ -153,14 +154,14 @@ assuming the process working directory is the skill directory.
 7. **Resume after the decision.** When service-planning is complete, read back the
    user decision, requirement change, affected document updates, and Issue
    synchronization. Resume the same triage card as `running`, update and revalidate
-   its body, then complete it only after the handoff is unblocked. Completion
+   its body, then freeze it in `running` only after the handoff is unblocked. Completion
    criterion: no unresolved policy finding remains and all external mutations are
    read back.
 8. **Hand off.** Invoke `build-task-graph` with the frozen triage body, approved
    requirement, fresh current-state, and Issue. The Coder receives only the
-   resulting self-contained task card. Completion criterion: graph authoring has
-   the triage task ID as provenance and does not use the triage card as a runtime
-   dependency.
+   resulting self-contained task card. `build-task-graph` links Triage as the first Impl's native parent,
+   validates the complete graph, then completes Triage and reads back exactly one ready Impl. Completion
+   criterion: Triage is `done` only after the whole graph and its promotion result are verified.
 
 ## Policy decision request
 
@@ -193,13 +194,14 @@ Issue metadata, read both targets back, and resume the same card.
 
 ## Verification
 
-Before reporting triage completion, read back:
+Before reporting triage planning completion, read back:
 
 - native task ID, title, status, assignee, JSON body, linked service-planning card if any;
 - current-state snapshot SHA and freshness;
 - every document-impact disposition;
 - decision and requirement synchronization evidence when applicable;
-- frozen JSON body and `build_task_graph.allowed` value.
+- frozen JSON body, `build_task_graph.allowed` value, and `running` creator-gate status. Final `done` read-back
+  belongs to `build-task-graph` after graph validation.
 
 Report facts, user decisions, blockers, verification, external-state read-back, and
 next transition separately. Never report `done` while a policy decision, document

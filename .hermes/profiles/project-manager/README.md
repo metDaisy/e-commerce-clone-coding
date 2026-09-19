@@ -79,9 +79,10 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 |---|---|
 | Issue triage와 정책/문서 blocker routing | 지원 |
 | 새 delivery와 수동 native graph authoring procedure | 지원 |
-| requirement-rework procedure와 v5 persisted contract | 지원 |
-| review-rework finding contract와 procedure | 지원 |
+| requirement-rework 설계 기준 | runtime 후속 구현 |
+| review-rework finding 설계 기준 | runtime 후속 구현 |
 | backend Impl card helper/validator | 지원 |
+| backend Impl handoff·changes-request·checkpoint validator | 지원 |
 | graph-level v5 helper/validator 및 native E2E | 후속 구현 |
 
 ## Workflow reference

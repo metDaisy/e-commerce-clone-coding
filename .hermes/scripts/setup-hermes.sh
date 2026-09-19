@@ -10,13 +10,15 @@ if ! command -v python >/dev/null 2>&1; then
   exit 1
 fi
 
-root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-profiles="project-manager prototype-coder implementation-coder reviewer-general reviewer-deep reviewer-coordinator refactor-coder"
+root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+profiles="project-manager:project-manager implementation-coder:coder"
 
 cd "$root_dir"
 
-for profile in $profiles; do
-  hermes profile install "./.hermes/profile-distributions/$profile" \
+for item in $profiles; do
+  profile=${item%%:*}
+  source=${item#*:}
+  hermes profile install "./.hermes/profiles/$source" \
     --name "$profile" --alias --force --yes
   hermes --profile "$profile" config set terminal.cwd "$root_dir"
   hermes --profile "$profile" config set kanban.auto_decompose false
@@ -26,12 +28,15 @@ for profile in $profiles; do
 done
 
 python .hermes/scripts/apply-hermes-capabilities.py \
-  --policy .hermes/profile-capabilities \
+  --policy .hermes/profiles \
+  --profile project-manager \
+  --profile implementation-coder \
   --project-root "$root_dir"
 
 if [ -n "${HERMES_MODEL:-}" ]; then
   provider="${HERMES_PROVIDER:-custom}"
-  for profile in $profiles; do
+  for item in $profiles; do
+    profile=${item%%:*}
     hermes --profile "$profile" config set model.provider "$provider"
     hermes --profile "$profile" config set model.default "$HERMES_MODEL"
     if [ -n "${HERMES_BASE_URL:-}" ]; then

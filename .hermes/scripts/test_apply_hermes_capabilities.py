@@ -6,7 +6,7 @@ import importlib.util
 from pathlib import Path
 
 
-_SCRIPT = Path(__file__).parents[1] / ".hermes" / "scripts" / "apply-hermes-capabilities.py"
+_SCRIPT = Path(__file__).parent / "apply-hermes-capabilities.py"
 _SPEC = importlib.util.spec_from_file_location("apply_hermes_capabilities", _SCRIPT)
 assert _SPEC and _SPEC.loader
 _POLICY = importlib.util.module_from_spec(_SPEC)
@@ -125,13 +125,23 @@ def test_profile_expected_requires_mcp_include_filter_for_every_server() -> None
 
 
 def test_repository_policies_use_explicit_allowlists() -> None:
-    root = Path(__file__).parents[1]
-    raw = _POLICY.load_policy(root / ".hermes" / "profile-capabilities", list(_POLICY.PROFILES))
+    root = Path(__file__).parents[2]
+    profiles = ["project-manager", "implementation-coder"]
+    raw = _POLICY.load_policy(root / ".hermes" / "profiles", profiles)
 
-    for profile in _POLICY.PROFILES:
+    for profile in profiles:
         expected = _POLICY.profile_expected(raw, profile)
         assert expected["skills_allowed"]
         assert expected["toolsets_allowed"]
+
+
+def test_bootstrap_paths_reference_current_profile_sources() -> None:
+    scripts = Path(__file__).parent
+    for name in ("setup-hermes.sh", "setup-hermes.ps1"):
+        text = (scripts / name).read_text(encoding="utf-8")
+        assert "profile-distributions" not in text
+        assert "profile-capabilities" not in text
+        assert ".hermes/profiles" in text.replace("\\", "/")
 
 
 def test_profile_expected_requires_explicit_allowlists() -> None:

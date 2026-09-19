@@ -2,7 +2,7 @@
 
 ## 목적
 
-이 문서는 `renewal/harness` 브랜치에서 Profile Distribution으로 Implementation Coder,
+이 문서는 저장소의 Profile Distribution으로 Implementation Coder,
 기존 Prototype Coder, 독립 Reviewer Profiles, Feedback 기반 Refactor Coder를 운영하는 방법을 정의한다.
 
 프로젝트 공통 규칙은 `AGENTS.md`, 작업 절차는 `docs/agent-workflow.md`,
@@ -16,7 +16,7 @@
 - 프로젝트 규칙과 설계의 확정 사실은 Memory가 아니라 저장소 문서와 코드에 둔다.
 - Profile 간에는 Memory를 공유하지 않고 diff, 요구사항 경로, 검증 결과,
   구조화된 finding만 명시적으로 전달한다.
-- Profile별 배포 원본은 저장소의 `.hermes/profile-distributions/<profile>/`에
+- Profile별 배포 원본은 저장소의 `.hermes/profiles/<source-name>/`에
   버전 관리한다.
 - 배포 원본의 `SOUL.md`는 설치 시 각 사용자의 Hermes Profile로 복사하고,
   전속 Skill은 `setup-hermes.*`가 skills.sh에서 보안 스캔 후 내려받는다.
@@ -27,11 +27,11 @@
 ## Distribution source와 runtime
 
 프로젝트의 `.hermes/`는 project-local Plugin과 Profile Distribution source를
-구분한다. `.hermes/profile-distributions/`는 Git으로 공유하는 배포 원본이고,
+구분한다. `.hermes/profiles/`는 Git으로 공유하는 배포 원본이고,
 실제 Profile runtime은 각 사용자의 `HERMES_HOME` 아래에 생성된다.
 
 ```text
-repository/.hermes/profile-distributions/reviewer-general/
+repository/.hermes/profiles/reviewer-general/
   distribution.yaml
   SOUL.md
   README.md                 # skills.sh identifiers and install notes
@@ -47,11 +47,11 @@ $HERMES_HOME/profiles/reviewer-general/
 다른 사용자는 clone 후 다음과 같이 local Distribution을 설치한다.
 
 ```text
-hermes profile install ./.hermes/profile-distributions/<profile> --name <profile> --alias
+hermes profile install ./.hermes/profiles/<source-name> --name <runtime-profile> --alias
 ```
 
 위 명령은 Profile Distribution 자체를 설치한다. 전속 외부 Skill까지 설치하려면
-저장소 root에서 `setup-hermes.*`를 실행해야 한다. 각 capability policy의
+저장소 root에서 `.hermes/scripts/setup-hermes.*`를 실행해야 한다. 각 capability policy의
 `skills.external` mapping이 skills.sh 저장소와 Skill 이름을 정의하며,
 공통 `apply-hermes-capabilities.py`가 누락된 항목만 다음 대상에 복사한다.
 
@@ -68,10 +68,10 @@ Profile Distribution에 포함된 custom Skill은 `skills.allowed`에만 선언�
 
 ```text
 # Windows PowerShell
-./scripts/setup-hermes.ps1
+./.hermes/scripts/setup-hermes.ps1
 
 # Bash / Git Bash
-bash ./scripts/setup-hermes.sh
+bash ./.hermes/scripts/setup-hermes.sh
 ```
 
 스크립트는 local Distribution만 설치·갱신하고 각 사용자의 credential, Memory,
@@ -102,30 +102,29 @@ absolute path를 포함하지 않는다. 프로젝트 공통 규칙은 기존 `A
 ## 책임 소유권
 
 이 문서는 Profile topology와 high-level handoff만 설명한다. 실행 시점의 PM 정책은
-`.hermes/profile-distributions/project-manager/SOUL.md`, graph authoring은
-`.hermes/profile-distributions/project-manager/skills/build-task-graph/SKILL.md`, 저장 task
+`.hermes/profiles/project-manager/SOUL.md`, graph authoring은
+`.hermes/profiles/project-manager/skills/build-task-graph/SKILL.md`, 저장 task
 schema와 draft validator는
-`.hermes/profile-distributions/project-manager/skills/build-task-graph/references/board-contract.md`가
-각각 단일 source of truth다. v0.1은 `new-delivery` draft만 지원하며 native graph 생성은
-atomic Kanban capability가 제공될 때까지 `blocked`다.
+`.hermes/profiles/project-manager/skills/build-task-graph/references/board-contract.md`가
+각각 단일 source of truth다. 현재 backend `backend-implementation-card-v1` contract와
+Triage scheduling gate를 사용해 native graph를 순차적으로 생성·read-back한다.
 
 프로젝트 공통 hard rule은 `AGENTS.md`와 `docs/agent-workflow.md`가 소유한다. Reviewer의
 focus별 판단은 각 Reviewer Profile의 SOUL/Skill이, finding canonicalization과 conflict
-보존은 `.hermes/profile-distributions/reviewer-coordinator/SOUL.md`가 소유하며, 이 문서에서는
+보존은 `.hermes/profiles/reviewer-coordinator/SOUL.md`가 소유하며, 이 문서에서는
 재정의하지 않는다.
 
 ## High-level lifecycle
 
 ```text
 project-manager
-  → Issue·요구사항·현재 상태를 확인하고 graph authoring Skill로 v0.1 draft 검증
-  → atomic native graph-create capability가 있을 때만 첫 leaf 하나를 ready로 노출
+  → Issue·요구사항·현재 상태를 확인하고 self-contained backend Impl card를 검증
+  → running Triage gate 아래 graph를 생성·read-back한 뒤 첫 Impl 하나만 ready로 노출
 implementation-coder
-  → task claim + backend 구현·테스트 + 3단계 결정론적 검증
-reviewer-general(focus=spec)
-  → Reviewer A 역할의 same-card review와 재검증
+  → task claim + backend 구현 + focused 검증 + backend 전체 검증
 project-manager
-  → 승인된 결과를 commit/push하고 다음 leaf를 routing
+  → same-card native review에서 handoff·diff를 검증하고 commit
+  → checkpoint·Git clean state read-back 뒤 완료하거나 request-changes로 원 Coder에게 routing
 
 [Issue의 모든 implementation leaf 완료]
 quality review → coordinator → 승인된 refactor → targeted re-review
@@ -140,13 +139,13 @@ project-manager
 ## Project Manager와 Kanban 계약
 
 PM과 Kanban의 상세 입력·task-body·evidence·acceptance·verification·dependency 계약은
-`.hermes/profile-distributions/project-manager/skills/build-task-graph/SKILL.md`와
-`.hermes/profile-distributions/project-manager/skills/build-task-graph/references/board-contract.md`가
-소유한다. v0.1은 `new-delivery` JSON draft의 구조·topology만 검증하며, atomic graph-create
-capability가 없으면 native card mutation을 수행하지 않는다.
-PM의 lifecycle 상태 전이와 routing만
-`.hermes/profile-distributions/project-manager/SOUL.md`가 소유한다. 이 문서에서는
-필드나 validator 규칙을 재기록하지 않는다.
+`.hermes/profiles/project-manager/skills/build-task-graph/SKILL.md`와
+`.hermes/profiles/project-manager/skills/build-task-graph/references/board-contract.md`가
+소유한다. Coder handoff, changes-request와 commit checkpoint는
+`.hermes/profiles/project-manager/skills/controll-task-graph/SKILL.md`가 실행하고,
+canonical payload schema는 Coder의 `implementation-workflow` reference가 소유한다.
+PM의 lifecycle 권한과 routing invariant는 `.hermes/profiles/project-manager/SOUL.md`가
+소유한다. 이 문서에서는 필드나 validator 규칙을 재기록하지 않는다.
 
 Profile 간 handoff는 Kanban을 authoritative surface로 사용한다. 직접 메시지는 알림일
 뿐이며 scope·acceptance·dependency·verification을 전달하는 계약이 아니다.
