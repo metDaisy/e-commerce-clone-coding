@@ -1,6 +1,6 @@
 # Coder execution contract
 
-이 문서는 `implementation-coder`가 admitted backend Impl card를 실행하는 권한과 경계를 소유한다.
+이 문서는 `coder`가 admitted backend Impl card를 실행하는 권한과 경계를 소유한다.
 Card body를 소비하는 규칙과 Coder handoff shape는
 [`implementation-card-contract.md`](implementation-card-contract.md)가 소유하고, 구체적인 실행 순서는
 [`../SKILL.md`](../SKILL.md)가 소유한다.

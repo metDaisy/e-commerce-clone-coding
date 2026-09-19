@@ -1,6 +1,6 @@
 # run-impl-card
 
-`implementation-coder`가 PM-authored backend Impl card를 구현하고 두 단계 검증을 거쳐 같은
+`coder`가 PM-authored backend Impl card를 구현하고 두 단계 검증을 거쳐 같은
 card의 PM checkpoint를 요청하는 절차다.
 
 - [`references/execution-contract.md`](references/execution-contract.md): Coder 권한·검증·handoff 경계

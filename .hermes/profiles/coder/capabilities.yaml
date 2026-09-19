@@ -9,11 +9,6 @@ skills:
     - implement
     - codebase-memory-mcp
     - semble-search
-    - java-springboot
-    - java-junit
-  external:
-    java-springboot: github/awesome-copilot
-    java-junit: github/awesome-copilot
 
 tools:
   allowed_toolsets:

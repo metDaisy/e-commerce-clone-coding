@@ -1,5 +1,5 @@
 name: implementation-coder
-version: 0.6.0
+version: 0.8.0
 description: "Implements assigned Amaazon backend requirements with tests and verified review handoff."
 hermes_requires: ">=0.12.0"
 author: "Amaazon project"
