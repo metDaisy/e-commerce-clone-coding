@@ -21,9 +21,11 @@ not a substitute for `service-planning`, `sync-docs`, or `build-task-graph`.
 
 ## When to use
 
-Use this Skill for every new leaf Issue before `build-task-graph`.
+Use this Skill for every new leaf Issue before the G1 `build-task-graph`. A G{N+1}
+requirement-rework Triage is owned by `build-task-graph`, not this Skill.
 
 Do not use it to implement source, tests, migrations, or to decide business policy.
+Classify document impact here; use `sync-docs` for the actual derived-document or Issue mutation.
 If an existing active triage card exists for the Issue, resume it instead of creating
 a duplicate.
 

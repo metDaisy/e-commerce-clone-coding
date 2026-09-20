@@ -1,6 +1,6 @@
 ---
 name: codebase-memory-mcp
-description: Use when a configured codebase-memory-mcp server can assist with graph-backed code discovery, architecture orientation, symbol lookup, callers and callees, dependency or data-flow tracing, impact analysis, unfamiliar modules, or an explicit Codebase Memory request.
+description: "PM이 behavior의 symbol·dependency·call path 후보를 찾고 현재 session에서 index freshness를 확인할 수 있을 때 사용한다."
 metadata:
   source_repository: https://github.com/DeusData/codebase-memory-mcp
 ---
@@ -11,16 +11,15 @@ Use the configured Codebase Memory graph as a discovery accelerator, not as the 
 
 ## Workflow
 
-1. Discover the Codebase Memory tools exposed by the current MCP client; clients may prefix or rename tool namespaces.
-2. Call `list_projects` when available and use the exact indexed project name. If the repository is not indexed, continue with local exploration or ask before calling `index_repository`.
-3. Before branch-sensitive or edit-sensitive conclusions, use `index_status` or `detect_changes` when available. If freshness cannot be established, disclose that limitation and verify locally.
-4. Use `get_architecture` once for orientation in an unfamiliar repository or subsystem.
-5. Use `search_graph` for definitions, implementations, routes, classes, interfaces, callers, and related symbols.
-6. Use `search_code` or repository text search for literals, config keys, test identifiers, error messages, and non-code files.
-7. Confirm graph findings with `get_code_snippet` or local source.
-8. Use `trace_path` for callers, callees, dependency paths, data flow, cross-service paths, and impact analysis.
-9. Use `get_graph_schema` before `query_graph`; reserve custom queries for multi-hop or aggregate questions.
-10. When graph and checked-out source disagree, treat source as current and report likely index drift.
+이 Profile에서 허용된 `index_status`, `search_graph`, `trace_path`만 사용한다. 문서 입력이 충분한
+일반 planning에서는 source graph 탐색을 시작하지 않는다.
+
+1. `index_status`로 현재 project와 index freshness를 확인한다. 확인할 수 없으면 제한을 기록하고 local
+   exploration으로 전환한다.
+2. `search_graph`로 definition·implementation·caller 후보를 찾고 `trace_path`로 dependency/call path를
+   확인한다.
+3. 후보를 committed local source/test/migration에서 직접 읽는다. Graph와 checkout이 다르면 source를
+   현재 사실로 취급하고 index drift를 보고한다.
 
 ## Safety and fallback
 

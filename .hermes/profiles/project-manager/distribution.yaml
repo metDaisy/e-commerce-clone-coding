@@ -11,6 +11,7 @@ distribution_owned:
   - TERMINOLOGY.md
   - WORKFLOW-DESIGN.md
   - capabilities.yaml
+  - skills/index.md
   - skills/service-planning/SKILL.md
   - skills/service-planning/plan.md
   - skills/create-triage/SKILL.md
@@ -24,9 +25,13 @@ distribution_owned:
   - skills/build-task-graph/references/board-contract.md
   - skills/build-task-graph/references/implementation-card-contract.md
   - skills/build-task-graph/scripts/build_task_graph.py
+  - skills/build-task-graph/scripts/graph_contract.py
   - skills/build-task-graph/tests/test_build_task_graph.py
+  - skills/build-task-graph/tests/native_e2e.py
   - skills/build-task-graph/tests/fixtures/valid-new-delivery.json
   - skills/build-task-graph/tests/fixtures/invalid-missing-sections.json
+  - skills/build-task-graph/tests/fixtures/valid-graph-draft.json
+  - skills/build-task-graph/tests/fixtures/invalid-graph-topology.json
   - skills/controll-task-graph/SKILL.md
   - skills/controll-task-graph/plan.md
   - skills/controll-task-graph/references/execution-contract.md

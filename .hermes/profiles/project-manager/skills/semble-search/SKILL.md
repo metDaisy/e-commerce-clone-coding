@@ -1,11 +1,15 @@
 ---
 name: semble-search
-description: Code search agent for exploring any codebase. Use for finding code by intent, locating implementations, understanding how something works, or discovering related code. Prefer over run_shell_command/read_file for any semantic or exploratory question.
+description: "PM이 정확한 위치를 모르는 behavior·문서·유사 구현의 후보를 의미 기반으로 찾을 때 사용한다."
 metadata:
   source_repository: https://github.com/MinishLab/semble
 ---
 
 Use `semble search` to find code by describing what it does or naming a symbol/identifier, instead of grep:
+
+승인 requirement와 fresh current-state가 planning에 충분하면 source search를 시작하지 않는다. 검색
+결과는 locator일 뿐이며 구현 상태 판정은 committed source/test/migration read-back으로 확정한다.
+Profile에서 MCP `search`/`find_related`가 노출되면 CLI나 `uvx`보다 우선한다.
 
 ```bash
 semble search "authentication flow" ./my-project --max-snippet-lines 10
@@ -31,7 +35,8 @@ semble find-related src/auth.py 42 ./my-project
 
 출처: https://github.com/MinishLab/semble
 
-If `semble` is not on `$PATH`, use `uvx --from "semble[mcp]==0.5.3" semble`.
+MCP가 없고 사용자가 CLI fallback을 승인한 경우에만 local `semble`을 사용한다. 설치가 필요하면
+`uvx --from "semble[mcp]==0.5.3" semble` 실행 전에 승인을 받는다.
 
 ## Workflow
 

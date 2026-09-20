@@ -1,169 +1,153 @@
 ---
 name: build-task-graph-board-contract
-version: 5.0.0-draft
+version: 6.0.0
 ---
 
-# build-task-graph board contract v5
+# build-task-graph board contract v6
 
-이 문서는 **현재 합의된** `build-task-graph` 계약만 소유한다. JSON field·helper CLI·native
-mutation response처럼 아직 결정되지 않은 상세는 이 문서에 추측으로 추가하지 않고
-[`../plan.md`](../plan.md)의 `아직 결정하지 않은 사항`에서 결정한다.
+이 문서는 persisted graph의 schema와 machine-checkable invariant를 소유한다. Runtime 절차는
+[`../SKILL.md`](../SKILL.md), Backend Impl body는
+[`implementation-card-contract.md`](implementation-card-contract.md), checkpoint는
+[`../../controll-task-graph/references/execution-contract.md`](../../controll-task-graph/references/execution-contract.md)가 소유한다. Native Kanban read-back이 task ID,
+assignee, status, parent, run, comment와 event의 원본이다.
 
-Backend Impl card authoring semantics와 body validation은
-[`implementation-card-contract.md`](implementation-card-contract.md)가 소유한다. PM checkpoint 실행과
-field schema는 `controll-task-graph/references/execution-contract.md`가 소유한다. 이 board contract는
-graph identity, generation, topology와 promotion만 소유하며 worker execution contract를 복제하지 않는다.
+## Graph wrapper
 
-Native Kanban은 status, task ID, assignee, parent link, run, comment, event를 소유한다. PM은
-behavior contract, generation lineage, evidence, task promotion 결정을 소유한다.
+Schema는 `build-task-graph-v1`이다.
 
-## Mode
+| Field | 계약 |
+|---|---|
+| `mode` | `new | requirement-rework | review-rework` |
+| `issue` | Issue number와 canonical URL |
+| `generation` | 양의 정수 G |
+| `requirement_basis` | path와 Git SHA |
+| `revised_requirement` | `requirement-rework`에서 필수인 path와 Git SHA |
+| `lineage` | Rework에서 필수인 prior generation, prior Summary, archived unfinished keys |
+| `source_review` | `review-rework`에서 필수인 review key, finding별 disposition과 card별 idempotency map |
+| `behaviors` | Complete effective behavior 집합 |
+| `cards` | Native read-back을 정규화한 graph membership |
+| `ready_candidate` | Activation 대상 Impl/Review key 또는 Decision-only rework의 `null` |
+| `archived_card_keys` | Native archive 상태와 양방향으로 일치하는 key 목록 |
 
-| Mode | 시작 조건 | 결과 |
+`requirement-rework`의 prior generation은 G-1이다. `review-rework`는 같은 G를 유지하고 source Review와
+append된 card의 provenance를 보존한다. 각 disposition은 `finding_id`, 원래 verdict와
+`appended_card_keys`를 가지며, idempotency map은 모든 appended key를 정확히 한 번 포함한다.
+Verdict별 disposition은 각각 Impl(`correction-required`), Review(`context-required`),
+Decision(`decision-required`)을 최소 하나 포함한다.
+
+이 wrapper는 validator 입력이며 별도 workflow ledger가 아니다.
+
+## Behavior contract
+
+각 behavior는 stable `id`, 현재 전체 `outcome`, `state`, `disposition`, evidence와 선택적 Impl key를
+가진다.
+
+| state | disposition | 필수 계약 |
 |---|---|---|
-| `new` | 승인된 leaf Issue와 planning admission | G1 graph |
-| `requirement-rework` | aggregate Review 승인 전, 승인된 requirement revision | G{N+1} superseding graph |
-| `review-rework` | 완료된 aggregate Review의 structured finding | 같은 G에 corrective work를 append |
+| `implemented` | `inherited` | 새 contract를 계속 충족한다고 재확인한 source/test evidence |
+| `partial` / `absent` | `planned` | 실제 Implementation card를 가리키는 `implementation_card_key` |
+| `unknown` | `blocked` | graph 외부 owner가 해결할 blocker |
 
-aggregate Review가 승인된 뒤 requirement가 바뀌면 기존 graph를 바꾸지 않는다. 새 Issue와
-`new` graph를 만든다.
+Planned behavior의 ID/outcome은 참조 Impl body의 effective behavior와 일치한다. Behavior ID는 중복될 수
+없다.
 
-## Card identity와 native topology
+## Card identity와 body
+
+Title은 다음 grammar를 따른다.
 
 ```text
-G<N>-Issue<M>-Triage ─→ first eligible G<N>-Issue<M>-Impl<P>
-G<N>-Issue<M>-Impl<P> ─→ G<N>-Issue<M>-Review<Q> ─→ G<N>-Issue<M>-Summary
-G<N>-Issue<M>-Decision<R> ─────────────────────────→ G<N>-Issue<M>-Summary
+G<N>-Issue<M>-Triage
+G<N>-Issue<M>-Impl<P>
+G<N>-Issue<M>-Review<Q>
+G<N>-Issue<M>-Decision<R>
+G<N>-Issue<M>-Summary
 ```
 
-- `G<N>-Issue<M>-Triage`: freeze된 PM planning provenance다.
-- `G<N>-Issue<M>-Summary`: semantic Issue root. immutable aggregate acceptance와 finalization
-  contract를 보존하며 PM finalization 뒤 `done`이 된다. graph membership은 body 목록이 아니라
-  native direct parent read-back으로 계산한다.
-- `G<N>-Issue<M>-Impl<P>`: Coder가 수행하는 하나의 self-contained implementation contract.
-- `G<N>-Issue<M>-Review<Q>`: Impl과 inherited behavior를 aggregate review하는 Reviewer contract.
-- `G<N>-Issue<M>-Decision<R>`: finding이 요구한 사용자 정책 결정을 보존하는 PM card다.
-- `G`는 승인 requirement revision마다 증가한다. `Impl`과 `Review`의 numbering 상세 규칙은
-  generation 내부의 monotonic identity를 유지해야 한다.
+Issue는 positive number와 canonical HTTPS URL을 가지며 requirement revision은 40자리 Git SHA다.
+Title의 generation, Issue, kind는 wrapper와 `card_type`에 일치한다. Card key와 title은 고유하고
+assignee는 비어 있지 않다. Parent는 존재하는 다른 card를 가리키며 graph는 cycle이 없다.
 
-native parent link는 scheduling prerequisite다. Triage는 PM creator-session이 graph를 작성하는 동안
-`running`인 planning gate이며 first eligible Impl의 parent다. initial Impl은 Review1과 Summary의 parent다.
-Review finding으로 만든 Impl은 source Review의 child이며 다음 Review와 Summary의 parent다.
-모든 Review와 Decision은 Summary의 parent다. semantic containment를 표현하려고 이 방향을
-역전하지 않는다.
+Persisted body schema는 다음과 같다.
 
-## Manual graph construction
+- Impl: `backend-implementation-card-v1`. 필드 의미와 validation은
+  `implementation-card-contract.md`가 소유한다.
+- Review: `aggregate-review-card-v1`. Complete behavior IDs, 참조 Impl keys, inherited behavior IDs와
+  aggregate acceptance를 보존한다.
+- Summary: `issue-summary-card-v1`. Complete behavior IDs, aggregate acceptance와 finalization checks를
+  보존한다.
+- Decision: `policy-decision-card-v1`. Source Review key, finding ID, 사용자 질문과
+  `decision_owner: user`를 보존한다.
 
-1. PM은 built-in decomposer를 사용하지 않는다. Triage를 PM-owned `running` creator-session
-   gate로 유지한다. parent 없는 일반 task는 생성 즉시 `ready`가 되므로 first eligible Impl도
-   반드시 Triage를 parent로 가진다.
-2. 신규 Impl과 Review를 하나씩 parent와 함께 `todo`로 만들고, 각각의 native
-   body/ID/assignee/status를 read-back한다.
-3. parent link를 만든 뒤 native read-back으로 topology를 확인한다.
-4. replacement graph가 완성될 때까지 신규 card를 `ready`로 만들지 않는다.
-5. graph가 검증된 뒤 PM은 Triage를 완료한다. native dependency promotion read-back에서 first
-   eligible Impl 하나만 `ready`이고 나머지 execution card는 `todo`여야 한다.
+모든 Review의 behavior 집합은 wrapper behavior 집합과 정확히 같다. Latest Review의 Impl 참조는 graph의
+모든 Impl key와, inherited behavior 참조는 모든 `implemented` behavior ID와 정확히 같다. Summary의
+behavior 집합도 wrapper behavior 집합과 정확히 같다. Native task 값은 body에 복제하지 않는다.
 
-`ready → running`은 dispatcher의 claim/spawn lifecycle이다. model 선택은 assignment/dispatch
-설정일 수 있지만 전이 자체의 대체가 아니다.
+## Topology
 
-## Requirement-rework
+Native parent는 scheduling prerequisite다.
 
-### Admission
+### `new`와 `requirement-rework`
 
-active graph의 aggregate Review가 아직 승인되지 않았고, user-approved revised requirement,
-관련 Issue/derived-document read-back, active graph의 `requirement_basis_sha`가 있어야 한다.
-기준 requirement revision과 revised revision의 deterministic Git diff를 만든다. diff hunk는
-behavior delta를 뒷받침하는 evidence이며 Coder task boundary가 아니다.
+- Triage는 graph 작성 중 `running`인 creator gate다.
+- Planned behavior가 있으면 `ready_candidate`는 Implementation이며 Triage를 parent로 가진다.
+- Planned behavior가 없으면 `ready_candidate`는 aggregate Review이며 Triage를 parent로 가진다.
+- 각 Impl은 최소 하나의 Review와 Summary의 parent다.
+- 모든 Review와 Decision은 Summary의 parent다.
 
-### Effective behavior
+### `review-rework`
 
-PM은 새 root에 requirement의 complete effective behavior를 작성한다. 예를 들어 AA가 A를
-변경하면 새 behavior는 `A′ = A + AA`다. Coder에게 A/AA history를 읽게 하지 않으며, 새 Impl의
-contract는 A′ 전체를 구현하도록 쓴다.
+- Triage, source Review와 기존 history는 `done`이다.
+- Append된 첫 Impl 또는 context Review는 source Review를 parent로 가진다.
+- Corrective Impl은 next Review와 Summary의 parent다.
+- Append된 Review와 Decision은 Summary의 parent다.
+- Decision-only rework는 `ready_candidate: null`이며 Decision status는 `blocked`다.
 
-PM은 각 effective behavior를 current committed code와 비교해 다음 중 하나로 판정한다.
+모든 mode에서 Summary는 하나이며 semantic Issue root다. Graph membership은 Summary body 목록이 아니라
+native direct parent read-back으로 검증한다. Summary direct parents는 모든 Impl, Review와 Decision의
+집합과 정확히 같다.
 
-| Implementation state | 조치 |
+## Phase status invariant
+
+### Draft
+
+- `new`와 `requirement-rework`: Triage는 `running`; 다른 execution card는 `todo`, Decision은
+  `todo | blocked`; `ready` card는 없다.
+- `review-rework`: Triage와 pre-existing history는 `done`; Summary와 appended execution card는
+  `todo`, Decision은 `todo | blocked`; `ready` card는 없다.
+
+### Native
+
+- `new`와 `requirement-rework`: Triage는 `done`; `ready_candidate` 하나만 `ready`; 나머지 execution
+  card는 `todo`, Decision은 `todo | blocked`다.
+- `review-rework`: Triage, source Review와 pre-existing history는 `done`; candidate가 있으면 그 card
+  하나만 `ready`; appended 후속 card와 Summary는 `todo`다. Decision-only면 ready card가 없고
+  Decision은 `blocked`다.
+
+`archived_card_keys`와 native `archived` status는 양방향으로 일치한다. Done history는 archive하지
+않는다. Requirement supersession으로 obsolete한 unfinished card만 archive할 수 있다.
+
+## Review finding contract
+
+Canonical finding은 completed Review의 latest run metadata `findings`에 있다. Comment는 canonical
+source가 아니다. 각 finding은 source Review 범위에서 고유한 `finding_id`, `basis`, `observed_fact`,
+`evidence`, `impact`와 다음 verdict를 가진다.
+
+| verdict | graph 결과 |
 |---|---|
-| `implemented` | new requirement를 계속 충족함을 re-confirm한 done evidence로 inherited 처리 |
-| `partial` | A′ 전체를 목표로 하는 새 Impl 생성 |
-| `absent` | A′ 전체를 목표로 하는 새 Impl 생성 |
-| `unknown` | 제한적 investigation을 계속하거나 실제 policy blocker로 route |
+| `correction-required` | 기존 effective behavior를 충족하는 corrective Impl |
+| `context-required` | approved source를 반영한 next Review |
+| `decision-required` | 같은 G의 blocked Decision |
+| `resolved` | 후속 Review가 이전 finding의 해결을 확인 |
 
-Codebase Memory와 Semble은 후보 locator를 찾는 데 사용한다. 결과만으로 판정하지 않고 PM이
-committed source/test/migration을 직접 read-back해 state evidence를 쓴다.
+Unresolved finding은 disposition 없이 사라질 수 없다. `resolved` finding은 해결한 source Review ID와
+source finding ID를 명시한다. 파생 card는 source Review/finding provenance와 idempotency key를 가지며
+같은 provenance의 work는 하나만 존재한다. Summary는 모든 direct parent가 `done`이고 latest Review
+finding이 이전 blocking finding을 명시적으로 resolved했으며 새 blocking finding이 없을 때만
+promotion될 수 있다.
 
-### Supersession history
+## Validation boundary
 
-- `done` card의 body, ID, run, comment, checkpoint evidence는 immutable이다.
-- affected running card는 requirement superseded라는 실제 사유로 block하고 worker 종료를
-  read-back한 뒤 archive한다.
-- unfinished obsolete Impl, Review, root만 archive한다.
-- 새 root에는 prior root, requirement revision, effective behavior, inherited done evidence,
-  archived unfinished work의 lineage를 기록한다.
-- `current-state.md`는 requirement rework 중간에 갱신하지 않는다.
-
-## Review-rework
-
-Reviewer는 immutable Review body를 읽고 `kanban_complete` run metadata의 `findings`에만
-blocking 결과를 기록한다. PM은 terminal event로 재개된 뒤 해당 task/run/metadata를 native
-read-back한다. comment는 보조 설명이며 PM routing의 canonical input이 아니다.
-
-각 finding은 native Review ID 범위의 `finding_id`, `basis`, `observed_fact`, `evidence`,
-`impact`와 다음 verdict 하나를 가진다.
-
-| finding verdict | PM route |
-|---|---|
-| `correction-required` | 기존 effective behavior를 충족시키는 corrective Impl 생성 |
-| `context-required` | approved source를 read-back해 context를 보강한 다음 Review 생성 |
-| `decision-required` | 같은 G의 Decision card를 native `blocked`로 생성 |
-| `resolved` | 후속 Review가 이전 finding 해결을 확인 |
-
-`needs-input`은 native status가 아니다. Decision card의 semantic reason이며 native status는
-`blocked`다. PM은 policy를 결정하지 않는다. 사용자 결정이 완료된 contract/AC/observable
-behavior를 무효화하면 `requirement-rework`로 G{N+1}을 만들고, 그렇지 않은 clarification은 같은
-G에서 Impl/Review를 append한다.
-
-Review<Q+1> body는 모든 blocking finding의 후속 contract가 확정된 뒤에만 만든다. 이전
-unresolved finding은 새 disposition 없이 사라질 수 없다. Summary promotion은 모든 direct
-parent가 `done`이고 latest Review의 재검사 finding이 모두 `resolved`이며 새 blocking finding이
-없을 때만 가능하다.
-
-PM은 Review의 native child와 Summary direct parent를 read-back해 idempotently recover한다.
-파생 card는 source Review/finding provenance와 native idempotency key를 갖고, 이미 존재하는
-work를 재생성하지 않는다.
-
-## Blocker와 checkpoint
-
-구현 위치 또는 충족 범위를 확인하기 위한 source investigation은 normal planning work다.
-요구사항 policy, ownership, authorization, consistency, error semantics, external prerequisite를
-조사만으로 결정할 수 없을 때만 native `blocked`와 사용자 결정을 사용한다.
-
-Coder의 `running → review` handoff 뒤 PM checkpoint는 verification evidence, changed paths와
-commit boundary를 확인하고 commit한다. PM은 result commit SHA, committed paths와 clean worktree를
-read-back한다. 이 checkpoint는 independent aggregate Review를 대체하지 않는다.
-
-## Evidence boundary
-
-- Backend Coder card는 `backend-implementation-card-v1`을 사용한다. Goal, scope, explicit
-  out-of-scope, current effective behavior, confirmed implementation context, applicable contract
-  dimensions, acceptance criteria, focused verification, full backend verification과 traceability를
-  self-contained하게 가진다.
-- Requirement/source/task locator는 PM traceability evidence다. Coder에게 다른 문서를 다시
-  해석하라고 지시하지 않는다.
-- Baseline/planning SHA, assignee, status, dependency, workspace와 실행 결과는 Impl body에
-  저장하지 않는다. PM admission과 native Kanban이 이 값을 소유한다.
-- 모든 acceptance criterion은 하나 이상의 focused verification에 연결한다. PM은 behavior,
-  test level과 required scenario를 정의하고, Coder는 실제 source를 조사한 뒤 정확한 test FQCN을
-  선택하거나 작성한다.
-- Full backend verification은 `gradle-mcp` backend `test` task다. Frontend/npm/browser 검증은
-  이 contract 범위가 아니다.
-- Credential, raw tool output, prompt, hidden reasoning은 card나 draft에 저장하지 않는다.
-- Deterministic validator는 draft syntax/topology만 확인한다. Native read-back은 persisted
-  status/link/ID를 확인한다. Behavior completion은 PM checkpoint와 Review evidence로 확인한다.
-
-Coder는 focused와 full backend verification이 모두 통과한 뒤 native same-card review를 요청한다.
-PM은 `review` 상태에서 commit하고 result SHA, committed paths와 clean worktree를 read-back한 뒤에만
-card를 완료한다. Card authoring shape는 PM implementation-card contract와 validator에서 관리하고,
-Coder는 자신의 consumption contract로 동일 body를 admission한다.
+`scripts/build_task_graph.py validate-graph`는 wrapper schema, identity, lineage, behavior reference,
+Review/Summary coverage, cycle, mode별 topology, phase status, archive invariant를 검증한다. Validator
+통과는 semantic behavior 완료 증거가 아니다. Native persistence는 read-back으로, behavior 완료는 PM
+checkpoint와 독립 Reviewer evidence로 증명한다.

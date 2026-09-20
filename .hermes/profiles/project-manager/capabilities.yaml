@@ -12,6 +12,7 @@ skills:
     - controll-task-graph
     - sync-docs
     - update-current-state
+    - codebase-memory-mcp
     # Retained for PM-focused documentation search; its content will be revised.
     - semble-search
 

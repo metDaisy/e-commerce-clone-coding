@@ -6,8 +6,11 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
+
+from graph_contract import requirement_diff, validate_graph
 
 CONTRACT_DIMENSIONS = (
     "actor_authorization",
@@ -408,17 +411,33 @@ def main() -> int:
     template_parser.add_argument("--output", required=True, type=Path)
     validate_parser = subparsers.add_parser("validate", help="validate a backend implementation card")
     validate_parser.add_argument("card", type=Path)
+    graph_parser = subparsers.add_parser("validate-graph", help="validate a task graph wrapper")
+    graph_parser.add_argument("graph", type=Path)
+    graph_parser.add_argument("--phase", choices=("draft", "native"), default="draft")
+    diff_parser = subparsers.add_parser("requirement-diff", help="write a read-only requirement comparison")
+    diff_parser.add_argument("--base", required=True)
+    diff_parser.add_argument("--revised", required=True)
+    diff_parser.add_argument("--path", action="append", required=True, dest="paths")
+    diff_parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
 
     if args.command == "template":
         write_json(args.output, template(args.issue, args.issue_url))
         return 0
+    if args.command == "requirement-diff":
+        try:
+            write_json(args.output, requirement_diff(Path.cwd(), args.base, args.revised, args.paths))
+        except (OSError, subprocess.CalledProcessError, ValueError) as exc:
+            print(json.dumps({"valid": False, "errors": [f"REQUIREMENT_DIFF_FAILED:{exc}"]}, ensure_ascii=False))
+            return 2
+        return 0
+    source = args.graph if args.command == "validate-graph" else args.card
     try:
-        card = json.loads(args.card.read_text(encoding="utf-8"))
+        payload = json.loads(source.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        print(json.dumps({"valid": False, "errors": [f"READ_CARD_FAILED:{exc}"]}, ensure_ascii=False))
+        print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
         return 2
-    errors = validate(card)
+    errors = validate_graph(payload, phase=args.phase, validate_implementation=validate) if args.command == "validate-graph" else validate(payload)
     print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=False))
     return 1 if errors else 0
 

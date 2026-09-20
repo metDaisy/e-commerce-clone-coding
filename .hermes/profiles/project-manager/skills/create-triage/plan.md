@@ -128,4 +128,4 @@ Kanban을 read-only 조회한다. Kanban mutation은 PM의 native `kanban_*` too
 - `references/triage-contract.md`
 - `scripts/triage.py`
 - `scripts/test_triage.py`
-- `WORKFLOW-DESIGN.md`와 `build-task-graph/plan.md`의 handoff 정렬
+- `WORKFLOW-DESIGN.md`, `build-task-graph/SKILL.md`와 board contract의 handoff 정렬

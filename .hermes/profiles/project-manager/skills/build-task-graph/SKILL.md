@@ -1,193 +1,140 @@
 ---
 name: build-task-graph
-description: "Build manual Kanban graphs from approved Issue contracts."
-version: 0.4.0
+description: "승인된 Issue에서 검증 가능한 Kanban graph를 작성한다."
+version: 0.6.0
+author: "Amaazon project, Hermes Agent"
 license: MIT
+platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [project-management, kanban, task-graph, requirements, verification]
-    related_skills: [create-triage, service-planning, sync-docs, update-current-state]
+    related_skills: [create-triage, service-planning, sync-docs, update-current-state, controll-task-graph, codebase-memory-mcp, semble-search]
 requires_toolsets: [kanban]
 ---
 
-# Build Task Graph
+# Task graph 작성
 
-Turn an approved Issue contract into a manually authored native Kanban graph. The
-Project Manager owns graph membership and promotion; native Kanban owns lifecycle,
-dependencies, task IDs, assignees, runs, comments, and evidence. Coder cards remain
-self-contained: they implement the current behavior contract, never a history of its
-requirement deltas.
+승인된 Issue 계약을 native Kanban graph로 변환한다. PM은 graph membership, self-contained card,
+최초 activation과 rework mutation을 소유한다. Native Kanban은 task ID, assignee, status, link, run,
+comment와 event를 소유한다.
 
-Read [`references/board-contract.md`](references/board-contract.md) before drafting. For every backend
-Impl, also read the PM-owned
-[`references/implementation-card-contract.md`](references/implementation-card-contract.md). The board
-contract owns graph identity, topology and promotion; the implementation-card contract owns PM authoring
-semantics and body validation.
-`SOUL.md` owns role boundaries; `controll-task-graph` owns checkpoint, review routing, and release closure.
+모든 mode에서 [`references/board-contract.md`](references/board-contract.md)를 읽는다. Backend Impl을
+작성할 때만 [`references/implementation-card-contract.md`](references/implementation-card-contract.md)를
+추가로 읽는다. 전자는 persisted graph의 schema·invariant, 후자는 Impl body의 단일 기준이다.
 
-## Modes
+## 사용 조건
 
-- `new`: create generation 1 for a selected leaf Issue.
-- `requirement-rework`: replace an active, unfinished generation after an approved
-  requirement revision. Do not use after its aggregate review has completed; create a
-  new Issue instead.
-- `review-rework`: completed aggregate Review finding을 읽어 같은 generation에 필요한 corrective
-  work, context re-review, 또는 policy Decision을 append한다.
+- `new`: 승인된 leaf Issue의 G1 graph가 필요하다.
+- `requirement-rework`: aggregate Review 승인 전에 승인 requirement revision이 active contract를
+  바꿔 G{N+1} superseding graph가 필요하다.
+- `review-rework`: 완료된 aggregate Review의 structured finding에 같은 generation의 corrective Impl,
+  context re-review 또는 blocked Decision이 필요하다.
 
-## Native graph model
+aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하지 않고 새 Issue의 `new`를
+사용한다.
 
-Use native links only for execution dependencies. A Kanban parent must be `done`
-before its child becomes eligible, so the semantic Issue root is a native aggregate
-child rather than the native parent of its implementation cards.
+## 조건부 Skill routing
 
-```text
-G<N>-Issue<M>-Triage
-Triage → first eligible Impl → Review<Q> → Summary
-Review<Q> → corrective Impl → Review<Q+1> → Summary
-Review<Q> → Decision → corrective Impl
-```
+다음 조건에서 해당 Skill을 읽고 그 완료 기준을 충족할 때까지 graph 작성을 중단한다.
 
-- `G<N>-Issue<M>-Triage` is immutable planning provenance after completion.
-- `G<N>-Issue<M>-Summary` is the semantic Issue root and PM finalization card.
-- `G<N>-Issue<M>-Impl<P>` is one Coder contract.
-- `G<N>-Issue<M>-Review<Q>` is one aggregate Reviewer task.
-- `G` increments only for a user-approved requirement revision. `Impl`, `Decision`, and `Review` increment
-  for new work within that generation; `Review` increments for aggregate review
-  rounds. Do not put `rework`, `replacement`, or `corrective` in titles.
+- 새 leaf Issue의 G1 planning record가 없으면 `create-triage`를 사용한다. G{N+1} rework Triage는 이
+  Skill이 작성한다.
+- Policy·authorization·consistency·오류 의미·UI 의미에 사용자 결정이 남으면
+  `service-planning`을 사용하고 Triage를 `blocked`로 유지한다.
+- 승인 requirement와 파생 문서 또는 Issue가 불일치하면 `sync-docs`를 사용하고 mutation을
+  read-back한다.
+- `current-state.md`가 fresh하지 않거나 판정 근거가 부족하면 `update-current-state`를 사용한다.
+  Requirement-rework 중간에는 snapshot 대신 committed source를 직접 확인한다.
+- Behavior locator가 불명확할 때만 `codebase-memory-mcp` 또는 `semble-search`를 사용한다. 결과는
+  후보이며 committed source/test/migration read-back이 구현 상태의 근거다.
+- 최초 activation 뒤 checkpoint, 후속 promotion, aggregate Review, Summary와 release lifecycle은
+  `controll-task-graph`에 인계한다. Review finding이 graph mutation을 요구하면 이 Skill의
+  `review-rework`로 돌아온다.
 
-Card bodies preserve immutable semantic contracts and generation lineage. Summary membership is
-computed from native direct-parent read-back, while native links express actual prerequisites. Backend
-Impl bodies use the canonical `backend-implementation-card-v1` schema linked from the board contract.
+## 공통 작성 절차
 
-## Manual authoring rule
+1. **입력과 mode를 고정한다.** Leaf Issue, 승인 requirement, planning baseline, workflow marker,
+   current-state, 기존 native card를 읽는다. 완료 기준: mode와 requirement basis가 하나로 확정되고
+   누락 입력은 owner에게 routing되었다.
+2. **Behavior를 분류한다.** 각 effective behavior를 `implemented | partial | absent | unknown`으로
+   판정한다. `implemented`는 새 contract를 계속 충족하는 source-backed evidence가 있어야 하며,
+   `partial`/`absent`만 Impl을 만든다. 완료 기준: 모든 behavior에 state, disposition과 근거가 있다.
+3. **Draft를 검증한다.** `.temp/task-graphs/<issue>/graph.json`을 작성하고 `validate-graph --phase
+   draft`를 실행한다. Backend Impl은 `template`로 시작해 승인된 사실만 채우고 `validate`한다.
+   완료 기준: validator finding이 없다.
+4. **Native graph를 생성한다.** Card와 link를 하나씩 만들며 body, ID, assignee, status와 parent를
+   각각 read-back한다. Wrapper를 read-back 값으로 갱신한다. 완료 기준: 신규 execution card가
+   dispatchable하지 않고 wrapper와 native 상태가 일치한다.
+5. **Activation을 검증한다.** Mode별 activation을 실행한 뒤 `validate-graph --phase native`를
+   실행한다. 완료 기준: 정확히 하나의 activation target만 `ready`이거나, unresolved Decision-only
+   graph에는 `ready` card가 없다.
 
-Do not use the built-in Kanban decomposer. Create cards manually through native
-Kanban actions. Atomic graph creation is not required when every new Impl/Review
-card is created in `todo`, read back, and no card is promoted before the entire graph
-has passed the draft and native read-back checks.
+Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않는다.
 
-Use `scripts/build_task_graph.py template` to create a fact-only backend Impl scaffold under `.temp`,
-then author it from approved inputs and run `validate`. The helper enforces the canonical
-`backend-implementation-card-v1` body only; graph topology and native persisted state remain separate
-manual read-back gates.
+## `new` 절차
 
-1. Keep Triage as the PM-owned `running` creator-session gate. Create the first eligible Impl with
-   Triage as its parent; a parentless native task becomes `ready` immediately. Create every other new
-   Impl and Review with its actual prerequisite parent so it starts in `todo`. Use task IDs only after
-   native read-back.
-2. Link initial Impl to Review1 and Summary. Link every Review to Summary. A Review-originated
-   Impl is its child and is a parent of the next Review and Summary; Decision is a Review child and
-   Summary parent.
-3. Verify all bodies, assignees, links, and `todo` statuses through native read-back.
-4. Complete Triage only after the graph passes read-back. Verify its dependency promotion makes exactly
-   one eligible Impl `ready` and leaves every other execution card in `todo`.
+1. `create-triage`가 freeze한 `running` G1 Triage와 handoff를 읽는다. 완료 기준:
+   `build_task_graph.allowed: true`이고 미해결 policy finding이 없다.
+2. Impl, Review1, Summary body와 topology를 작성한다. Impl은 history delta가 아니라 현재 effective
+   behavior 전체를 구현하는 self-contained `backend-implementation-card-v1`이다.
+3. Planned behavior가 있으면 첫 Impl을 Triage child로 둔다. Planned behavior가 없으면 전체
+   inherited behavior를 재검증할 Review1을 Triage child이자 activation target으로 둔다.
+4. 공통 작성 절차를 완료하고 Triage를 완료한다.
 
-The PM decides `todo → ready`. The native dispatcher claims a ready assigned card and
-spawns its worker, causing `ready → running`; a model override affects that dispatch
-but is not the lifecycle transition itself.
+완료 기준: Triage는 `done`이고 첫 Impl 또는 no-Impl Review 하나만 `ready`다.
 
-## New generation procedure
+## `requirement-rework` 절차
 
-1. **Admit.** Read the leaf Issue, approved requirement, clean repository and
-   baseline, active workflow marker, fresh `current-state` snapshot, and existing
-   native cards. Completion: all input facts are read back or routed to their owner.
-2. **Author triage.** Create or claim `G1-Issue<M>-Triage` as the PM creator-session's `running`
-   planning gate with the complete delivery
-   behavior model, document evidence, scope, exclusions, aggregate acceptance, and
-   graph membership plan. Completion: its body is validated and read back.
-3. **Classify each behavior.** When its domain tools are exposed in the fresh PM
-   session, use Codebase Memory to inspect index state and trace candidates; confirm
-   results with committed source/test/migration snippets. Use Semble to locate related documents
-   or unknown behavior, then confirm candidates directly. Classify each behavior as
-   `implemented`, `partial`, `absent`, or `unknown`. Completion: every behavior has
-   source-backed state evidence or an explicit unresolved fact.
-4. **Author work.** Create an Impl card only for `partial` or `absent` behavior. Give it the full
-   desired behavior contract, confirmed implementation context, explicit scope/exclusions, every backend
-   applicability dimension, acceptance criteria, focused verification, full backend verification, and
-   traceability. Do not add a baseline SHA or frontend contract. Completion: every new card validates as
-   `backend-implementation-card-v1`, is self-contained, and is assigned.
-5. **Add review and start.** Create `Review1` and `Summary`, link the dependency graph,
-   complete the manual authoring rule, then complete the Triage artifact so native dependency promotion
-   releases the first Impl. Completion: native read-back shows one ready Impl and every
-   other new execution card in `todo`.
+1. 승인 revised requirement와 파생 문서/Issue read-back을 확인한다. `requirement-diff`로
+   basis→revised 비교 산출물을 만든 뒤 각 hunk를 behavior delta evidence로 해석한다. Helper가
+   behavior 결론을 자동 확정하지 않는다.
+2. Affected running card를 실제 supersession 사유로 block하고 worker 종료를 read-back한다. `done`
+   history는 보존한다.
+3. Prior Summary, archived unfinished work, inherited done evidence, revised requirement와 complete
+   effective behavior를 가진 G{N+1} draft를 작성한다.
+4. 새 graph를 완전히 read-back한 뒤 obsolete unfinished Impl/Review/Summary만 archive한다. Planned
+   behavior가 있으면 첫 Impl, 없으면 aggregate Review를 Triage child와 activation target으로 둔다.
+5. 공통 작성 절차를 완료하고 새 Triage를 완료한다.
 
-## Requirement-rework procedure
+완료 기준: G{N+1}만 dispatchable하며 모든 desired behavior가 inherited, planned 또는 blocked다.
 
-1. **Freeze the new requirement.** Require an approved requirement revision plus
-   derived-document and Issue read-back. Build a Git diff artifact from the active
-   generation's requirement basis revision to the new revision; normalize it into
-   behavior deltas, not file or hunk tasks. Completion: each delta states the prior
-   rule, new rule, observable consequence, dimensions, and diff evidence.
-2. **Stop obsolete work truthfully.** Preserve `done` cards unchanged. Block an
-   affected running card with the requirement change as the actual blocker and wait
-   for its run to terminate. Archive unfinished Impl cards and an unfinished Review
-   after their replacement plan is ready. Completion: no obsolete task remains
-   dispatchable.
-3. **Create the next triage artifact.** Create `G<N+1>-Issue<M>-Triage` in `triage`.
-   Its body records the prior Summary, archived unfinished tasks, inherited done evidence, new requirement
-   revision, and an effective behavior model such as `A′ = A + AA`. Completion: the
-   new root can explain every desired behavior without asking a Coder to read G<N>.
-4. **Classify effective behaviors.** For every behavior in the new root, inspect the
-   current committed code against the whole desired contract (`A′`), not merely its
-   delta (`AA`). Reuse done evidence only when confirmed source/test evidence still
-   satisfies the new behavior. Create new Impl cards for confirmed `partial` or
-   `absent` behavior. Completion: every behavior is inherited, planned, or explicitly
-   unknown.
-5. **Build and start the next graph.** Follow the manual authoring rule, complete the
-   new Triage artifact, then archive only superseded unfinished execution cards after
-   the replacement graph is fully read back. Preserve done history. Promote only the
-   first eligible new Impl card. Completion: the new generation is the only
-   dispatchable active plan.
+## `review-rework` 절차
 
-## Review-rework procedure
+1. Done Review의 terminal completion event, latest run metadata, body, children과 Summary direct parents를
+   read-back한다. Run metadata의 canonical `findings`만 routing input으로 사용한다.
+2. `correction-required`는 기존 effective behavior를 충족하는 Impl, `context-required`는 approved
+   source를 재확인하는 Review, `decision-required`는 같은 G의 blocked Decision으로 materialize한다.
+3. Completed card/body/link를 그대로 두고 source Review→새 work→next Review/Summary를 append한다.
+   모든 blocking finding의 후속 contract가 정해진 뒤 next Review를 만든다.
+4. `source_review`에 review key, finding별 verdict·appended card와 card별 idempotency key를 기록한다.
+   Native child와 Summary parents를 read-back해 이미 존재하는 work를 재생성하지 않는다.
+5. Appended Impl이 있으면 첫 Impl을 activation target으로 둔다. Context-only rework이면 next Review를
+   activation target으로 둔다. Unresolved Decision-only rework이면 `ready_candidate: null`로 두고
+   Decision을 `blocked`로 유지한다. Triage와 source history는 `done` 상태를 유지한다.
+6. 공통 작성 절차의 draft/native 검증을 완료한다. Review-rework에서는 Triage completion을 다시
+   실행하지 않는다.
 
-1. **Read the handoff.** PM creator-session resume 또는 fresh recovery에서 done Review의 latest
-   run metadata, task body, comments, children, Summary parents를 read-back한다. `findings`만
-   routing input으로 사용한다.
-2. **Route every finding.** `correction-required`는 기존 effective behavior A를 충족하는
-   self-contained Impl로 materialize한다. A의 구현 결함 AA는 requirement delta A′가 아니다.
-   `context-required`는 approved source를 직접 확인한다. `decision-required`는 같은 G의
-   `Decision<R>`을 native `blocked`로 만든다; PM은 정책을 채우지 않는다.
-3. **Append without rewriting history.** completed Review/Impl/Summary body를 수정하거나 link를
-   제거하지 않는다. source Review→Impl/Decision, new Impl→next Review/Summary, every
-   Review/Decision→Summary link를 create/read-back한다.
-4. **Create the next review last.** 모든 blocking finding의 context와 corrective contract가
-   확정된 뒤 Review<Q+1>을 만든다. 이전 finding마다 새 disposition을 요구하며 aggregate scope는
-   complete effective behavior다.
-5. **Recover idempotently.** source Review/finding provenance와 idempotency key로 기존 children과
-   Summary parents를 확인한다. 없는 card만 만들고, graph read-back 뒤 하나의 eligible Impl만
-   `ready`로 promotion한다.
+완료 기준: 모든 finding에 disposition이 있고, historical card는 immutable·`done`, append된 graph가
+검증되며 ready card는 최대 하나다.
 
-## Blockers and review
+## Helper
 
-- Continue source investigation while evidence is merely incomplete. Use native
-  `blocked` only when requirement policy, ownership, authorization, consistency,
-  error semantics, or an external prerequisite cannot be resolved by investigation.
-- A Coder uses `running → review` only after focused tests and the backend full test suite pass. PM reads
-  the canonical handoff, verifies the diff and commit boundary, commits, and reads back the result SHA,
-  committed paths, and clean worktree; only then does the Impl card become `done`.
-- `Review<Q>` is a Reviewer-owned aggregate task, normally `todo → ready → running → done`.
-  `done` means review execution finished; finding disposition, not status alone, determines Summary eligibility.
-- Summary becomes `ready` only after every direct parent is done and latest Review has no unresolved or
-  new blocking finding. PM claims it, verifies final delivery conditions, then completes it.
-
-## Report
-
-Report in Korean:
+다음 명령은 `terminal`로 Skill directory에서 실행한다.
 
 ```text
-## build-task-graph report
-- mode: new | requirement-rework | review-rework | blocked
-- generation / root:
-- requirement_basis / revised_requirement:
-- behavior_classification:
-- inherited_done_evidence:
-- created_cards / archived_cards:
-- native_readback:
-- ready_card:
-- blockers_or_unknowns:
-- next_transition:
+python scripts/build_task_graph.py template --issue <number> --issue-url <url> --output .temp/task-graphs/<issue>/impl-1.json
+python scripts/build_task_graph.py validate .temp/task-graphs/<issue>/impl-1.json
+python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase draft
+python scripts/build_task_graph.py requirement-diff --base <sha> --revised <sha> --path <requirement-path> --output .temp/requirement-rework/<issue>/comparison.json
+python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase native
+python tests/native_e2e.py --profile project-manager
 ```
 
-Never report a behavior as implemented, a card as done, or a graph as dispatchable
-without the corresponding source/evidence and native state read-back.
+Validator는 schema·topology 일관성을 증명한다. Native status/link/ID는 read-back으로, behavior 완료는
+checkpoint와 Reviewer evidence로 별도 증명한다.
+
+## 보고
+
+한국어로 mode, generation/root, requirement basis/revision, behavior classification, inherited evidence,
+created/archived cards, native read-back, activation target, blocker와 next transition을 보고한다. 근거 없이
+behavior를 implemented, card를 done, graph를 dispatchable이라고 보고하지 않는다.

@@ -1,7 +1,7 @@
 ---
 name: controll-task-graph
-description: Use when handling Coder review handoffs and PM checkpoints.
-version: 0.2.0
+description: "Coder handoff checkpoint, 다음 task promotion, aggregate Review routing, Summary finalization 또는 release lifecycle을 운영할 때 사용한다."
+version: 0.3.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -93,6 +93,22 @@ and full backend verification, and submits a new handoff on the same task.
   recover the same review run.
 - Never copy handoff facts from prose, infer a missing test result, weaken validator output, or complete a
   card from a different session/workspace.
+
+## Graph lifecycle routing
+
+1. Impl completion read-back 뒤 native dependency가 충족한 다음 child 하나만 진행시킨다.
+2. 모든 prerequisite Impl이 `done`이면 Reviewer-assigned aggregate Review를 활성화한다. PM은 Review
+   body를 작성하지만 verdict를 대신하지 않는다.
+3. Done Review의 canonical finding metadata를 읽는다. Corrective Impl, context re-review 또는 Decision이
+   필요하면 `build-task-graph`의 `review-rework`에 넘기고 append된 graph를 read-back한다.
+4. 모든 Summary direct parent가 `done`이고 latest Review에 unresolved/new blocking finding이 없을 때만
+   Summary를 finalization한다.
+5. Final implementation SHA를 고정하고 `sync-docs`, `update-current-state`, PR·CI·merge·Issue closure를
+   순서대로 수행한다. 모든 external mutation은 정확한 target을 다시 읽는다.
+
+완료 기준: 각 transition의 native/external read-back, relevant SHA, verification, clean worktree와 다음
+eligible task가 확인된다. Card schema와 rework topology는 이 Skill이 아니라 `build-task-graph`가
+소유한다.
 
 ## Report
 
