@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-BUILD_TASK_GRAPH_SCRIPTS = Path(__file__).resolve().parents[1] / "build-task-graph" / "scripts"
+BUILD_TASK_GRAPH_SCRIPTS = Path(__file__).resolve().parents[2] / "build-task-graph" / "scripts"
 sys.path.insert(0, str(BUILD_TASK_GRAPH_SCRIPTS))
 from build_task_graph import validate as validate_card  # noqa: E402
 

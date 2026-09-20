@@ -1,14 +1,14 @@
 ---
 name: create-triage
 description: 새 leaf Issue의 실행 graph 전 계획을 검증한다.
-version: 0.2.0
+version: 0.2.1
 author: Amaazon project, Hermes Agent
 license: MIT
 platforms: [windows, linux, macos]
 metadata:
   hermes:
     tags: [project-management, triage, kanban, requirements]
-    related_skills: [service-planning, sync-docs, build-task-graph, update-current-state]
+    related_skills: [build-task-graph]
 requires_toolsets: [kanban]
 ---
 
@@ -31,7 +31,7 @@ card는 구현 아이디어, 문서 영향, 정책 질문과 다음 단계의 �
 2. 선택한 leaf Issue와 ancestor lineage, clean repository, planning HEAD를 read-back한다.
 3. 승인 requirement와 관련 reference를 읽는다.
 4. `current-state.md`가 `fresh`인지 확인한다. `stale` 또는 `insufficient`이면 card를 만들지 않고
-   `update-current-state`로 넘긴다.
+   `snapshot-refresh-required` blocker를 root `run-workflow`에 반환한다.
 5. Native Kanban의 create, show, claim, block, complete surface가 사용 가능한지 확인한다.
 
 완료 기준: Issue, requirement, planning SHA, current-state snapshot과 사용할 Kanban surface가 모두
@@ -43,12 +43,11 @@ card는 구현 아이디어, 문서 영향, 정책 질문과 다음 단계의 �
 
 | Skill | 사용하는 경우 | 사용하는 방법과 복귀 조건 |
 |---|---|---|
-| `update-current-state` | Snapshot이 `stale` 또는 `insufficient`이다. | Committed implementation 기준으로 freshness를 판정·갱신하고 snapshot SHA를 read-back한다. `fresh`가 확인되면 Triage admission으로 돌아온다. |
 | `service-planning` | Policy, authorization, consistency, 오류 의미 또는 UI 의미를 source만으로 결정할 수 없다. | Triage를 `blocked`로 유지하고 human-readable decision card를 연결한다. 사용자의 결정과 requirement 반영을 read-back한 뒤 재개한다. |
 | `sync-docs` | 승인 requirement와 파생 문서 또는 GitHub Issue가 불일치한다. | `current-state.md`를 제외한 영향 대상을 동기화하고 외부 mutation을 read-back한다. 모든 불일치가 해소되면 재검증한다. |
 | `build-task-graph` | Triage가 frozen이고 graph gate가 열렸다. | Frozen body, 승인 requirement, fresh snapshot과 Issue를 넘긴다. Graph 전체 검증 뒤 이 Skill이 Triage를 완료하고 첫 실행 대상 하나만 `ready`로 만든다. |
 
-네 Skill은 모두 실제 workflow handoff다. Source 위치 조사나 일반 구현에는 대신 사용하지 않는다.
+세 Skill은 모두 실제 workflow handoff다. Source 위치 조사나 일반 구현에는 대신 사용하지 않는다.
 
 ## Kanban lifecycle
 

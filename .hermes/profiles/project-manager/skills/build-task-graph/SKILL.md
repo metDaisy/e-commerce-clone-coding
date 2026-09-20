@@ -1,14 +1,14 @@
 ---
 name: build-task-graph
 description: "승인된 Issue에서 검증 가능한 Kanban graph를 작성한다."
-version: 0.6.0
+version: 0.6.1
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [project-management, kanban, task-graph, requirements, verification]
-    related_skills: [create-triage, service-planning, sync-docs, update-current-state, controll-task-graph, codebase-memory-mcp, semble-search]
+    related_skills: [codebase-memory-mcp, semble-search]
 requires_toolsets: [kanban]
 ---
 
@@ -43,12 +43,13 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
   `service-planning`을 사용하고 Triage를 `blocked`로 유지한다.
 - 승인 requirement와 파생 문서 또는 Issue가 불일치하면 `sync-docs`를 사용하고 mutation을
   read-back한다.
-- `current-state.md`가 fresh하지 않거나 판정 근거가 부족하면 `update-current-state`를 사용한다.
-  Requirement-rework 중간에는 snapshot 대신 committed source를 직접 확인한다.
+- `current-state.md`가 fresh하지 않거나 판정 근거가 부족하면 graph 작성을 중단하고
+  `snapshot-refresh-required` blocker를 root `run-workflow`에 반환한다. Requirement-rework 중간에는
+  snapshot 대신 committed source를 직접 확인한다.
 - Behavior locator가 불명확할 때만 `codebase-memory-mcp` 또는 `semble-search`를 사용한다. 결과는
   후보이며 committed source/test/migration read-back이 구현 상태의 근거다.
 - 최초 activation 뒤 checkpoint, 후속 promotion, aggregate Review, Summary와 release lifecycle은
-  `controll-task-graph`에 인계한다. Review finding이 graph mutation을 요구하면 이 Skill의
+  `run-workflow`에 인계한다. Review finding이 graph mutation을 요구하면 이 Skill의
   `review-rework`로 돌아온다.
 
 ## 공통 작성 절차

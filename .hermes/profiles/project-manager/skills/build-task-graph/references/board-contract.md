@@ -8,7 +8,7 @@ version: 6.0.0
 이 문서는 persisted graph의 schema와 machine-checkable invariant를 소유한다. Runtime 절차는
 [`../SKILL.md`](../SKILL.md), Backend Impl body는
 [`implementation-card-contract.md`](implementation-card-contract.md), checkpoint는
-[`../../controll-task-graph/references/execution-contract.md`](../../controll-task-graph/references/execution-contract.md)가 소유한다. Native Kanban read-back이 task ID,
+[`../../run-workflow/references/execution-contract.md`](../../run-workflow/references/execution-contract.md)가 소유한다. Native Kanban read-back이 task ID,
 assignee, status, parent, run, comment와 event의 원본이다.
 
 ## Graph wrapper

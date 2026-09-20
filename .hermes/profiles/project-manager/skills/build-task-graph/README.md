@@ -13,7 +13,7 @@ Coder는 자신의 self-contained card에 기록된 현재 behavior를 구현합
 
 연관 Skill을 선택하는 전체 기준은 [Project Manager Skill index](../index.md)를 참고합니다.
 `build-task-graph`는 card/graph 작성과 최초 promotion을 소유하고, 이후 checkpoint·review·release
-lifecycle은 `controll-task-graph`가 소유합니다.
+lifecycle은 `run-workflow`가 소유합니다.
 
 ## Graph
 

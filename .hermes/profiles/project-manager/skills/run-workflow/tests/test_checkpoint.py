@@ -6,9 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parent
+TEST_DIR = Path(__file__).resolve().parent
+SKILL_DIR = TEST_DIR.parent
 PROFILE_DIR = SKILL_DIR.parents[1]
-sys.path.insert(0, str(SKILL_DIR))
+sys.path.insert(0, str(SKILL_DIR / "scripts"))
 from checkpoint import (  # noqa: E402
     validate_change_request,
     validate_checkpoint,
@@ -222,7 +223,7 @@ class CheckpointContractTest(unittest.TestCase):
             card_path.write_text(json.dumps(self.card(), ensure_ascii=False), encoding="utf-8")
             handoff_path.write_text(json.dumps(self.handoff(), ensure_ascii=False), encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, str(SKILL_DIR / "checkpoint.py"), "handoff", str(card_path), str(handoff_path)],
+                [sys.executable, str(SKILL_DIR / "scripts" / "checkpoint.py"), "handoff", str(card_path), str(handoff_path)],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -243,7 +244,7 @@ class CheckpointContractTest(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(SKILL_DIR / "checkpoint.py"),
+                    str(SKILL_DIR / "scripts" / "checkpoint.py"),
                     "checkpoint",
                     str(paths["card"]),
                     str(paths["handoff"]),
@@ -261,7 +262,7 @@ class CheckpointContractTest(unittest.TestCase):
             request_path = Path(directory) / "request.json"
             request_path.write_text('{"schema":"wrong","schema":"backend-implementation-change-request-v1"}', encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, str(SKILL_DIR / "checkpoint.py"), "change-request", str(request_path)],
+                [sys.executable, str(SKILL_DIR / "scripts" / "checkpoint.py"), "change-request", str(request_path)],
                 capture_output=True,
                 text=True,
                 check=False,

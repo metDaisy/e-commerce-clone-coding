@@ -1,13 +1,13 @@
 ---
 name: update-current-state
 description: "백엔드 src 구현 snapshot을 판정하고 갱신할 때 사용한다."
-version: 1.0.0
+version: 1.0.1
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [project-management, current-state, snapshot, recovery]
-    related_skills: [sync-docs, build-task-graph, controll-task-graph]
+    related_skills: []
 ---
 
 # Current state 갱신

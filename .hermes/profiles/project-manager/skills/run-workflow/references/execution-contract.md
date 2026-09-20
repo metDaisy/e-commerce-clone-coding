@@ -1,8 +1,8 @@
-# PM implementation checkpoint contract
+# PM 구현 checkpoint 계약
 
 이 문서는 Project Manager가 Coder의 same-card review handoff를 검수하고 changes-request 또는 checkpoint
 completion으로 전환하는 권한과 field contract를 소유한다. 실행 순서는
-[`../SKILL.md`](../SKILL.md), 결정론적 validation은 [`../checkpoint.py`](../checkpoint.py)가 소유한다.
+[`../SKILL.md`](../SKILL.md), 결정론적 validation은 [`../scripts/checkpoint.py`](../scripts/checkpoint.py)가 소유한다.
 Coder의 구현·검증·handoff 생성 절차는 Coder `run-impl-card` 계약이 소유한다.
 
 ## PM 입력과 권한
@@ -56,7 +56,7 @@ finding ID와 짧은 요약만 가지며 이 object를 대체하지 않는다.
 `source_handoff_id`는 검토한 latest handoff와 같고 `source_review_run_id`는 active PM review run과 같다.
 `finding_id`는 request 안에서 고유하다. 각 finding은 exact path·symbol, 관찰된 문제, 기대 결과, 허용
 범위와 다시 실행할 검증을 모두 가진다. 일반적인 개선 요청이나 card의 제품 의미를 바꾸는 요청은
-허용하지 않는다. `checkpoint.py change-request` validation이 통과한 뒤에만 comment와 native
+허용하지 않는다. `scripts/checkpoint.py change-request` validation이 통과한 뒤에만 comment와 native
 `request-changes`를 수행한다.
 
 ## Checkpoint completion contract
@@ -80,7 +80,7 @@ PM은 검증된 path만 stage·commit하고 result commit과 clean worktree를 r
 정확히 같아야 한다. Full backend evidence, 40-character commit SHA와 clean worktree를 read-back하기
 전에는 completion metadata를 작성하거나 task를 `done`으로 전환하지 않는다.
 
-`checkpoint.py checkpoint` validation 후 `kanban_complete`를 호출하고 task `done`, closing PM run
+`scripts/checkpoint.py checkpoint` validation 후 `kanban_complete`를 호출하고 task `done`, closing PM run
 metadata, result SHA, committed paths와 clean Git state를 다시 read-back한다.
 
 ## Lifecycle boundary

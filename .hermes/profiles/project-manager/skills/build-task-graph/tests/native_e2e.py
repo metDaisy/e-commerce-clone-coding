@@ -264,8 +264,6 @@ class NativeE2E:
                 raise RuntimeError("review finding resolution provenance read-back mismatch")
             if self.status(self.show(summary)) != "ready":
                 raise RuntimeError("Summary was not promoted after every direct parent completed")
-            self.board_run("claim", summary, "--ttl", "120")
-            self.board_run("complete", "--force", summary, "--result", "finalization verified")
 
             obsolete = self.create("G1-Issue138-Impl99", "implementation-coder", corrective_body)
             self.board_run("claim", obsolete, "--ttl", "120")
@@ -285,7 +283,7 @@ class NativeE2E:
                 "review_rework_native_validation": "pass",
                 "review_completion_event_and_finding_readback": "pass",
                 "idempotent_recovery": "pass",
-                "summary_lifecycle": "pass",
+                "summary_admission_frontier": "pass",
                 "running_worker_termination_and_archive": "pass",
             }
         finally:

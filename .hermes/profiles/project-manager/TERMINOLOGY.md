@@ -92,7 +92,7 @@ H3  H2를 조사해 current-state를 갱신한 docs-only commit
 | `create-triage` | triage procedure와 JSON planning record |
 | `service-planning` | 사용자 결정 전 서비스·정책·UI 선택지 조사 |
 | `build-task-graph` | task graph authoring 및 `new`·rework procedure |
-| `controll-task-graph` | checkpoint, promotion, recovery, review routing, PR·CI·merge·Issue close의 운영 절차 |
+| `run-workflow` | Kanban 중심 root workflow와 checkpoint, promotion, recovery, review routing, PR·CI·merge·Issue close 절차 |
 | `sync-docs` | current-state 외 파생 문서와 tracker 동기화 |
 | `update-current-state` | current-state schema, freshness, snapshot, marker의 상세 |
 | `board-contract.md` | persisted task field, graph invariant, deterministic validator 규칙 |

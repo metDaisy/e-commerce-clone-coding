@@ -208,8 +208,9 @@ PM은 하나의 `restart-task`로 clean committed checkpoint를 복원한다. un
 blocked와 사용자 decision으로 올린다.
 
 B 작업 중 A가 소유한 public contract·domain rule 결함을 발견하면 B를 block하고 A rework → checkpoint →
-B base sync 순서로 진행한다. rebase/merge 선택, impact-analysis evidence, semantic conflict 판단의 상세
-절차는 아직 runtime contract로 확정되지 않았다. semantic conflict는 Coder나 PM이 독자 결정하지 않는다.
+B base sync 순서로 진행한다. `run-workflow`의 `base-sync-v1`은 rebase/merge 선택 근거,
+impact-analysis evidence, affected downstream card와 post-sync verification을 검증한다. Semantic conflict는
+Decision으로 올리며 Coder나 PM이 독자 결정하지 않는다.
 
 ## 6. Finalization과 release
 
@@ -253,10 +254,10 @@ mutation 대신 default-branch PR의 closing keyword와 merge 뒤 auto-close rea
 다음은 **결정된 workflow**이지만 아직 모두 runtime으로 검증된 것은 아니다.
 
 - manual native graph, `new`·`requirement-rework`·`review-rework` procedure와 finding contract는 설계 기준으로 합의됐다.
-- `build-task-graph` helper/validator는 `backend-implementation-card-v1` body와 native Triage gate E2E를 지원한다. graph-level Review·Summary·Decision validator와 rework helper는 후속 항목이다.
-- `controll-task-graph`는 backend Impl handoff·changes-request·checkpoint validator와 same-card review 절차를 지원한다. release, base-sync와 interrupted-workflow 절차는 아직 초안이다.
+- `build-task-graph` helper/validator는 `backend-implementation-card-v1`, graph-level Review·Summary·Decision body/topology와 `new`·rework mode를 지원하며 native Triage gate E2E를 제공한다.
+- Root `run-workflow`는 runtime frontier, backend Impl handoff·changes-request·checkpoint, Review finding closure, Summary admission, release, base-sync, interrupted-workflow와 CI/PR finding contract·validator를 지원한다. Native graph E2E는 Review finding·idempotent rework·Summary admission frontier까지 검증하며 실제 GitHub release E2E는 외부 Issue에서 수행해야 한다.
 - `update-current-state`는 `src/**` freshness, 문서 schema, recovery marker와 read-only inspection helper를 지원한다. `service-planning`, `sync-docs`는 role boundary와 계획이 있으나 일부 procedure가 아직 초안이다.
-- base-sync의 detailed procedure, GitHub guide, finding/rework draft schema, PM-focused Semble의 runtime E2E는 미확정 또는 미검증이다.
+- `service-planning`, `sync-docs`의 일부 procedure와 PM-focused Semble의 runtime E2E는 아직 미완료 또는 미검증이다.
 
 따라서 이 문서를 Profile topology와 ownership의 기준으로 사용하되, 실제 mutation 전에 해당 Skill,
 reference contract, enabled capability, native tool schema를 read-back해야 한다.

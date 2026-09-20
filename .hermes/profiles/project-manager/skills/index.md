@@ -13,7 +13,7 @@
 | 승인 requirement 변경을 파생 문서나 GitHub Issue에 반영 | `sync-docs` | `current-state.md` snapshot은 갱신하지 않는다. |
 | 구현 snapshot이 stale/insufficient하거나 finalization snapshot 필요 | `update-current-state` | Requirement-rework 중간의 source 확인은 제외한다. |
 | 승인 입력으로 G1, requirement-rework 또는 review-rework graph 작성 | `build-task-graph` | Coder run checkpoint와 후속 lifecycle은 운영하지 않는다. |
-| Impl handoff checkpoint, 다음 task, aggregate Review, Summary·release lifecycle 운영 | `controll-task-graph` | Card schema와 corrective graph는 작성하지 않는다. |
+| Issue admission, Impl checkpoint, 다음 task, aggregate Review, Summary·release·recovery lifecycle 운영 | `run-workflow` | Root workflow이며 card schema와 corrective graph는 작성하지 않는다. |
 
 ## 탐색 보조 Skill
 
@@ -25,16 +25,17 @@
 ## 대표 routing
 
 ```text
-new leaf Issue
-  → create-triage
-     ├─ 사용자 결정 필요 → service-planning → requirement 승인
-     ├─ 파생 문서/Issue 불일치 → sync-docs
-     └─ snapshot stale/insufficient → update-current-state
-  → build-task-graph
-     └─ 위치가 불명확할 때만 Codebase Memory / Semble
-  → controll-task-graph
-     ├─ Review finding의 corrective work → build-task-graph review-rework
-     └─ finalization snapshot → update-current-state
+run-workflow (root)
+  ├─ admission: clean repository + fresh current-state + leaf Issue
+  │  └─ snapshot stale/insufficient → update-current-state → admission 재개
+  ├─ create-triage
+  │  ├─ 사용자 결정 필요 → service-planning → requirement 승인
+  │  └─ 파생 문서/Issue 불일치 → sync-docs
+  ├─ build-task-graph
+  │  └─ 위치가 불명확할 때만 Codebase Memory / Semble
+  ├─ Impl checkpoint와 aggregate Review 반복
+  │  └─ Review finding의 corrective work → build-task-graph review-rework
+  └─ Summary admission → update-current-state → PR·CI·merge → Summary done
 ```
 
 외부 mutation은 해당 Skill의 완료 기준에 따라 read-back한 뒤 다음 Skill로 이동한다.

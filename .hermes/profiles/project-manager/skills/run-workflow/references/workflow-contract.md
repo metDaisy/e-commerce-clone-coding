@@ -1,0 +1,88 @@
+# run-workflow runtime 계약
+
+이 문서는 active Kanban graph의 실행 상태, aggregate Review 결과, Summary admission, release와 recovery에
+사용하는 persisted JSON schema와 결정론적 invariant를 소유한다. 실행 순서는 [`../SKILL.md`](../SKILL.md),
+Impl checkpoint는 [`execution-contract.md`](execution-contract.md), graph/card authoring은
+[`../../build-task-graph/references/board-contract.md`](../../build-task-graph/references/board-contract.md)가
+소유한다. Native Kanban·Git·GitHub read-back이 원본이며 이 JSON은 별도 workflow ledger가 아니다.
+
+## Runtime state
+
+`scripts/workflow.py validate-state`는 다음 세 입력을 받는다.
+
+- `build-task-graph-v1` graph wrapper
+- `tasks` 배열을 가진 normalized native read-back
+- `branch`, `head_sha`, `clean_worktree`를 가진 Git read-back
+
+각 task record는 `key`, canonical `task_id`, `title`, `card_type`, `assignee`, `status`, graph-key
+`parents`, `runs`를 가진다. Graph와 board membership·identity·parent가 일치해야 하며 `done`에는 successful
+latest run이 필요하다. `ready`와 active(`running | review`) task는 각각 최대 하나다. Validator는
+`eligible_task_ids`, `ready_task_ids`, phase와 하나의 `allowed_transition`을 반환한다.
+
+## Aggregate Review 결과
+
+`aggregate-review-result-v1` 필드는 다음과 같다.
+
+- `review_card_key`, `review_task_id`, `review_run_id`, `generation`
+- `result`: `approved | changes-required | blocked`
+- `reviewed_checkpoints`: Impl card/task ID와 40자리 checkpoint SHA
+- `prior_findings`: 이전 blocking finding의 Review task ID, finding ID, verdict
+- `findings`: unique finding ID, verdict, basis, observed fact, evidence, impact, 선택적 resolution
+
+Verdict는 `correction-required | context-required | decision-required | resolved`다. `resolved`는
+`source_review_task_id`와 `source_finding_id`를 가져야 한다. 이전 blocking finding은 현재 결과에서 정확히
+resolve되어야 하며 조용히 사라지거나 존재하지 않는 finding을 resolve할 수 없다. `approved`에는 새
+blocking finding이 없다. Review contract가 참조하는 모든 Impl checkpoint를 정확히 한 번 검토한다.
+Canonical payload는 completed Review의 latest terminal run metadata에서 읽는다.
+
+## Summary admission
+
+`summary-admission-v1`은 Summary/latest Review task·run ID, Review result, direct/done parent ID,
+unresolved finding ID, `final_implementation_sha`, repository HEAD와 clean state를 가진다. 모든 direct
+parent가 done이고 latest Review가 approved이며 unresolved finding이 없고 clean HEAD가 final
+implementation SHA와 같을 때만 통과한다. 이는 Summary completion이 아니라 release를 시작할 자격이다.
+
+## Release 결과
+
+`issue-release-result-v1`은 다음 chain을 한 object에 묶는다.
+
+1. leaf Issue와 delivery/default branch
+2. `final_implementation_sha`
+3. snapshot inspection SHA, `docs/current-state.md`만 포함한 docs commit, marker 제거와 clean state
+4. PR number/URL, base/head branch, actual head SHA, closing Issue number
+5. actual PR head SHA의 required CI check와 terminal conclusion
+6. 같은 PR/head의 merge read-back
+7. 해당 PR에 의한 Issue auto-close read-back
+
+Snapshot inspection SHA는 final implementation SHA와 같고 docs commit은 별도 SHA다. PR base는 repository
+default branch, head는 delivery branch, PR head SHA는 docs commit SHA다. Required check는 비어 있지 않고
+`success | neutral`만 허용한다. Merge와 Issue close는 같은 PR number를 가리켜야 한다.
+
+## Recovery 계약
+
+### `restart-task-v1`
+
+Marker Issue/branch와 baseline/snapshot SHA, current HEAD, dirty path, path별 Issue attribution/evidence,
+단일 recovery task/assignee, allowed scope와 required checkpoint schema를 가진다. 모든 dirty path가 현재
+Issue에 정확히 귀속되고 active recovery task가 하나일 때만 통과한다.
+
+### `base-sync-v1`
+
+Upstream/downstream Issue·canonical branch, fixed/pre-sync SHA, `merge | rebase` 전략과 decision
+owner/rationale, changed/conflicted path, semantic impact, affected downstream task, post-sync SHA,
+`gradle-mcp` verification과 clean state를 가진다. Semantic impact가 `decision-required`이면 canonical
+Decision task ID가 필수이며 그 외에는 Decision task를 허용하지 않는다.
+
+## Release finding
+
+`release-finding-v1`은 `ci | pr-review` source와 URL, target PR/head SHA, stable finding ID, evidence,
+classification, 선택적 routed task ID와 idempotency key를 가진다. Classification은
+`implementation-rework | infrastructure-retry | context-required | decision-required | no-action`이다.
+Rework/context/decision은 canonical routed task ID가 필요하고 retry/no-action은 routed task를 갖지 않는다.
+
+## Validator 경계
+
+`scripts/workflow.py`는 duplicate JSON key와 unknown field를 거절하고 stable error code를 출력한다. Validator는
+입력 payload의 정합성만 증명하며 실제 native task/run이 존재하거나 GitHub mutation이 성공했음을
+대신하지 않는다. 호출자는 mutation 전후 exact target을 read-back하고 normalized payload를 만들어야
+한다.

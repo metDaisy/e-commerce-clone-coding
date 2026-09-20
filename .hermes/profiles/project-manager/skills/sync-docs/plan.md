@@ -34,14 +34,14 @@
 2. 각 항목을 `no change`, `documentation update`, `tracker update`, `needs-input`으로 분류한다.
 3. requirement가 의미를 제공하지 않는 architecture·policy 판단은 사용자에게 escalation한다.
 4. 승인된 변경만 선택한 대상에 적용한다. `issue-tracker` mode의 GitHub mutation은 external state를 read-back한다.
-5. `current-state.md`는 수정하지 않는다. 그 문서가 필요하면 `update-current-state`에 routing한다.
+5. `current-state.md`는 수정하지 않는다. Snapshot 갱신 필요는 root `run-workflow`에 반환한다.
 
 ## 출력
 
 - 변경된 문서·Issue와 각 변경 근거
 - 변경하지 않은 문서와 그 이유
 - 사용자의 결정이 필요한 불일치
-- update-current-state 또는 build-task-graph의 후속 필요 여부
+- snapshot 갱신 또는 build-task-graph 후속 필요 여부
 
 ## 경계
 

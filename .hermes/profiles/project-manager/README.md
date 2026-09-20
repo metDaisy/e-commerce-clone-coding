@@ -27,9 +27,9 @@ Issue 선택
   → create-triage
   → 정책/문서 문제 해결 및 read-back
   → build-task-graph
-  → Coder 구현과 PM checkpoint
-  → root review
-  → current-state 갱신, PR·CI·merge, Issue 종료
+  → run-workflow: Coder 구현과 PM checkpoint
+  → aggregate Review와 finding rework
+  → Summary admission, current-state 갱신, PR·CI·merge, Issue 종료
 ```
 
 ### 1. Issue와 계획 기준 확인
@@ -88,7 +88,9 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 | backend Impl handoff·changes-request·checkpoint validator | 지원 |
 | graph-level v6 helper/validator | 지원 |
 | native Triage gate·single-ready promotion E2E | 검증 |
-| native worker 종료·Review finding·Summary·idempotent recovery E2E | 검증 |
+| runtime frontier·Review finding closure·Summary admission validator | 지원 |
+| release·restart-task·base-sync·CI/PR finding validator | 지원 |
+| native Review finding·idempotent rework·Summary admission E2E | 검증 |
 | Profile-scoped Codebase Memory connection·tool discovery | 검증 |
 
 ## Workflow reference

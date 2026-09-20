@@ -9,7 +9,7 @@ skills:
     - service-planning
     - create-triage
     - build-task-graph
-    - controll-task-graph
+    - run-workflow
     - sync-docs
     - update-current-state
     - codebase-memory-mcp

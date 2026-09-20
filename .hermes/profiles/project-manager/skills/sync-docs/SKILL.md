@@ -6,7 +6,7 @@ license: MIT
 metadata:
   hermes:
     tags: [project-management, documentation, github, synchronization]
-    related_skills: [service-planning, build-task-graph, update-current-state]
+    related_skills: [service-planning, build-task-graph]
 ---
 
 # 문서와 tracker 동기화
@@ -38,5 +38,5 @@ Triage는 영향만 분류하고 실제 mutation은 이 Skill이 소유한다.
 완료 기준: 모든 영향 대상이 승인 requirement와 일치하거나, 남은 불일치의 결정자·영향·다음
 행동이 명시되고 external mutation은 read-back되었다.
 
-`current-state.md`, requirement policy, source·test·migration은 수정하지 않는다. Snapshot이 필요하면
-`update-current-state`에 routing한다.
+`current-state.md`, requirement policy, source·test·migration은 수정하지 않는다. Snapshot 갱신 필요는
+`snapshot-refresh-required`로 root `run-workflow`에 반환한다.
