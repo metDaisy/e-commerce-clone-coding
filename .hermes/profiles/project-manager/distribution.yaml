@@ -16,7 +16,6 @@ distribution_owned:
   - skills/service-planning/plan.md
   - skills/create-triage/SKILL.md
   - skills/create-triage/README.md
-  - skills/create-triage/plan.md
   - skills/create-triage/references/triage-contract.md
   - skills/create-triage/scripts/triage.py
   - skills/create-triage/scripts/test_triage.py
@@ -41,7 +40,6 @@ distribution_owned:
   - skills/sync-docs/plan.md
   - skills/update-current-state/SKILL.md
   - skills/update-current-state/plan.md
-  - skills/cross-domain-contract-planning/SKILL.md
   - skills/semble-search/SKILL.md
   - skills/codebase-memory-mcp/SKILL.md
   - scripts/validate_board.py

@@ -1,7 +1,7 @@
 ---
 name: create-triage
-description: Create an Issue triage plan before executable task graph.
-version: 0.1.0
+description: 새 leaf Issue의 실행 graph 전 계획을 검증한다.
+version: 0.2.0
 author: Amaazon project, Hermes Agent
 license: MIT
 platforms: [windows, linux, macos]
@@ -12,210 +12,150 @@ metadata:
 requires_toolsets: [kanban]
 ---
 
-# Create Triage Skill
+# Issue Triage 작성
 
-Create one PM-owned Kanban triage card for a leaf Issue before creating an executable
-Coder graph. The card captures the implementation idea, document impact, policy
-questions, and handoff context. It is a planning record, not a Coder contract and
-not a substitute for `service-planning`, `sync-docs`, or `build-task-graph`.
+실행 가능한 Coder graph를 만들기 전에 leaf Issue마다 PM 소유 Triage card 하나를 작성한다. 이
+card는 구현 아이디어, 문서 영향, 정책 질문과 다음 단계의 근거를 보존하는 계획 기록이다. Coder
+실행 계약은 `build-task-graph`가 별도로 작성한다.
 
-## When to use
+## 사용 조건
 
-Use this Skill for every new leaf Issue before the G1 `build-task-graph`. A G{N+1}
-requirement-rework Triage is owned by `build-task-graph`, not this Skill.
+- 새 leaf Issue의 G1 graph를 처음 계획할 때 사용한다.
+- 같은 Issue에 active Triage가 있으면 새 card를 만들지 않고 재개한다.
+- G{N+1} requirement-rework Triage는 `build-task-graph`가 작성한다.
+- Source, test, migration 구현이나 business policy 결정에는 사용하지 않는다.
 
-Do not use it to implement source, tests, migrations, or to decide business policy.
-Classify document impact here; use `sync-docs` for the actual derived-document or Issue mutation.
-If an existing active triage card exists for the Issue, resume it instead of creating
-a duplicate.
+## 사전 조건
 
-## Prerequisites
+1. 저장소 `AGENTS.md`와 이 Profile의 workflow 문서를 읽는다.
+2. 선택한 leaf Issue와 ancestor lineage, clean repository, planning HEAD를 read-back한다.
+3. 승인 requirement와 관련 reference를 읽는다.
+4. `current-state.md`가 `fresh`인지 확인한다. `stale` 또는 `insufficient`이면 card를 만들지 않고
+   `update-current-state`로 넘긴다.
+5. Native Kanban의 create, show, claim, block, complete surface가 사용 가능한지 확인한다.
 
-- Read the repository `AGENTS.md` and this Profile's PM workflow documents.
-- Confirm a clean repository and a selected leaf Issue.
-- Confirm `current-state.md` is `fresh` before creating the Kanban card. Route
-  `stale` or `insufficient` state to `update-current-state` instead.
-- Read the Issue lineage, approved requirement sections, and relevant reference
-  documents.
-- Confirm the native Kanban plugin surface is available. Do not create a partial
-  card through an unsupported mutation path.
+완료 기준: Issue, requirement, planning SHA, current-state snapshot과 사용할 Kanban surface가 모두
+확정되었거나, mutation 없이 blocker가 올바른 Skill로 전달되었다.
+
+## 연관 Skill 사용 가이드
+
+각 Skill은 아래 조건에서만 읽고, 그 완료 기준을 충족한 뒤 같은 Triage를 재개한다.
+
+| Skill | 사용하는 경우 | 사용하는 방법과 복귀 조건 |
+|---|---|---|
+| `update-current-state` | Snapshot이 `stale` 또는 `insufficient`이다. | Committed implementation 기준으로 freshness를 판정·갱신하고 snapshot SHA를 read-back한다. `fresh`가 확인되면 Triage admission으로 돌아온다. |
+| `service-planning` | Policy, authorization, consistency, 오류 의미 또는 UI 의미를 source만으로 결정할 수 없다. | Triage를 `blocked`로 유지하고 human-readable decision card를 연결한다. 사용자의 결정과 requirement 반영을 read-back한 뒤 재개한다. |
+| `sync-docs` | 승인 requirement와 파생 문서 또는 GitHub Issue가 불일치한다. | `current-state.md`를 제외한 영향 대상을 동기화하고 외부 mutation을 read-back한다. 모든 불일치가 해소되면 재검증한다. |
+| `build-task-graph` | Triage가 frozen이고 graph gate가 열렸다. | Frozen body, 승인 requirement, fresh snapshot과 Issue를 넘긴다. Graph 전체 검증 뒤 이 Skill이 Triage를 완료하고 첫 실행 대상 하나만 `ready`로 만든다. |
+
+네 Skill은 모두 실제 workflow handoff다. Source 위치 조사나 일반 구현에는 대신 사용하지 않는다.
 
 ## Kanban lifecycle
-
-Use the native Kanban statuses exactly as read back from the plugin:
 
 ```text
 triage → running planning → frozen running graph gate → done
           └──────────────→ blocked → running planning
 ```
 
-`todo` and `ready` are valid native queue states when the plugin requires an
-explicit promotion before claiming. The initial create-triage card should use
-`triage` when available. If a runtime cannot expose `triage`, create `todo`, validate
-the body, then promote it to `ready` before claiming.
+- 초기 상태는 native `triage`다. Runtime이 이를 노출하지 않을 때만 `todo`로 생성·검증한 뒤
+  `ready`로 승격하고 claim한다.
+- `needs-input`은 status가 아니다. `blocker.kind`와 decision request를 기록하고 `blocked`를 사용한다.
+- Frozen Triage는 graph 작성 중 첫 실행 대상의 scheduling parent다. `build-task-graph`가 graph 전체를
+  read-back하기 전에는 `done`으로 바꾸지 않는다.
 
-`blocked` means a concrete blocker is recorded in the body. Do not invent a
-`needs-input` Kanban status: represent the reason as `blocker.kind` and keep the
-native status `blocked`.
+## 정본 body
 
-A completed triage body is frozen and remains PM planning provenance, not a Coder
-input. During graph authoring the running Triage card is also the native scheduling
-parent that keeps the first eligible Impl in `todo`; `build-task-graph` completes it
-only after the whole graph is read back.
+Body는 [`references/triage-contract.md`](references/triage-contract.md)의 UTF-8 JSON 한 개다.
+`scripts/triage.py template`은 PM이 이미 읽은 literal 입력만 받아 repository의
+`.temp/triage/issue-<number>/` 아래에 draft를 만든다.
 
-## Required body
+필수 내용:
 
-Create a canonical JSON body. Use the schema in
-[`references/triage-contract.md`](references/triage-contract.md) and generate the
-initial draft with `scripts/triage.py template`. The JSON is PM and
-`build-task-graph` input; it is not a user-facing policy discussion surface.
-The body must include:
+- Issue identity, planning baseline SHA와 fresh current-state snapshot
+- goal, scope, explicit out-of-scope, current/desired behavior
+- implementation idea, candidate vertical slices/dependencies, verification direction
+- requirement, architecture, ADR, glossary, ERD, index의 disposition과 locator
+- 구조화된 policy finding, decision request, blocker
+- `planning_state`와 `build_task_graph` handoff
 
-- Issue identity, planning baseline SHA, and fresh current-state snapshot;
-- goal, scope, and explicit out-of-scope;
-- current and desired behavior;
-- implementation idea, candidate vertical slices, candidate dependencies, and
-  verification direction;
-- a document-impact object for each candidate `requirement`, `architecture`, `ADR`,
-  `glossary`, `ERD`, and `index` document;
-- a separate read-only current-state entry;
-- policy findings and structured decision requests when needed;
-- a `build-task-graph` handoff section.
+문서 disposition은 `update | no-change | not-applicable | blocked` 중 하나다. `update`,
+`no-change`, `blocked`에는 근거 locator가 필요하다. `current-state`는 별도 `read-only` 항목이다.
 
-The template takes only facts PM has already read; it does not infer an Issue's
-requirements. Write its generated artifact under the current repository's `.temp`:
+## 검증 Helper
+
+`scripts/triage.py`는 결정론적 draft/validator이며 Kanban controller가 아니다.
 
 ```text
 TRIAGE_PY=.hermes/profiles/project-manager/skills/create-triage/scripts/triage.py
-python "$TRIAGE_PY" template --issue 138 --title "Issue #138 triage" \
-  --issue-url <Issue-URL> --planning-sha <SHA> --current-state-sha <SHA> \
-  --requirement-locator <path#locator> --current-state-locator <path#locator> \
-  --output .temp/triage/issue-138/draft.json
+python "$TRIAGE_PY" template --issue <number> --title "G1-Issue<number>-Triage" --issue-url <url> --planning-sha <sha> --current-state-sha <sha> --requirement-locator <path#locator> --current-state-locator <path#locator> --output .temp/triage/issue-<number>/draft.json
+python "$TRIAGE_PY" validate .temp/triage/issue-<number>/draft.json --status <status>
+python "$TRIAGE_PY" freeze .temp/triage/issue-<number>/draft.json --output .temp/triage/issue-<number>/frozen.json
+python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expected-status <status> --expected-assignee project-manager
 ```
 
-For each reviewed document, use exactly one of `update`, `no-change`,
-`not-applicable`, or `blocked`. `no-change` means the document was reviewed and
-needs no edit. `current-state` uses `read-only` and is never edited by this Skill.
+- `template`: 제공된 사실만 보존하는 draft를 만든다.
+- `validate`: schema, locator, 정책 결정 구조, freeze와 graph gate 일관성을 검사한다.
+- `freeze`: 해결된 planning body를 frozen copy로 만들고 canonical SHA-256 digest와 열린 graph gate를
+  기록한다. 이후 body가 바뀌면 validation이 실패한다.
+- `validate-card`: 공식 `hermes kanban ... show --json`으로 card 하나를 읽어 native envelope와 body를
+  검사한다.
+- Helper는 Kanban을 생성·수정·연결·claim·block·complete하지 않는다. 모든 mutation은 native
+  `kanban_*` tool로 수행하고 정확한 card를 다시 읽는다.
 
-## `triage.py`
+## 절차
 
-`scripts/triage.py` is a deterministic helper, not a Kanban controller.
+1. **기준을 고정한다.** 사전 조건을 read-back하고 locator를 기록한다. 완료 기준: 모든 입력이
+   하나의 planning HEAD에 연결된다.
+2. **Draft를 작성한다.** Issue-specific template을 채우고 모든 문서에 disposition과 근거를
+   기록한다. 완료 기준: `validate ... --status triage`가 오류 없이 끝난다.
+3. **재사용하거나 생성한다.** Active Triage를 찾아 정확히 하나를 재사용한다. 없으면
+   `G1-Issue<number>-Triage`, assignee `project-manager`, validated JSON body로 생성한다. 완료 기준:
+   실제 ID, status, assignee, workspace와 body read-back 결과가 일치하고 중복 active card가 없다.
+4. **Claim하고 조사한다.** Native lifecycle로 `running`으로 바꾸고 requirement, Issue, snapshot과
+   후보 문서를 대조한다. Source 조사는 충돌, 구조 제약 또는 snapshot 불일치가 있을 때만 좁게
+   수행한다. 완료 기준: 모든 finding에 evidence와 disposition이 있다.
+5. **Blocker를 처리한다.** 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
+   구조화된 open finding·pending decision request·blocker를 기록하고 `blocked`로 바꾼다.
+   `service-planning` card를 native link로 연결한다. 완료 기준: 두 card와 link를 read-back했다.
+6. **결정 뒤 재개한다.** 사용자 결정, requirement 변경, 필요한 `sync-docs` 결과와 Issue를
+   read-back한다. 같은 Triage를 `running`으로 재개하고 finding/request를 해결 상태로 갱신한다.
+   완료 기준: validator가 unresolved blocker를 보고하지 않는다.
+7. **계획을 고정한다.** 모든 blocker가 해소되면 `planning_state: frozen`,
+   `build_task_graph.allowed: true`, `blocker: null`인 copy와 `frozen_digest`를 `freeze` 명령으로
+   생성해 검증한다. Native card는 `running`으로 유지한다. 완료 기준: digest가 일치하는 frozen
+   body와 열린 graph gate를 read-back했다.
+8. **Graph로 넘긴다.** `build-task-graph`에 frozen body와 승인 근거를 전달한다. Graph 전체와 link,
+   activation 결과가 검증된 뒤에만 해당 Skill이 Triage를 `done`으로 바꾼다. 완료 기준: Triage가
+   `done`이고 첫 Impl 또는 no-Impl Review 하나만 `ready`다.
 
-| Command | Input / output | Responsibility |
-|---|---|---|
-| `template` | literal Issue context → `.temp/triage/issue-<n>/draft.json` | Create a JSON draft without inventing requirement content. |
-| `validate <body> --status <status>` | JSON body → stdout JSON verdict | Check the triage-v1 schema, document-impact dispositions, current-state read-only boundary, and status gate. |
-| `validate-card --task-id <id> --board <slug>` | native card read-back → stdout/report verdict | Use only official `hermes kanban ... show --json` to compare native identity/status/assignee with the JSON body. |
+## 사용자 결정 요청
 
-`template` and optional `validate-card --report` artifacts must use a relative
-`.temp/...` output path. `validate` writes no artifact. The helper never invokes
-Kanban create, edit, link, claim, block, unblock, or complete; PM performs every
-Kanban mutation through native `kanban_*` tools and reads it back with
-`kanban_show`. In this repository distribution, set `TRIAGE_PY` to the path above;
-when installed, resolve it as `<installed-skill-root>/scripts/triage.py` rather than
-assuming the process working directory is the skill directory.
+JSON request에는 `id`, `problem`, `why`, evidence locator, 하나 이상의 option,
+`decision_owner`, `decision_status`, `approved_change`를 기록한다. Pending 또는 deferred request는
+graph gate를 닫는다. Approved request에는 승인된 변경을 기록하고 requirement와 파생 상태를
+read-back한다. 추천은 결정과 구분한다.
 
-## Procedure
+## 검증
 
-1. **Admit the planning baseline.** Read back Issue scope and lineage, approved
-   requirements, clean repository status, planning HEAD, and current-state
-   freshness. Completion criterion: all locators and the fresh snapshot are
-   recorded, or a blocker is routed without card mutation.
-2. **Draft and validate the plan.** Generate an Issue-specific JSON draft under
-   `.temp/triage/issue-<number>/` with literal Issue/requirement/current-state
-   inputs, then populate it from the contract reference. Keep source
-   locators for PM traceability, but do not instruct a future Coder to rediscover
-   or reinterpret those documents. Completion criterion: the body passes the
-   deterministic `python "$TRIAGE_PY" validate <body.json> --status triage` command and
-   every candidate document has a disposition.
-3. **Reuse or create and read back.** Find an active triage card for the leaf Issue.
-   Reuse exactly one; otherwise create `Issue #<number> triage` assigned to
-   `project-manager` with the validated JSON body in native `triage` status. Read
-   back the actual task ID, status, assignee, workspace, and body. A read-only
-   `python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board>` check may verify
-   the same envelope through the official CLI. Completion criterion: no duplicate
-   active triage card exists.
-4. **Claim and inspect.** Claim the card through the native lifecycle so it is
-   `running`. Compare the requirement, Issue, current-state, and candidate
-   documents. Use limited source investigation only for a documented conflict,
-   missing structural constraint, or current-state discrepancy. Completion
-   criterion: every finding has evidence and an impact classification.
-5. **Handle a clean plan.** If no policy decision or unresolved requirement gap
-   remains, set `build_task_graph.allowed: true`, record the selected handoff, and
-   freeze the body while keeping the claimed card `running`. It remains the creator-session scheduling gate
-   until `build-task-graph` has created and read back every card and link. Completion criterion: the frozen
-   body is sufficient for PM to author the Coder graph without reopening the same planning question.
-6. **Handle a policy or requirement blocker.** Set native status `blocked` and
-   record structured blocker and decision-request data in JSON. Create a linked
-   `Issue #<number> service-planning` card with a human-readable Markdown body.
-   That card presents why the decision is needed, evidence, options, impacts, and a PM
-   recommendation.
-   Do not select an option or update the requirement autonomously. Completion
-   criterion: the triage card is blocked and the service-planning handoff is
-   read back.
-7. **Resume after the decision.** When service-planning is complete, read back the
-   user decision, requirement change, affected document updates, and Issue
-   synchronization. Resume the same triage card as `running`, update and revalidate
-   its body, then freeze it in `running` only after the handoff is unblocked. Completion
-   criterion: no unresolved policy finding remains and all external mutations are
-   read back.
-8. **Hand off.** Invoke `build-task-graph` with the frozen triage body, approved
-   requirement, fresh current-state, and Issue. The Coder receives only the
-   resulting self-contained task card. `build-task-graph` links Triage as the first Impl's native parent,
-   validates the complete graph, then completes Triage and reads back exactly one ready Impl. Completion
-   criterion: Triage is `done` only after the whole graph and its promotion result are verified.
+완료를 보고하기 전에 다음을 모두 확인한다.
 
-## Policy decision request
+- Native task ID, title, status, assignee, JSON body와 조건부 service-planning link
+- Current-state snapshot SHA와 freshness
+- 모든 문서의 disposition, locator와 follow-up
+- 정책 결정과 requirement/document/Issue 동기화 evidence
+- `planning_state: frozen`, 열린 graph gate와 `running` creator-gate
+- Graph 작성 뒤 Triage `done`과 exactly-one-ready 결과
 
-Copy the JSON decision-request data into the linked `service-planning` card and show
-the user a human-readable Markdown request containing:
+Helper가 증명하지 않는 clean tree, leaf lineage, active-card uniqueness와 native link는 절차의
+native read-back으로 증명한다. Frozen body는 persisted `frozen_digest`를 재검증하고 graph 작성 동안
+digest가 바뀌지 않았는지 확인한다. 사실, 사용자 결정, blocker, 검증과 다음 transition을 분리해
+한국어로 보고한다.
 
-```yaml
-decision_request:
-  id: DR-001
-  problem: <what is contradictory or missing>
-  why: <why implementation cannot safely proceed>
-  evidence:
-    - locator: <repository-relative path and heading or line range>
-      supports: <claim>
-  options:
-    - id: A
-      choice: <option>
-      impact: <behavior, API, data, UI, or delivery impact>
-  recommendation:
-    option: <optional PM recommendation>
-    reason: <evidence-based reason>
-  decision_owner: user
-  decision_status: pending
-  approved_change: null
-```
+## 주의점
 
-A recommendation is not a decision. The requirement is updated only after the user
-approves a policy choice. Then use `sync-docs` for affected derived documents and
-Issue metadata, read both targets back, and resume the same card.
-
-## Verification
-
-Before reporting triage planning completion, read back:
-
-- native task ID, title, status, assignee, JSON body, linked service-planning card if any;
-- current-state snapshot SHA and freshness;
-- every document-impact disposition;
-- decision and requirement synchronization evidence when applicable;
-- frozen JSON body, `build_task_graph.allowed` value, and `running` creator-gate status. Final `done` read-back
-  belongs to `build-task-graph` after graph validation.
-
-Report facts, user decisions, blockers, verification, external-state read-back, and
-next transition separately. Never report `done` while a policy decision, document
-sync, or required read-back is unresolved.
-
-## Pitfalls
-
-- Do not create a second active triage card for the same leaf Issue.
-- Do not treat `no-change` as unreviewed; use `not-applicable` for excluded documents.
-- Do not edit `current-state.md` during triage.
-- Do not turn triage ideas into executable `CHECK`/`EXPECT` contracts; that belongs
-  to `build-task-graph`.
-- Do not let a Coder infer missing requirements from source documents.
-- Do not use direct messages as the authoritative handoff.
-- Do not claim a native transition succeeded without reading the exact card back.
+- `no-change`는 검토 완료를 뜻한다. 제외 대상은 `not-applicable`로 기록한다.
+- Triage에서 `current-state.md`를 수정하지 않는다.
+- 실행 가능한 `CHECK`/`EXPECT` 계약은 `build-task-graph`에서 작성한다.
+- Coder가 Triage나 source 문서에서 누락 요구사항을 추론하게 하지 않는다.
+- Direct message 대신 Kanban card와 native relationship을 authoritative handoff로 사용한다.
+- Read-back하지 않은 transition을 성공으로 보고하지 않는다.
