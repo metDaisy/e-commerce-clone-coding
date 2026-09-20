@@ -6,19 +6,19 @@ repo_root=$(git rev-parse --show-toplevel)
 head_sha=$(git rev-parse HEAD)
 state_file=$(git rev-parse --git-path codebase-memory/last-indexed-head)
 project_name=${CODEBASE_MEMORY_PROJECT_NAME:-C-Users-leee-IdeaProjects-e-commerce-clone-coding}
+python_command=${PYTHON:-python}
 
-if ! command -v codebase-memory-mcp >/dev/null 2>&1; then
-  printf '%s\n' 'post-commit: codebase-memory-mcp is required; index is stale.' >&2
+if ! command -v "$python_command" >/dev/null 2>&1; then
+  printf '%s\n' "post-commit: $python_command is required; index is stale." >&2
   exit 1
 fi
 
 mkdir -p "$(dirname "$state_file")"
 printf '%s\n' "post-commit: indexing $head_sha" >&2
 
-if codebase-memory-mcp cli --json index_repository \
-  --repo-path "$repo_root" \
-  --name "$project_name" \
-  --mode full; then
+if "$python_command" "$repo_root/.githooks/index_codebase_memory.py" \
+  --repo-root "$repo_root" \
+  --project-name "$project_name"; then
   printf '%s\n' "$head_sha" >"$state_file"
   printf '%s\n' "post-commit: Codebase Memory is current at $head_sha" >&2
 else

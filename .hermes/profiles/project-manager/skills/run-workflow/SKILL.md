@@ -79,7 +79,7 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    diff/name/check를 읽은 뒤
    [`docs/commit-message-convention.md`](../../../../../docs/commit-message-convention.md)를 다시 읽는다.
    실제 staged diff를 근거로 type·50자 이내 한국어 명령형 subject·본문·명시된 Issue만 작성하고 하나의
-   self-contained commit을 만든다. `post-commit`이 `codebase-memory-mcp cli index_repository`를 동기 실행한
+   self-contained commit을 만든다. `post-commit`이 Python script를 통해 `codebase-memory-mcp` MCP stdio server의 `index_repository` tool을 동기 실행한
    뒤 SHA, committed path, message와 clean worktree를 read-back하고, `.githooks/post-commit`의
    `codebase-memory/last-indexed-head`가 result SHA와 정확히 같은지 확인한다. hook 또는 freshness record가
    없거나 다르면 checkpoint를 block하고 `backend-implementation-checkpoint-v1`을 작성하지 않는다.
