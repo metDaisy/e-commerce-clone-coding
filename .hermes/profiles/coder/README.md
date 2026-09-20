@@ -1,4 +1,4 @@
-# implementation-coder distribution
+# coder distribution
 
 이 디렉터리는 runtime Profile이 아닌 Git으로 공유하는 Hermes Profile Distribution 원본이다.
 credential, Memory, session, state database, log, machine-specific path를 포함하지 않는다.
@@ -6,15 +6,16 @@ credential, Memory, session, state database, log, machine-specific path를 포�
 ## 설치
 
 ```text
-hermes profile install ./.hermes/profiles/coder --name implementation-coder --alias --force --yes
+hermes profile install ./.hermes/profiles/coder --name coder --alias --force --yes
 ```
 
-전체 Profile bootstrap은 `.hermes/scripts/setup-hermes.sh` 또는 `.hermes/scripts/setup-hermes.ps1`를 사용한다.
-설치 후 bootstrap이 Profile별 capability policy와 프로젝트 root를 적용한다.
+Profile 설치는 `.hermes/scripts/install-profiles.sh` 또는 `.hermes/scripts/install-profiles.ps1`를 사용한다.
+Plugin 설치는 별도의 `.hermes/scripts/install-plugins.sh` 또는 `.hermes/scripts/install-plugins.ps1`를 사용한다.
+설치 후 Profile 설치 스크립트가 Profile별 capability policy와 프로젝트 root를 적용한다.
 
 ## 책임
 
-`implementation-coder`는 PM이 만든 self-contained backend Impl card를 구현하고 focused test와
+`coder`는 PM이 만든 self-contained backend Impl card를 구현하고 focused test와
 backend 전체 test를 실행한 뒤 같은 card의 PM checkpoint를 요청한다. PM이 변경을 commit하고
 clean working tree를 확인해야 card가 `done`이 된다. 독립 aggregate review와 승인된 refactor는
 이 Profile의 책임이 아니다.

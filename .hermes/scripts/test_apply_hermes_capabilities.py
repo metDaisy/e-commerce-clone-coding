@@ -126,7 +126,7 @@ def test_profile_expected_requires_mcp_include_filter_for_every_server() -> None
 
 def test_repository_policies_use_explicit_allowlists() -> None:
     root = Path(__file__).parents[2]
-    profiles = ["project-manager", "implementation-coder"]
+    profiles = ["project-manager", "coder"]
     raw = _POLICY.load_policy(root / ".hermes" / "profiles", profiles)
 
     for profile in profiles:
@@ -135,9 +135,9 @@ def test_repository_policies_use_explicit_allowlists() -> None:
         assert expected["toolsets_allowed"]
 
 
-def test_bootstrap_paths_reference_current_profile_sources() -> None:
+def test_profile_installers_reference_current_profile_sources() -> None:
     scripts = Path(__file__).parent
-    for name in ("setup-hermes.sh", "setup-hermes.ps1"):
+    for name in ("install-profiles.sh", "install-profiles.ps1"):
         text = (scripts / name).read_text(encoding="utf-8")
         assert "profile-distributions" not in text
         assert "profile-capabilities" not in text

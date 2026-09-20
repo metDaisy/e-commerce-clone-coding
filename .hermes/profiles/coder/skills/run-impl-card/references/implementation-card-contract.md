@@ -1,6 +1,6 @@
 # Coder Impl card consumption contract v1
 
-이 문서는 `implementation-coder`가 admitted `backend-implementation-card-v1`을 해석하고
+이 문서는 `coder`가 admitted `backend-implementation-card-v1`을 해석하고
 `backend-implementation-handoff-v1`을 작성하는 계약을 소유한다. PM의 card authoring shape와
 validation은 PM `build-task-graph/references/implementation-card-contract.md`가 소유한다. Native
 Kanban이 task ID, title, assignee, status, links, workspace, run, comment와 event를 소유하며 이

@@ -182,7 +182,7 @@ class WorkflowContractTest(unittest.TestCase):
             "dirty_paths": ["src/Main.java"],
             "path_attribution": [{"path": "src/Main.java", "issue": 138, "evidence": "marker scope", "attributed": True}],
             "recovery_task_id": "t_a1",
-            "assignee": "implementation-coder",
+            "assignee": "coder",
             "active_recovery_task_ids": ["t_a1"],
             "allowed_scope": ["현재 dirty delta를 검증 가능한 checkpoint로 복원한다."],
             "required_checkpoint_schema": "backend-implementation-checkpoint-v1",

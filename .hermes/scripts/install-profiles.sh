@@ -11,7 +11,7 @@ if ! command -v python >/dev/null 2>&1; then
 fi
 
 root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-profiles="project-manager:project-manager implementation-coder:coder"
+profiles="project-manager:project-manager coder:coder"
 
 cd "$root_dir"
 
@@ -30,7 +30,7 @@ done
 python .hermes/scripts/apply-hermes-capabilities.py \
   --policy .hermes/profiles \
   --profile project-manager \
-  --profile implementation-coder \
+  --profile coder \
   --project-root "$root_dir"
 
 if [ -n "${HERMES_MODEL:-}" ]; then
@@ -47,4 +47,4 @@ else
   printf '%s\n' 'Model route not configured. Run hermes model for each Profile, or set HERMES_MODEL (and optionally HERMES_PROVIDER/HERMES_BASE_URL) before rerunning.'
 fi
 
-printf '%s\n' 'Amaazon Hermes Profile Distributions installed.'
+printf '%s\n' 'Amaazon Hermes Profiles installed.'

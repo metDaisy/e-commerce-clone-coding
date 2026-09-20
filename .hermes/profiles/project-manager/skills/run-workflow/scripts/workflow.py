@@ -359,7 +359,7 @@ def validate_restart(value: Any) -> list[str]:
             _require(item.get("attributed") is True, errors, f"UNATTRIBUTED_DIRTY_PATH:{index}")
         _require(len(attributed) == len(set(attributed)) and set(attributed) == set(paths or []), errors, "DIRTY_PATH_ATTRIBUTION_MISMATCH")
     _require(_task_id(value.get("recovery_task_id")), errors, "INVALID_RECOVERY_TASK_ID")
-    _require(value.get("assignee") == "implementation-coder", errors, "INVALID_RECOVERY_ASSIGNEE")
+    _require(value.get("assignee") == "coder", errors, "INVALID_RECOVERY_ASSIGNEE")
     active = value.get("active_recovery_task_ids")
     _require(active == [value.get("recovery_task_id")], errors, "RESTART_TASK_CARDINALITY")
     _require(_strings(value.get("allowed_scope")), errors, "MISSING_RESTART_SCOPE")

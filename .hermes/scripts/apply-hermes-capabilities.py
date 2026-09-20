@@ -25,7 +25,7 @@ import yaml
 PROFILES = (
     "project-manager",
     "prototype-coder",
-    "implementation-coder",
+    "coder",
     "reviewer-general",
     "reviewer-deep",
     "reviewer-coordinator",

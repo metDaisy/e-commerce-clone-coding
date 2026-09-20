@@ -46,7 +46,7 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 
 1. `allowed_transition`이 `promote`이면 계산된 task 하나만 promotion하고 task ID, assignee, parents,
    status와 ready count를 다시 읽는다. `claim`이면 해당 assignee의 worker만 claim한다.
-2. Impl은 `implementation-coder`가 card contract를 구현·self-verify하고 native same-card PM review를
+2. Impl은 `coder`가 card contract를 구현·self-verify하고 native same-card PM review를
    요청한다. PM은 dispatcher가 만든 active review run에서만 checkpoint를 수행한다.
 3. Impl 완료 뒤 다시 `validate-state`를 실행한다. Cached ready candidate나 title 순서로 다음 task를
    추측하지 않는다.

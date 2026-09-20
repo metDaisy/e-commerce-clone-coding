@@ -1,6 +1,6 @@
-# implementation-coder capability policy distributed with this Profile.
+# coder capability policy distributed with this Profile.
 # No endpoints, credentials, sessions, state databases, or machine paths.
-profile: implementation-coder
+profile: coder
 
 skills:
   allowed:

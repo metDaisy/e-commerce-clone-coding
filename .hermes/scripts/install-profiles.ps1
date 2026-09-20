@@ -10,7 +10,7 @@ if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
 $rootDir = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $profiles = @(
   @{ Name = 'project-manager'; Source = 'project-manager' }
-  @{ Name = 'implementation-coder'; Source = 'coder' }
+  @{ Name = 'coder'; Source = 'coder' }
 )
 Push-Location $rootDir
 try {
@@ -42,7 +42,7 @@ try {
 
 $policyScript = Join-Path $rootDir '.hermes\scripts\apply-hermes-capabilities.py'
 $policyFile = Join-Path $rootDir '.hermes\profiles'
-python $policyScript --policy $policyFile --profile project-manager --profile implementation-coder --project-root $rootDir
+python $policyScript --policy $policyFile --profile project-manager --profile coder --project-root $rootDir
 if ($LASTEXITCODE -ne 0) {
   throw 'Failed to apply the YAML capability policy.'
 }
@@ -64,4 +64,4 @@ if ($env:HERMES_MODEL) {
   Write-Warning 'Model route not configured. Run hermes model for each Profile, or set HERMES_MODEL (and optionally HERMES_PROVIDER/HERMES_BASE_URL) before rerunning.'
 }
 
-Write-Output 'Amaazon Hermes Profile Distributions installed.'
+Write-Output 'Amaazon Hermes Profiles installed.'

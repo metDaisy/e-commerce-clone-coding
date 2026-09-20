@@ -149,14 +149,14 @@ class NativeE2E:
             corrective_body["goal"] = "기존 상품 등록 동작의 회귀 시나리오를 보강한다."
             corrective = self.create(
                 "G1-Issue138-Impl2",
-                "implementation-coder",
+                "coder",
                 corrective_body,
                 parents=[review1],
                 idempotency_key="review-1:F-1:correction",
             )
             recovered = self.create(
                 "G1-Issue138-Impl2",
-                "implementation-coder",
+                "coder",
                 corrective_body,
                 parents=[review1],
                 idempotency_key="review-1:F-1:correction",
@@ -208,7 +208,7 @@ class NativeE2E:
                     "key": "impl-2",
                     "title": "G1-Issue138-Impl2",
                     "card_type": "implementation",
-                    "assignee": "implementation-coder",
+                    "assignee": "coder",
                     "status": "ready",
                     "parents": ["review-1"],
                     "body": corrective_body,
@@ -265,7 +265,7 @@ class NativeE2E:
             if self.status(self.show(summary)) != "ready":
                 raise RuntimeError("Summary was not promoted after every direct parent completed")
 
-            obsolete = self.create("G1-Issue138-Impl99", "implementation-coder", corrective_body)
+            obsolete = self.create("G1-Issue138-Impl99", "coder", corrective_body)
             self.board_run("claim", obsolete, "--ttl", "120")
             self.board_run("block", obsolete, "requirement superseded", "--kind", "dependency")
             blocked = self.show(obsolete)

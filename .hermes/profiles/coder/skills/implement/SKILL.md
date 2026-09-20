@@ -26,7 +26,7 @@ handoff 사이의 coding loop를 소유한다.
 
 ## 사전 조건
 
-- 활성 native task가 `implementation-coder`에게 배정되어 있고 status가 `running`이다.
+- 활성 native task가 `coder`에게 배정되어 있고 status가 `running`이다.
 - Immutable card와 rework의 correlated change-request가 `run-impl-card` admission을 통과했다.
 - Worktree가 initial-run 또는 rework dirty-path 규칙을 만족한다.
 - `gradle-mcp`가 `gradle`과 `query_build`를 제공한다. 사용할 수 없으면 `terminal`로 Gradle을 실행하지

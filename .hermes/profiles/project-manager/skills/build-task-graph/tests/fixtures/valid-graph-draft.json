@@ -38,7 +38,7 @@
       "key": "impl-1",
       "title": "G1-Issue138-Impl1",
       "card_type": "implementation",
-      "assignee": "implementation-coder",
+      "assignee": "coder",
       "status": "todo",
       "parents": [
         "triage"
