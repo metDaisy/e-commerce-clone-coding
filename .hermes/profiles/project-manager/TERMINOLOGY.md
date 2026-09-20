@@ -14,7 +14,7 @@
 | inspection SHA | `current-state.md`를 갱신하기 위해 실제로 조사한 clean committed implementation SHA. |
 | implementation snapshot SHA | current-state에 기록하는 inspection SHA. 이를 기록한 docs commit SHA와 구분한다. |
 | planning baseline SHA | Issue 계획과 task contract가 근거로 삼는 committed repository 기준점. |
-| implementation-covered path | 구현 snapshot에 영향을 주는 backend/frontend source·test, build/configuration, Flyway migration 경로. 정확한 freshness 판정 범위는 `update-current-state`가 소유한다. |
+| implementation-covered path | 구현 snapshot에 영향을 주는 저장소 루트 `src/**`. Java source, backend resource·Flyway, backend test를 포함하며 frontend·build/CI/Profile·일반 문서는 제외한다. 정확한 freshness 판정은 `update-current-state`가 소유한다. |
 | fresh / stale / insufficient | current-state가 planning에 사용 가능한지 나타내는 integration fact. `fresh`만 새 leaf Issue planning을 허용한다. `stale`은 구현-covered committed 변경 뒤 갱신되지 않은 상태, `insufficient`는 신뢰할 근거가 부족한 상태다. |
 | clean working tree | ignored 파일을 제외하고 staged·unstaged·untracked 변경이 없는 상태. 새 planning·branch·graph 생성의 admission 조건이다. |
 | dirty working tree | clean이 아닌 상태. 변경의 소속은 이 상태만으로 판정할 수 없다. |

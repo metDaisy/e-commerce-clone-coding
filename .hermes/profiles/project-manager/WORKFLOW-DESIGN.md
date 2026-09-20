@@ -255,7 +255,7 @@ mutation 대신 default-branch PR의 closing keyword와 merge 뒤 auto-close rea
 - manual native graph, `new`·`requirement-rework`·`review-rework` procedure와 finding contract는 설계 기준으로 합의됐다.
 - `build-task-graph` helper/validator는 `backend-implementation-card-v1` body와 native Triage gate E2E를 지원한다. graph-level Review·Summary·Decision validator와 rework helper는 후속 항목이다.
 - `controll-task-graph`는 backend Impl handoff·changes-request·checkpoint validator와 same-card review 절차를 지원한다. release, base-sync와 interrupted-workflow 절차는 아직 초안이다.
-- `service-planning`, `sync-docs`, `update-current-state`는 role boundary와 계획이 있으나 일부 SKILL.md procedure/frontmatter가 아직 비어 있거나 초안이다.
+- `update-current-state`는 `src/**` freshness, 문서 schema, recovery marker와 read-only inspection helper를 지원한다. `service-planning`, `sync-docs`는 role boundary와 계획이 있으나 일부 procedure가 아직 초안이다.
 - base-sync의 detailed procedure, GitHub guide, finding/rework draft schema, PM-focused Semble의 runtime E2E는 미확정 또는 미검증이다.
 
 따라서 이 문서를 Profile topology와 ownership의 기준으로 사용하되, 실제 mutation 전에 해당 Skill,

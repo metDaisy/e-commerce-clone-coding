@@ -39,7 +39,9 @@ distribution_owned:
   - skills/sync-docs/SKILL.md
   - skills/sync-docs/plan.md
   - skills/update-current-state/SKILL.md
-  - skills/update-current-state/plan.md
+  - skills/update-current-state/references/current-state-contract.md
+  - skills/update-current-state/scripts/current_state.py
+  - skills/update-current-state/tests/test_current_state.py
   - skills/semble-search/SKILL.md
   - skills/codebase-memory-mcp/SKILL.md
   - scripts/validate_board.py
