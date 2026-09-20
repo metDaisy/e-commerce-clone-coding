@@ -75,9 +75,14 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    acceptance·focused verification·required scenario·`gradle-mcp test` evidence가 모두 pass인지 검수한다.
 5. 수정이 필요하면 `backend-implementation-change-request-v1`을 검증해 comment로 남기고 native
    `request-changes` 후 original Coder ownership과 종료된 PM run을 read-back한다.
-6. 통과하면 검증된 path만 stage하고 staged diff/name/check를 읽은 뒤 하나의 self-contained commit을
-   만든다. SHA, committed path, message와 clean worktree를 읽어
-   `backend-implementation-checkpoint-v1`을 만든다.
+6. 통과하면 `git config --get core.hooksPath`가 `.githooks`인지 확인하고 검증된 path만 stage한다. staged
+   diff/name/check를 읽은 뒤
+   [`docs/commit-message-convention.md`](../../../../../docs/commit-message-convention.md)를 다시 읽는다.
+   실제 staged diff를 근거로 type·50자 이내 한국어 명령형 subject·본문·명시된 Issue만 작성하고 하나의
+   self-contained commit을 만든다. `post-commit`이 `codebase-memory-mcp cli index_repository`를 동기 실행한
+   뒤 SHA, committed path, message와 clean worktree를 read-back하고, `.githooks/post-commit`의
+   `codebase-memory/last-indexed-head`가 result SHA와 정확히 같은지 확인한다. hook 또는 freshness record가
+   없거나 다르면 checkpoint를 block하고 `backend-implementation-checkpoint-v1`을 작성하지 않는다.
 7. `python scripts/checkpoint.py checkpoint <card.json> <handoff.json> <checkpoint.json>` 통과 후 같은 Impl을
    complete하고 closing run metadata와 `done`을 read-back한다.
 

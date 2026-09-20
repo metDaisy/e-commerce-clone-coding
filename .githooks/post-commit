@@ -1,0 +1,28 @@
+#!/usr/bin/env sh
+# Re-index the committed checkout before returning from post-commit.
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+head_sha=$(git rev-parse HEAD)
+state_file=$(git rev-parse --git-path codebase-memory/last-indexed-head)
+project_name=${CODEBASE_MEMORY_PROJECT_NAME:-C-Users-leee-IdeaProjects-e-commerce-clone-coding}
+
+if ! command -v codebase-memory-mcp >/dev/null 2>&1; then
+  printf '%s\n' 'post-commit: codebase-memory-mcp is required; index is stale.' >&2
+  exit 1
+fi
+
+mkdir -p "$(dirname "$state_file")"
+printf '%s\n' "post-commit: indexing $head_sha" >&2
+
+if codebase-memory-mcp cli --json index_repository \
+  --repo-path "$repo_root" \
+  --name "$project_name" \
+  --mode full; then
+  printf '%s\n' "$head_sha" >"$state_file"
+  printf '%s\n' "post-commit: Codebase Memory is current at $head_sha" >&2
+else
+  rm -f "$state_file"
+  printf '%s\n' 'post-commit: Codebase Memory indexing failed; do not treat this commit as checkpoint-ready.' >&2
+  exit 1
+fi
