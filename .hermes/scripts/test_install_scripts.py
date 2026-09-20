@@ -24,8 +24,10 @@ class InstallScriptsTest(unittest.TestCase):
         for name in ("install-profiles.sh", "install-profiles.ps1"):
             content = self._read(name)
             self.assertIn("terminal.cwd", content)
+            self.assertIn("skills trust", content)
             self.assertIn("kanban.auto_decompose false", content)
             self.assertIn("skills.external_dirs", content)
+        self.assertIn("pwd -W", self._read("install-profiles.sh"))
 
     def test_plugin_installers_validate_and_enable_project_plugin(self):
         shell = self._read("install-plugins.sh")

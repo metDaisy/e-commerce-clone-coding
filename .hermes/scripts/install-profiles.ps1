@@ -25,6 +25,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to configure project cwd: $profile"
     }
+    hermes --profile $profile skills trust $rootDir
+    if ($LASTEXITCODE -ne 0) {
+      throw "Failed to trust project Skill directory: $profile"
+    }
     hermes --profile $profile config set kanban.auto_decompose false
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to disable automatic Kanban decomposition: $profile"

@@ -156,6 +156,31 @@ def test_profile_expected_requires_explicit_allowlists() -> None:
         raise AssertionError("missing Skill allowlist must fail")
 
 
+def test_common_skills_are_project_owned() -> None:
+    root = Path(__file__).parents[2]
+    common = root / ".hermes" / "skills"
+    for name in ("semble-search", "codebase-memory-mcp"):
+        assert (common / name / "SKILL.md").is_file()
+        for distribution in ("project-manager", "coder"):
+            manifest = (common.parent / "profiles" / distribution / "distribution.yaml").read_text(
+                encoding="utf-8"
+            )
+            assert f"skills/{name}/SKILL.md" not in manifest
+
+
+def test_distribution_owns_runtime_assets_not_regression_tests() -> None:
+    manifest = (Path(__file__).parents[2] / ".hermes" / "profiles" / "project-manager" / "distribution.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "skills/service-planning/plan.md" not in manifest
+    assert "skills/sync-docs/plan.md" not in manifest
+    assert "skills/create-triage/scripts/test_triage.py" not in manifest
+    assert "skills/run-workflow/tests/test_workflow.py" not in manifest
+    assert "skills/build-task-graph/tests/native_e2e.py" in manifest
+    assert "skills/build-task-graph/tests/fixtures/valid-graph-draft.json" in manifest
+
+
 if __name__ == "__main__":
     for name, test in sorted(globals().items()):
         if name.startswith("test_"):

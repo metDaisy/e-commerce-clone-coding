@@ -10,7 +10,7 @@ if ! command -v python >/dev/null 2>&1; then
   exit 1
 fi
 
-root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && { pwd -W 2>/dev/null || pwd; })
 profiles="project-manager:project-manager coder:coder"
 
 cd "$root_dir"
@@ -21,6 +21,7 @@ for item in $profiles; do
   hermes profile install "./.hermes/profiles/$source" \
     --name "$profile" --alias --force --yes
   hermes --profile "$profile" config set terminal.cwd "$root_dir"
+  hermes --profile "$profile" skills trust "$root_dir"
   hermes --profile "$profile" config set kanban.auto_decompose false
   if [ "$profile" = "project-manager" ]; then
     hermes --profile "$profile" config set skills.external_dirs '[]'

@@ -27,6 +27,8 @@
 !.hermes/profiles
 !.hermes/scripts/
 !.hermes/README.md
+!.hermes/skills/
+!.hermes/skills/**
 !.hermes/plugins/
 !.hermes/plugins/agent-audit/
 !.hermes/plugins/agent-audit/**

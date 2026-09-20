@@ -17,6 +17,13 @@ state database, log 또는 machine-specific path는 이 저장소에 포함하�
 기준은 각 Distribution의 `capabilities.yaml`이다. 상세한 역할과 lifecycle은 각
 Profile의 `README.md`, `SOUL.md`, Skill 문서를 따른다.
 
+## 공통 Skill
+
+두 Profile이 함께 사용하는 `semble-search`와 `codebase-memory-mcp`는 중복 없이
+`.hermes/skills/`에 하나씩 둔다. Profile 설치 스크립트는 repository root를 두 Profile에서
+trust하고 capability policy의 allowlist를 read-back하므로 별도의 공통 Skill 설치 스크립트는
+필요하지 않다. Profile 전용 Skill은 각 Distribution의 `profiles/<name>/skills/`에 둔다.
+
 ## 설치와 bootstrap
 
 Profile 설치와 프로젝트 plugin 설치를 별도 스크립트로 분리했다.
@@ -36,6 +43,7 @@ Profile 설치 스크립트는 다음을 수행한다.
 - `.hermes/profiles/project-manager`를 `project-manager`로 설치한다.
 - `.hermes/profiles/coder`를 `coder`로 설치한다.
 - 두 Profile의 `terminal.cwd`를 현재 repository root로 설정한다.
+- 두 Profile이 repository root의 `.hermes/skills/`를 탐색할 수 있도록 trust한다.
 - 두 Profile에서 `kanban.auto_decompose`를 `false`로 설정한다.
 - `project-manager`의 중복 외부 Skill 탐색 경로를 비운다.
 - `.hermes/scripts/apply-hermes-capabilities.py`로 capability policy를 적용하고 read-back한다.
