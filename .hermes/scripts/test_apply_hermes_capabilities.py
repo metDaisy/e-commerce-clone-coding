@@ -175,8 +175,12 @@ def test_distribution_owns_runtime_assets_not_regression_tests() -> None:
 
     assert "skills/service-planning/plan.md" not in manifest
     assert "skills/sync-docs/plan.md" not in manifest
+    assert "skills/service-planning/README.md" not in manifest
+    assert "skills/sync-docs/README.md" not in manifest
     assert "skills/create-triage/scripts/test_triage.py" not in manifest
+    assert "skills/build-task-graph/tests/test_build_task_graph.py" not in manifest
     assert "skills/run-workflow/tests/test_workflow.py" not in manifest
+    assert "skills/update-current-state/tests/test_current_state.py" not in manifest
     assert "skills/build-task-graph/tests/native_e2e.py" in manifest
     assert "skills/build-task-graph/tests/fixtures/valid-graph-draft.json" in manifest
 

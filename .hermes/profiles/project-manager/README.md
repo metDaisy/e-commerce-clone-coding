@@ -81,6 +81,9 @@ aggregate review를 수행합니다. 승인 뒤 PM은 최종 구현 상태를 �
 | 기능 | 상태 |
 |---|---|
 | Issue triage와 정책/문서 blocker routing | 지원 |
+| 정책·사용자 흐름·UI 선택지 조사와 requirement 반영 | 지원 |
+| 파생 문서 impact 판정과 동기화 | 지원 |
+| GitHub Issue scope·dependency 동기화와 read-back | 지원 |
 | 새 delivery와 수동 native graph authoring procedure | 지원 |
 | requirement-rework graph schema·diff helper·validator | 지원 |
 | review-rework persisted schema·validator | 지원 |

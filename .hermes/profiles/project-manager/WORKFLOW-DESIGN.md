@@ -256,8 +256,10 @@ mutation 대신 default-branch PR의 closing keyword와 merge 뒤 auto-close rea
 - manual native graph, `new`·`requirement-rework`·`review-rework` procedure와 finding contract는 설계 기준으로 합의됐다.
 - `build-task-graph` helper/validator는 `backend-implementation-card-v1`, graph-level Review·Summary·Decision body/topology와 `new`·rework mode를 지원하며 native Triage gate E2E를 제공한다.
 - Root `run-workflow`는 runtime frontier, backend Impl handoff·changes-request·checkpoint, Review finding closure, Summary admission, release, base-sync, interrupted-workflow와 CI/PR finding contract·validator를 지원한다. Native graph E2E는 Review finding·idempotent rework·Summary admission frontier까지 검증하며 실제 GitHub release E2E는 외부 Issue에서 수행해야 한다.
-- `update-current-state`는 `src/**` freshness, 문서 schema, recovery marker와 read-only inspection helper를 지원한다. `service-planning`, `sync-docs`는 role boundary와 계획이 있으나 일부 procedure가 아직 초안이다.
-- `service-planning`, `sync-docs`의 일부 procedure와 PM-focused Semble의 runtime E2E는 아직 미완료 또는 미검증이다.
+- `update-current-state`는 `src/**` freshness, 문서 schema, recovery marker와 read-only inspection helper를 지원한다.
+- `service-planning`은 근거 분류, 선택지 비교, UI 결정 필드, requirement read-back과 보류 규칙을 지원한다.
+- `sync-docs`는 impact matrix, disposition, 파생 문서와 GitHub Issue 동기화·read-back 절차를 지원한다.
+- `service-planning`, `sync-docs`의 실제 외부 서비스·GitHub mutation E2E와 PM-focused Semble runtime E2E는 아직 미검증이다.
 
 따라서 이 문서를 Profile topology와 ownership의 기준으로 사용하되, 실제 mutation 전에 해당 Skill,
 reference contract, enabled capability, native tool schema를 read-back해야 한다.
