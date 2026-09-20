@@ -1,7 +1,7 @@
 ---
 name: run-impl-card
 description: Use when admitting and running a PM-authored backend Impl card through its PM checkpoint.
-version: 0.6.0
+version: 0.7.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -15,12 +15,9 @@ requires_toolsets: [kanban]
 # Run Implementation Card
 
 PM이 작성한 self-contained Impl card를 backend code와 test로 구현하고 같은 card의 PM
-checkpoint로 넘긴다. 시작 전에 다음 reference를 읽는다.
-
-- [`references/execution-contract.md`](references/execution-contract.md): Coder 입력, 권한,
-  검증, blocker와 handoff 경계
-- [`references/implementation-card-contract.md`](references/implementation-card-contract.md):
-  card body 소비, Coder handoff와 changes-request input schema
+checkpoint로 넘긴다. Profile의 `SOUL.md`가 안정적인 Coder 정체성과 권한 경계를 소유한다. 시작 전에
+[`references/implementation-card-contract.md`](references/implementation-card-contract.md)를 읽고 card
+body 소비, Coder handoff와 changes-request input schema를 확인한다.
 
 Repository의 `AGENTS.md`가 강제 규칙을, `docs/backend-development-guide.md`와
 `docs/backend-test-guide.md`가 backend 구현·test convention을 소유한다. Requirement와 Triage는

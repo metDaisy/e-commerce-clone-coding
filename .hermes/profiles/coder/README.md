@@ -26,7 +26,8 @@ clean working tree를 확인해야 card가 `done`이 된다. 독립 aggregate re
 - `codebase-memory-mcp`: public API caller/callee와 cross-domain 영향 탐색
 - `semble-search`: 구현 위치가 불명확할 때 의미 기반 위치 탐색
 
-`run-impl-card/references/`는 Coder execution contract, Impl card 소비 규칙과 handoff schema를 소유한다.
+`SOUL.md`는 안정적인 Coder 정체성과 권한 경계를 소유한다. `run-impl-card`는 lifecycle procedure를,
+`run-impl-card/references/implementation-card-contract.md`는 Impl card 소비 규칙과 handoff schema를 소유한다.
 PM의 card authoring과 checkpoint 계약은 Project Manager Distribution이 소유한다.
 `docs/backend-development-guide.md`와 `docs/backend-test-guide.md`는 repository의 backend 구현·test
 convention source of truth다. Card 실행 lifecycle은 `run-impl-card`가 소유한다.
