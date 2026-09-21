@@ -20,7 +20,21 @@
 
 # continue
 .continue/
-.agents/
+
+# hermes
+.hermes/*
+!.hermes/
+!.hermes/profiles
+!.hermes/scripts/
+!.hermes/README.md
+!.hermes/skills/
+!.hermes/skills/**
+!.hermes/plugins/
+!.hermes/plugins/agent-audit/
+!.hermes/plugins/agent-audit/**
+.hermes/plugins/agent-audit/__pycache__/
+.hermes/audit.db
+.hermes/audit.db-*
 
 # vscode
 .vscode/
@@ -46,3 +60,4 @@ replay_pid*
 *.zip
 *.tar.gz
 *.rar
+**/__pycache__/**

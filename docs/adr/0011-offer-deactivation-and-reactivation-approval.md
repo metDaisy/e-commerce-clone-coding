@@ -47,4 +47,4 @@ Offer는 판매자가 직접 판매를 중단할 수도 있고, 관리자 또는
 
  - [P7 Offer 운영](../requirement/p7/p7-offer.md)
 - [P9 Offer 상태·보관](../requirement/p9/p9-offer.md)
-- [Project Context](../../CONTEXT.md)
+- [Domain Glossary](../domain-glossary.md)

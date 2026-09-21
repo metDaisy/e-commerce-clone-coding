@@ -1,0 +1,129 @@
+{
+  "schema": "backend-implementation-card-v1",
+  "card_type": "implementation",
+  "issue": {
+    "number": 138,
+    "url": "https://github.com/example/repository/issues/138"
+  },
+  "goal": "판매자가 유효한 상품을 등록할 수 있다.",
+  "effective_behavior": [
+    {
+      "id": "behavior-product-create",
+      "outcome": "인증된 판매자의 유효한 요청은 상품을 저장하고 생성 결과를 반환한다."
+    }
+  ],
+  "scope": [
+    "상품 등록 application/API 동작과 직접 필요한 persistence를 구현한다."
+  ],
+  "out_of_scope": [
+    "상품 이미지 업로드와 frontend는 변경하지 않는다."
+  ],
+  "implementation_context": {
+    "current_behavior": [
+      "상품 등록 application/API가 존재하지 않는다."
+    ],
+    "entry_points": [
+      {
+        "path": "src/main/java/example/product",
+        "symbol": "example.product",
+        "reason": "상품 모듈의 확인된 구현 시작점이다."
+      }
+    ],
+    "constraints": [
+      "다른 모듈의 내부 package나 repository를 직접 참조하지 않는다."
+    ]
+  },
+  "contracts": {
+    "actor_authorization": {
+      "applicable": true,
+      "rules": [
+        "인증된 판매자만 상품을 등록한다."
+      ]
+    },
+    "input_output": {
+      "applicable": true,
+      "rules": [
+        "이름, 가격과 재고를 입력받고 생성된 상품 표현을 반환한다."
+      ]
+    },
+    "state_invariants": {
+      "applicable": true,
+      "rules": [
+        "성공한 요청은 판매자 소유 상품 하나를 저장한다."
+      ]
+    },
+    "error_semantics": {
+      "applicable": true,
+      "rules": [
+        "유효하지 않은 입력은 기존 validation error contract로 거절한다."
+      ]
+    },
+    "api": {
+      "applicable": true,
+      "rules": [
+        "승인된 상품 등록 endpoint와 HTTP contract를 구현한다."
+      ]
+    },
+    "persistence": {
+      "applicable": true,
+      "rules": [
+        "상품 모듈 내부 persistence boundary를 사용한다."
+      ]
+    },
+    "transaction_consistency": {
+      "applicable": true,
+      "rules": [
+        "상품 생성과 저장은 하나의 transaction 결과다."
+      ]
+    },
+    "event": {
+      "applicable": false,
+      "not_applicable_reason": "이 card는 event 발행이나 소비 계약을 변경하지 않는다."
+    },
+    "module_boundary": {
+      "applicable": true,
+      "rules": [
+        "상품 모듈의 공개 seam과 allowedDependencies를 유지한다."
+      ]
+    },
+    "external_system": {
+      "applicable": false,
+      "not_applicable_reason": "외부 시스템 협업이 없다."
+    }
+  },
+  "acceptance_criteria": [
+    {
+      "id": "AC-PRODUCT-CREATE",
+      "outcome": "유효한 판매자 입력으로 상품이 저장되고 생성 결과가 반환된다."
+    }
+  ],
+  "focused_verification": [
+    {
+      "id": "FV-PRODUCT-CREATE",
+      "acceptance_ids": [
+        "AC-PRODUCT-CREATE"
+      ],
+      "test_level": "integration",
+      "required_scenarios": [
+        "유효한 입력의 성공",
+        "유효하지 않은 입력의 거절"
+      ]
+    }
+  ],
+  "full_backend_verification": {
+    "executor": "gradle-mcp",
+    "task": "test",
+    "expectation": "backend 전체 Gradle test suite가 통과한다."
+  },
+  "traceability": [
+    {
+      "role": "goal",
+      "supports": "상품 등록 목표 동작",
+      "source": {
+        "kind": "repository",
+        "path": "docs/requirement/p2/product.md",
+        "heading": "상품 등록"
+      }
+    }
+  ]
+}

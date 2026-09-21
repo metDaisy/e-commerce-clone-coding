@@ -1,5 +1,7 @@
 # 카탈로그 캐시 정책
 
+이 문서는 Catalog의 캐시 동작 정책을 설명하는 보조 기준이다. 장기적인 캐시 선택과 변경 이유는 [ADR-0007](adr/0007-category-and-tag-caching.md)이 기준이며, 실제 적용 여부와 설정값은 코드·설정·`current-state.md`로 확인한다.
+
 ## Category
 
 `GET /api/v1/categories`는 전체 카테고리 트리를 반환하므로 개별 `Category`

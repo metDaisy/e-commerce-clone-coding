@@ -8,7 +8,7 @@
 |---|---|---|
 | `Category` | 상품 분류 계층과 검색 범위 | 조회·생성·수정 |
 | `CatalogProduct` | 여러 Variant가 공유하는 상품 공통 정보 | 조회·생성·수정·보관 |
-| `ProductVariant` | 고객이 선택하고 주문하는 실제 구매 단위 | 생성·수정·보관·조회 |
+| `ProductVariant` | 고객이 선택하고 주문하는 실제 구매 단위 | 생성·수정·보관·Catalog 조회 응답에 포함 |
 | `CatalogProductMedia` | CatalogProduct의 이미지 대상·순서·대표·보관 상태 | 연결·수정·보관 |
 
 ```text
@@ -59,19 +59,23 @@ Product Manager 조회:
 
 `GET /api/v1/admin/catalog-products`
 
-조회 상태 기본값은 `ACTIVE`이다. `PRODUCT_MANAGER`는 요청한 상태와 관계없이
-CatalogProduct와 ProductVariant를 `ACTIVE`만 조회한다. `ADMIN`은 상태 파라미터를
-생략하면 `ACTIVE`를 조회하며, 상태를 전달하면 해당 상태만 조회한다.
+조회 상태 기본값은 `ACTIVE`이다. `PRODUCT_MANAGER`는 `/api/v1/catalog-products` 경로에서
+요청한 상태와 관계없이 CatalogProduct와 ProductVariant를 `ACTIVE`만 조회한다.
+`ADMIN`은 `/api/v1/admin/catalog-products` 경로에서 상태 파라미터를 생략하면 `ACTIVE`를
+조회하며, 상태를 전달하면 해당 상태만 조회한다.
 
-권한: `ADMIN` 또는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller` 상태를 가진 사용자.
+권한은 경로별로 다르다. `/api/v1/catalog-products`와
+`/api/v1/catalog-products/{catalogProductId}`는 `PRODUCT_MANAGER` 권한과 `ACTIVE Seller`
+상태가 필요하고, `/api/v1/admin/catalog-products`와
+`/api/v1/admin/catalog-products/{catalogProductId}`는 `ADMIN` 권한이 필요하다.
 
-관리자는 운영 목적으로, Product Manager는 Offer 등록 대상 CatalogProduct와 ProductVariant를 찾는 목적으로 사용한다. 응답은 CatalogProduct와 연결된 모든 ProductVariant를 함께 반환하며 `catalogProductId`와 `variantId`를 포함한다.
+관리자는 운영 목적으로, Product Manager는 Offer 등록 대상 CatalogProduct와 ProductVariant를 찾는 목적으로 사용한다. 응답은 조회 상태 조건에 맞는 CatalogProduct와 연결된 ProductVariant 목록을 함께 반환하며 `catalogProductId`와 `variantId`를 포함한다.
 
 application layer에서는 생성·수정·아카이빙 결과를 `CatalogProductCommandDto`로 반환하고, 조회 결과를 `CatalogProductQueryDto`로 반환한다. `CatalogProductQueryDto`는 CatalogProduct의 조회 필드와 연결된 모든 Variant 목록을 함께 가진다. HTTP 응답으로 변환할 때는 presentation DTO를 사용한다.
 
 Query는 `page`, `size`, `keyword`, `categoryId`, `tag`, `catalogPublicationStatus`, `variantPublicationStatus`, `sort`를 지원한다. `categoryId`는 자기 자신과 모든 하위 Category를 검색한다. 일반 사용자는 이 API를 사용할 수 없으며 고객용 검색은 [P9 Marketplace](../p9/p9-marketplace.md)의 Product API가 담당한다.
 
-Product Manager 상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`, 관리자 상세 조회는 `GET /api/v1/admin/catalog-products/{catalogProductId}`를 사용한다. 목록·상세 조회 모두 `CatalogProductQueryDto`를 기반으로 해당 CatalogProduct에 연결된 모든 ProductVariant를 함께 반환하며, Variant 단건 조회 API는 제공하지 않는다.
+Product Manager 상세 조회는 `GET /api/v1/catalog-products/{catalogProductId}`, 관리자 상세 조회는 `GET /api/v1/admin/catalog-products/{catalogProductId}`를 사용한다. 목록·상세 조회 모두 `CatalogProductQueryDto`를 기반으로 해당 CatalogProduct에 연결된 ProductVariant 목록을 함께 반환하며, Variant 단건 조회 API는 제공하지 않는다.
 
 - `PRODUCT_MANAGER`는 항상 CatalogProduct와 ProductVariant의 `ACTIVE` 데이터만 조회한다.
 - `ADMIN`은 상태 Query를 생략하면 `ACTIVE`를 조회하고, 상태를 지정하면 해당 상태만 조회한다.
@@ -87,11 +91,11 @@ P8의 제안 검증과 P7의 승인 시점에는 같은 검증을 다시 수행�
 
 ## 4. 역할별 조회와 내부 ID
 
-| 리소스 상태 | ADMIN | 구매자·Seller |
-|---|---|---|
-| 존재하는 `ACTIVE` | `200` | `200` |
-| 존재하는 `ARCHIVED` | `200` | 존재하지 않는 리소스와 같은 `404` |
-| 실제 미존재 | `404` | `404` |
+| 리소스 상태 | ADMIN | PRODUCT_MANAGER (ACTIVE Seller) | 구매자·Seller |
+|---|---|---|---|
+| 존재하는 `ACTIVE` | `200` | `200` | `200` |
+| 존재하는 `ARCHIVED` | `200` (관리자 경로에서 상태 지정 시) | 존재하지 않는 리소스와 같은 `404` | 존재하지 않는 리소스와 같은 `404` |
+| 실제 미존재 | `404` | `404` | `404` |
 
 - Catalog 관리 조회의 목록·조건 검색에는 기본적으로 보관된 상품과 Variant를 포함하지 않는다.
 - 고객용 Product 응답에는 `catalogProductId`, `variantId`를 반환하지 않는다. 관리자·Product Manager용 Catalog 조회 응답에는 등록 대상 선택을 위해 반환한다.

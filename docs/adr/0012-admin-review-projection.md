@@ -62,4 +62,4 @@ Option B를 채택한다.
 - [P8 Seller 신청·심사 모델](../requirement/p8/p8-seller-application.md#sellerapplication)
 - [P8 CatalogRegistrationRequest 모델](../requirement/p8/p8-catalog-requests.md#catalogregistrationrequest)
 - [P9 Offer 요청 모델](../requirement/p9/p9-offer.md#2-3-offeractivationrequest)
-- [Project Context](../../CONTEXT.md)
+- [Domain Glossary](../domain-glossary.md)

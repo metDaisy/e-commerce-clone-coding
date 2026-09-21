@@ -1,0 +1,9 @@
+{
+  "schema": "backend-implementation-card-v1",
+  "card_type": "implementation",
+  "issue": {
+    "number": 138,
+    "url": "https://github.com/example/repository/issues/138"
+  },
+  "goal": "판매자가 유효한 상품을 등록할 수 있다."
+}

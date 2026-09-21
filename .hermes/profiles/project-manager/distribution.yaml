@@ -1,0 +1,38 @@
+name: project-manager
+version: 0.10.0
+description: "Owns the Amaazon Issue lifecycle from requirement-based task graph creation through verified PR merge."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - README.md
+  - SOUL.md
+  - TERMINOLOGY.md
+  - WORKFLOW-DESIGN.md
+  - capabilities.yaml
+  - skills/index.md
+  - skills/service-planning/SKILL.md
+  - skills/create-triage/SKILL.md
+  - skills/create-triage/README.md
+  - skills/create-triage/references/triage-contract.md
+  - skills/create-triage/scripts/triage.py
+  - skills/build-task-graph/SKILL.md
+  - skills/build-task-graph/README.md
+  - skills/build-task-graph/references/board-contract.md
+  - skills/build-task-graph/references/implementation-card-contract.md
+  - skills/build-task-graph/scripts/build_task_graph.py
+  - skills/build-task-graph/scripts/contract_common.py
+  - skills/build-task-graph/scripts/graph_contract.py
+  - skills/build-task-graph/tests/native_e2e.py
+  - skills/build-task-graph/tests/fixtures/valid-new-delivery.json
+  - skills/build-task-graph/tests/fixtures/valid-graph-draft.json
+  - skills/run-workflow/SKILL.md
+  - skills/run-workflow/references/execution-contract.md
+  - skills/run-workflow/references/workflow-contract.md
+  - skills/run-workflow/scripts/checkpoint.py
+  - skills/run-workflow/scripts/workflow.py
+  - skills/sync-docs/SKILL.md
+  - skills/update-current-state/SKILL.md
+  - skills/update-current-state/references/current-state-contract.md
+  - skills/update-current-state/scripts/current_state.py

@@ -4,24 +4,24 @@
 
 ## 스냅샷
 
-- 확인일: 2026-08-29
-- Git 브랜치: `p2/issue137`
-- 확인 기준 Git SHA: `a967f6606674b9dbf4fc4f17863e67f0f7b292cb`
-- 기준 상태: 위 SHA의 커밋된 코드·테스트·설정·Flyway·프런트엔드를 확인했다. 이 문서를 갱신하는 후속 문서 커밋은 기준 SHA에 포함하지 않는다.
-- 이전 스냅샷 기준 SHA `2f4d0b1c660d02a6df5d5a6cd589b3a0e762dd82`는 현재 확인 기준 SHA의 조상이다.
-- 검증 실행: 이번 갱신에서는 Gradle `check`·테스트·JaCoCo와 프런트엔드 `lint`·`build`를 실행하지 않았다. 테스트 통과나 커버리지는 주장하지 않는다. Codebase Memory는 `docs/`를 제외하고 재인덱싱했으며 확인 기준 SHA와 일치하는 `ready` 상태(4,852 nodes, 17,390 edges)를 확인했다.
+- 확인일: 2026-09-03
+- Git 브랜치: `p2/issue138`
+- 확인 기준 Git SHA: `4c9051d12c6816d1d472a6b8b1bddc9579537358`
+- 기준 상태: 위 SHA의 커밋된 코드·테스트·설정·Flyway·프런트엔드를 확인했다. 미커밋 변경은 검사 대상에서 제외했으며, 이 문서를 갱신하는 후속 문서 커밋은 기준 SHA에 포함하지 않는다.
+- 이전 스냅샷 기준 SHA `a967f6606674b9dbf4fc4f17863e67f0f7b292cb`는 현재 확인 기준 SHA의 조상이다.
+- 검증 실행: 이번 갱신에서는 Gradle `check`·테스트·JaCoCo와 프런트엔드 `lint`·`build`를 실행하지 않았다. 테스트 통과나 커버리지는 주장하지 않는다. Semble·codebase-memory 구조 및 인덱스 확인도 실행하지 않았다.
 
 ## 전체 진행 요약
 
 | 단계 | 상태 | 확인된 범위 |
 |---|---|---|
 | P1 User & Address | 부분 구현 | User 프로필 조회·수정·비활성화, 회원가입 연계, Address 목록·등록·수정·삭제·기본 배송지 지정, 다중 역할, 활성 User 검사와 주소 정렬·잠금이 구현되어 있다. 요구사항의 재인증(`__Host-REAUTH`)과 주문 연계는 확인되지 않았다. |
-| P2 Catalog | 부분 구현 | 공개 Category 트리 조회와 ADMIN 전용 Category 생성·수정, CatalogProduct 생성·수정·식별자 검증·갱신·archive, 관리자·Product Manager용 CatalogProduct/Variant 조회, ADMIN 전용 ProductVariant 생성·수정·archive가 구현되어 있다. CatalogProduct Media와 고객용 Product API는 확인되지 않았다. |
+| P2 Catalog | 부분 구현 | 공개 Category 트리 조회와 ADMIN 전용 Category 생성·수정, CatalogProduct 생성·수정·식별자 검증·갱신·archive, 관리자·Product Manager용 CatalogProduct 목록·상세 조회(Variant 중첩), ADMIN 전용 ProductVariant 생성·수정·archive가 구현되어 있다. 독립 ProductVariant 조회 HTTP API, CatalogProduct Media와 고객용 Product API는 확인되지 않았다. |
 | P3 Cart | 스키마만 존재 | V1의 `carts`·`cart_items` 테이블은 있으나 Cart 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
 | P4 Coupon | 스키마만 존재 | V1의 쿠폰 테이블은 있으나 Coupon 도메인·API는 확인되지 않았다. |
 | P5 Order, Payment, Delivery | 스키마만 존재 | V1의 주문·결제·배송 테이블은 있으나 해당 도메인 구현·API는 확인되지 않았다. |
 | P6 Outbox & Saga | 기반 부분 구현 | Spring Modulith 이벤트 발행 저장소, Outbox 설정·스케줄러와 관련 테이블이 존재한다. 주문 Saga·보상 흐름은 확인되지 않았다. |
-| P7 Admin & Operations | 부분 구현 | `/api/v1/admin/**`에 ADMIN 권한 보호가 적용되고 Category·CatalogProduct·ProductVariant 관리자 진입점이 구현되어 있다. 사용자·판매자 심사 등 나머지 운영 API는 확인되지 않았다. |
+| P7 Admin & Operations | 부분 구현 | `/api/v1/admin/**`에 ADMIN 권한 보호가 적용되고 Category·CatalogProduct 목록·상세·명령, ProductVariant 명령 진입점이 구현되어 있다. 사용자·판매자 심사 등 나머지 운영 API는 확인되지 않았다. |
 | P8 Seller | 부분 구현 | `Seller`, 저장소, `SellerQueryApi`, Catalog의 판매자 조회 어댑터와 활성 판매자 검증이 존재한다. 판매자 등록·프로필·주문 관리 API와 등록 요청 흐름은 확인되지 않았다. CatalogProduct·ProductVariant 조회에는 `@ActiveSeller` 검증이 적용되어 있다. |
 | P9 Offer & Marketplace | 미구현 | V1의 Offer·Inventory 테이블은 있으나 도메인 구현과 고객용 Marketplace API는 확인되지 않았다. |
 | P10 Review | 스키마만 존재 | V1의 `reviews` 테이블은 있으나 Review 도메인·API·구매 자격 검증은 확인되지 않았다. |
@@ -35,7 +35,7 @@
 - `auth`: 로컬·소셜 Credential, 회원가입, 비밀번호 검증·변경, Form Login·OAuth2 처리, Access/Refresh/Guest JWT, 로그아웃·블랙리스트와 인증 이벤트
 - `user`: 프로필·다중 역할, 활성 User 식별자 중복 검사, 비활성화 이벤트, 공개 `UserQueryApi`
 - `address`: User 소유 주소의 페이지 목록·등록·수정·삭제·기본 배송지 지정. `alias`·`lastUsedAt`, 중복 주소 검사, 기본 배송지 행 잠금과 삭제 후 승격이 구현되어 있다.
-- `catalog`: Category·CatalogProduct·ProductVariant·Tag와 저장소·서비스, QueryDSL 기반 CatalogProduct 조회, Category 캐시, 관리자 CatalogProduct·ProductVariant 명령, 식별자 검증기, Category 조회·명령, `CatalogVariantQueryApi`. Seller 공개 API는 `CatalogSellerAdapter`를 통해 참조한다.
+- `catalog`: Category·CatalogProduct·ProductVariant·Tag와 저장소·서비스, QueryDSL 기반 CatalogProduct 페이지 조회, CatalogProduct와 Variant를 조합하는 `CatalogQueryService`, Category 캐시, 관리자 CatalogProduct·ProductVariant 명령, 식별자 검증기, `CatalogVariantQueryApi`. Seller 공개 API는 `CatalogSellerAdapter`를 통해 참조한다.
 - `seller`: Seller 상태·저장소·`SellerQueryApi`
 - `common`: 공통 인증 주체·예외·DTO·JPA 저장소·MapStruct 설정
 - `global`: Spring 설정, `/api/v1` 경로 prefix, 보안 필터·JWT, 활성 User 인터셉터, 예외 응답, 캐시·Outbox 설정
@@ -65,7 +65,8 @@ Controller 경로에는 `WebMvcConfig`가 전역 `/api/v1` prefix를 적용한�
 | GET | `/api/v1/categories` | 구현 · 공개 Category 트리 |
 | GET | `/api/v1/catalog-products` | 구현 · ADMIN 또는 PRODUCT_MANAGER + ACTIVE Seller · 페이지·키워드·Category·Tag·상태·정렬 조회 |
 | GET | `/api/v1/catalog-products/{id}` | 구현 · ADMIN 또는 PRODUCT_MANAGER + ACTIVE Seller · CatalogProduct와 Variant 상세 |
-| GET | `/api/v1/product-variants/{id}` | 구현 · ADMIN 또는 PRODUCT_MANAGER + ACTIVE Seller · 활성 Variant 조회 |
+| GET | `/api/v1/admin/catalog-products` | 구현 · ADMIN 전용 · 페이지·키워드·Category·Tag·상태·정렬 조회 |
+| GET | `/api/v1/admin/catalog-products/{id}` | 구현 · ADMIN 전용 · CatalogProduct와 Variant 상세 |
 | POST | `/api/v1/admin/categories` | 구현 · ADMIN 전용 · 201 |
 | PATCH | `/api/v1/admin/categories/{categoryId}` | 구현 · ADMIN 전용 · 200 |
 | POST | `/api/v1/admin/catalog-products` | 구현 · ADMIN 전용 · 201 |
@@ -73,11 +74,10 @@ Controller 경로에는 `WebMvcConfig`가 전역 `/api/v1` prefix를 적용한�
 | PATCH | `/api/v1/admin/catalog-products/{id}/identifiers` | 구현 · ADMIN 전용 · 200 |
 | POST | `/api/v1/admin/catalog-products/{id}/archive` | 구현 · ADMIN 전용 · 200 |
 | POST | `/api/v1/admin/catalog-products/{catalogProductId}/variants` | 구현 · ADMIN 전용 · 201 |
-| GET | `/api/v1/admin/product-variants/{id}` | 구현 · ADMIN 전용 · 200 |
 | PATCH | `/api/v1/admin/product-variants/{id}` | 구현 · ADMIN 전용 · 200 |
 | POST | `/api/v1/admin/product-variants/{id}/archive` | 구현 · ADMIN 전용 · 200 |
 
-`/api/v1/catalog-products`와 `/api/v1/catalog-products/{id}`는 관리자 운영 조회 및 Product Manager의 Offer 등록 대상 탐색에 함께 사용된다. ADMIN은 요청한 상태 필터를 사용할 수 있고, Product Manager는 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회한다. 목록·상세 응답은 `catalogProductId`와 중첩 Variant의 `variantId`를 포함한다. 고객용 Product API는 아직 확인되지 않았다. CatalogProduct 생성·식별자 갱신 요청의 `identifiers`는 `ASIN`, `GTIN`, `UPC`, `EAN`, `ISBN` 키를 갖는 맵이다.
+`/api/v1/catalog-products`와 `/api/v1/catalog-products/{id}`는 Product Manager의 Offer 등록 대상 탐색에 사용되고, `/api/v1/admin/catalog-products`와 `/api/v1/admin/catalog-products/{id}`는 관리자의 운영 조회에 사용된다. `@ActiveSeller`가 적용된 Product Manager 경로는 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회하며, ADMIN 경로는 요청한 상태 필터를 사용할 수 있다. 목록·상세 응답은 `catalogProductId`와 중첩 Variant의 `variantId`를 포함한다. 독립 ProductVariant 조회 HTTP API는 현재 존재하지 않는다. 고객용 Product API도 아직 확인되지 않았다. CatalogProduct 생성·식별자 갱신 요청의 `identifiers`는 `ASIN`, `GTIN`, `UPC`, `EAN`, `ISBN` 키를 갖는 맵이다.
 
 ## 주요 구현 규칙
 
@@ -86,7 +86,7 @@ Controller 경로에는 `WebMvcConfig`가 전역 `/api/v1` prefix를 적용한�
 - CatalogProduct 조회는 Category 자신과 하위 Category ID, 이름·설명·브랜드·Variant 표시명 키워드, Tag, CatalogProduct·Variant 상태와 `LATEST`·`NAME_ASC`·`NAME_DESC` 정렬을 지원한다. 기본 페이지는 `page=0`, `size=20`, 최대 `size=100`이다.
 - V6는 CatalogProduct에 하나 이상의 식별자 존재 제약을 추가하고, V7은 ASIN·GTIN·UPC·EAN·ISBN 형식 제약을 추가한다. ISBN은 하이픈·공백을 제거한 값으로 형식을 검증한다.
 - CatalogProduct은 활성 상태 검증 후 수정·식별자 갱신이 가능하고, archive 시 `ARCHIVED` 상태·시각을 기록한다. 식별자 검증 실패는 형식 오류·중복·ISBN 외부 검증 실패를 필드별 사유로 묶어 반환한다.
-- ProductVariant는 하나의 활성 CatalogProduct에만 생성할 수 있고 `displayName`·JSON object `attributes`를 검증한다. `ACTIVE`·`ARCHIVED`와 `archivedAt`의 일관성을 도메인·DB에서 보장하며, 보관된 Variant는 공개 조회·수정·재보관을 거부한다. Offer·Inventory·Media는 ProductVariant가 소유하지 않는다.
+- ProductVariant는 하나의 활성 CatalogProduct에만 생성할 수 있고 `displayName`·JSON object `attributes`를 검증한다. `ACTIVE`·`ARCHIVED`와 `archivedAt`의 일관성을 도메인·DB에서 보장하며, 보관된 Variant는 CatalogProduct 조회에서 활성 목록으로 노출되지 않고 수정·재보관을 거부한다. Variant 조회는 CatalogProduct 목록·상세 응답에 중첩되며, Offer·Inventory·Media는 ProductVariant가 소유하지 않는다.
 - `@ActiveSeller`는 ADMIN을 허용하고, 그 외에는 `PRODUCT_MANAGER` 권한과 활성 Seller 상태를 요구한다. CatalogProduct 조회의 ADMIN은 상태 필터를 사용할 수 있고 Product Manager는 ACTIVE 리소스만 조회한다.
 - Address 목록 정렬은 `isPrimary DESC, lastUsedAt DESC NULLS LAST, createdAt DESC, id DESC`이다. 기본 배송지 변경·삭제는 사용자 주소 행 잠금으로 처리한다.
 - `@RequireEnabledUser`가 붙은 Controller는 `EnabledUserInterceptor`를 통해 `UserQueryApi.requireEnabled()`를 호출한다. `__Host-REAUTH` 검증 구현은 확인되지 않았다.
@@ -116,9 +116,9 @@ Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_vari
 ## 테스트·자동화
 
 - JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
-- Auth·User·Address·Catalog·Seller의 단위·Controller·Repository·일부 통합 테스트와 `ModularityTest`가 존재한다. 최근에는 CatalogProduct 조회 서비스·통합 테스트, ProductVariant 생성·조회·수정·archive와 매퍼 테스트, CatalogProduct 식별자 검증 테스트, User·Address 테스트의 Mapper 의존성 개선이 반영되어 있다.
+- Auth·User·Address·Catalog·Seller의 단위·Controller·Repository·일부 통합 테스트와 `ModularityTest`가 존재한다. CatalogProduct 목록·상세 조회 통합 테스트와 `CatalogVariantQueryApi` 테스트, CatalogProduct 식별자 검증, ProductVariant 도메인·명령·Repository·관리자 Controller·통합 테스트가 포함되어 있다.
 - Checkstyle, custom `checkstyle-rules`, JaCoCo와 80% 라인 커버리지 검증 설정이 빌드에 포함되어 있다.
-- `.github/workflows/ci.yml`은 backend build·JaCoCo 리포트·Codecov 업로드를 수행한다. CodeQL·Dependabot workflow는 현재 확인되지 않았다.
+- `.github/workflows/ci.yml`은 변경 경로 판별, `affected-tests` 기반 테스트 선택, Java 17 컴파일·Checkstyle, `domain-tests.yml` 재사용 워크플로우를 통한 도메인별 병렬 테스트, JaCoCo 리포트·Codecov 업로드를 수행한다. 분석은 별도 Java 21 단계에서 수행하며, `run-domain-test` 액션은 의존성 다운로드 관련 실패를 최대 3회 재시도한다. CodeQL·Dependabot workflow는 현재 확인되지 않았다.
 - 이번 갱신에서는 Gradle과 프런트엔드 명령을 실행하지 않았으므로 현재 통과 여부와 커버리지는 미검증이다.
 
 ## 알려진 차이와 다음 작업
@@ -127,8 +127,8 @@ Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_vari
 2. Address의 `lastUsedAt`은 필드·정렬·삭제 승격 기준만 구현되어 있다. 주문 도메인에서 실제 배송지 사용 시 갱신하는 연계가 필요하다.
 3. Address 화면과 API 연동은 프런트에서 확인되지 않았다.
 4. `addresses.user_id`와 `users.id`의 DB 외래 키가 확인되지 않았다. 소유 관계를 DB 제약으로 보장할지 결정하고 필요한 Flyway migration을 추가한다.
-5. CatalogProduct Media와 고객용 Product API를 구현하고, 현재 관리자·Product Manager 조회를 고객용 응답과 분리한다.
+5. CatalogProduct Media와 고객용 Product API를 구현하고, 현재 관리자·Product Manager 조회와 고객용 응답을 분리한다.
 6. P8 Seller 등록·프로필·등록 요청·운영 API를 구현한다. 현재 Catalog 조회의 active-seller 검증은 적용되어 있다.
 7. P9 Offer·Inventory·Marketplace, P10 Review, P12 MediaUpload 흐름을 구현한다.
-8. 요구사항은 단독 Variant 조회 응답에 `variantId`를 정의하지만 현재 `/api/v1/product-variants/{id}`는 `ProductVariantAdminResponse`를 사용해 JSON `id`를 반환한다. DTO와 요구사항의 응답 필드를 정합화해야 한다.
+8. ProductVariant 조회는 CatalogProduct 목록·상세 응답에 통합되어 있으며, 현재 단독 ProductVariant 조회 HTTP 경로는 없다. 요구사항·클라이언트 계약에서 단독 조회가 필요해지면 별도 API 여부와 응답 필드를 다시 결정해야 한다.
 9. 구현 범위가 확장되면 해당 모듈의 API·테스트와 Modulith 경계 검증을 함께 추가한다.

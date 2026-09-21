@@ -39,7 +39,7 @@ P9는 Seller·Catalog·Review·Order의 내부 모델·Repository·서비스 구
 | `ADMIN` | 전체 Offer·Inventory를 운영하고 관리자 차단 Offer의 활성화 요청을 심사한다. |
 | 고객 | 공개 가능한 ACTIVE Offer와 구매 가능 상태만 조회한다. |
 
-기존 용어와 의미가 충돌하면 [domain-glossary.md](../../domain-glossary.md)와 [CONTEXT.md](../../../CONTEXT.md)를 함께 갱신한다.
+기존 용어와 의미가 충돌하면 [domain-glossary.md](../../domain-glossary.md)를 갱신하고, 영향을 받는 P9 문서를 함께 검토한다.
 
 ## 3. 핵심 업무 규칙
 

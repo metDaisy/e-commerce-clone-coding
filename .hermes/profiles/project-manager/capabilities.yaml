@@ -1,0 +1,83 @@
+# Project Manager capability policy distributed with this Profile.
+# No endpoints, credentials, sessions, state databases, or machine paths.
+profile: project-manager
+
+skills:
+  allowed:
+    - hermes-agent
+    # Distribution-owned PM workflow Skills.
+    - service-planning
+    - create-triage
+    - build-task-graph
+    - run-workflow
+    - sync-docs
+    - update-current-state
+    - codebase-memory-mcp
+    # Retained for PM-focused documentation search; its content will be revised.
+    - semble-search
+
+plugins:
+  enabled:
+    - agent-audit
+
+tools:
+  allowed_toolsets:
+    - terminal
+    - file
+    - skills
+    - clarify
+    - kanban
+    # Research, deterministic planning drafts, and PM session continuity.
+    - web
+    - browser
+    - code_execution
+    - todo
+    - memory
+    - session_search
+
+approvals:
+  mode: smart
+
+stt:
+  enabled: false
+
+mcp_tools:
+  codebase_read:
+    include:
+      - index_status
+      - search_graph
+      - trace_path
+  github_project_manager:
+    include:
+      - add_issue_comment
+      - add_reply_to_pull_request_comment
+      - create_pull_request
+      - issue_read
+      - issue_write
+      - list_issues
+      - list_pull_requests
+      - merge_pull_request
+      - pull_request_read
+      - search_issues
+      - search_pull_requests
+      - update_pull_request
+  gradle_project_verify:
+    include:
+      - gradle
+      - query_build
+  semble_read:
+    include:
+      - search
+      - find_related
+
+mcp:
+  allowed_servers:
+    - codebase-memory
+    - semble-mcp
+    - github-mcp
+    - gradle-mcp
+  filters:
+    codebase-memory: codebase_read
+    github-mcp: github_project_manager
+    gradle-mcp: gradle_project_verify
+    semble-mcp: semble_read

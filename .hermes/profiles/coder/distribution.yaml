@@ -1,0 +1,15 @@
+name: coder
+version: 0.10.0
+description: "Implements assigned Amaazon backend requirements with tests and verified review handoff."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md
+  - README.md
+  - capabilities.yaml
+  - skills/run-impl-card/SKILL.md
+  - skills/run-impl-card/README.md
+  - skills/run-impl-card/references/implementation-card-contract.md
+  - skills/implement/SKILL.md
