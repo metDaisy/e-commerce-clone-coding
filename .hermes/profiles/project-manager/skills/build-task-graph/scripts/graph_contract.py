@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+from collections import Counter
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -11,6 +13,17 @@ from pathlib import Path
 from typing import Any, Callable
 
 from contract_common import is_canonical_https_url
+
+
+def _validate_aggregate_review_result(result: Any, graph: Any) -> list[str]:
+    workflow_path = Path(__file__).resolve().parents[2] / "run-workflow" / "scripts" / "workflow.py"
+    spec = importlib.util.spec_from_file_location("pm_workflow_contract", workflow_path)
+    if spec is None or spec.loader is None:
+        return ["WORKFLOW_VALIDATOR_UNAVAILABLE"]
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    expected = result.get("prior_findings") if isinstance(result, dict) else None
+    return module.validate_review_result(result, graph, expected)
 
 GRAPH_SCHEMA = "build-task-graph-v1"
 CARD_SCHEMAS = {
@@ -80,12 +93,20 @@ def _validate_body(card: dict[str, Any], behavior_ids: set[str], errors: list[st
         return
     _error(errors, body.get("schema") == CARD_SCHEMAS.get(card_type), f"CARD_BODY_SCHEMA:{key}")
     if card_type == "review":
-        allowed = {"schema", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance"}
+        allowed = {"schema", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance", "scope_exclusions"}
         _exact_fields(body, allowed, errors, f"UNEXPECTED_REVIEW_BODY_FIELD:{key}")
         _error(errors, _strings(body.get("effective_behavior_ids")), f"MISSING_REVIEW_BEHAVIORS:{key}")
         _error(errors, isinstance(body.get("implementation_card_keys"), list), f"MISSING_REVIEW_IMPLS:{key}")
         _error(errors, isinstance(body.get("inherited_behavior_ids"), list), f"MISSING_REVIEW_INHERITED:{key}")
         _error(errors, _strings(body.get("aggregate_acceptance")), f"MISSING_REVIEW_ACCEPTANCE:{key}")
+        exclusions = body.get("scope_exclusions")
+        _error(
+            errors,
+            isinstance(exclusions, list)
+            and all(_non_empty(item) for item in exclusions)
+            and len(exclusions) == len(set(exclusions)),
+            f"INVALID_REVIEW_SCOPE_EXCLUSIONS:{key}",
+        )
     elif card_type == "summary":
         allowed = {"schema", "effective_behavior_ids", "aggregate_acceptance", "finalization_checks"}
         _exact_fields(body, allowed, errors, f"UNEXPECTED_SUMMARY_BODY_FIELD:{key}")
@@ -106,7 +127,13 @@ def _validate_body(card: dict[str, Any], behavior_ids: set[str], errors: list[st
                 errors.append(f"UNKNOWN_BEHAVIOR:{key}:{behavior_id}")
 
 
-def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation: Callable[[Any], list[str]] | None = None) -> list[str]:
+def validate_graph(
+    graph: Any,
+    *,
+    phase: str = "draft",
+    validate_implementation: Callable[[Any], list[str]] | None = None,
+    source_review_result: Any = None,
+) -> list[str]:
     """결정론적으로 graph wrapper와 persisted card body를 검증한다."""
     if phase not in {"draft", "native"}:
         return ["INVALID_PHASE"]
@@ -183,6 +210,34 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
             if isinstance(idempotency, dict):
                 _error(errors, all(_non_empty(key) and _non_empty(value) for key, value in idempotency.items()), "INVALID_IDEMPOTENCY_MAP")
                 _error(errors, len(set(idempotency.values())) == len(idempotency), "DUPLICATE_IDEMPOTENCY_KEY")
+        if not isinstance(source_review_result, dict):
+            errors.append("MISSING_CANONICAL_SOURCE_REVIEW_RESULT")
+        else:
+            canonical_errors = _validate_aggregate_review_result(source_review_result, graph)
+            errors.extend(f"INVALID_CANONICAL_SOURCE_REVIEW_RESULT:{error}" for error in canonical_errors)
+            _error(errors, source_review_result.get("result") == "changes-required", "SOURCE_REVIEW_RESULT_NOT_CHANGES_REQUIRED")
+            _error(
+                errors,
+                isinstance(source_review, dict)
+                and source_review.get("review_key") == source_review_result.get("review_card_key"),
+                "SOURCE_REVIEW_KEY_MISMATCH",
+            )
+            canonical_dispositions = [
+                (finding.get("finding_id"), finding.get("verdict"))
+                for finding in source_review_result.get("findings", [])
+                if isinstance(finding, dict)
+                and finding.get("verdict") in {"correction-required", "context-required", "decision-required"}
+            ]
+            graph_dispositions = [
+                (disposition.get("finding_id"), disposition.get("verdict"))
+                for disposition in (
+                    source_review.get("dispositions", [])
+                    if isinstance(source_review, dict)
+                    else []
+                )
+                if isinstance(disposition, dict)
+            ]
+            _error(errors, Counter(graph_dispositions) == Counter(canonical_dispositions), "SOURCE_REVIEW_DISPOSITION_MISMATCH")
     _validate_locator(graph.get("requirement_basis"), errors, "REQUIREMENT_BASIS")
 
     behaviors = graph.get("behaviors")
@@ -297,6 +352,32 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
 
     for key in records:
         visit(key)
+
+    def depends_on(key: str, ancestor: str, seen: set[str] | None = None) -> bool:
+        if seen is None:
+            seen = set()
+        if key in seen:
+            return False
+        seen.add(key)
+        parents = records.get(key, {}).get("parents", [])
+        return ancestor in parents or any(
+            parent in records and depends_on(parent, ancestor, seen)
+            for parent in parents
+        )
+
+    executable = [
+        key
+        for key, card in records.items()
+        if card.get("card_type") in {"implementation", "review"}
+        and card.get("status") != "archived"
+    ]
+    for index, left in enumerate(executable):
+        for right in executable[index + 1:]:
+            _error(
+                errors,
+                depends_on(left, right) or depends_on(right, left),
+                f"PARALLEL_EXECUTABLE_FRONTIER:{left}:{right}",
+            )
     if triages:
         _error(errors, records[triages[0]].get("parents") == [], "TRIAGE_HAS_PARENT")
     if summaries:

@@ -53,9 +53,10 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 4. Review는 단일 Reviewer가 immutable aggregate contract와 모든 child checkpoint를 읽고 latest terminal
    run metadata에 `aggregate-review-result-v1`을 남긴다. PM은 다음으로 검증한다.
 
-   `python scripts/workflow.py validate-review-result <review-result.json> <graph.json>`
+   `python scripts/workflow.py validate-review-result <review-result.json> <graph.json> <expected-prior-findings.json>`
 
-5. `changes-required` 또는 `blocked` finding은 `build-task-graph review-rework`로 same-generation work를
+5. `changes-required`의 blocking finding은 canonical Review result와 함께 `build-task-graph
+   review-rework`로 same-generation work를
    append한다. `correction-required`는 corrective Impl, `context-required`는 next Review,
    `decision-required`는 native blocked Decision으로 route한다. Source Review/body/run/finding을 수정하거나
    삭제하지 않는다.
@@ -64,7 +65,8 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 
 ## 같은 카드의 PM checkpoint
 
-1. Task가 `review`, assignee가 `project-manager`, active run이 dispatcher-created review run인지 확인한다.
+1. Queued task가 `review`였고 dispatcher claim 뒤 현재 task가 `running`, assignee가 `project-manager`,
+   active run의 claimed event `source_status`가 `review`인지 확인한다.
 2. Immutable `backend-implementation-card-v1`과 latest Coder run의
    `backend-implementation-handoff-v1` metadata를 read-back한다. Handoff source run, exact tests,
    `test_levels`, scenario result와 full backend result를 검수한다. 이는 Coder self-verification record이며
@@ -76,20 +78,19 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 
 4. 실제 changed/staged/untracked path가 handoff와 정확히 같고 문서가 포함되지 않으며,
    acceptance·focused verification·required scenario·`gradle-mcp test` evidence가 모두 pass인지 검수한다.
-5. 수정이 필요하면 `backend-implementation-change-request-v1`을 검증해 comment로 남기고 native
+5. 수정이 필요하면 immutable card, latest handoff, normalized active PM review run과 함께
+   `backend-implementation-change-request-v1`을 검증해 comment로 남기고 native
    `request-changes` 후 original Coder ownership과 종료된 PM run을 read-back한다.
 6. 통과하면 `git config --get core.hooksPath`가 `.githooks`인지 확인하고 검증된 path만 stage한다. staged
    diff/name/check를 읽은 뒤
    [`docs/commit-message-convention.md`](../../../../../docs/commit-message-convention.md)를 다시 읽는다.
    실제 staged diff를 근거로 type·50자 이내 한국어 명령형 subject·본문·명시된 Issue만 작성하고 하나의
-   self-contained commit을 만든다. `post-commit`이 Python script를 통해 `codebase-memory-mcp` MCP stdio server의 `index_repository` tool을 동기 실행한
-   뒤 SHA, committed path, message와 clean worktree를 read-back하고, `.githooks/post-commit`의
-   `codebase-memory/last-indexed-head`가 result SHA와 정확히 같은지 확인한다. hook 또는 freshness record가
-   없거나 다르면 checkpoint를 block하고 `backend-implementation-checkpoint-v1`을 작성하지 않는다.
+   self-contained commit을 만든다. SHA, committed path, message와 clean worktree를 read-back한다.
+   Codebase Memory 재색인은 별도 승인된 maintenance operation이며 checkpoint admission 조건이 아니다.
 7. Handoff가 documentation impact를 보고했으면 code commit 뒤 `sync-docs derived-docs`를 별도
    docs-only commit으로 실행하고 path·commit SHA·clean state를 read-back한다. 영향이 없으면
    `not-applicable`을 기록한다.
-8. `python scripts/checkpoint.py checkpoint <card.json> <handoff.json> <checkpoint.json>` 통과 후 같은 Impl을
+8. `python scripts/checkpoint.py checkpoint <card.json> <handoff.json> <active-review-run.json> <checkpoint.json>` 통과 후 같은 Impl을
    complete하고 closing run metadata와 `done`을 read-back한다.
 
 완료 기준: task `done`, checkpoint SHA/path, clean Git state가 같은 native run과 일치한다. PM checkpoint는
@@ -106,7 +107,7 @@ Summary는 release 후 완료되는 finalization card다. Native dependency가 S
    distinct descendant이며 recorded literal docs path만 변경했는지 Git으로 확인한다. Clean `HEAD`가 docs
    commit이 없으면 code SHA, 있으면 마지막 docs SHA인지 확인해 `summary-admission-v1`을 검증한다.
 
-   `python scripts/workflow.py validate-summary-admission <admission.json>`
+   `python scripts/workflow.py validate-summary-admission <admission.json> <graph.json> <native-board.json> <expected-prior-findings.json>`
 
 2. `update-current-state`로 frozen implementation SHA의 `src/**`를 조사하고 active marker를 제거한다.
    `docs/current-state.md`만 변경한 docs-only commit, inspection SHA, docs commit SHA와 clean tree를 읽는다.

@@ -16,6 +16,9 @@ metadata:
 Changed contract가 existing caller, stored data와 mixed-version runtime에서 안전하게 진화하는지 검토한다.
 Extensibility는 실제 requirement·external integration·known volatility가 있을 때만 요구한다.
 
+`run-review/references/axis-result-contract.md`의 invocation packet을 소비하고 raw axis result를
+`run-review`에 반환한다. PM에게 직접 handoff하지 않는다.
+
 ## Applicability
 
 Public/named interface, HTTP API, DTO/serialization, event, configuration, database schema/data, dependency version,

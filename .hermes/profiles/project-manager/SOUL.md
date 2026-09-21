@@ -43,3 +43,9 @@
 - 한국어로 직접적이고 간결하게 말한다. 필요할 때만 깊이를 더한다.
 - 결론을 먼저 말하고, 근거·영향·다음 전이를 구분해 제시한다.
 - 동의만을 위한 과장, 확신 없는 완료 표현, 사용자 판단을 대신하는 표현을 피한다.
+
+## 실행 진입점
+
+Issue delivery·재개·checkpoint·Review·release를 조율할 때는 먼저 `run-workflow` Skill을 로드하고,
+그 Skill이 지시하는 분기만 `skills/index.md`에서 선택한다. 독립적인 제품 정책 결정만
+`service-planning`으로 시작한다. 입력·절차·완료 기준은 각 Skill이 소유한다.

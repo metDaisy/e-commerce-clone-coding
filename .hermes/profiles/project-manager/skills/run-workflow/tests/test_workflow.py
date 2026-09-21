@@ -50,12 +50,20 @@ class WorkflowContractTest(unittest.TestCase):
             )
         return {"tasks": tasks}
 
+    def final_board(self):
+        board = self.board()
+        for task in board["tasks"]:
+            if task["key"] in {"impl-1", "review-1"}:
+                task["status"] = "done"
+                task["runs"] = [{"status": "completed"}]
+        return board
+
     def review_result(self):
         return {
             "schema": "aggregate-review-result-v1",
             "review_card_key": "review-1",
             "review_task_id": "t_c3",
-            "review_run_id": "run-review-2",
+            "review_run_id": 2,
             "generation": 1,
             "result": "approved",
             "reviewed_checkpoints": [
@@ -81,6 +89,7 @@ class WorkflowContractTest(unittest.TestCase):
                     "evidence": ["checkpoint:a"],
                     "impact": "F-1 차단이 해소되었다.",
                     "resolves": {"source_review_task_id": "t_9f", "source_finding_id": "F-1"},
+                    "continues": None,
                 }
             ],
         }
@@ -150,52 +159,82 @@ class WorkflowContractTest(unittest.TestCase):
         self.assertIn("MISSING_WORKSPACE:triage", errors)
 
     def test_review_result_requires_complete_resolution_chain(self):
-        self.assertEqual([], validate_review_result(self.review_result(), self.graph()))
+        expected = self.review_result()["prior_findings"]
+        self.assertEqual([], validate_review_result(self.review_result(), self.graph(), expected))
         invalid = self.review_result()
         invalid["findings"] = []
-        self.assertIn("PRIOR_FINDING_DROPPED", validate_review_result(invalid, self.graph()))
+        self.assertIn("PRIOR_FINDING_DROPPED", validate_review_result(invalid, self.graph(), expected))
+
+        omitted = self.review_result()
+        omitted["prior_findings"] = []
+        omitted["findings"] = []
+        self.assertIn("PRIOR_FINDING_HISTORY_MISMATCH", validate_review_result(omitted, self.graph(), expected))
 
     def test_review_approval_rejects_new_blocking_finding(self):
         invalid = self.review_result()
         invalid["findings"][0].update(verdict="correction-required", resolves=None)
-        self.assertIn("APPROVED_WITH_BLOCKING_FINDING", validate_review_result(invalid, self.graph()))
+        self.assertIn(
+            "APPROVED_WITH_BLOCKING_FINDING",
+            validate_review_result(invalid, self.graph(), invalid["prior_findings"]),
+        )
+
+    def test_review_changes_required_can_continue_prior_finding(self):
+        value = self.review_result()
+        value["result"] = "changes-required"
+        value["findings"][0].update(
+            verdict="correction-required",
+            resolves=None,
+            continues={"source_review_task_id": "t_9f", "source_finding_id": "F-1"},
+        )
+        self.assertEqual([], validate_review_result(value, self.graph(), value["prior_findings"]))
 
     def test_summary_admission_requires_complete_parents_and_frozen_clean_sha(self):
         value = {
             "schema": "summary-admission-v1",
             "summary_task_id": "t_d4",
-            "latest_review_task_id": "t_c3",
-            "latest_review_run_id": "run-review-2",
-            "latest_review_result": "approved",
+            "latest_review_result": self.review_result(),
             "direct_parent_task_ids": ["t_b2", "t_c3"],
             "done_parent_task_ids": ["t_b2", "t_c3"],
-            "unresolved_finding_ids": [],
             "final_implementation_sha": SHA_A,
             "documentation_commit_shas": [],
             "repository_head_sha": SHA_A,
             "clean_worktree": True,
         }
-        self.assertEqual([], validate_summary_admission(value))
+        expected = self.review_result()["prior_findings"]
+        self.assertEqual([], validate_summary_admission(value, self.graph(), self.final_board(), expected))
         value["done_parent_task_ids"] = ["t_b2"]
-        self.assertIn("SUMMARY_PARENT_NOT_DONE", validate_summary_admission(value))
+        self.assertIn("SUMMARY_PARENT_NOT_DONE", validate_summary_admission(value, self.graph(), self.final_board(), expected))
+
+        value["summary_task_id"] = "t_dead"
+        self.assertIn("SUMMARY_TASK_ID_MISMATCH", validate_summary_admission(value, self.graph(), self.final_board(), expected))
 
     def test_summary_admission_preserves_code_sha_before_docs_only_commits(self):
         value = {
             "schema": "summary-admission-v1",
             "summary_task_id": "t_d4",
-            "latest_review_task_id": "t_c3",
-            "latest_review_run_id": "run-review-2",
-            "latest_review_result": "approved",
+            "latest_review_result": self.review_result(),
             "direct_parent_task_ids": ["t_b2", "t_c3"],
             "done_parent_task_ids": ["t_b2", "t_c3"],
-            "unresolved_finding_ids": [],
             "final_implementation_sha": SHA_A,
             "documentation_commit_shas": [SHA_B],
             "repository_head_sha": SHA_B,
             "clean_worktree": True,
         }
 
-        self.assertEqual([], validate_summary_admission(value))
+        self.assertEqual(
+            [],
+            validate_summary_admission(value, self.graph(), self.final_board(), self.review_result()["prior_findings"]),
+        )
+
+    def test_review_rejects_duplicate_disposition_of_same_prior_finding(self):
+        value = self.review_result()
+        duplicate = copy.deepcopy(value["findings"][0])
+        duplicate["finding_id"] = "F-3"
+        value["findings"].append(duplicate)
+        self.assertIn(
+            "PRIOR_FINDING_DISPOSITION_NOT_EXACTLY_ONCE",
+            validate_review_result(value, self.graph(), value["prior_findings"]),
+        )
 
     def test_release_contract_binds_snapshot_pr_ci_merge_and_auto_close(self):
         self.assertEqual([], validate_release(self.release()))

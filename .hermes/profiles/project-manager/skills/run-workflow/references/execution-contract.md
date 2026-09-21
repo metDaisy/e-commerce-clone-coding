@@ -41,7 +41,7 @@ finding ID와 짧은 요약만 가지며 이 object를 대체하지 않는다.
 {
   "schema": "backend-implementation-change-request-v1",
   "source_handoff_id": "handoff-7f3d87b2",
-  "source_review_run_id": "run-review-17",
+  "source_review_run_id": 17,
   "findings": [
     {
       "finding_id": "PM-CHK-1",
@@ -50,13 +50,15 @@ finding ID와 짧은 요약만 가지며 이 object를 대체하지 않는다.
       "observed_problem": "유효하지 않은 가격을 저장한다.",
       "expected_result": "유효하지 않은 가격을 기존 validation error contract로 거절한다.",
       "allowed_scope": ["상품 등록 validation과 직접 관련된 테스트"],
-      "verification": ["FV-PRODUCT-CREATE", "backend 전체 test"]
+      "verification": ["FV-PRODUCT-CREATE", "full-backend"]
     }
   ]
 }
 ```
 
-`source_handoff_id`는 검토한 latest handoff와 같고 `source_review_run_id`는 active PM review run과 같다.
+`source_handoff_id`는 검토한 latest handoff와 같고 `source_review_run_id`는 active PM review run의 양의
+정수 native run ID와 같다. Validator는 immutable card, latest handoff와 `running` PM review run
+(`source_status: review`)을 함께 받아 이 correlation을 확인한다.
 `finding_id`는 request 안에서 고유하다. 각 finding은 exact path·symbol, 관찰된 문제, 기대 결과, 허용
 범위와 다시 실행할 검증을 모두 가진다. 일반적인 개선 요청이나 card의 제품 의미를 바꾸는 요청은
 허용하지 않는다. `scripts/checkpoint.py change-request` validation이 통과한 뒤에만 comment와 native
@@ -77,8 +79,22 @@ PM은 검증된 path만 stage·commit하고 result commit과 clean worktree를 r
     "src/test/java/example/product/ProductRegistrationIntegrationTest.java"
   ],
   "commit_sha": "<40-character result commit SHA>",
+  "focused_verification_readback": [
+    {
+      "verification_id": "FV-PRODUCT-CREATE",
+      "executor": "gradle-mcp",
+      "tasks": ["test"],
+      "tests": ["example.product.ProductRegistrationIntegrationTest"],
+      "test_levels": ["integration"],
+      "scenario_results": [
+        {"scenario": "유효한 입력의 성공", "result": "pass"},
+        {"scenario": "유효하지 않은 입력의 거절", "result": "pass"}
+      ],
+      "result": "pass"
+    }
+  ],
   "full_backend_verification_readback": "pass",
-  "verification_run_id": "run-pm-checkpoint-17",
+  "verification_run_id": 17,
   "documentation_impact_resolution": {
     "status": "not-applicable",
     "changed_paths": [],
@@ -89,8 +105,10 @@ PM은 검증된 path만 stage·commit하고 result commit과 clean worktree를 r
 ```
 
 `source_handoff_id`는 검수한 handoff와 같고 `committed_paths`는 그 handoff의 `changed_paths`와 중복 없이
-정확히 같아야 한다. `verification_run_id`는 PM이 동일 Gradle contract를 재실행한 current checkpoint
-review run이다. `documentation_impact.detected`가 false이면 resolution은 `not-applicable`이다.
+정확히 같아야 한다. `focused_verification_readback`은 card의 모든 verification ID, 최소 test level과
+required scenario를 정확히 덮으며 모두 pass여야 한다. `verification_run_id`는 PM이 동일 Gradle
+contract를 재실행한 current checkpoint review run의 양의 정수 native ID다.
+`documentation_impact.detected`가 false이면 resolution은 `not-applicable`이다.
 True이면 code commit 뒤 `sync-docs derived-docs`로 별도 docs-only commit을 만들고 resolution을
 `resolved`, literal docs path와 그 commit SHA로 기록한다. Docs SHA는 code SHA와 달라야 하며 PM은
 `git show --name-only`에 해당하는 read-back으로 그 commit의 exact changed path가 resolution 목록과 같고
@@ -98,15 +116,17 @@ code commit 뒤에 오는지 확인한다. Full backend verification, code commi
 worktree를 read-back하기 전에는 completion metadata를 작성하거나 task를 `done`으로
 전환하지 않는다.
 
-`scripts/checkpoint.py checkpoint` validation 후 `kanban_complete`를 호출하고 task `done`, closing PM run
+`scripts/checkpoint.py checkpoint <card> <handoff> <active-review-run> <checkpoint>` validation 후
+`kanban_complete`를 호출하고 task `done`, closing PM run
 metadata, result SHA, committed paths와 clean Git state를 다시 read-back한다.
 
 ## Lifecycle boundary
 
 ```text
-ready → running(Coder) → review(PM) → done
-                          └→ request-changes → ready 또는 dependency-gated todo
-review → blocked → resumed PM review phase
+ready → running(Coder) → review(queue)
+                         → running(PM review run; claimed source_status=review) → done
+                         └→ request-changes → ready 또는 dependency-gated todo
+running(PM review run) → blocked → resumed PM review run
 ```
 
 PM checkpoint는 independent aggregate Review를 대체하지 않는다.

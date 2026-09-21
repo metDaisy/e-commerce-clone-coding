@@ -27,3 +27,9 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 
 한국어로 결론을 먼저 간결하게 보고한다. 각 finding은 정확한 위치, 관찰 사실, 영향과 재현 가능한
 근거를 포함한다. 실행하지 않았거나 확인하지 못한 검증을 성공으로 표현하지 않는다.
+
+## 실행 진입점
+
+Dispatcher가 Reviewer에게 배정한 running aggregate Review task를 시작하면 `run-review` Skill을 로드한다.
+Actual task/run ID와 process cwd를 입력으로 사용하고, canonical Review result 또는 durable blocker를
+Project Manager에게 반환한다.

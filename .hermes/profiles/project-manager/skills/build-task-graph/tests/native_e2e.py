@@ -165,7 +165,25 @@ class NativeE2E:
             self.board_run("claim", impl, "--ttl", "120")
             self.board_run("complete", "--force", impl, "--result", "implementation checkpoint verified")
             self.board_run("claim", review1, "--ttl", "120")
+            active_review_run = self.show(review1)["runs"][-1]
+            review_run_id = active_review_run.get("id", active_review_run.get("run_id"))
+            if not isinstance(review_run_id, int) or review_run_id <= 0:
+                raise RuntimeError("native Review run has no positive integer ID")
             finding_metadata = {
+                "schema": "aggregate-review-result-v1",
+                "review_card_key": "review-1",
+                "review_task_id": review1,
+                "review_run_id": review_run_id,
+                "generation": 1,
+                "result": "changes-required",
+                "reviewed_checkpoints": [
+                    {
+                        "implementation_card_key": "impl-1",
+                        "implementation_task_id": impl,
+                        "checkpoint_sha": "a" * 40,
+                    }
+                ],
+                "prior_findings": [],
                 "findings": [
                     {
                         "finding_id": "F-1",
@@ -174,6 +192,8 @@ class NativeE2E:
                         "observed_fact": "회귀 시나리오 보강이 필요하다.",
                         "evidence": ["test:missing-regression"],
                         "impact": "aggregate acceptance",
+                        "resolves": None,
+                        "continues": None,
                     }
                 ]
             }
@@ -281,6 +301,7 @@ class NativeE2E:
                 self.graph_wrapper(review_graph, rework_ids),
                 phase="native",
                 validate_implementation=validate,
+                source_review_result=finding_metadata,
             )
             if rework_errors:
                 raise RuntimeError(f"review-rework graph invalid: {rework_errors}")
@@ -288,7 +309,36 @@ class NativeE2E:
             self.board_run("claim", corrective, "--ttl", "120")
             self.board_run("complete", "--force", corrective, "--result", "correction verified")
             self.board_run("claim", review2, "--ttl", "120")
+            active_review2_run = self.show(review2)["runs"][-1]
+            review2_run_id = active_review2_run.get("id", active_review2_run.get("run_id"))
+            if not isinstance(review2_run_id, int) or review2_run_id <= 0:
+                raise RuntimeError("native Review2 run has no positive integer ID")
             resolution_metadata = {
+                "schema": "aggregate-review-result-v1",
+                "review_card_key": "review-2",
+                "review_task_id": review2,
+                "review_run_id": review2_run_id,
+                "generation": 1,
+                "result": "approved",
+                "reviewed_checkpoints": [
+                    {
+                        "implementation_card_key": "impl-1",
+                        "implementation_task_id": impl,
+                        "checkpoint_sha": "a" * 40,
+                    },
+                    {
+                        "implementation_card_key": "impl-2",
+                        "implementation_task_id": corrective,
+                        "checkpoint_sha": "b" * 40,
+                    },
+                ],
+                "prior_findings": [
+                    {
+                        "source_review_task_id": review1,
+                        "source_finding_id": "F-1",
+                        "verdict": "correction-required",
+                    }
+                ],
                 "findings": [
                     {
                         "finding_id": "F-2",
@@ -297,7 +347,11 @@ class NativeE2E:
                         "evidence": ["native corrective run completion"],
                         "impact": "F-1은 더 이상 blocking이 아니다.",
                         "verdict": "resolved",
-                        "resolves": {"source_review_id": review1, "finding_id": "F-1"},
+                        "resolves": {
+                            "source_review_task_id": review1,
+                            "source_finding_id": "F-1",
+                        },
+                        "continues": None,
                     }
                 ]
             }

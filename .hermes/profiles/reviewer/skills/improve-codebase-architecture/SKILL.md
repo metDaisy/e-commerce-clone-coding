@@ -72,4 +72,5 @@ Mode 또는 scope가 없으면 추측하지 말고 `blocked`를 반환한다.
 ## 완료 기준
 
 명시된 mode와 scope 안에서 module/interface/seam/adapter를 evidence로 검토했고, current regression,
-pre-existing debt와 speculative candidate를 분리했다.
+pre-existing debt와 speculative candidate를 분리했다. `checkpoint` mode 결과는 scoped candidate/evidence
+set으로 `review-architecture`에 반환하며, 그 leaf만 axis result와 verdict candidate로 변환한다.

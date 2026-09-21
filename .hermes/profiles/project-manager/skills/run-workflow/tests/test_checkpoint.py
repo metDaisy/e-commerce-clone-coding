@@ -33,7 +33,7 @@ class CheckpointContractTest(unittest.TestCase):
         return {
             "schema": "backend-implementation-handoff-v1",
             "handoff_id": "handoff-7f3d87b2",
-            "source_run_id": "run-coder-16",
+            "source_run_id": 16,
             "implemented_behavior_ids": ["behavior-product-create"],
             "changed_paths": [
                 "src/main/java/example/product/ProductService.java",
@@ -76,14 +76,23 @@ class CheckpointContractTest(unittest.TestCase):
             "result": "pass",
             "committed_paths": self.handoff()["changed_paths"],
             "commit_sha": "a" * 40,
+            "focused_verification_readback": self.handoff()["focused_verification_results"],
             "full_backend_verification_readback": "pass",
-            "verification_run_id": "run-pm-checkpoint-17",
+            "verification_run_id": 17,
             "documentation_impact_resolution": {
                 "status": "not-applicable",
                 "changed_paths": [],
                 "commit_sha": None,
             },
             "clean_worktree": True,
+        }
+
+    def review_run(self):
+        return {
+            "run_id": 17,
+            "status": "running",
+            "assignee": "project-manager",
+            "source_status": "review",
         }
 
     def test_valid_handoff_passes(self):
@@ -145,7 +154,7 @@ class CheckpointContractTest(unittest.TestCase):
         request = {
             "schema": "backend-implementation-change-request-v1",
             "source_handoff_id": "handoff-7f3d87b2",
-            "source_review_run_id": "run-review-17",
+            "source_review_run_id": 17,
             "findings": [
                 {
                     "finding_id": "PM-CHK-1",
@@ -154,20 +163,23 @@ class CheckpointContractTest(unittest.TestCase):
                     "observed_problem": "재고 검증이 누락됐다.",
                     "expected_result": "음수 재고를 기존 validation error로 거절한다.",
                     "allowed_scope": ["상품 생성 입력 검증과 관련 테스트만 수정한다."],
-                    "verification": ["FV-PRODUCT-CREATE와 backend 전체 test를 다시 실행한다."],
+                    "verification": ["FV-PRODUCT-CREATE", "full-backend"],
                 }
             ],
         }
-        self.assertEqual([], validate_change_request(request))
+        self.assertEqual([], validate_change_request(self.card(), self.handoff(), self.review_run(), request))
 
     def test_change_request_rejects_incomplete_finding(self):
         request = {
             "schema": "backend-implementation-change-request-v1",
             "source_handoff_id": "handoff-7f3d87b2",
-            "source_review_run_id": "run-review-17",
+            "source_review_run_id": 17,
             "findings": [{"finding_id": "PM-CHK-1"}],
         }
-        self.assertIn("MISSING_FINDING_PATH:0", validate_change_request(request))
+        self.assertIn(
+            "MISSING_FINDING_PATH:0",
+            validate_change_request(self.card(), self.handoff(), self.review_run(), request),
+        )
 
     def test_change_request_rejects_unsafe_or_document_finding_path(self):
         for unsafe_path in ("C:/outside/file.java", "/tmp/file.java", "docs/spec.md", "--all"):
@@ -175,7 +187,7 @@ class CheckpointContractTest(unittest.TestCase):
                 request = {
                     "schema": "backend-implementation-change-request-v1",
                     "source_handoff_id": "handoff-7f3d87b2",
-                    "source_review_run_id": "run-review-17",
+                    "source_review_run_id": 17,
                     "findings": [
                         {
                             "finding_id": "PM-CHK-1",
@@ -184,22 +196,47 @@ class CheckpointContractTest(unittest.TestCase):
                             "observed_problem": "재고 검증이 누락됐다.",
                             "expected_result": "음수 재고를 거절한다.",
                             "allowed_scope": ["상품 생성 검증"],
-                            "verification": ["FV-PRODUCT-CREATE"],
+                            "verification": ["FV-PRODUCT-CREATE", "full-backend"],
                         }
                     ],
                 }
                 self.assertTrue(
-                    any(error.startswith("INVALID_FINDING_PATH:0:") for error in validate_change_request(request))
+                    any(
+                        error.startswith("INVALID_FINDING_PATH:0:")
+                        for error in validate_change_request(self.card(), self.handoff(), self.review_run(), request)
+                    )
                 )
 
+    def test_change_request_is_bound_to_handoff_run_and_card_verification(self):
+        request = {
+            "schema": "backend-implementation-change-request-v1",
+            "source_handoff_id": "stale",
+            "source_review_run_id": 99,
+            "findings": [
+                {
+                    "finding_id": "PM-CHK-1",
+                    "path": "src/main/java/example/product/ProductService.java",
+                    "symbol": "ProductService.create",
+                    "observed_problem": "재고 검증이 누락됐다.",
+                    "expected_result": "음수 재고를 거절한다.",
+                    "allowed_scope": ["상품 생성 검증"],
+                    "verification": ["UNKNOWN"],
+                }
+            ],
+        }
+        errors = validate_change_request(self.card(), self.handoff(), self.review_run(), request)
+        self.assertIn("SOURCE_HANDOFF_MISMATCH", errors)
+        self.assertIn("SOURCE_REVIEW_RUN_MISMATCH", errors)
+        self.assertIn("FINDING_VERIFICATION_MISMATCH:0", errors)
+
     def test_valid_checkpoint_passes(self):
-        self.assertEqual([], validate_checkpoint(self.card(), self.handoff(), self.checkpoint()))
+        self.assertEqual([], validate_checkpoint(self.card(), self.handoff(), self.review_run(), self.checkpoint()))
 
     def test_checkpoint_requires_exact_committed_paths_and_clean_tree(self):
         checkpoint = self.checkpoint()
         checkpoint["committed_paths"] = checkpoint["committed_paths"][:1]
         checkpoint["clean_worktree"] = False
-        errors = validate_checkpoint(self.card(), self.handoff(), checkpoint)
+        errors = validate_checkpoint(self.card(), self.handoff(), self.review_run(), checkpoint)
         self.assertIn("COMMITTED_PATHS_MISMATCH", errors)
         self.assertIn("WORKTREE_NOT_CLEAN", errors)
 
@@ -207,13 +244,24 @@ class CheckpointContractTest(unittest.TestCase):
         checkpoint = self.checkpoint()
         checkpoint["source_handoff_id"] = "handoff-stale"
 
-        self.assertIn("SOURCE_HANDOFF_MISMATCH", validate_checkpoint(self.card(), self.handoff(), checkpoint))
+        self.assertIn("SOURCE_HANDOFF_MISMATCH", validate_checkpoint(self.card(), self.handoff(), self.review_run(), checkpoint))
 
     def test_checkpoint_requires_pm_verification_run(self):
         checkpoint = self.checkpoint()
-        checkpoint["verification_run_id"] = ""
-        errors = validate_checkpoint(self.card(), self.handoff(), checkpoint)
+        checkpoint["verification_run_id"] = 0
+        errors = validate_checkpoint(self.card(), self.handoff(), self.review_run(), checkpoint)
         self.assertIn("MISSING_PM_VERIFICATION_RUN_ID", errors)
+
+        checkpoint = self.checkpoint()
+        checkpoint["verification_run_id"] = 99
+        errors = validate_checkpoint(self.card(), self.handoff(), self.review_run(), checkpoint)
+        self.assertIn("PM_VERIFICATION_RUN_MISMATCH", errors)
+
+    def test_checkpoint_requires_pm_focused_verification_coverage(self):
+        checkpoint = self.checkpoint()
+        checkpoint["focused_verification_readback"] = []
+        errors = validate_checkpoint(self.card(), self.handoff(), self.review_run(), checkpoint)
+        self.assertTrue(any(error.startswith("PM_FOCUSED_READBACK:") for error in errors))
 
     def test_handoff_requires_declared_minimum_test_level(self):
         handoff = self.handoff()
@@ -233,7 +281,7 @@ class CheckpointContractTest(unittest.TestCase):
         unresolved = self.checkpoint()
         self.assertIn(
             "DOCUMENTATION_IMPACT_UNRESOLVED",
-            validate_checkpoint(self.card(), handoff, unresolved),
+            validate_checkpoint(self.card(), handoff, self.review_run(), unresolved),
         )
         resolved = self.checkpoint()
         resolved["documentation_impact_resolution"] = {
@@ -241,17 +289,17 @@ class CheckpointContractTest(unittest.TestCase):
             "changed_paths": ["docs/architecture.md"],
             "commit_sha": "b" * 40,
         }
-        self.assertEqual([], validate_checkpoint(self.card(), handoff, resolved))
+        self.assertEqual([], validate_checkpoint(self.card(), handoff, self.review_run(), resolved))
         resolved["documentation_impact_resolution"]["commit_sha"] = resolved["commit_sha"]
         self.assertIn(
             "DOCUMENTATION_COMMIT_NOT_DISTINCT",
-            validate_checkpoint(self.card(), handoff, resolved),
+            validate_checkpoint(self.card(), handoff, self.review_run(), resolved),
         )
 
     def test_checkpoint_rejects_incomplete_source_handoff(self):
         handoff = {"handoff_id": "handoff-7f3d87b2", "changed_paths": ["src/X.java"]}
 
-        errors = validate_checkpoint(self.card(), handoff, self.checkpoint())
+        errors = validate_checkpoint(self.card(), handoff, self.review_run(), self.checkpoint())
 
         self.assertTrue(any(error.startswith("INVALID_HANDOFF:") for error in errors))
 
@@ -261,7 +309,7 @@ class CheckpointContractTest(unittest.TestCase):
         checkpoint = self.checkpoint()
         before = copy.deepcopy((card, handoff, checkpoint))
         validate_handoff(card, handoff)
-        validate_checkpoint(card, handoff, checkpoint)
+        validate_checkpoint(card, handoff, self.review_run(), checkpoint)
         self.assertEqual(before, (card, handoff, checkpoint))
 
     def test_cli_validates_handoff(self):
@@ -286,6 +334,7 @@ class CheckpointContractTest(unittest.TestCase):
             for name, payload in (
                 ("card", self.card()),
                 ("handoff", self.handoff()),
+                ("review_run", self.review_run()),
                 ("checkpoint", self.checkpoint()),
             ):
                 paths[name] = Path(directory) / f"{name}.json"
@@ -297,6 +346,7 @@ class CheckpointContractTest(unittest.TestCase):
                     "checkpoint",
                     str(paths["card"]),
                     str(paths["handoff"]),
+                    str(paths["review_run"]),
                     str(paths["checkpoint"]),
                 ],
                 capture_output=True,
@@ -310,8 +360,22 @@ class CheckpointContractTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             request_path = Path(directory) / "request.json"
             request_path.write_text('{"schema":"wrong","schema":"backend-implementation-change-request-v1"}', encoding="utf-8")
+            card_path = Path(directory) / "card.json"
+            handoff_path = Path(directory) / "handoff.json"
+            run_path = Path(directory) / "run.json"
+            card_path.write_text(json.dumps(self.card()), encoding="utf-8")
+            handoff_path.write_text(json.dumps(self.handoff()), encoding="utf-8")
+            run_path.write_text(json.dumps(self.review_run()), encoding="utf-8")
             completed = subprocess.run(
-                [sys.executable, str(SKILL_DIR / "scripts" / "checkpoint.py"), "change-request", str(request_path)],
+                [
+                    sys.executable,
+                    str(SKILL_DIR / "scripts" / "checkpoint.py"),
+                    "change-request",
+                    str(card_path),
+                    str(handoff_path),
+                    str(run_path),
+                    str(request_path),
+                ],
                 capture_output=True,
                 text=True,
                 check=False,

@@ -16,6 +16,9 @@ metadata:
 `improve-codebase-architecture`를 `checkpoint` mode로 사용해 현재 requirement가 변경하거나 의존하는
 architecture만 검토한다. Changed lines에 갇히지 않되 전체 repository redesign으로 확대하지 않는다.
 
+`run-review/references/axis-result-contract.md`의 invocation packet을 소비하고 raw axis result를
+`run-review`에 반환한다. PM에게 직접 handoff하지 않는다.
+
 ## 기본 범위: requirement 영향 closure
 
 다음을 포함한다.

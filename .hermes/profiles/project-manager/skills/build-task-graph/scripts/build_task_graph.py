@@ -433,6 +433,7 @@ def main() -> int:
     graph_parser = subparsers.add_parser("validate-graph", help="validate a task graph wrapper")
     graph_parser.add_argument("graph", type=Path)
     graph_parser.add_argument("--phase", choices=("draft", "native"), default="draft")
+    graph_parser.add_argument("--source-review-result", type=Path)
     diff_parser = subparsers.add_parser("requirement-diff", help="write a read-only requirement comparison")
     diff_parser.add_argument("--base", required=True)
     diff_parser.add_argument("--revised", required=True)
@@ -456,7 +457,23 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
         return 2
-    errors = validate_graph(payload, phase=args.phase, validate_implementation=validate) if args.command == "validate-graph" else validate(payload)
+    source_review_result = None
+    if args.command == "validate-graph" and args.source_review_result is not None:
+        try:
+            source_review_result = _read_json(args.source_review_result)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
+            return 2
+    errors = (
+        validate_graph(
+            payload,
+            phase=args.phase,
+            validate_implementation=validate,
+            source_review_result=source_review_result,
+        )
+        if args.command == "validate-graph"
+        else validate(payload)
+    )
     print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=False))
     return 1 if errors else 0
 

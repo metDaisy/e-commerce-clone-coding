@@ -29,7 +29,7 @@ fallback 순서로 전환하고 axis result에 이유를 남긴다.
 
 ## Semble branch — 의미와 위치
 
-다음 상황에서 `semble-search`의 MCP `search`를 사용한다.
+다음 상황에서 `semble-search` Skill을 로드한 뒤 MCP `search`를 사용한다.
 
 - requirement/domain behavior의 구현 위치를 모른다.
 - 같은 policy나 responsibility를 수행하는 sibling/utility를 찾는다.
@@ -48,7 +48,7 @@ Procedure:
 
 ## Codebase Memory branch — 관계와 영향
 
-다음 상황에서 `codebase-memory-mcp`를 사용한다.
+다음 상황에서 `codebase-memory-mcp` Skill을 로드하고 index freshness를 확인한 뒤 사용한다.
 
 - Known symbol의 caller/callee 또는 dependency path가 필요하다.
 - Module/event/interface의 producer→consumer 경로와 impact closure가 필요하다.

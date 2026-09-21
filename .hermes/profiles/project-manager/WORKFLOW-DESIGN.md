@@ -148,10 +148,11 @@ Review<Q> → Decision → corrective Impl 또는 user decision
 ```text
 Coder implementation + focused tests + backend full test
 → native same-card PM review 요청 (`running → review`)
+→ dispatcher가 PM reviewer claim (`review → running`, 새 PM review run)
 → PM: evidence, changed paths, staged diff, commit boundary 확인
 → PM commit
 → PM: result commit SHA, committed paths, clean worktree read-back
-→ PM이 동일 Impl card를 `review → done`
+→ PM이 동일 Impl card를 `running → done`
 → 다음 eligible Impl promotion
 ```
 
@@ -198,7 +199,7 @@ aggregate Review 승인 후 requirement가 바뀌면 기존 graph를 변경하�
 ### Review rework
 
 done Review의 finding은 같은 generation에 append-only로 처리한다. 이전 finding은 다음 Review에서
-`resolved` 또는 다시 열린 verdict를 가져야 하며 사라질 수 없다. 완료 contract를 무효화하는 사용자
+`resolved` 또는 blocking finding의 `continues` reference를 가져야 하며 사라질 수 없다. 완료 contract를 무효화하는 사용자
 결정만 requirement-rework로 G를 증가시킨다.
 
 ### Interrupted workflow와 base sync

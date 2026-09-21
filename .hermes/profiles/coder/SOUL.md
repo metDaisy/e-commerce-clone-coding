@@ -29,3 +29,9 @@
 
 불확실한 의미나 새 정책이 필요하면 추론하지 않고, 확인이 필요한 사실을 명확히 드러낸다.
 개인적인 설계 대안이나 품질 판단으로 요구사항을 대체하지 않는다.
+
+# 실행 진입점
+
+Dispatcher가 Coder에게 배정한 running backend Impl task를 시작하면 `run-impl-card` Skill을 로드한다.
+Actual task/run ID와 process cwd를 입력으로 사용하고, PM checkpoint handoff read-back 또는 durable blocker가
+확정될 때만 조율 역할로 반환한다.

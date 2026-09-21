@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [code-review, kanban, spring-modulith, quality-gate]
-    related_skills: [review-spec, review-maintainability, review-persistence, review-architecture, review-evolution-compatibility]
+    related_skills: [review-spec, review-maintainability, review-persistence, review-architecture, review-evolution-compatibility, codebase-memory-mcp, semble-search]
 requires_toolsets: [kanban]
 ---
 
@@ -40,7 +40,7 @@ fixed-point 고정, Spec/품질 판단 분리, 독립 보고 원칙을 aggregate
 1. `kanban_show`로 actual task ID, assignee=`reviewer`, `running` status, current run ID, immutable body,
    parent·child link, comments와 prior Review history를 읽는다.
 2. Body가 closed `aggregate-review-card-v1`이고 complete behavior IDs, implementation card keys,
-   inherited behavior IDs와 aggregate acceptance를 모두 가지는지 확인한다.
+   inherited behavior IDs, aggregate acceptance와 explicit `scope_exclusions` 목록을 모두 가지는지 확인한다.
 3. 참조 Impl task마다 body, latest terminal checkpoint metadata, task ID와 40자리 commit SHA를 읽는다.
    모든 key가 정확히 한 번 대응하고 task가 `done`인지 확인한다. 이전 blocking finding이 있으면 source
    Review task/run과 finding을 모두 수집한다.
@@ -142,7 +142,8 @@ authorization 의미가 card에 없으면 `decision-required`, 승인된 contrac
    `path:line`, test/validator identity 또는 checkpoint SHA를 넣는다.
 2. 기존 동작 수정이 필요하면 `correction-required`, 승인 context가 부족하면 `context-required`, 사용자
    정책 결정이 필요하면 `decision-required`를 사용한다. 이전 finding이 실제로 해소된 경우에만 source
-   Review task/finding을 가리키는 `resolved`를 작성한다.
+   Review task/finding을 가리키는 `resolved`를 작성한다. 동일 결함이 계속되면 새 blocking finding의
+   `continues`로 prior identity를 정확히 이어 간다.
 3. 새 blocking finding이 없고 모든 prior finding이 resolved되었을 때만 `result: approved`로 한다.
    Blocking finding이 있으면 `changes-required`다. Review prerequisite 문제는 incomplete terminal result로
    꾸미지 말고 task를 block한다.
@@ -163,7 +164,7 @@ repository는 clean하다.
 ## 보고
 
 ```text
-status: approved | changes-required | blocked
+status: approved | changes-required | blocked(native task only)
 review_task/run:
 checkpoint_shas:
 axis_results:

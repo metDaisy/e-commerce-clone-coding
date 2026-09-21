@@ -197,6 +197,9 @@
         "inherited_behavior_ids": [],
         "aggregate_acceptance": [
           "상품 등록 요구사항 전체가 구현되고 검증되었다."
+        ],
+        "scope_exclusions": [
+          "상품 이미지 업로드와 frontend는 검토 범위에서 제외한다."
         ]
       }
     },

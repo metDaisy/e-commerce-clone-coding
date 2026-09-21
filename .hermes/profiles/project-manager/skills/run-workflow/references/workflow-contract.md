@@ -23,26 +23,30 @@ membership·identity·workspace·parent가 일치해야 하며 `done`에는 succ
 
 ## Aggregate Review 결과
 
-`aggregate-review-result-v1` 필드는 다음과 같다.
+Reviewer 계약이 result 의미와 producer 규칙을 소유하고, 이 문서와 `workflow.py`는 PM의 소비·routing
+invariant만 소유한다. `aggregate-review-result-v1`의 PM 소비 필드는 다음과 같다.
 
 - `review_card_key`, `review_task_id`, `review_run_id`, `generation`
-- `result`: `approved | changes-required | blocked`
+- `result`: `approved | changes-required`
 - `reviewed_checkpoints`: Impl card/task ID와 40자리 checkpoint SHA
 - `prior_findings`: 이전 blocking finding의 Review task ID, finding ID, verdict
-- `findings`: unique finding ID, verdict, basis, observed fact, evidence, impact, 선택적 resolution
+- `findings`: unique finding ID, verdict, basis, observed fact, evidence, impact, 선택적 resolution/continuation
 
-Verdict는 `correction-required | context-required | decision-required | resolved`다. `resolved`는
-`source_review_task_id`와 `source_finding_id`를 가져야 한다. 이전 blocking finding은 현재 결과에서 정확히
-resolve되어야 하며 조용히 사라지거나 존재하지 않는 finding을 resolve할 수 없다. `approved`에는 새
-blocking finding이 없다. Review contract가 참조하는 모든 Impl checkpoint를 정확히 한 번 검토한다.
+Verdict는 `correction-required | context-required | decision-required | resolved`다. `resolved`의
+`resolves` 또는 계속 blocking인 finding의 `continues`가 source Review/finding을 가리킨다. Native Review
+history에서 계산한 expected unresolved set과 result의 `prior_findings`가 정확히 같아야 하며 각 prior는
+resolve 또는 continue되어야 한다. `approved`에는 새·계속 blocking finding이 없다. Review contract가
+참조하는 모든 Impl checkpoint를 정확히 한 번 검토한다.
 Canonical payload는 completed Review의 latest terminal run metadata에서 읽는다.
 
 ## Summary admission
 
-`summary-admission-v1`은 Summary/latest Review task·run ID, Review result, direct/done parent ID,
-unresolved finding ID, `final_implementation_sha`, ordered `documentation_commit_shas`, repository HEAD와
-clean state를 가진다. 모든 direct parent가 done이고 latest Review가 approved이며 unresolved finding이
-없어야 한다. Documentation commit이 없으면 clean HEAD는 final implementation SHA와 같고, 있으면
+`summary-admission-v1`은 Summary task ID, canonical latest `aggregate-review-result-v1`, direct/done parent
+ID, `final_implementation_sha`, ordered `documentation_commit_shas`, repository HEAD와 clean state를 가진다.
+Validator는 graph와 normalized native board read-back을 함께 받아 Summary task ID, exact parent keys/task IDs,
+parent `done` 상태와 latest Review identity를 derive해 대조한다. Canonical result는 expected prior-finding
+history와 다시 대조한다. 모든 direct parent가 done이고 latest Review가 approved여야 한다. Documentation commit이 없으면 clean HEAD는 final
+implementation SHA와 같고, 있으면
 각 SHA가 implementation SHA와 구분되며 clean HEAD는 마지막 documentation commit SHA와 같다. PM은
 각 documentation commit의 parent ordering과 exact docs-only changed paths를 Git read-back으로 별도
 검증한다. 이는 Summary completion이 아니라 release를 시작할 자격이다.

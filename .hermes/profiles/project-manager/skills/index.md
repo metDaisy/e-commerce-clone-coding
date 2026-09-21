@@ -6,14 +6,14 @@
 
 ## 시작점
 
-| 상황 | 사용할 Skill | 경계 |
-|---|---|---|
-| 새 leaf Issue의 구현 아이디어·문서 영향·정책 문제를 정리 | `create-triage` | Rework graph와 Coder 실행 계약은 작성하지 않는다. |
-| Business policy, 권한·오류 의미, 사용자 흐름·UI 방향에 사용자 결정 필요 | `service-planning` | 단순 source 위치·구현 범위 조사는 제외한다. |
-| 승인 requirement 변경을 파생 문서나 GitHub Issue에 반영 | `sync-docs` | `current-state.md` snapshot은 갱신하지 않는다. |
-| 구현 snapshot이 stale/insufficient하거나 finalization snapshot 필요 | `update-current-state` | Requirement-rework 중간의 source 확인은 제외한다. |
-| 승인 입력으로 G1, requirement-rework 또는 review-rework graph 작성 | `build-task-graph` | Coder run checkpoint와 후속 lifecycle은 운영하지 않는다. |
-| Issue admission, Impl checkpoint, 다음 task, aggregate Review, Summary·release·recovery lifecycle 운영 | `run-workflow` | Root workflow이며 card schema와 corrective graph는 작성하지 않는다. |
+| Trigger | Load | Pass | Return only when / next |
+|---|---|---|---|
+| Issue delivery·재개·checkpoint·Review·release lifecycle | `run-workflow` | Issue/branch, actual task/run, graph/native/Git read-back | 현재 transition이 read-back되거나 durable blocker가 기록됨; 필요한 branch Skill로 이동 |
+| 새 leaf Issue의 계획·문서 영향·정책 문제 정리 | `create-triage` | Issue identity, approved requirement locator, planning/current-state SHA | frozen triage digest와 open graph gate; `build-task-graph` |
+| 사용자 policy·권한·오류 의미·UI 결정 필요 | `service-planning` | 결정 질문, evidence, 영향받는 requirement/Issue | 사용자 승인과 requirement read-back; 호출한 triage/workflow로 반환 |
+| 승인 requirement 변경의 파생 문서·Issue 동기화 | `sync-docs` | 승인 revision, impact matrix, target locators | mutation/read-back 완료; 호출한 workflow로 반환 |
+| stale/insufficient 또는 final implementation snapshot | `update-current-state` | invocation mode, inspection/final implementation SHA | `fresh | stale | insufficient`와 docs read-back; 호출한 workflow로 반환 |
+| G1, requirement-rework, review-rework graph authoring | `build-task-graph` | mode와 frozen triage 또는 canonical Review result | native validation과 serial single-ready frontier; `run-workflow` |
 
 ## 탐색 보조 Skill
 

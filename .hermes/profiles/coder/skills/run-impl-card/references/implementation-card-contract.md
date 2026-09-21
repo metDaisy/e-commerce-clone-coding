@@ -168,7 +168,7 @@ Body는 수정하지 않는다.
 {
   "schema": "backend-implementation-handoff-v1",
   "handoff_id": "handoff-7f3d87b2",
-  "source_run_id": "run-coder-16",
+  "source_run_id": 16,
   "implemented_behavior_ids": ["behavior-product-create"],
   "changed_paths": [
     "src/main/java/example/product/ProductService.java",
@@ -212,7 +212,7 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 
 - `handoff_id`는 Coder가 review 요청 시도마다 새로 만드는 비어 있지 않은 opaque ID다. PM checkpoint와
   changes-request는 이 ID를 참조해 최신 handoff와 결합한다.
-- `source_run_id`는 handoff를 만든 현재 native Coder run과 정확히 같다. Focused result의
+- `source_run_id`는 handoff를 만든 현재 native Coder run의 양의 정수 ID와 정확히 같다. Focused result의
   `test_levels`에는 card가 요구한 `test_level`이 반드시 포함되며 추가 실행 level은 함께 기록할 수 있다.
   Handoff의 structured pass 결과는 Coder self-verification이며 PM은 checkpoint run에서 동일한
   focused/full Gradle contract를 직접 재실행한다.
@@ -241,7 +241,7 @@ payload를 대체하지 않는다.
 {
   "schema": "backend-implementation-change-request-v1",
   "source_handoff_id": "handoff-7f3d87b2",
-  "source_review_run_id": "run-review-17",
+  "source_review_run_id": 17,
   "findings": [
     {
       "finding_id": "PM-CHK-1",
@@ -250,14 +250,14 @@ payload를 대체하지 않는다.
       "observed_problem": "유효하지 않은 가격을 저장한다.",
       "expected_result": "유효하지 않은 가격을 기존 validation error contract로 거절한다.",
       "allowed_scope": ["상품 등록 validation과 직접 관련된 테스트"],
-      "verification": ["FV-PRODUCT-CREATE", "backend 전체 test"]
+      "verification": ["FV-PRODUCT-CREATE", "full-backend"]
     }
   ]
 }
 ```
 
 Coder는 `source_handoff_id`를 직전 handoff ID와, `source_review_run_id`를 changes를 요청한 PM review
-run과 대조한다. `finding_id`는 request 안에서 고유해야 한다. 각 finding은 exact path·symbol, 관찰된
+run의 양의 정수 native ID와 대조한다. `finding_id`는 request 안에서 고유해야 한다. 각 finding은 exact path·symbol, 관찰된
 문제, 기대 결과, 허용 범위와 다시 실행할 검증을 모두 가져야 한다. 누락, ID 불일치, 일반적인 개선
 요청 또는 card의 제품 의미 변경이 있으면 추측하지 않고 block한다. Valid latest request의 finding만
 수정하고 card의 focused 및 full backend verification을 모두 다시 실행한다.

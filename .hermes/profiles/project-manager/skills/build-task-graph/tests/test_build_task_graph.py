@@ -307,6 +307,38 @@ class TaskGraphContractTest(unittest.TestCase):
         )
         return graph
 
+    def source_review_result(self, graph):
+        source = graph["source_review"]
+        return {
+            "schema": "aggregate-review-result-v1",
+            "review_card_key": source["review_key"],
+            "review_task_id": "t_c3",
+            "review_run_id": 3,
+            "generation": graph["generation"],
+            "result": "changes-required",
+            "reviewed_checkpoints": [
+                {
+                    "implementation_card_key": "impl-1",
+                    "implementation_task_id": "t_b2",
+                    "checkpoint_sha": "a" * 40,
+                }
+            ],
+            "prior_findings": [],
+            "findings": [
+                {
+                    "finding_id": disposition["finding_id"],
+                    "verdict": disposition["verdict"],
+                    "basis": "aggregate acceptance",
+                    "observed_fact": "수정이 필요한 동작이 확인되었다.",
+                    "evidence": ["src/main/java/example/Target.java:10"],
+                    "impact": "요구 동작을 만족하지 못한다.",
+                    "resolves": None,
+                    "continues": None,
+                }
+                for disposition in source["dispositions"]
+            ],
+        }
+
     def test_valid_graph_draft_passes(self):
         self.assertEqual([], validate_graph(self.valid_graph(), validate_implementation=validate))
 
@@ -386,6 +418,15 @@ class TaskGraphContractTest(unittest.TestCase):
         graph = self.valid_graph()
         graph["cards"][2]["parents"] = ["summary"]
         self.assertIn("INVALID_REVIEW_PARENTS:review-1", validate_graph(graph))
+
+    def test_rejects_future_multiple_ready_frontier(self):
+        graph = self.valid_graph()
+        impl2 = copy.deepcopy(graph["cards"][1])
+        impl2.update({"key": "impl-2", "title": "G1-Issue138-Impl2", "parents": ["triage"]})
+        graph["cards"].insert(2, impl2)
+        graph["cards"][-1]["parents"].append("impl-2")
+        errors = validate_graph(graph)
+        self.assertIn("PARALLEL_EXECUTABLE_FRONTIER:impl-1:impl-2", errors)
 
     def test_phase_rejects_non_todo_active_cards(self):
         graph = self.valid_graph()
@@ -485,9 +526,10 @@ class TaskGraphContractTest(unittest.TestCase):
                 "ready_candidate": "impl-2",
             }
         )
-        self.assertEqual([], validate_graph(graph))
+        result = self.source_review_result(graph)
+        self.assertEqual([], validate_graph(graph, source_review_result=result))
         impl2["status"] = "ready"
-        self.assertEqual([], validate_graph(graph, phase="native"))
+        self.assertEqual([], validate_graph(graph, phase="native", source_review_result=result))
 
     def test_review_rework_rejects_null_candidate_with_appended_impl(self):
         graph = self.review_rework_graph()
@@ -524,7 +566,34 @@ class TaskGraphContractTest(unittest.TestCase):
             "idempotency": {"decision-1": "review-1:F-1:decision"},
         }
         graph["ready_candidate"] = None
-        self.assertEqual([], validate_graph(graph, phase="native"))
+        self.assertEqual(
+            [],
+            validate_graph(
+                graph,
+                phase="native",
+                source_review_result=self.source_review_result(graph),
+            ),
+        )
+
+    def test_review_rework_is_bound_to_canonical_source_result(self):
+        graph = self.review_rework_graph()
+        result = self.source_review_result(graph)
+        result["findings"][0]["finding_id"] = "OTHER"
+        self.assertIn(
+            "SOURCE_REVIEW_DISPOSITION_MISMATCH",
+            validate_graph(graph, phase="native", source_review_result=result),
+        )
+
+    def test_review_rework_rejects_truncated_canonical_result(self):
+        graph = self.review_rework_graph()
+        result = self.source_review_result(graph)
+        result.pop("review_run_id")
+        self.assertTrue(
+            any(
+                error.startswith("INVALID_CANONICAL_SOURCE_REVIEW_RESULT:")
+                for error in validate_graph(graph, phase="native", source_review_result=result)
+            )
+        )
 
     def test_summary_rejects_extra_parent(self):
         graph = self.valid_graph()

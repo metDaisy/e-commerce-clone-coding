@@ -16,6 +16,9 @@ metadata:
 Changed behavior와 그 영향 closure에서 실제 change cost를 찾는다. `/code-review`의 smell baseline을
 heuristic으로 사용하되 documented repository rule이 우선하며, smell 이름 자체는 위반 증거가 아니다.
 
+`run-review/references/axis-result-contract.md`의 invocation packet을 소비하고 raw axis result를
+`run-review`에 반환한다. PM에게 직접 handoff하지 않는다.
+
 ## Code discovery 선택
 
 중복 policy, existing utility 또는 유사 implementation의 위치를 모르면

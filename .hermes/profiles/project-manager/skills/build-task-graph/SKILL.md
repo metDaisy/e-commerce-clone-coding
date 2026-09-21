@@ -130,8 +130,9 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
 python scripts/build_task_graph.py template --issue <number> --issue-url <url> --output .temp/task-graphs/<issue>/impl-1.json
 python scripts/build_task_graph.py validate .temp/task-graphs/<issue>/impl-1.json
 python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase draft
+python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase draft --source-review-result .temp/task-graphs/<issue>/source-review-result.json  # review-rework only
 python scripts/build_task_graph.py requirement-diff --base <sha> --revised <sha> --path <requirement-path> --output .temp/requirement-rework/<issue>/comparison.json
-python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase native
+python scripts/build_task_graph.py validate-graph .temp/task-graphs/<issue>/graph.json --phase native --source-review-result .temp/task-graphs/<issue>/source-review-result.json  # review-rework only
 python tests/native_e2e.py --profile project-manager
 ```
 

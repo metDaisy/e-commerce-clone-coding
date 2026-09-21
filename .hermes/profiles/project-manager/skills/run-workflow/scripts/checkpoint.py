@@ -34,6 +34,7 @@ CHECKPOINT_FIELDS = {
     "result",
     "committed_paths",
     "commit_sha",
+    "focused_verification_readback",
     "full_backend_verification_readback",
     "verification_run_id",
     "documentation_impact_resolution",
@@ -43,6 +44,10 @@ CHECKPOINT_FIELDS = {
 
 def _non_empty(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _positive_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
 def _strings(value: Any, *, allow_empty: bool = False) -> bool:
@@ -101,7 +106,7 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
         errors.append("HANDOFF_SCHEMA")
     if not _non_empty(handoff.get("handoff_id")):
         errors.append("MISSING_HANDOFF_ID")
-    if not _non_empty(handoff.get("source_run_id")):
+    if not _positive_int(handoff.get("source_run_id")):
         errors.append("MISSING_SOURCE_RUN_ID")
 
     behavior_ids = {
@@ -262,9 +267,36 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
     return errors
 
 
-def validate_change_request(request: Any) -> list[str]:
-    """Validate PM findings before writing them to a durable Kanban comment."""
+def _validate_review_run(review_run: Any) -> list[str]:
     errors: list[str] = []
+    if not isinstance(review_run, dict):
+        return ["REVIEW_RUN_NOT_OBJECT"]
+    _unexpected(
+        review_run,
+        {"run_id", "status", "assignee", "source_status"},
+        errors,
+        "UNEXPECTED_REVIEW_RUN_FIELD",
+    )
+    if not _positive_int(review_run.get("run_id")):
+        errors.append("INVALID_REVIEW_RUN_ID")
+    if review_run.get("status") != "running":
+        errors.append("REVIEW_RUN_NOT_ACTIVE")
+    if review_run.get("assignee") != "project-manager":
+        errors.append("REVIEW_RUN_ASSIGNEE_MISMATCH")
+    if review_run.get("source_status") != "review":
+        errors.append("REVIEW_RUN_NOT_CLAIMED_FROM_REVIEW")
+    return errors
+
+
+def validate_change_request(card: Any, handoff: Any, review_run: Any, request: Any) -> list[str]:
+    """Validate PM findings before writing them to a durable Kanban comment."""
+    card_errors = validate_card(card)
+    if card_errors:
+        return [f"INVALID_CARD:{error}" for error in card_errors]
+    handoff_errors = validate_handoff(card, handoff)
+    if handoff_errors:
+        return [f"INVALID_HANDOFF:{error}" for error in handoff_errors]
+    errors = _validate_review_run(review_run)
     if not isinstance(request, dict):
         return ["CHANGE_REQUEST_NOT_OBJECT"]
     _unexpected(
@@ -275,10 +307,10 @@ def validate_change_request(request: Any) -> list[str]:
     )
     if request.get("schema") != "backend-implementation-change-request-v1":
         errors.append("CHANGE_REQUEST_SCHEMA")
-    if not _non_empty(request.get("source_handoff_id")):
-        errors.append("MISSING_SOURCE_HANDOFF_ID")
-    if not _non_empty(request.get("source_review_run_id")):
-        errors.append("MISSING_SOURCE_REVIEW_RUN_ID")
+    if request.get("source_handoff_id") != handoff.get("handoff_id"):
+        errors.append("SOURCE_HANDOFF_MISMATCH")
+    if request.get("source_review_run_id") != review_run.get("run_id"):
+        errors.append("SOURCE_REVIEW_RUN_MISMATCH")
     findings = request.get("findings")
     if not isinstance(findings, list) or not findings:
         errors.append("MISSING_FINDINGS")
@@ -310,17 +342,26 @@ def validate_change_request(request: Any) -> list[str]:
         for field in ("allowed_scope", "verification"):
             if not _strings(finding.get(field)):
                 errors.append(f"MISSING_FINDING_{field.upper()}:{index}")
+        expected_verification = {
+            verification.get("id")
+            for verification in card.get("focused_verification", [])
+            if isinstance(verification, dict) and _non_empty(verification.get("id"))
+        } | {"full-backend"}
+        if not _exact_ids(finding.get("verification"), expected_verification):
+            errors.append(f"FINDING_VERIFICATION_MISMATCH:{index}")
     if len(finding_ids) != len(set(finding_ids)):
         errors.append("DUPLICATE_FINDING_ID")
     return errors
 
 
-def validate_checkpoint(card: Any, handoff: Any, checkpoint: Any) -> list[str]:
+def validate_checkpoint(card: Any, handoff: Any, review_run: Any, checkpoint: Any) -> list[str]:
     """Validate checkpoint evidence after commit and Git read-back."""
     handoff_errors = validate_handoff(card, handoff)
     if handoff_errors:
         return [f"INVALID_HANDOFF:{error}" for error in handoff_errors]
     errors: list[str] = []
+    review_run_errors = _validate_review_run(review_run)
+    errors.extend(f"INVALID_REVIEW_RUN:{error}" for error in review_run_errors)
     if not isinstance(checkpoint, dict):
         return ["CHECKPOINT_NOT_OBJECT"]
     _unexpected(checkpoint, CHECKPOINT_FIELDS, errors, "UNEXPECTED_CHECKPOINT_FIELD")
@@ -341,8 +382,14 @@ def validate_checkpoint(card: Any, handoff: Any, checkpoint: Any) -> list[str]:
         errors.append("INVALID_COMMIT_SHA")
     if checkpoint.get("full_backend_verification_readback") != "pass":
         errors.append("FULL_BACKEND_READBACK_NOT_PASS")
-    if not _non_empty(checkpoint.get("verification_run_id")):
+    pm_handoff = dict(handoff)
+    pm_handoff["focused_verification_results"] = checkpoint.get("focused_verification_readback")
+    for error in validate_handoff(card, pm_handoff):
+        errors.append(f"PM_FOCUSED_READBACK:{error}")
+    if not _positive_int(checkpoint.get("verification_run_id")):
         errors.append("MISSING_PM_VERIFICATION_RUN_ID")
+    elif isinstance(review_run, dict) and checkpoint.get("verification_run_id") != review_run.get("run_id"):
+        errors.append("PM_VERIFICATION_RUN_MISMATCH")
     resolution = checkpoint.get("documentation_impact_resolution")
     impact = handoff.get("documentation_impact", {})
     if not isinstance(resolution, dict):
@@ -394,20 +441,32 @@ def main() -> int:
     handoff_parser.add_argument("card", type=Path)
     handoff_parser.add_argument("handoff", type=Path)
     change_parser = subparsers.add_parser("change-request")
+    change_parser.add_argument("card", type=Path)
+    change_parser.add_argument("handoff", type=Path)
+    change_parser.add_argument("review_run", type=Path)
     change_parser.add_argument("request", type=Path)
     checkpoint_parser = subparsers.add_parser("checkpoint")
     checkpoint_parser.add_argument("card", type=Path)
     checkpoint_parser.add_argument("handoff", type=Path)
+    checkpoint_parser.add_argument("review_run", type=Path)
     checkpoint_parser.add_argument("checkpoint", type=Path)
     args = parser.parse_args()
     try:
         if args.command == "handoff":
             errors = validate_handoff(_read_json(args.card), _read_json(args.handoff))
         elif args.command == "change-request":
-            errors = validate_change_request(_read_json(args.request))
+            errors = validate_change_request(
+                _read_json(args.card),
+                _read_json(args.handoff),
+                _read_json(args.review_run),
+                _read_json(args.request),
+            )
         else:
             errors = validate_checkpoint(
-                _read_json(args.card), _read_json(args.handoff), _read_json(args.checkpoint)
+                _read_json(args.card),
+                _read_json(args.handoff),
+                _read_json(args.review_run),
+                _read_json(args.checkpoint),
             )
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))

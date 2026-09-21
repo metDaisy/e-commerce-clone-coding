@@ -142,7 +142,6 @@ nudge를 제공한다. 이 플러그인은 tool call을 차단하지 않으며 G
 ```bash
 python .hermes/plugins/agent-audit/test_agent_audit.py
 python .hermes/scripts/test_apply_hermes_capabilities.py
-python .hermes/scripts/test_setup_hermes.py
 ```
 
 플러그인 discovery나 manifest 동작을 변경한 경우에는 관련 Hermes Plugin Doctor/runtime

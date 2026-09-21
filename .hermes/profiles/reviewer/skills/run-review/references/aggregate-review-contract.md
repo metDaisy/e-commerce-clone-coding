@@ -11,7 +11,7 @@ Reviewer는 dispatcher가 시작한 active run에서 다음을 read-back한다.
 
 1. Assignee가 `reviewer`이고 status가 `running`인 actual aggregate Review task
 2. Closed body fields: `schema`, `effective_behavior_ids`, `implementation_card_keys`,
-   `inherited_behavior_ids`, `aggregate_acceptance`
+   `inherited_behavior_ids`, `aggregate_acceptance`, `scope_exclusions`
 3. 각 implementation key의 immutable `backend-implementation-card-v1`, done task ID와 latest terminal
    `backend-implementation-checkpoint-v1`
 4. Prior Review의 unresolved blocking finding과 후속 corrective/context/decision evidence
@@ -39,7 +39,7 @@ Reviewer는 latest terminal run metadata에 다음 closed object를 기록한다
   "schema": "aggregate-review-result-v1",
   "review_card_key": "review-1",
   "review_task_id": "t_a1b2c3",
-  "review_run_id": "run-reviewer-21",
+  "review_run_id": 21,
   "generation": 1,
   "result": "changes-required",
   "reviewed_checkpoints": [
@@ -61,7 +61,8 @@ Reviewer는 latest terminal run metadata에 다음 closed object를 기록한다
         "OrderConcurrencyIntegrationTest#sameKeyCreatesOneOrder failed"
       ],
       "impact": "재시도 또는 동시 요청에서 중복 주문과 이중 결제가 발생할 수 있다.",
-      "resolves": null
+      "resolves": null,
+      "continues": null
     }
   ]
 }
@@ -69,10 +70,10 @@ Reviewer는 latest terminal run metadata에 다음 closed object를 기록한다
 
 Top-level field 의미:
 
-- `review_card_key`, `review_task_id`, `review_run_id`, `generation`은 actual card/run과 일치한다.
-- `result`는 `approved | changes-required | blocked`다. 정상 review에서 blocking finding이 있으면
-  `changes-required`, 없으면 `approved`다. Admission/검증 prerequisite가 없으면 incomplete `blocked`
-  result를 완료 metadata로 남기지 말고 native task를 block한다.
+- `review_card_key`, `review_task_id`, 양의 정수 `review_run_id`, `generation`은 actual card/run과 일치한다.
+- `result`는 `approved | changes-required`다. 정상 review에서 blocking finding이 있으면
+  `changes-required`, 없으면 `approved`다. Admission/검증 prerequisite가 없으면 terminal result를
+  남기지 말고 native task를 block한다.
 - `reviewed_checkpoints`는 body의 모든 implementation key를 중복 없이 정확히 한 번 포함한다.
 - `prior_findings`는 이전 Review의 아직 해결을 증명해야 하는 blocking finding 전체다.
 - `findings`는 이번 Review의 새 finding과 prior finding resolution이다. Finding이 없으면 빈 배열이다.
@@ -82,7 +83,8 @@ Top-level field 의미:
 
 ## Finding 계약
 
-Finding은 `finding_id`, `verdict`, `basis`, `observed_fact`, non-empty `evidence`, `impact`, `resolves`를
+Finding은 `finding_id`, `verdict`, `basis`, `observed_fact`, non-empty `evidence`, `impact`, `resolves`,
+`continues`를
 가진다. ID는 현재 result 안에서 고유하다.
 
 | verdict | 사용 조건 | PM의 후속 routing |
@@ -93,8 +95,10 @@ Finding은 `finding_id`, `verdict`, `basis`, `observed_fact`, non-empty `evidenc
 | `resolved` | Prior blocking finding이 committed evidence로 해소됨 | Prior finding closure |
 
 `resolved`만 `resolves` object를 가지며 `source_review_task_id`, `source_finding_id`를 정확히 가리킨다.
-다른 verdict의 `resolves`는 null이다. 모든 prior finding은 현재 findings에서 정확히 한 번 resolved되어야
-`approved`가 가능하다. 존재하지 않는 prior finding을 resolve하거나 unresolved finding을 누락하지 않는다.
+Blocking verdict가 prior finding의 동일 결함이 계속됨을 나타낼 때는 `continues`가 그 source를 가리킨다.
+새 finding이면 `continues`는 null이다. 모든 prior finding은 현재 findings에서 정확히 한 번 `resolved`
+또는 blocking `continues`로 disposition되어야 한다. `approved`에서는 전부 resolved여야 한다.
+존재하지 않는 prior finding을 참조하거나 unresolved finding을 누락하지 않는다.
 
 `basis`는 card acceptance나 repository rule/architecture contract를 특정한다. `observed_fact`는 재현 가능한
 현재 사실만 기술한다. `evidence`는 exact `path:line`, symbol, test/validator identity와 checkpoint SHA 중

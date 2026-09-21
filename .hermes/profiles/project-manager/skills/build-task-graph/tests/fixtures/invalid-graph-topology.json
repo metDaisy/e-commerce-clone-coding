@@ -193,7 +193,8 @@
         "inherited_behavior_ids": [],
         "aggregate_acceptance": [
           "상품 등록 요구사항 전체가 구현되고 검증되었다."
-        ]
+        ],
+        "scope_exclusions": []
       }
     },
     {

@@ -16,6 +16,9 @@ metadata:
 Changed behavior의 storage correctness, transaction semantics와 database cost를 검토한다. ORM query count와
 실제 database behavior를 분리하고, 측정되지 않은 성능 우려를 확정 finding으로 표현하지 않는다.
 
+`run-review/references/axis-result-contract.md`의 invocation packet을 소비하고 raw axis result를
+`run-review`에 반환한다. PM에게 직접 handoff하지 않는다.
+
 ## Applicability
 
 Entity/repository/query, association traversal, transaction, cache, pagination, migration, index, lock 또는

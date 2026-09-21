@@ -100,7 +100,7 @@ def test_reviewer_result_example_matches_pm_consumer_validator() -> None:
         ],
     }
 
-    assert _load_workflow().validate_review_result(result, graph) == []
+    assert _load_workflow().validate_review_result(result, graph, result["prior_findings"]) == []
 
 
 def test_reviewer_capabilities_are_read_focused_and_have_no_github_write() -> None:

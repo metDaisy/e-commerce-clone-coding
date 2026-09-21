@@ -81,8 +81,8 @@ Persisted body schema는 다음과 같다.
 
 - Impl: `backend-implementation-card-v1`. 필드 의미와 validation은
   `implementation-card-contract.md`가 소유한다.
-- Review: `aggregate-review-card-v1`. Complete behavior IDs, 참조 Impl keys, inherited behavior IDs와
-  aggregate acceptance를 보존한다.
+- Review: `aggregate-review-card-v1`. Complete behavior IDs, 참조 Impl keys, inherited behavior IDs,
+  aggregate acceptance와 explicit `scope_exclusions` 목록을 보존한다. 제외가 없으면 빈 목록이다.
 - Summary: `issue-summary-card-v1`. Complete behavior IDs, aggregate acceptance와 finalization checks를
   보존한다.
 - Decision: `policy-decision-card-v1`. Source Review key, finding ID, 사용자 질문과
@@ -116,6 +116,10 @@ Native parent는 scheduling prerequisite다.
 native direct parent read-back으로 검증한다. Summary direct parents는 모든 Impl, Review와 Decision의
 집합과 정확히 같다.
 
+이 workflow는 serial execution을 전제로 한다. 모든 active Impl/Review card는 dependency reachability상
+total order를 이뤄야 하며 서로 ancestor 관계가 아닌 두 executable card를 허용하지 않는다. 따라서 어떤
+완료 frontier에서도 Impl/Review가 둘 이상 동시에 ready가 되지 않는다.
+
 ## Phase status invariant
 
 ### Draft
@@ -138,7 +142,9 @@ native direct parent read-back으로 검증한다. Summary direct parents는 모
 
 ## Review finding contract
 
-Canonical finding은 completed Review의 latest run metadata `findings`에 있다. Comment는 canonical
+Canonical finding은 completed Review의 latest run metadata `findings`에 있다. `review-rework` validation은
+이 canonical result를 별도 입력으로 받아 `source_review.dispositions`의 finding ID/verdict 집합과 정확히
+대조한다. Comment는 canonical
 source가 아니다. 각 finding은 source Review 범위에서 고유한 `finding_id`, `basis`, `observed_fact`,
 `evidence`, `impact`와 다음 verdict를 가진다.
 

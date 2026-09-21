@@ -50,6 +50,9 @@ Coder의 입력이 아니다.
 5. Card가 불완전하거나 서로 모순되면 task body를 고치지 않고 정확한 누락·충돌과 필요한 PM
    조치를 block reason에 기록한다.
 
+완료 기준: actual task/run/cwd, PM admission comment, immutable card schema, 실행 mode와 허용된 worktree
+상태가 모두 일치한다. 하나라도 다르면 `implement`를 로드하기 전에 block한다.
+
 ### 2. Implementation execution
 
 1. `implement` Skill을 load하고 admitted mode와 함께 implementation map, test-first seam, 최소 구현, focused
@@ -74,8 +77,9 @@ Coder의 입력이 아니다.
 4. `kanban_show`로 task가 `review`이고 PM reviewer handoff와 metadata가 저장됐는지 read-back한다.
    실패하면 원인과 재개 조건을 남기고 block한다.
 
-PM은 review 상태에서 diff와 검증 evidence를 확인하고 commit한다. Result commit SHA, committed
-paths와 clean worktree를 read-back한 뒤에만 PM이 card를 `done`으로 만든다.
+`review`는 PM checkpoint 대기 queue 상태다. Dispatcher가 PM reviewer를 claim해 task를 `running`으로
+바꾸고 새 PM review run을 연 뒤 diff와 검증 evidence를 확인하고 commit한다. Result commit SHA,
+committed paths와 clean worktree를 read-back한 뒤에만 그 `running` run에서 card를 `done`으로 만든다.
 
 ### 4. Changes requested
 

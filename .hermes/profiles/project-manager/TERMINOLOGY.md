@@ -1,8 +1,8 @@
 # Project Manager 용어집
 
 > 이 문서는 PM workflow를 읽고 다른 Profile을 설계할 때 쓰는 **개념 기준**이다.
-> 실행 순서와 도구 호출은 각 Skill, persisted task-body field와 validator 규칙은
-> `build-task-graph/references/board-contract.md`가 소유한다.
+> 실행 순서와 도구 호출은 각 Skill이 소유한다. Persisted schema와 validator 규칙은 각 Skill의 인접
+> `references/` contract가 소유하며, `board-contract.md`는 graph/card topology만 소유한다.
 
 ## 기준과 스냅샷
 
@@ -95,7 +95,8 @@ H3  H2를 조사해 current-state를 갱신한 docs-only commit
 | `run-workflow` | Kanban 중심 root workflow와 checkpoint, promotion, recovery, review routing, PR·CI·merge·Issue close 절차 |
 | `sync-docs` | current-state 외 파생 문서와 tracker 동기화 |
 | `update-current-state` | current-state schema, freshness, snapshot, marker의 상세 |
-| `board-contract.md` | persisted task field, graph invariant, deterministic validator 규칙 |
+| 각 Skill의 `references/` | 해당 Skill이 생산·소비하는 persisted schema와 deterministic validator 규칙 |
+| `board-contract.md` | graph/card identity, topology, serial frontier와 phase invariant |
 
 `WORKFLOW-DESIGN.md`는 topology를 설명하는 안내서다. 다른 Profile은 이 문서의 역할 경계와
 handoff를 재사용하되, PM의 Kanban·GitHub·commit 권한이나 task-body schema를 자동으로 상속하지 않는다.

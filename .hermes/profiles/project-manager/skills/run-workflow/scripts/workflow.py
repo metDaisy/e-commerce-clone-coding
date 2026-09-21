@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 import re
 from pathlib import Path
@@ -19,6 +20,10 @@ FINDING_VERDICTS = BLOCKING_VERDICTS | {"resolved"}
 
 def _non_empty(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
+
+
+def _positive_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
 
 
 def _strings(value: Any, *, allow_empty: bool = False) -> bool:
@@ -149,7 +154,9 @@ def _validate_finding(finding: Any, index: int, errors: list[str]) -> tuple[str 
     if not isinstance(finding, dict):
         errors.append(f"FINDING_NOT_OBJECT:{index}")
         return None, None
-    _exact(finding, {"finding_id", "verdict", "basis", "observed_fact", "evidence", "impact", "resolves"}, errors, f"UNEXPECTED_FINDING_FIELD:{index}")
+    _exact(finding, {"finding_id", "verdict", "basis", "observed_fact", "evidence", "impact", "resolves", "continues"}, errors, f"UNEXPECTED_FINDING_FIELD:{index}")
+    _require("resolves" in finding, errors, f"MISSING_FINDING_RESOLVES_FIELD:{index}")
+    _require("continues" in finding, errors, f"MISSING_FINDING_CONTINUES_FIELD:{index}")
     finding_id, verdict = finding.get("finding_id"), finding.get("verdict")
     _require(_non_empty(finding_id), errors, f"MISSING_FINDING_ID:{index}")
     _require(verdict in FINDING_VERDICTS, errors, f"INVALID_FINDING_VERDICT:{index}")
@@ -157,6 +164,7 @@ def _validate_finding(finding: Any, index: int, errors: list[str]) -> tuple[str 
         _require(_non_empty(finding.get(field)), errors, f"MISSING_FINDING_{field.upper()}:{index}")
     _require(_strings(finding.get("evidence")), errors, f"MISSING_FINDING_EVIDENCE:{index}")
     resolves = finding.get("resolves")
+    continues = finding.get("continues")
     if verdict == "resolved":
         if not isinstance(resolves, dict):
             errors.append(f"MISSING_FINDING_RESOLUTION:{index}")
@@ -164,12 +172,20 @@ def _validate_finding(finding: Any, index: int, errors: list[str]) -> tuple[str 
             _exact(resolves, {"source_review_task_id", "source_finding_id"}, errors, f"UNEXPECTED_RESOLUTION_FIELD:{index}")
             _require(_task_id(resolves.get("source_review_task_id")), errors, f"INVALID_RESOLUTION_REVIEW:{index}")
             _require(_non_empty(resolves.get("source_finding_id")), errors, f"INVALID_RESOLUTION_FINDING:{index}")
+        _require(continues is None, errors, f"RESOLVED_FINDING_HAS_CONTINUATION:{index}")
     else:
         _require(resolves is None, errors, f"BLOCKING_FINDING_HAS_RESOLUTION:{index}")
+        if continues is not None:
+            if not isinstance(continues, dict):
+                errors.append(f"INVALID_FINDING_CONTINUATION:{index}")
+            else:
+                _exact(continues, {"source_review_task_id", "source_finding_id"}, errors, f"UNEXPECTED_CONTINUATION_FIELD:{index}")
+                _require(_task_id(continues.get("source_review_task_id")), errors, f"INVALID_CONTINUATION_REVIEW:{index}")
+                _require(_non_empty(continues.get("source_finding_id")), errors, f"INVALID_CONTINUATION_FINDING:{index}")
     return finding_id if isinstance(finding_id, str) else None, verdict if isinstance(verdict, str) else None
 
 
-def validate_review_result(result: Any, graph: Any) -> list[str]:
+def validate_review_result(result: Any, graph: Any, expected_prior_findings: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(result, dict):
         return ["REVIEW_RESULT_NOT_OBJECT"]
@@ -177,8 +193,8 @@ def validate_review_result(result: Any, graph: Any) -> list[str]:
     _exact(result, allowed, errors, "UNEXPECTED_REVIEW_RESULT_FIELD")
     _require(result.get("schema") == "aggregate-review-result-v1", errors, "REVIEW_RESULT_SCHEMA")
     _require(_task_id(result.get("review_task_id")), errors, "INVALID_REVIEW_TASK_ID")
-    _require(_non_empty(result.get("review_run_id")), errors, "MISSING_REVIEW_RUN_ID")
-    _require(result.get("result") in {"approved", "changes-required", "blocked"}, errors, "INVALID_REVIEW_RESULT")
+    _require(_positive_int(result.get("review_run_id")), errors, "INVALID_REVIEW_RUN_ID")
+    _require(result.get("result") in {"approved", "changes-required"}, errors, "INVALID_REVIEW_RESULT")
     cards = graph.get("cards", []) if isinstance(graph, dict) else []
     records = {card.get("key"): card for card in cards if isinstance(card, dict)}
     review = records.get(result.get("review_card_key"))
@@ -216,9 +232,27 @@ def validate_review_result(result: Any, graph: Any) -> list[str]:
             _require(_non_empty(item.get("source_finding_id")), errors, f"INVALID_PRIOR_FINDING_ID:{index}")
             _require(item.get("verdict") in BLOCKING_VERDICTS, errors, f"INVALID_PRIOR_FINDING_VERDICT:{index}")
         _require(len(prior_refs) == len(prior), errors, "DUPLICATE_PRIOR_FINDING")
+    expected_prior_refs: set[tuple[str, str, str]] = set()
+    if not isinstance(expected_prior_findings, list):
+        errors.append("EXPECTED_PRIOR_FINDINGS_NOT_LIST")
+    else:
+        for index, item in enumerate(expected_prior_findings):
+            if not isinstance(item, dict):
+                errors.append(f"EXPECTED_PRIOR_FINDING_NOT_OBJECT:{index}")
+                continue
+            _exact(item, {"source_review_task_id", "source_finding_id", "verdict"}, errors, f"UNEXPECTED_EXPECTED_PRIOR_FIELD:{index}")
+            expected_prior_refs.add((str(item.get("source_review_task_id")), str(item.get("source_finding_id")), str(item.get("verdict"))))
+    actual_prior_refs = {
+        (str(item.get("source_review_task_id")), str(item.get("source_finding_id")), str(item.get("verdict")))
+        for item in prior or []
+        if isinstance(item, dict)
+    }
+    _require(actual_prior_refs == expected_prior_refs, errors, "PRIOR_FINDING_HISTORY_MISMATCH")
     findings = result.get("findings")
     finding_ids: list[str] = []
+    disposition_refs: list[tuple[str, str]] = []
     resolved_refs: set[tuple[str, str]] = set()
+    continued_refs: set[tuple[str, str]] = set()
     blocking = 0
     if not isinstance(findings, list):
         errors.append("INVALID_FINDINGS")
@@ -230,10 +264,19 @@ def validate_review_result(result: Any, graph: Any) -> list[str]:
             if verdict in BLOCKING_VERDICTS:
                 blocking += 1
             if verdict == "resolved" and isinstance(finding, dict) and isinstance(finding.get("resolves"), dict):
-                resolved_refs.add((str(finding["resolves"].get("source_review_task_id")), str(finding["resolves"].get("source_finding_id"))))
+                ref = (str(finding["resolves"].get("source_review_task_id")), str(finding["resolves"].get("source_finding_id")))
+                resolved_refs.add(ref)
+                disposition_refs.append(ref)
+            if verdict in BLOCKING_VERDICTS and isinstance(finding, dict) and isinstance(finding.get("continues"), dict):
+                ref = (str(finding["continues"].get("source_review_task_id")), str(finding["continues"].get("source_finding_id")))
+                continued_refs.add(ref)
+                disposition_refs.append(ref)
     _require(len(finding_ids) == len(set(finding_ids)), errors, "DUPLICATE_FINDING_ID")
-    _require(prior_refs <= resolved_refs, errors, "PRIOR_FINDING_DROPPED")
-    _require(resolved_refs <= prior_refs, errors, "RESOLUTION_SOURCE_NOT_FOUND")
+    represented_refs = resolved_refs | continued_refs
+    _require(prior_refs == represented_refs, errors, "PRIOR_FINDING_DROPPED")
+    _require(not (resolved_refs & continued_refs), errors, "PRIOR_FINDING_DOUBLE_DISPOSITION")
+    _require(all(count == 1 for count in Counter(disposition_refs).values()), errors, "PRIOR_FINDING_DISPOSITION_NOT_EXACTLY_ONCE")
+    _require(represented_refs <= prior_refs, errors, "PRIOR_FINDING_SOURCE_NOT_FOUND")
     if result.get("result") == "approved":
         _require(blocking == 0 and prior_refs == resolved_refs, errors, "APPROVED_WITH_BLOCKING_FINDING")
     elif result.get("result") == "changes-required":
@@ -241,21 +284,70 @@ def validate_review_result(result: Any, graph: Any) -> list[str]:
     return errors
 
 
-def validate_summary_admission(value: Any) -> list[str]:
+def validate_summary_admission(value: Any, graph: Any, board: Any, expected_prior_findings: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["SUMMARY_ADMISSION_NOT_OBJECT"]
-    allowed = {"schema", "summary_task_id", "latest_review_task_id", "latest_review_run_id", "latest_review_result", "direct_parent_task_ids", "done_parent_task_ids", "unresolved_finding_ids", "final_implementation_sha", "documentation_commit_shas", "repository_head_sha", "clean_worktree"}
+    allowed = {"schema", "summary_task_id", "latest_review_result", "direct_parent_task_ids", "done_parent_task_ids", "final_implementation_sha", "documentation_commit_shas", "repository_head_sha", "clean_worktree"}
     _exact(value, allowed, errors, "UNEXPECTED_SUMMARY_ADMISSION_FIELD")
     _require(value.get("schema") == "summary-admission-v1", errors, "SUMMARY_ADMISSION_SCHEMA")
-    for field in ("summary_task_id", "latest_review_task_id"):
-        _require(_task_id(value.get(field)), errors, f"INVALID_{field.upper()}")
-    _require(_non_empty(value.get("latest_review_run_id")), errors, "MISSING_LATEST_REVIEW_RUN_ID")
-    _require(value.get("latest_review_result") == "approved", errors, "LATEST_REVIEW_NOT_APPROVED")
+    _require(_task_id(value.get("summary_task_id")), errors, "INVALID_SUMMARY_TASK_ID")
+    latest_review = value.get("latest_review_result")
+    review_errors = validate_review_result(latest_review, graph, expected_prior_findings)
+    errors.extend(f"INVALID_LATEST_REVIEW:{error}" for error in review_errors)
+    _require(isinstance(latest_review, dict) and latest_review.get("result") == "approved", errors, "LATEST_REVIEW_NOT_APPROVED")
+    cards = graph.get("cards", []) if isinstance(graph, dict) else []
+    graph_records = {
+        card.get("key"): card
+        for card in cards
+        if isinstance(card, dict) and _non_empty(card.get("key"))
+    }
+    summaries = [card for card in cards if isinstance(card, dict) and card.get("card_type") == "summary"]
+    reviews = [card for card in cards if isinstance(card, dict) and card.get("card_type") == "review"]
+    summary = summaries[0] if len(summaries) == 1 else None
+    latest_review_card = reviews[-1] if reviews else None
+    _require(summary is not None, errors, "SUMMARY_CARD_NOT_FOUND")
+    _require(
+        isinstance(latest_review, dict)
+        and isinstance(latest_review_card, dict)
+        and latest_review.get("review_card_key") == latest_review_card.get("key"),
+        errors,
+        "LATEST_REVIEW_CARD_MISMATCH",
+    )
+    tasks = board.get("tasks") if isinstance(board, dict) else None
+    board_records = {
+        task.get("key"): task
+        for task in tasks or []
+        if isinstance(task, dict) and _non_empty(task.get("key"))
+    }
+    _require(isinstance(tasks, list), errors, "SUMMARY_BOARD_NOT_OBJECT")
+    _require(set(board_records) == set(graph_records), errors, "SUMMARY_BOARD_MEMBERSHIP_MISMATCH")
+    summary_key = summary.get("key") if isinstance(summary, dict) else None
+    summary_record = board_records.get(summary_key)
+    _require(
+        isinstance(summary_record, dict) and value.get("summary_task_id") == summary_record.get("task_id"),
+        errors,
+        "SUMMARY_TASK_ID_MISMATCH",
+    )
+    expected_parent_keys = summary.get("parents", []) if isinstance(summary, dict) else []
+    _require(
+        isinstance(summary_record, dict) and summary_record.get("parents") == expected_parent_keys,
+        errors,
+        "SUMMARY_PARENT_KEY_MISMATCH",
+    )
+    expected_parent_ids = [
+        board_records.get(key, {}).get("task_id")
+        for key in expected_parent_keys
+    ]
     parents, done = value.get("direct_parent_task_ids"), value.get("done_parent_task_ids")
-    _require(_unique(parents) and bool(parents), errors, "INVALID_SUMMARY_PARENTS")
-    _require(_unique(done) and set(done) == set(parents or []), errors, "SUMMARY_PARENT_NOT_DONE")
-    _require(value.get("unresolved_finding_ids") == [], errors, "SUMMARY_HAS_UNRESOLVED_FINDINGS")
+    _require(_unique(parents) and bool(parents) and parents == expected_parent_ids, errors, "INVALID_SUMMARY_PARENTS")
+    expected_done_ids = [
+        board_records.get(key, {}).get("task_id")
+        for key in expected_parent_keys
+        if board_records.get(key, {}).get("status") == "done"
+    ]
+    _require(_unique(done) and done == expected_done_ids and done == expected_parent_ids, errors, "SUMMARY_PARENT_NOT_DONE")
+
     final_sha = value.get("final_implementation_sha")
     _require(_sha(final_sha), errors, "INVALID_FINAL_IMPLEMENTATION_SHA")
     docs_shas = value.get("documentation_commit_shas")
@@ -514,7 +606,13 @@ def main() -> int:
     review = commands.add_parser("validate-review-result")
     review.add_argument("result", type=Path)
     review.add_argument("graph", type=Path)
-    for name in ("summary-admission", "release", "restart", "implementation-admission", "base-sync", "release-finding"):
+    review.add_argument("expected_prior_findings", type=Path)
+    summary = commands.add_parser("validate-summary-admission")
+    summary.add_argument("input", type=Path)
+    summary.add_argument("graph", type=Path)
+    summary.add_argument("board", type=Path)
+    summary.add_argument("expected_prior_findings", type=Path)
+    for name in ("release", "restart", "implementation-admission", "base-sync", "release-finding"):
         command = commands.add_parser(f"validate-{name}")
         command.add_argument("input", type=Path)
     args = parser.parse_args()
@@ -523,10 +621,15 @@ def main() -> int:
         if args.command == "validate-state":
             errors, decision = validate_state(_read(args.graph), _read(args.board), _read(args.git))
         elif args.command == "validate-review-result":
-            errors = validate_review_result(_read(args.result), _read(args.graph))
+            errors = validate_review_result(
+                _read(args.result), _read(args.graph), _read(args.expected_prior_findings)
+            )
+        elif args.command == "validate-summary-admission":
+            errors = validate_summary_admission(
+                _read(args.input), _read(args.graph), _read(args.board), _read(args.expected_prior_findings)
+            )
         else:
             validator = {
-                "validate-summary-admission": validate_summary_admission,
                 "validate-release": validate_release,
                 "validate-restart": validate_restart,
                 "validate-implementation-admission": validate_implementation_admission,
