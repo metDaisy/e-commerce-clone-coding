@@ -17,6 +17,7 @@ class InstallScriptsTest(unittest.TestCase):
             self.assertIn(".hermes/profiles", content)
             self.assertIn("project-manager", content)
             self.assertIn("coder", content)
+            self.assertIn("reviewer", content)
             self.assertIn("apply-hermes-capabilities.py", content)
             self.assertNotIn("implementation-coder", content)
 
@@ -25,6 +26,7 @@ class InstallScriptsTest(unittest.TestCase):
             content = self._read(name)
             self.assertIn("terminal.cwd", content)
             self.assertIn("skills trust", content)
+            self.assertIn("skills reset hermes-agent --restore --yes", content)
             self.assertIn("kanban.auto_decompose false", content)
             self.assertIn("skills.external_dirs", content)
         self.assertIn("pwd -W", self._read("install-profiles.sh"))

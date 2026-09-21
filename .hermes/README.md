@@ -6,21 +6,22 @@ state database, log 또는 machine-specific path는 이 저장소에 포함하�
 
 ## 현재 Profile
 
-현재 저장소에는 다음 두 개의 Profile Distribution이 구현되어 있다.
+현재 저장소에는 다음 세 개의 Profile Distribution이 구현되어 있다.
 
 | Runtime Profile | Distribution 원본 | 역할 | 전속 Skill |
 |---|---|---|---|
 | `project-manager` | `.hermes/profiles/project-manager/` | 승인된 requirement에서 task graph를 만들고 Coder·Review·release lifecycle을 조율 | `service-planning`, `create-triage`, `build-task-graph`, `run-workflow`, `sync-docs`, `update-current-state`, `codebase-memory-mcp`, `semble-search` |
 | `coder` | `.hermes/profiles/coder/` | PM이 승인한 backend Impl card를 구현하고 검증 | `run-impl-card`, `implement`, `codebase-memory-mcp`, `semble-search` |
+| `reviewer` | `.hermes/profiles/reviewer/` | 완료된 implementation checkpoint를 aggregate contract에 따라 독립 검토 | `run-aggregate-review`, `codebase-memory-mcp`, `semble-search` |
 
-각 Profile에는 `hermes-agent` Skill도 허용되며, 실제 허용 Skill·toolset·MCP 목록의
-기준은 각 Distribution의 `capabilities.yaml`이다. 상세한 역할과 lifecycle은 각
+Profile별 실제 허용 Skill·toolset·MCP 목록의 기준은 각 Distribution의
+`capabilities.yaml`이다. 상세한 역할과 lifecycle은 각
 Profile의 `README.md`, `SOUL.md`, Skill 문서를 따른다.
 
 ## 공통 Skill
 
-두 Profile이 함께 사용하는 `semble-search`와 `codebase-memory-mcp`는 중복 없이
-`.hermes/skills/`에 하나씩 둔다. Profile 설치 스크립트는 repository root를 두 Profile에서
+세 Profile이 함께 사용하는 `semble-search`와 `codebase-memory-mcp`는 중복 없이
+`.hermes/skills/`에 하나씩 둔다. Profile 설치 스크립트는 repository root를 세 Profile에서
 trust하고 capability policy의 allowlist를 read-back하므로 별도의 공통 Skill 설치 스크립트는
 필요하지 않다. Profile 전용 Skill은 각 Distribution의 `profiles/<name>/skills/`에 둔다.
 
@@ -42,12 +43,14 @@ Profile 설치 스크립트는 다음을 수행한다.
 
 - `.hermes/profiles/project-manager`를 `project-manager`로 설치한다.
 - `.hermes/profiles/coder`를 `coder`로 설치한다.
-- 두 Profile의 `terminal.cwd`를 현재 repository root로 설정한다.
-- 두 Profile이 repository root의 `.hermes/skills/`를 탐색할 수 있도록 trust한다.
-- 두 Profile에서 `kanban.auto_decompose`를 `false`로 설정한다.
+- `.hermes/profiles/reviewer`를 `reviewer`로 설치한다.
+- 세 Profile의 `terminal.cwd`를 현재 repository root로 설정한다.
+- 세 Profile이 repository root의 `.hermes/skills/`를 탐색할 수 있도록 trust한다.
+- 세 Profile에서 `kanban.auto_decompose`를 `false`로 설정한다.
+- 새 `reviewer` Profile에 policy가 요구하는 bundled `hermes-agent` Skill을 복원한다.
 - `project-manager`의 중복 외부 Skill 탐색 경로를 비운다.
 - `.hermes/scripts/apply-hermes-capabilities.py`로 capability policy를 적용하고 read-back한다.
-- `HERMES_MODEL`이 있으면 두 Profile에 model route를 적용한다. 이때 `HERMES_PROVIDER`와
+- `HERMES_MODEL`이 있으면 세 Profile에 model route를 적용한다. 이때 `HERMES_PROVIDER`와
   `HERMES_BASE_URL`은 선택 사항이며, 없으면 각 Profile에서 `hermes model`로 설정해야 한다.
 
 ### Plugin 설치
@@ -85,6 +88,7 @@ Desktop 앱에서는 실행 전에 같은 환경 변수를 설정하거나 Profi
 |---|---|
 | `project-manager` | `codebase-memory`, `semble-mcp`, `github-mcp`, `gradle-mcp` |
 | `coder` | `semble-mcp`, `codebase-memory`, `gradle-mcp` |
+| `reviewer` | `semble-mcp`, `codebase-memory`, `gradle-mcp` |
 
 공통 적용 스크립트는 Hermes가 내부적으로 사용하는 deny-list를 allowlist의 여집합으로
 계산하고, 설정된 MCP server 중 허용되지 않은 server를 비활성화하며, 각 허용 server에
@@ -95,6 +99,7 @@ python .hermes/scripts/apply-hermes-capabilities.py \
   --policy .hermes/profiles \
   --profile project-manager \
   --profile coder \
+  --profile reviewer \
   --project-root .
 ```
 

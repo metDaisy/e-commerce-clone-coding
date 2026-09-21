@@ -175,7 +175,7 @@ def test_profile_expected_requires_mcp_include_filter_for_every_server() -> None
 
 def test_repository_policies_use_explicit_allowlists() -> None:
     root = Path(__file__).parents[2]
-    profiles = ["project-manager", "coder"]
+    profiles = ["project-manager", "coder", "reviewer"]
     raw = _POLICY.load_policy(root / ".hermes" / "profiles", profiles)
 
     for profile in profiles:
@@ -210,7 +210,7 @@ def test_common_skills_are_project_owned() -> None:
     common = root / ".hermes" / "skills"
     for name in ("semble-search", "codebase-memory-mcp"):
         assert (common / name / "SKILL.md").is_file()
-        for distribution in ("project-manager", "coder"):
+        for distribution in ("project-manager", "coder", "reviewer"):
             manifest = (common.parent / "profiles" / distribution / "distribution.yaml").read_text(
                 encoding="utf-8"
             )

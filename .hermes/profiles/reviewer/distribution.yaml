@@ -1,0 +1,14 @@
+name: reviewer
+version: 0.1.0
+description: "Independently reviews Amaazon aggregate implementation checkpoints."
+hermes_requires: ">=0.12.0"
+author: "Amaazon project"
+license: "MIT"
+
+distribution_owned:
+  - SOUL.md
+  - README.md
+  - capabilities.yaml
+  - skills/run-aggregate-review/SKILL.md
+  - skills/run-aggregate-review/README.md
+  - skills/run-aggregate-review/references/aggregate-review-contract.md

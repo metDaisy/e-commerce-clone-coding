@@ -1,0 +1,45 @@
+# reviewer capability policy distributed with this Profile.
+# No endpoints, credentials, sessions, state databases, or machine paths.
+profile: reviewer
+
+skills:
+  allowed:
+    - hermes-agent
+    - run-aggregate-review
+    - codebase-memory-mcp
+    - semble-search
+
+tools:
+  allowed_toolsets:
+    - terminal
+    - file
+    - skills
+    - kanban
+
+approvals:
+  mode: smart
+
+mcp_tools:
+  codebase_read:
+    include:
+      - index_status
+      - search_graph
+      - trace_path
+  gradle_project_review:
+    include:
+      - gradle
+      - query_build
+  semble_read:
+    include:
+      - search
+      - find_related
+
+mcp:
+  allowed_servers:
+    - semble-mcp
+    - codebase-memory
+    - gradle-mcp
+  filters:
+    codebase-memory: codebase_read
+    gradle-mcp: gradle_project_review
+    semble-mcp: semble_read

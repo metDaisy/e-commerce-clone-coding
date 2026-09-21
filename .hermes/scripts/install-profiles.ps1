@@ -11,6 +11,7 @@ $rootDir = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $profiles = @(
   @{ Name = 'project-manager'; Source = 'project-manager' }
   @{ Name = 'coder'; Source = 'coder' }
+  @{ Name = 'reviewer'; Source = 'reviewer' }
 )
 Push-Location $rootDir
 try {
@@ -33,6 +34,12 @@ try {
     if ($LASTEXITCODE -ne 0) {
       throw "Failed to disable automatic Kanban decomposition: $profile"
     }
+    if ($profile -eq 'reviewer') {
+      hermes --profile $profile skills reset hermes-agent --restore --yes
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to restore required bundled Skill: $profile"
+      }
+    }
     if ($profile -eq 'project-manager') {
       hermes --profile $profile config set skills.external_dirs '[]'
       if ($LASTEXITCODE -ne 0) {
@@ -46,7 +53,7 @@ try {
 
 $policyScript = Join-Path $rootDir '.hermes\scripts\apply-hermes-capabilities.py'
 $policyFile = Join-Path $rootDir '.hermes\profiles'
-python $policyScript --policy $policyFile --profile project-manager --profile coder --project-root $rootDir
+python $policyScript --policy $policyFile --profile project-manager --profile coder --profile reviewer --project-root $rootDir
 if ($LASTEXITCODE -ne 0) {
   throw 'Failed to apply the YAML capability policy.'
 }
