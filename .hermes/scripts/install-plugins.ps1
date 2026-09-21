@@ -23,14 +23,16 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Hermes Plugin Doctor failed.'
 }
 
-hermes --profile project-manager config set plugins.enabled '["agent-audit"]'
-if ($LASTEXITCODE -ne 0) {
-  throw 'Failed to enable agent-audit for project-manager.'
-}
-$actual = hermes --profile project-manager config get plugins.enabled --json | Out-String | ConvertFrom-Json
-if (@($actual).Count -ne 1 -or @($actual)[0] -ne 'agent-audit') {
-  throw 'Read-back mismatch for project-manager plugins.enabled.'
+foreach ($profile in @('project-manager', 'coder', 'reviewer')) {
+  hermes --profile $profile config set plugins.enabled '["agent-audit"]'
+  if ($LASTEXITCODE -ne 0) {
+    throw "Failed to enable agent-audit for $profile."
+  }
+  $actual = hermes --profile $profile config get plugins.enabled --json | Out-String | ConvertFrom-Json
+  if (@($actual).Count -ne 1 -or @($actual)[0] -ne 'agent-audit') {
+    throw "Read-back mismatch for $profile plugins.enabled."
+  }
 }
 
-Write-Output 'Amaazon Hermes project plugin installed for project-manager.'
+Write-Output 'Amaazon Hermes project plugin installed for project-manager, coder, and reviewer.'
 Write-Output 'Start Hermes with HERMES_ENABLE_PROJECT_PLUGINS=true to enable project-plugin discovery.'

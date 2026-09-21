@@ -41,6 +41,9 @@ class InstallScriptsTest(unittest.TestCase):
             self.assertIn("plugins.enabled", content)
             self.assertIn("agent-audit", content)
             self.assertNotIn("profile install", content)
+            self.assertIn("pwd -W", shell)
+            for profile in ("project-manager", "coder", "reviewer"):
+                self.assertIn(profile, content)
 
 
 if __name__ == "__main__":

@@ -113,14 +113,14 @@ MCP server endpoint는 각 컴퓨터의 local Profile에 미리 설정되어 있
 
 - `agent-audit/`: Agent lifecycle과 validator evidence를 관찰하는 runtime hook
 
-`agent-audit`는 `project-manager` capability policy에서 활성화하도록 선언되어 있다.
+`agent-audit`는 `project-manager`, `coder`, `reviewer` capability policy에서 활성화하도록 선언되어 있다.
 플러그인의 구현과 회귀 테스트는 [`plugins/agent-audit/README.md`](plugins/agent-audit/README.md)를
 기준으로 한다.
 
-`.hermes/events.jsonl`은 Git에서 무시되는 local runtime data이며 compact metadata만
+`.hermes/audit.db`는 Git에서 무시되는 local SQLite runtime data이며 compact metadata만
 기록한다.
 
-- Skill lifecycle: Skill 이름, action, provenance, opaque correlation ID
+- Skill lifecycle: Profile 이름, Skill 이름, action, provenance, opaque correlation ID
 - Tool lifecycle: tool 이름, 상태, 소요 시간, 안전한 project-relative path
 - Validation trigger/result: Rule ID, validator category, generation, pass/fail
 - Verification gate: 변경 path와 누락·실패한 Rule ID
@@ -128,7 +128,8 @@ MCP server endpoint는 각 컴퓨터의 local Profile에 미리 설정되어 있
 - Session end: 완료·중단 상태
 
 Prompt, conversation history, terminal command, raw tool argument/result, reasoning,
-credential, absolute path는 저장하지 않는다.
+credential, absolute path는 저장하지 않는다. Desktop Audit Explorer는 이 allowlisted SQLite
+데이터만 profile/session/event/rule 기준으로 조회하며 raw Hermes log를 읽거나 표시하지 않는다.
 
 ## Verification 동작
 

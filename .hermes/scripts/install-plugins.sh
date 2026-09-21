@@ -10,7 +10,7 @@ if ! command -v python >/dev/null 2>&1; then
   exit 1
 fi
 
-root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+root_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd -W)
 plugin_dir="$root_dir/.hermes/plugins/agent-audit"
 
 if [ ! -f "$plugin_dir/plugin.yaml" ]; then
@@ -22,10 +22,12 @@ cd "$root_dir"
 hermes plugins validate "$plugin_dir" --json
 hermes plugins doctor "$plugin_dir" --ci
 
-hermes --profile project-manager config set plugins.enabled '["agent-audit"]'
-enabled=$(hermes --profile project-manager config get plugins.enabled --json)
-EXPECTED='["agent-audit"]' ACTUAL="$enabled" python -c \
-  'import json, os, sys; expected=json.loads(os.environ["EXPECTED"]); actual=json.loads(os.environ["ACTUAL"]); sys.exit(0 if actual == expected else 1)'
+for profile in project-manager coder reviewer; do
+  hermes --profile "$profile" config set plugins.enabled '["agent-audit"]'
+  enabled=$(hermes --profile "$profile" config get plugins.enabled --json)
+  EXPECTED='["agent-audit"]' ACTUAL="$enabled" python -c \
+    'import json, os, sys; expected=json.loads(os.environ["EXPECTED"]); actual=json.loads(os.environ["ACTUAL"]); sys.exit(0 if actual == expected else 1)'
+done
 
-printf '%s\n' 'Amaazon Hermes project plugin installed for project-manager.'
+printf '%s\n' 'Amaazon Hermes project plugin installed for project-manager, coder, and reviewer.'
 printf '%s\n' 'Start Hermes with HERMES_ENABLE_PROJECT_PLUGINS=true to enable project-plugin discovery.'

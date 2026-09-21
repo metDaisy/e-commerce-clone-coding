@@ -10,6 +10,10 @@ skills:
     - codebase-memory-mcp
     - semble-search
 
+plugins:
+  enabled:
+    - agent-audit
+
 tools:
   allowed_toolsets:
     - terminal

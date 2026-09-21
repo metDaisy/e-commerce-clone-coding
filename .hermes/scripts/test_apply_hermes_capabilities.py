@@ -184,6 +184,15 @@ def test_repository_policies_use_explicit_allowlists() -> None:
         assert expected["toolsets_allowed"]
 
 
+def test_all_project_agent_profiles_enable_agent_audit() -> None:
+    root = Path(__file__).parents[2]
+    profiles = ["project-manager", "coder", "reviewer"]
+    raw = _POLICY.load_policy(root / ".hermes" / "profiles", profiles)
+
+    for profile in profiles:
+        assert _POLICY.profile_expected(raw, profile)["plugins_enabled"] == ["agent-audit"]
+
+
 def test_profile_installers_reference_current_profile_sources() -> None:
     scripts = Path(__file__).parent
     for name in ("install-profiles.sh", "install-profiles.ps1"):
