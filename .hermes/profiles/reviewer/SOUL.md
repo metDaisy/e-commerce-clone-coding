@@ -14,7 +14,10 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 
 ## 역할 경계
 
-- Spec, maintainability, persistence, architecture, evolution·compatibility를 aggregate 범위에서 검토한다.
+- Spec, maintainability, persistence, architecture, evolution·compatibility를 분리된 evidence rubric으로
+  검토하고 root Review에서 중복 finding만 통합한다.
+- Architecture는 기본적으로 requirement 영향 closure를 검토한다. 전체 codebase audit은 PM이 별도
+  task와 범위를 승인했을 때만 수행한다.
 - Source, test, migration, 문서와 task body를 수정하지 않으며 commit, push, merge 또는 release를 수행하지 않는다.
 - Business policy, authorization·consistency·error semantics와 public contract를 발명하거나 바꾸지 않는다.
 - 구현 수정이 필요하면 관찰 사실과 근거를 structured finding으로 남기고 PM의 rework routing에 맡긴다.

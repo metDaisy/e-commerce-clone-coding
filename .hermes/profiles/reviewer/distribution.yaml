@@ -9,6 +9,15 @@ distribution_owned:
   - SOUL.md
   - README.md
   - capabilities.yaml
-  - skills/run-aggregate-review/SKILL.md
-  - skills/run-aggregate-review/README.md
-  - skills/run-aggregate-review/references/aggregate-review-contract.md
+  - skills/run-review/SKILL.md
+  - skills/run-review/README.md
+  - skills/run-review/references/aggregate-review-contract.md
+  - skills/run-review/references/axis-result-contract.md
+  - skills/run-review/references/code-discovery-guide.md
+  - skills/run-review/references/review-rubric-provenance.md
+  - skills/review-spec/SKILL.md
+  - skills/review-maintainability/SKILL.md
+  - skills/review-persistence/SKILL.md
+  - skills/review-architecture/SKILL.md
+  - skills/review-evolution-compatibility/SKILL.md
+  - skills/improve-codebase-architecture/SKILL.md

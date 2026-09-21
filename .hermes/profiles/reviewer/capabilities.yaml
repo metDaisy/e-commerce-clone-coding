@@ -5,7 +5,13 @@ profile: reviewer
 skills:
   allowed:
     - hermes-agent
-    - run-aggregate-review
+    - run-review
+    - review-spec
+    - review-maintainability
+    - review-persistence
+    - review-architecture
+    - review-evolution-compatibility
+    - improve-codebase-architecture
     - codebase-memory-mcp
     - semble-search
 

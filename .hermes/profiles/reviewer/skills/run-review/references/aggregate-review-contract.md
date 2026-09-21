@@ -21,9 +21,9 @@ Body의 schema는 `aggregate-review-card-v1`이다. Effective behavior와 aggreg
 implementation/inherited 목록은 evidence coverage를 고정한다. Native task ID, status, run과 workspace를
 body에서 추론하거나 복제값으로 대체하지 않는다.
 
-Admission은 다음 invariant를 만족해야 한다.
+Admission invariant:
 
-- Body의 implementation key마다 done task와 유효한 40자리 checkpoint SHA가 정확히 하나 있다.
+- Body implementation key마다 done task와 유효한 40자리 checkpoint SHA가 정확히 하나 있다.
 - Checkpoint는 현재 review branch history에 존재하고 final reviewed state에 포함된다.
 - Prior blocking finding은 source Review task ID, finding ID와 원래 verdict로 추적된다.
 - Repository가 clean하고 current run/task/workspace가 dispatcher read-back과 일치한다.
@@ -107,7 +107,7 @@ maintenance cost를 설명한다. 단순 선호와 측정되지 않은 가능성
 - `changes-required`: 하나 이상의 blocking finding이 있다.
 - 모든 body implementation key와 result checkpoint key가 정확히 일치한다.
 - Review는 Spec, maintainability, persistence, architecture, evolution·compatibility 다섯 축을 모두
-  수행하거나 명시적으로 not-applicable로 판정한 뒤에만 완료한다.
+  수행하거나 근거와 함께 not-applicable로 판정한 뒤에만 완료한다.
 - Runtime metadata에는 raw tool output, prompt, reasoning, credential 또는 불필요한 개인정보를 넣지 않는다.
 
 PM은 result와 graph를 자신의 `validate-review-result` validator로 검증하고 native run/task를 read-back한

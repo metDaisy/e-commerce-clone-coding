@@ -12,7 +12,7 @@ state database, log 또는 machine-specific path는 이 저장소에 포함하�
 |---|---|---|---|
 | `project-manager` | `.hermes/profiles/project-manager/` | 승인된 requirement에서 task graph를 만들고 Coder·Review·release lifecycle을 조율 | `service-planning`, `create-triage`, `build-task-graph`, `run-workflow`, `sync-docs`, `update-current-state`, `codebase-memory-mcp`, `semble-search` |
 | `coder` | `.hermes/profiles/coder/` | PM이 승인한 backend Impl card를 구현하고 검증 | `run-impl-card`, `implement`, `codebase-memory-mcp`, `semble-search` |
-| `reviewer` | `.hermes/profiles/reviewer/` | 완료된 implementation checkpoint를 aggregate contract에 따라 독립 검토 | `run-aggregate-review`, `codebase-memory-mcp`, `semble-search` |
+| `reviewer` | `.hermes/profiles/reviewer/` | 완료된 implementation checkpoint를 다섯 독립 축으로 검토 | `run-review`, `review-spec`, `review-maintainability`, `review-persistence`, `review-architecture`, `review-evolution-compatibility`, `improve-codebase-architecture`, `codebase-memory-mcp`, `semble-search` |
 
 Profile별 실제 허용 Skill·toolset·MCP 목록의 기준은 각 Distribution의
 `capabilities.yaml`이다. 상세한 역할과 lifecycle은 각
