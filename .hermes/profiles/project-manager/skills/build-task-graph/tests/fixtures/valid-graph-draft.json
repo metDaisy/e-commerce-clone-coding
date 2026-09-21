@@ -6,6 +6,7 @@
     "url": "https://github.com/example/repository/issues/138"
   },
   "generation": 1,
+  "workspace": "scratch",
   "requirement_basis": {
     "path": "docs/requirement/p2/product.md",
     "heading": "상품 등록",
@@ -30,6 +31,7 @@
       "title": "G1-Issue138-Triage",
       "card_type": "triage",
       "assignee": "project-manager",
+      "workspace": "scratch",
       "status": "running",
       "parents": [],
       "body": null
@@ -39,6 +41,7 @@
       "title": "G1-Issue138-Impl1",
       "card_type": "implementation",
       "assignee": "coder",
+      "workspace": "scratch",
       "status": "todo",
       "parents": [
         "triage"
@@ -178,6 +181,7 @@
       "title": "G1-Issue138-Review1",
       "card_type": "review",
       "assignee": "reviewer",
+      "workspace": "scratch",
       "status": "todo",
       "parents": [
         "impl-1"
@@ -201,6 +205,7 @@
       "title": "G1-Issue138-Summary",
       "card_type": "summary",
       "assignee": "project-manager",
+      "workspace": "scratch",
       "status": "todo",
       "parents": [
         "impl-1",

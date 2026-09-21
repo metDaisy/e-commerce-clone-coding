@@ -1,7 +1,7 @@
 ---
 name: run-impl-card
 description: Use when admitting and running a PM-authored backend Impl card through its PM checkpoint.
-version: 0.7.0
+version: 0.8.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -28,16 +28,22 @@ Coder의 입력이 아니다.
 ### 1. Task admission
 
 1. Dispatcher가 제공한 현재 task를 `kanban_show`로 읽는다. Native task ID, assignee,
-   `running` status, workspace, parent handoff와 body를 read-back한다.
+   `running` status, parent handoff, comments와 body를 read-back한다. Latest valid PM-owned
+   `backend-implementation-admission-v1` comment에서 actual task ID, Issue, card schema와 create-intent
+   workspace를 읽고, 이를 dispatcher가 시작한 actual process cwd/worktree identity와 비교한다. Native
+   `kanban_show` task 자체가 workspace를 반환한다고 가정하지 않는다.
 2. Body가 valid JSON이며 `schema: backend-implementation-card-v1`,
    `card_type: implementation`인지 확인한다. Canonical contract의 required field와 reference가
    모두 존재해야 한다.
 3. Card의 goal, effective behavior, scope, exclusions, contracts, acceptance, focused verification와
    full backend verification을 읽는다. Traceability locator는 PM 근거이며 requirement를 다시
    해석하라는 지시가 아니다.
-4. Git branch와 status 및 native run history를 읽어 initial run과 changes-requested rework를 구분한다.
-   Initial run은 staged, unstaged 또는 untracked path가 하나라도 있으면 덮어쓰기·commit·stash·reset·
-   clean하지 않고 `kanban_block(kind="needs_input")`으로 중단한다. Rework run은 latest native
+4. Git branch와 status 및 native run history를 읽어 initial run, changes-requested rework와
+   restart recovery를 구분한다. Initial run은 staged, unstaged 또는 untracked path가 하나라도 있으면
+   덮어쓰기·commit·stash·reset·clean하지 않고 `kanban_block(kind="needs_input")`으로 중단한다.
+   Restart recovery는 latest matching admission comment의 valid `restart-task-v1`이 현재 task ID, assignee,
+   workspace, Issue와 exact dirty path를 모두 결합하고 body가 정상 Impl contract일 때만 dirty 상태를
+   인수한다. Rework run은 latest native
    `request-changes` transition, 직전 `review_requested` handoff와 correlated change-request comment를
    먼저 검증하고, dirty paths가 직전 handoff의 `changed_paths`와 정확히 같을 때만 이어서 작업한다.
    다른 dirty path 또는 ID 불일치는 block한다.
@@ -46,7 +52,7 @@ Coder의 입력이 아니다.
 
 ### 2. Implementation execution
 
-1. `implement` Skill을 load하고 implementation map, test-first seam, 최소 구현, focused
+1. `implement` Skill을 load하고 admitted mode와 함께 implementation map, test-first seam, 최소 구현, focused
    loop, bounded simplification, full backend verification과 self-review 절차를 순서대로 수행한다.
 2. 기존 code와 card의 `implementation_context.current_behavior`가 달라 acceptance나 public contract가
    변하면 제품 의미를 다시 해석하지 않고 근거와 영향으로 block한다.
@@ -59,9 +65,9 @@ Coder의 입력이 아니다.
 
 1. Git status와 diff를 읽고 모든 changed path가 card scope 또는 필수 propagation인지 확인한다.
    문서 path나 설명할 수 없는 path가 있으면 review를 요청하지 않는다.
-2. 이번 요청에 새 `handoff_id`를 부여하고 canonical `backend-implementation-handoff-v1` metadata를
-   작성한다. Actual changed paths,
-   acceptance별 focused verification, full backend result, documentation impact와 residual risk만
+2. 이번 요청에 새 `handoff_id`를 부여하고 현재 native Coder run ID로 canonical
+   `backend-implementation-handoff-v1` metadata를 작성한다. Actual changed paths,
+   acceptance별 focused verification, 실제 `test_levels`, full backend result, documentation impact와 residual risk만
    기록한다. Raw output, credential, prompt와 reasoning은 기록하지 않는다.
 3. 한국어 summary와 metadata로 `kanban_request_review(reviewer="project-manager")`를 호출한다.
    Coder가 `kanban_complete`를 호출하거나 commit하지 않는다.
@@ -92,6 +98,7 @@ Aggregate Reviewer finding은 PM이 새 self-contained Impl card로 작성한 �
 - 필수 propagation과 관련 test가 포함됐다.
 - 모든 focused verification이 `gradle-mcp`로 통과했다.
 - Backend 전체 Gradle `test` task가 `gradle-mcp`로 통과했다.
+- Focused result가 card의 최소 `test_level`을 포함하고 full backend result까지 현재 run에서 통과했다.
 - 문서를 수정하지 않았고 changed path를 모두 설명할 수 있다.
 - Handoff metadata가 canonical schema를 만족한다.
 

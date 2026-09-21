@@ -1,14 +1,14 @@
 ---
 name: run-workflow
 description: "Kanban 중심 PM workflow를 시작부터 release까지 실행한다."
-version: 1.0.0
+version: 1.1.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [project-management, kanban, checkpoint, review, release, recovery]
-    related_skills: [build-task-graph, update-current-state]
+    related_skills: [create-triage, build-task-graph, sync-docs, update-current-state]
 requires_toolsets: [kanban]
 ---
 
@@ -66,8 +66,11 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 
 1. Task가 `review`, assignee가 `project-manager`, active run이 dispatcher-created review run인지 확인한다.
 2. Immutable `backend-implementation-card-v1`과 latest Coder run의
-   `backend-implementation-handoff-v1` metadata를 read-back한다. Comment/prose는 대체 증거가 아니다.
-3. Workspace·branch·Git status와 전체 diff를 읽고 다음을 실행한다.
+   `backend-implementation-handoff-v1` metadata를 read-back한다. Handoff source run, exact tests,
+   `test_levels`, scenario result와 full backend result를 검수한다. 이는 Coder self-verification record이며
+   PM checkpoint 실행을 대체하지 않는다.
+3. Workspace·branch·Git status와 전체 diff를 읽고, PM review run에서 handoff의 exact focused tests,
+   required scenarios와 full backend `test`를 `gradle-mcp`로 직접 재실행한 뒤 다음을 실행한다.
 
    `python scripts/checkpoint.py handoff <card.json> <handoff.json>`
 
@@ -83,7 +86,10 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    뒤 SHA, committed path, message와 clean worktree를 read-back하고, `.githooks/post-commit`의
    `codebase-memory/last-indexed-head`가 result SHA와 정확히 같은지 확인한다. hook 또는 freshness record가
    없거나 다르면 checkpoint를 block하고 `backend-implementation-checkpoint-v1`을 작성하지 않는다.
-7. `python scripts/checkpoint.py checkpoint <card.json> <handoff.json> <checkpoint.json>` 통과 후 같은 Impl을
+7. Handoff가 documentation impact를 보고했으면 code commit 뒤 `sync-docs derived-docs`를 별도
+   docs-only commit으로 실행하고 path·commit SHA·clean state를 read-back한다. 영향이 없으면
+   `not-applicable`을 기록한다.
+8. `python scripts/checkpoint.py checkpoint <card.json> <handoff.json> <checkpoint.json>` 통과 후 같은 Impl을
    complete하고 closing run metadata와 `done`을 read-back한다.
 
 완료 기준: task `done`, checkpoint SHA/path, clean Git state가 같은 native run과 일치한다. PM checkpoint는
@@ -95,7 +101,10 @@ Summary는 release 후 완료되는 finalization card다. Native dependency가 S
 사실만으로 완료하지 않는다.
 
 1. 모든 direct parent가 `done`, latest Review가 `approved`, prior blocking finding이 모두 resolved인지
-   read-back한다. Clean `HEAD`를 `final_implementation_sha`로 freeze하고 `summary-admission-v1`을 검증한다.
+   read-back한다. Latest implementation checkpoint의 code commit을 `final_implementation_sha`로 freeze한다.
+   그 뒤의 checkpoint documentation commit을 ordered `documentation_commit_shas`로 모으고, 각각이
+   distinct descendant이며 recorded literal docs path만 변경했는지 Git으로 확인한다. Clean `HEAD`가 docs
+   commit이 없으면 code SHA, 있으면 마지막 docs SHA인지 확인해 `summary-admission-v1`을 검증한다.
 
    `python scripts/workflow.py validate-summary-admission <admission.json>`
 
@@ -135,10 +144,15 @@ head의 reviewed code range를 바꾸면 이전 Review·CI 결론을 재사용�
 ### `restart-task`
 
 Marker는 현재 Issue/branch를 가리키고 모든 dirty path가 그 Issue에만 evidence로 귀속되지만 Kanban 기록이
-유실된 경우에만 하나의 Coder recovery card를 만든다. `restart-task-v1`을
-`python scripts/workflow.py validate-restart <restart.json>`으로 먼저 검증한다. Mixed·unknown path, marker mismatch,
-복수 recovery card는 사용자 결정으로 block한다. Recovery Impl도 정상 same-card checkpoint를 거쳐 clean
-commit을 만든 뒤 정상 state derivation으로 돌아온다.
+유실된 경우에만 하나의 Coder recovery card를 만든다. Body는 현재 승인 requirement와 확인된 dirty
+delta를 self-contained하게 materialize한 정상 `backend-implementation-card-v1`이다. PM은
+task/workspace/exact dirty path를 결합한 `restart-task-v1`을
+`python scripts/workflow.py validate-restart <restart.json>`으로 검증한 뒤, 해당 recovery task의 새
+`backend-implementation-admission-v1` comment의 `restart` 필드에 저장한다. `kanban_show`로 comment를
+read-back하고 body도 Impl validator로 검증한 뒤 Coder에게 넘긴다. 아직 존재하지 않는 미래 Coder run
+metadata에는 admission payload를 저장하지 않는다. Mixed·unknown path, marker mismatch, 복수 recovery
+card는 사용자 결정으로 block한다.
+Recovery Impl도 정상 same-card checkpoint를 거쳐 clean commit을 만든 뒤 정상 state derivation으로 돌아온다.
 
 ### `base-sync`
 

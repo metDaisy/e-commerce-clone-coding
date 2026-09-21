@@ -1,7 +1,7 @@
 ---
 name: sync-docs
-description: "승인 requirement를 파생 문서와 delivery tracker에 동기화할 때 사용한다."
-version: 1.0.0
+description: "승인 requirement 또는 검증된 구현 영향을 파생 문서와 tracker에 동기화한다."
+version: 1.1.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -13,14 +13,17 @@ metadata:
 
 # 문서와 tracker 동기화
 
-승인 requirement를 기준으로 `current-state.md`를 제외한 파생 문서와 delivery tracker를 동기화한다.
-Requirement의 의미를 새로 정하지 않고, 모든 외부 mutation은 exact target을 read-back한다.
+승인 requirement 또는 validated Coder handoff와 read-back code commit의 문서 영향을 기준으로 `current-state.md`를
+제외한 파생 문서와 delivery tracker를 동기화한다. Requirement의 의미를 새로 정하지 않고, 모든 외부
+mutation은 exact target을 read-back한다.
 
 ## 언제 사용하는가
 
 - 사용자 결정이 requirement에 반영됐다.
 - `create-triage` 또는 `build-task-graph`가 파생 문서·Issue 불일치를 찾았다.
 - Graph authoring 또는 finalization 전에 documentation readiness 확인이 필요하다.
+- Coder handoff의 `documentation_impact.detected`가 true이고 PM이 code diff와 read-back code commit에서
+  그 영향을 확인했다. 아직 생성 전인 checkpoint object를 prerequisite로 요구하지 않는다.
 - 새 workflow의 reference baseline을 처음 세워야 한다.
 
 단순한 requirement 초안 작성, source 구현, `current-state.md` 갱신에는 사용하지 않는다.
@@ -54,7 +57,8 @@ docs/requirement/p9/p9-policy.md의 승인 변경을 파생 문서에 동기화�
 
 실행 전에 다음 baseline을 기록한다.
 
-- 승인 requirement의 path, heading, revision 또는 commit SHA와 결정 근거
+- 승인 requirement의 path, heading, revision 또는 commit SHA와 결정 근거. Implementation-impact
+  실행이면 대신 source handoff ID, code commit SHA, changed paths와 확인된 impact detail
 - 읽기 전용 `current-state.md` section, snapshot SHA와 freshness 판정
 - originating Triage·Decision·Review 또는 workflow ID
 - 선택한 mode와 후보 문서·Issue locator

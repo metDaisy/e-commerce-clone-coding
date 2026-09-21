@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
+from contract_common import is_canonical_https_url
+
 GRAPH_SCHEMA = "build-task-graph-v1"
 CARD_SCHEMAS = {
     "review": "aggregate-review-card-v1",
@@ -21,6 +23,13 @@ SHA = re.compile(r"^[0-9a-f]{40}$")
 STATES = {"implemented", "partial", "absent", "unknown"}
 DISPOSITIONS = {"inherited", "planned", "blocked"}
 CARD_TYPES = {"triage", "implementation", "review", "summary", "decision"}
+EXPECTED_ASSIGNEES = {
+    "triage": "project-manager",
+    "implementation": "coder",
+    "review": "reviewer",
+    "summary": "project-manager",
+    "decision": "project-manager",
+}
 STATUSES = {"running", "todo", "ready", "blocked", "done", "archived"}
 TITLE_TYPES = {
     "Triage": "triage",
@@ -104,7 +113,7 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
     errors: list[str] = []
     if not isinstance(graph, dict):
         return ["GRAPH_NOT_OBJECT"]
-    allowed = {"schema", "mode", "issue", "generation", "requirement_basis", "revised_requirement", "lineage", "source_review", "behaviors", "cards", "ready_candidate", "archived_card_keys"}
+    allowed = {"schema", "mode", "issue", "generation", "workspace", "requirement_basis", "revised_requirement", "lineage", "source_review", "behaviors", "cards", "ready_candidate", "archived_card_keys"}
     _exact_fields(graph, allowed, errors, "UNEXPECTED_GRAPH_FIELD")
     _error(errors, graph.get("schema") == GRAPH_SCHEMA, "GRAPH_SCHEMA")
     mode = graph.get("mode")
@@ -115,9 +124,11 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
         _exact_fields(issue, {"number", "url"}, errors, "UNEXPECTED_ISSUE_FIELD")
     _error(errors, isinstance(issue_number, int) and not isinstance(issue_number, bool) and issue_number > 0, "INVALID_ISSUE")
     issue_url = issue.get("url") if isinstance(issue, dict) else None
-    _error(errors, isinstance(issue_url, str) and bool(re.fullmatch(r"https://[^/]+/.+", issue_url)), "INVALID_ISSUE_URL")
+    _error(errors, is_canonical_https_url(issue_url), "INVALID_ISSUE_URL")
     generation = graph.get("generation")
     _error(errors, isinstance(generation, int) and not isinstance(generation, bool) and generation > 0, "INVALID_GENERATION")
+    workspace = graph.get("workspace")
+    _error(errors, _non_empty(workspace), "MISSING_WORKSPACE")
     if mode == "new":
         _error(errors, generation == 1, "NEW_REQUIRES_GENERATION_1")
         _error(errors, graph.get("revised_requirement") is None, "NEW_FORBIDS_REVISED_REQUIREMENT")
@@ -203,6 +214,8 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
                 _error(errors, _non_empty(behavior.get("implementation_card_key")), f"MISSING_BEHAVIOR_IMPL:{identifier}")
             elif state == "unknown":
                 _error(errors, disposition == "blocked", f"UNKNOWN_NOT_BLOCKED:{identifier}")
+            if disposition != "planned":
+                _error(errors, "implementation_card_key" not in behavior, f"UNEXPECTED_BEHAVIOR_IMPL:{identifier}")
 
     cards = graph.get("cards")
     if not isinstance(cards, list) or not cards:
@@ -213,7 +226,7 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
         if not isinstance(card, dict):
             errors.append(f"CARD_NOT_OBJECT:{index}")
             continue
-        _exact_fields(card, {"key", "title", "card_type", "assignee", "status", "parents", "body"}, errors, f"UNEXPECTED_CARD_FIELD:{index}")
+        _exact_fields(card, {"key", "title", "card_type", "assignee", "workspace", "status", "parents", "body"}, errors, f"UNEXPECTED_CARD_FIELD:{index}")
         key = card.get("key")
         if not _non_empty(key):
             errors.append(f"MISSING_CARD_KEY:{index}")
@@ -233,13 +246,26 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
             errors.append(f"TITLE_LINEAGE_MISMATCH:{key}")
         elif TITLE_TYPES.get(match.group("kind"), "implementation" if match.group("kind").startswith("Impl") else "review" if match.group("kind").startswith("Review") else "decision") != card.get("card_type"):
             errors.append(f"TITLE_CARD_TYPE_MISMATCH:{key}")
-        _error(errors, card.get("card_type") in CARD_TYPES, f"INVALID_CARD_TYPE:{key}")
-        _error(errors, _non_empty(card.get("assignee")), f"MISSING_ASSIGNEE:{key}")
+        card_type = card.get("card_type")
+        _error(errors, card_type in CARD_TYPES, f"INVALID_CARD_TYPE:{key}")
+        _error(errors, card.get("assignee") == EXPECTED_ASSIGNEES.get(card_type), f"ASSIGNEE_MISMATCH:{key}")
+        _error(errors, card.get("workspace") == workspace, f"WORKSPACE_MISMATCH:{key}")
         _error(errors, card.get("status") in STATUSES, f"INVALID_CARD_STATUS:{key}")
         _error(errors, isinstance(card.get("parents"), list), f"INVALID_PARENTS:{key}")
         _validate_body(card, behavior_ids, errors)
-        if card.get("card_type") == "implementation" and isinstance(card.get("body"), dict) and validate_implementation:
-            errors.extend(f"IMPLEMENTATION:{key}:{failure}" for failure in validate_implementation(card["body"]))
+        if card.get("card_type") == "implementation" and isinstance(card.get("body"), dict):
+            if validate_implementation:
+                errors.extend(f"IMPLEMENTATION:{key}:{failure}" for failure in validate_implementation(card["body"]))
+            body_issue = card["body"].get("issue")
+            if isinstance(body_issue, dict):
+                _error(errors, body_issue.get("number") == issue_number, f"IMPLEMENTATION_ISSUE_NUMBER_MISMATCH:{key}")
+                _error(errors, body_issue.get("url") == issue_url, f"IMPLEMENTATION_ISSUE_URL_MISMATCH:{key}")
+            body_behavior_ids = {
+                item.get("id")
+                for item in card["body"].get("effective_behavior", [])
+                if isinstance(item, dict) and _non_empty(item.get("id"))
+            }
+            _error(errors, body_behavior_ids <= behavior_ids, f"IMPLEMENTATION_UNKNOWN_BEHAVIOR:{key}")
 
     triages = [key for key, card in records.items() if card.get("card_type") == "triage"]
     summaries = [key for key, card in records.items() if card.get("card_type") == "summary"]
@@ -324,6 +350,21 @@ def validate_graph(graph: Any, *, phase: str = "draft", validate_implementation:
     }
     if mode in {"new", "requirement-rework"}:
         _error(errors, implementation_keys == planned_impl_keys, "IMPLEMENTATION_BEHAVIOR_COVERAGE")
+        for impl_key in implementation_keys:
+            body = records[impl_key].get("body", {})
+            actual_ids = {
+                item.get("id")
+                for item in body.get("effective_behavior", [])
+                if isinstance(item, dict) and _non_empty(item.get("id"))
+            } if isinstance(body, dict) else set()
+            assigned_ids = {
+                behavior.get("id")
+                for behavior in behaviors or []
+                if isinstance(behavior, dict)
+                and behavior.get("disposition") == "planned"
+                and behavior.get("implementation_card_key") == impl_key
+            }
+            _error(errors, actual_ids == assigned_ids, f"IMPLEMENTATION_BEHAVIOR_COVERAGE:{impl_key}")
     numbered_reviews = [
         (int(match.group("kind")[6:]), key)
         for key in reviews

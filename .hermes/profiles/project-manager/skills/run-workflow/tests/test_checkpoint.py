@@ -33,6 +33,7 @@ class CheckpointContractTest(unittest.TestCase):
         return {
             "schema": "backend-implementation-handoff-v1",
             "handoff_id": "handoff-7f3d87b2",
+            "source_run_id": "run-coder-16",
             "implemented_behavior_ids": ["behavior-product-create"],
             "changed_paths": [
                 "src/main/java/example/product/ProductService.java",
@@ -51,6 +52,7 @@ class CheckpointContractTest(unittest.TestCase):
                     "executor": "gradle-mcp",
                     "tasks": ["test"],
                     "tests": ["example.product.ProductRegistrationIntegrationTest"],
+                    "test_levels": ["integration"],
                     "scenario_results": [
                         {"scenario": "유효한 입력의 성공", "result": "pass"},
                         {"scenario": "유효하지 않은 입력의 거절", "result": "pass"},
@@ -75,6 +77,12 @@ class CheckpointContractTest(unittest.TestCase):
             "committed_paths": self.handoff()["changed_paths"],
             "commit_sha": "a" * 40,
             "full_backend_verification_readback": "pass",
+            "verification_run_id": "run-pm-checkpoint-17",
+            "documentation_impact_resolution": {
+                "status": "not-applicable",
+                "changed_paths": [],
+                "commit_sha": None,
+            },
             "clean_worktree": True,
         }
 
@@ -119,6 +127,8 @@ class CheckpointContractTest(unittest.TestCase):
             "--pathspec-from-file=paths.txt",
             "Docs/architecture.java",
             "src\\main\\Product.java",
+            "src/main/java/example/...",
+            "src/**/*.java",
         ):
             with self.subTest(path=unsafe_path):
                 handoff = self.handoff()
@@ -198,6 +208,45 @@ class CheckpointContractTest(unittest.TestCase):
         checkpoint["source_handoff_id"] = "handoff-stale"
 
         self.assertIn("SOURCE_HANDOFF_MISMATCH", validate_checkpoint(self.card(), self.handoff(), checkpoint))
+
+    def test_checkpoint_requires_pm_verification_run(self):
+        checkpoint = self.checkpoint()
+        checkpoint["verification_run_id"] = ""
+        errors = validate_checkpoint(self.card(), self.handoff(), checkpoint)
+        self.assertIn("MISSING_PM_VERIFICATION_RUN_ID", errors)
+
+    def test_handoff_requires_declared_minimum_test_level(self):
+        handoff = self.handoff()
+        handoff["focused_verification_results"][0]["test_levels"] = ["unit"]
+
+        self.assertIn(
+            "TEST_LEVEL_NOT_SATISFIED:FV-PRODUCT-CREATE",
+            validate_handoff(self.card(), handoff),
+        )
+
+    def test_checkpoint_requires_documentation_impact_resolution(self):
+        handoff = self.handoff()
+        handoff["documentation_impact"] = {
+            "detected": True,
+            "details": ["architecture 문서에 새 module seam을 반영해야 한다."],
+        }
+        unresolved = self.checkpoint()
+        self.assertIn(
+            "DOCUMENTATION_IMPACT_UNRESOLVED",
+            validate_checkpoint(self.card(), handoff, unresolved),
+        )
+        resolved = self.checkpoint()
+        resolved["documentation_impact_resolution"] = {
+            "status": "resolved",
+            "changed_paths": ["docs/architecture.md"],
+            "commit_sha": "b" * 40,
+        }
+        self.assertEqual([], validate_checkpoint(self.card(), handoff, resolved))
+        resolved["documentation_impact_resolution"]["commit_sha"] = resolved["commit_sha"]
+        self.assertIn(
+            "DOCUMENTATION_COMMIT_NOT_DISTINCT",
+            validate_checkpoint(self.card(), handoff, resolved),
+        )
 
     def test_checkpoint_rejects_incomplete_source_handoff(self):
         handoff = {"handoff_id": "handoff-7f3d87b2", "changed_paths": ["src/X.java"]}

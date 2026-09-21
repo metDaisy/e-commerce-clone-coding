@@ -12,7 +12,7 @@ PM은 dispatcher가 시작한 active native review run에서 다음 입력을 re
 1. immutable `backend-implementation-card-v1` body
 2. latest Coder run의 `backend-implementation-handoff-v1` metadata
 3. 실제 workspace, branch, Git status와 complete diff
-4. focused 및 full backend verification evidence
+4. PM checkpoint review run에서 직접 재실행한 focused 및 full backend `gradle-mcp` result
 
 PM은 handoff와 diff를 검수하고, changes를 요청하거나 검증된 path만 commit하고 card를 완료할 수 있다.
 PM은 Coder 대신 production code를 수정하거나 card의 제품 의미를 보정하지 않는다.
@@ -24,7 +24,10 @@ PM은 다음을 확인한다.
 - handoff가 card의 모든 behavior, acceptance, verification과 required scenario를 정확히 한 번씩 포함한다.
 - actual dirty paths가 `handoff.changed_paths`와 같고 문서나 설명할 수 없는 path가 없다.
 - diff가 card scope, security, module boundary, persistence와 migration 규칙을 만족한다.
-- focused verification과 `gradle-mcp` backend `test` 결과가 모두 `pass`다.
+- Coder handoff의 focused verification과 backend `test` 결과가 모두 `pass`다.
+- Handoff `source_run_id`가 latest Coder run과 같고 focused result가 card의 최소 `test_level`을 포함한다.
+- PM checkpoint review run에서 동일한 focused tests·required scenarios와 backend `test`를
+  `gradle-mcp`로 직접 재실행해 모두 `pass`다.
 
 구현 수정이 필요하면 commit하지 않고 changes-request로 route한다. Policy 또는 contract 결정이 필요하면
 사용자 owner에게 block한다.
@@ -69,16 +72,31 @@ PM은 검증된 path만 stage·commit하고 result commit과 clean worktree를 r
   "schema": "backend-implementation-checkpoint-v1",
   "source_handoff_id": "handoff-7f3d87b2",
   "result": "pass",
-  "committed_paths": ["src/main/java/example/product/...", "src/test/java/example/product/..."],
+  "committed_paths": [
+    "src/main/java/example/product/ProductService.java",
+    "src/test/java/example/product/ProductRegistrationIntegrationTest.java"
+  ],
   "commit_sha": "<40-character result commit SHA>",
   "full_backend_verification_readback": "pass",
+  "verification_run_id": "run-pm-checkpoint-17",
+  "documentation_impact_resolution": {
+    "status": "not-applicable",
+    "changed_paths": [],
+    "commit_sha": null
+  },
   "clean_worktree": true
 }
 ```
 
 `source_handoff_id`는 검수한 handoff와 같고 `committed_paths`는 그 handoff의 `changed_paths`와 중복 없이
-정확히 같아야 한다. Full backend evidence, 40-character commit SHA와 clean worktree를 read-back하기
-전에는 completion metadata를 작성하거나 task를 `done`으로 전환하지 않는다.
+정확히 같아야 한다. `verification_run_id`는 PM이 동일 Gradle contract를 재실행한 current checkpoint
+review run이다. `documentation_impact.detected`가 false이면 resolution은 `not-applicable`이다.
+True이면 code commit 뒤 `sync-docs derived-docs`로 별도 docs-only commit을 만들고 resolution을
+`resolved`, literal docs path와 그 commit SHA로 기록한다. Docs SHA는 code SHA와 달라야 하며 PM은
+`git show --name-only`에 해당하는 read-back으로 그 commit의 exact changed path가 resolution 목록과 같고
+code commit 뒤에 오는지 확인한다. Full backend verification, code commit, 필요한 docs commit과 clean
+worktree를 read-back하기 전에는 completion metadata를 작성하거나 task를 `done`으로
+전환하지 않는다.
 
 `scripts/checkpoint.py checkpoint` validation 후 `kanban_complete`를 호출하고 task `done`, closing PM run
 metadata, result SHA, committed paths와 clean Git state를 다시 read-back한다.

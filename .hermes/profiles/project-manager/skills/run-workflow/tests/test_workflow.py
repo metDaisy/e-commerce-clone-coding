@@ -1,3 +1,4 @@
+import copy
 import json
 import subprocess
 import sys
@@ -11,6 +12,7 @@ PROFILE_DIR = SKILL_DIR.parents[1]
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 from workflow import (
     validate_base_sync,
+    validate_implementation_admission,
     validate_release,
     validate_release_finding,
     validate_restart,
@@ -40,6 +42,7 @@ class WorkflowContractTest(unittest.TestCase):
                     "title": card["title"],
                     "card_type": card["card_type"],
                     "assignee": card["assignee"],
+                    "workspace": card["workspace"],
                     "status": status,
                     "parents": card["parents"],
                     "runs": [{"status": "completed"}] if status == "done" else [],
@@ -125,6 +128,27 @@ class WorkflowContractTest(unittest.TestCase):
         self.assertIn("MULTIPLE_READY_TASKS", errors)
         self.assertIn("READY_PARENT_NOT_DONE:review-1", errors)
 
+    def test_runtime_state_rejects_workspace_drift(self):
+        board = self.board()
+        board["tasks"][1]["workspace"] = "other"
+        errors, _ = validate_state(
+            self.graph(), board, {"branch": "p2/issue138", "head_sha": SHA_A, "clean_worktree": True}
+        )
+        self.assertIn("TASK_WORKSPACE_MISMATCH:impl-1", errors)
+
+    def test_runtime_workspace_is_required_on_both_records(self):
+        graph = self.graph()
+        board = self.board()
+        graph["cards"][0].pop("workspace")
+        board["tasks"][0].pop("workspace")
+
+        errors, _ = validate_state(
+            graph,
+            board,
+            {"branch": "p2/issue138", "head_sha": SHA_A, "clean_worktree": True},
+        )
+        self.assertIn("MISSING_WORKSPACE:triage", errors)
+
     def test_review_result_requires_complete_resolution_chain(self):
         self.assertEqual([], validate_review_result(self.review_result(), self.graph()))
         invalid = self.review_result()
@@ -147,12 +171,31 @@ class WorkflowContractTest(unittest.TestCase):
             "done_parent_task_ids": ["t_b2", "t_c3"],
             "unresolved_finding_ids": [],
             "final_implementation_sha": SHA_A,
+            "documentation_commit_shas": [],
             "repository_head_sha": SHA_A,
             "clean_worktree": True,
         }
         self.assertEqual([], validate_summary_admission(value))
         value["done_parent_task_ids"] = ["t_b2"]
         self.assertIn("SUMMARY_PARENT_NOT_DONE", validate_summary_admission(value))
+
+    def test_summary_admission_preserves_code_sha_before_docs_only_commits(self):
+        value = {
+            "schema": "summary-admission-v1",
+            "summary_task_id": "t_d4",
+            "latest_review_task_id": "t_c3",
+            "latest_review_run_id": "run-review-2",
+            "latest_review_result": "approved",
+            "direct_parent_task_ids": ["t_b2", "t_c3"],
+            "done_parent_task_ids": ["t_b2", "t_c3"],
+            "unresolved_finding_ids": [],
+            "final_implementation_sha": SHA_A,
+            "documentation_commit_shas": [SHA_B],
+            "repository_head_sha": SHA_B,
+            "clean_worktree": True,
+        }
+
+        self.assertEqual([], validate_summary_admission(value))
 
     def test_release_contract_binds_snapshot_pr_ci_merge_and_auto_close(self):
         self.assertEqual([], validate_release(self.release()))
@@ -176,6 +219,7 @@ class WorkflowContractTest(unittest.TestCase):
             "schema": "restart-task-v1",
             "issue": 138,
             "delivery_branch": "p2/issue138",
+            "workspace": "scratch",
             "marker_baseline_sha": SHA_A,
             "marker_snapshot_sha": SHA_A,
             "current_head_sha": SHA_B,
@@ -185,11 +229,31 @@ class WorkflowContractTest(unittest.TestCase):
             "assignee": "coder",
             "active_recovery_task_ids": ["t_a1"],
             "allowed_scope": ["현재 dirty delta를 검증 가능한 checkpoint로 복원한다."],
+            "implementation_card_schema": "backend-implementation-card-v1",
             "required_checkpoint_schema": "backend-implementation-checkpoint-v1",
         }
         self.assertEqual([], validate_restart(value))
+
+        for unsafe in ("../outside", "/tmp/Main.java", "src\\Main.java", "src/**/*.java", "--all"):
+            with self.subTest(path=unsafe):
+                invalid = copy.deepcopy(value)
+                invalid["dirty_paths"] = [unsafe]
+                invalid["path_attribution"][0]["path"] = unsafe
+                self.assertIn("INVALID_DIRTY_PATHS", validate_restart(invalid))
         value["path_attribution"][0]["attributed"] = False
         self.assertIn("UNATTRIBUTED_DIRTY_PATH:0", validate_restart(value))
+
+    def test_implementation_admission_binds_workspace_and_task(self):
+        admission = {
+            "schema": "backend-implementation-admission-v1",
+            "task_id": "t_a1",
+            "issue": 138,
+            "workspace": "scratch",
+            "card_schema": "backend-implementation-card-v1",
+            "restart": None,
+        }
+
+        self.assertEqual([], validate_implementation_admission(admission))
 
     def test_base_sync_requires_user_decision_for_semantic_conflict(self):
         value = {

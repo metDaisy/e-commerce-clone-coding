@@ -15,9 +15,11 @@ sys.path.insert(0, str(BUILD_TASK_GRAPH_SCRIPTS))
 from build_task_graph import validate as validate_card  # noqa: E402
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
+TEST_LEVELS = {"unit", "slice", "repository", "integration", "modulith"}
 HANDOFF_FIELDS = {
     "schema",
     "handoff_id",
+    "source_run_id",
     "implemented_behavior_ids",
     "changed_paths",
     "acceptance_results",
@@ -33,6 +35,8 @@ CHECKPOINT_FIELDS = {
     "committed_paths",
     "commit_sha",
     "full_backend_verification_readback",
+    "verification_run_id",
+    "documentation_impact_resolution",
     "clean_worktree",
 }
 
@@ -79,6 +83,8 @@ def _is_literal_repository_path(path: str) -> bool:
         return False
     if re.match(r"^[A-Za-z]:/", path):
         return False
+    if "..." in path or any(marker in path for marker in ("*", "?", "[", "]", "{" , "}")):
+        return False
     return all(part not in {"", ".", ".."} for part in path.split("/"))
 
 
@@ -95,6 +101,8 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
         errors.append("HANDOFF_SCHEMA")
     if not _non_empty(handoff.get("handoff_id")):
         errors.append("MISSING_HANDOFF_ID")
+    if not _non_empty(handoff.get("source_run_id")):
+        errors.append("MISSING_SOURCE_RUN_ID")
 
     behavior_ids = {
         entry.get("id")
@@ -172,7 +180,7 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
                 continue
             _unexpected(
                 result,
-                {"verification_id", "executor", "tasks", "tests", "scenario_results", "result"},
+                {"verification_id", "executor", "tasks", "tests", "test_levels", "scenario_results", "result"},
                 errors,
                 f"UNEXPECTED_FOCUSED_RESULT_FIELD:{index}",
             )
@@ -186,6 +194,14 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
                 errors.append(f"MISSING_FOCUSED_TASKS:{label}")
             if not _strings(result.get("tests")):
                 errors.append(f"MISSING_FOCUSED_TESTS:{label}")
+            test_levels = result.get("test_levels")
+            if (
+                not _strings(test_levels)
+                or len(test_levels) != len(set(test_levels))
+                or any(level not in TEST_LEVELS for level in test_levels)
+                or verification_contracts.get(verification_id, {}).get("test_level") not in test_levels
+            ):
+                errors.append(f"TEST_LEVEL_NOT_SATISFIED:{label}")
             if result.get("result") != "pass":
                 errors.append(f"FOCUSED_RESULT_NOT_PASS:{label}")
             scenario_results = result.get("scenario_results")
@@ -228,6 +244,7 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
             errors.append("FULL_BACKEND_TASK_MISMATCH")
         if full.get("result") != "pass":
             errors.append("FULL_BACKEND_NOT_PASS")
+
 
     impact = handoff.get("documentation_impact")
     if not isinstance(impact, dict):
@@ -324,6 +341,35 @@ def validate_checkpoint(card: Any, handoff: Any, checkpoint: Any) -> list[str]:
         errors.append("INVALID_COMMIT_SHA")
     if checkpoint.get("full_backend_verification_readback") != "pass":
         errors.append("FULL_BACKEND_READBACK_NOT_PASS")
+    if not _non_empty(checkpoint.get("verification_run_id")):
+        errors.append("MISSING_PM_VERIFICATION_RUN_ID")
+    resolution = checkpoint.get("documentation_impact_resolution")
+    impact = handoff.get("documentation_impact", {})
+    if not isinstance(resolution, dict):
+        errors.append("INVALID_DOCUMENTATION_IMPACT_RESOLUTION")
+    else:
+        _unexpected(
+            resolution,
+            {"status", "changed_paths", "commit_sha"},
+            errors,
+            "UNEXPECTED_DOCUMENTATION_RESOLUTION_FIELD",
+        )
+        expected_status = "resolved" if impact.get("detected") is True else "not-applicable"
+        if resolution.get("status") != expected_status:
+            errors.append("DOCUMENTATION_IMPACT_UNRESOLVED")
+        docs_paths = resolution.get("changed_paths")
+        if not _strings(docs_paths, allow_empty=expected_status == "not-applicable"):
+            errors.append("INVALID_DOCUMENTATION_RESOLUTION_PATHS")
+        elif any(not _is_literal_repository_path(path) or not _is_document_path(path) for path in docs_paths):
+            errors.append("INVALID_DOCUMENTATION_RESOLUTION_PATHS")
+        docs_sha = resolution.get("commit_sha")
+        if expected_status == "resolved":
+            if not isinstance(docs_sha, str) or SHA.fullmatch(docs_sha) is None:
+                errors.append("INVALID_DOCUMENTATION_RESOLUTION_SHA")
+            elif docs_sha == commit_sha:
+                errors.append("DOCUMENTATION_COMMIT_NOT_DISTINCT")
+        elif docs_sha is not None:
+            errors.append("UNEXPECTED_DOCUMENTATION_RESOLUTION_SHA")
     if checkpoint.get("clean_worktree") is not True:
         errors.append("WORKTREE_NOT_CLEAN")
     return errors

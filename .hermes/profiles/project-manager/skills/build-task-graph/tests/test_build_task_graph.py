@@ -186,6 +186,24 @@ class BackendImplementationCardContractTest(unittest.TestCase):
         card["issue"]["number"] = True
         self.assertIn("INVALID_ISSUE_NUMBER", validate(card))
 
+    def test_rejects_non_https_issue_url(self):
+        card = self.valid_card()
+        card["issue"]["url"] = "not-a-url"
+        self.assertIn("INVALID_ISSUE_URL", validate(card))
+
+    def test_rejects_malformed_https_issue_urls(self):
+        for value in (
+            "https:// /issues/138",
+            "https://github.com",
+            "https://github.com/?issue=138",
+            "https://github.com/#138",
+            "https://user@github.com/issues/138",
+        ):
+            with self.subTest(value=value):
+                card = self.valid_card()
+                card["issue"]["url"] = value
+                self.assertIn("INVALID_ISSUE_URL", validate(card))
+
     def test_write_json_is_scoped_to_project_temp(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -208,6 +226,22 @@ class BackendImplementationCardContractTest(unittest.TestCase):
         )
         self.assertEqual(0, completed.returncode, completed.stderr)
         self.assertEqual({"valid": True, "errors": []}, json.loads(completed.stdout))
+
+    def test_cli_rejects_duplicate_card_json_keys(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "card.json"
+            path.write_text(
+                '{"schema":"wrong","schema":"backend-implementation-card-v1"}',
+                encoding="utf-8",
+            )
+            completed = subprocess.run(
+                [sys.executable, str(SKILL_DIR / "scripts" / "build_task_graph.py"), "validate", str(path)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(2, completed.returncode)
+            self.assertIn("DUPLICATE_JSON_KEY:schema", completed.stdout)
 
     def test_cli_writes_template_under_temp(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -312,6 +346,39 @@ class TaskGraphContractTest(unittest.TestCase):
         graph["cards"][1]["body"]["effective_behavior"][0]["outcome"] = "다른 동작을 구현한다."
         self.assertIn("BEHAVIOR_IMPL_MISMATCH:behavior-product-create", validate_graph(graph))
 
+    def test_implementation_identity_and_behavior_must_match_graph(self):
+        graph = self.valid_graph()
+        body = graph["cards"][1]["body"]
+        body["issue"] = {"number": 999, "url": "https://github.com/example/repository/issues/999"}
+        body["effective_behavior"].append(
+            {"id": "behavior-unplanned", "outcome": "계획에 없는 추가 동작을 구현한다."}
+        )
+        errors = validate_graph(graph, validate_implementation=validate)
+        self.assertIn("IMPLEMENTATION_ISSUE_NUMBER_MISMATCH:impl-1", errors)
+        self.assertIn("IMPLEMENTATION_ISSUE_URL_MISMATCH:impl-1", errors)
+        self.assertIn("IMPLEMENTATION_UNKNOWN_BEHAVIOR:impl-1", errors)
+        self.assertIn("IMPLEMENTATION_BEHAVIOR_COVERAGE:impl-1", errors)
+
+    def test_graph_cross_checks_implementation_without_optional_validator(self):
+        graph = self.valid_graph()
+        graph["cards"][1]["body"]["issue"]["number"] = 999
+
+        self.assertIn(
+            "IMPLEMENTATION_ISSUE_NUMBER_MISMATCH:impl-1",
+            validate_graph(graph, phase="draft"),
+        )
+
+    def test_graph_rejects_impl_assignment_on_non_planned_behavior(self):
+        graph = self.valid_graph()
+        behavior = graph["behaviors"][0]
+        behavior["state"] = "implemented"
+        behavior["disposition"] = "inherited"
+
+        self.assertIn(
+            f"UNEXPECTED_BEHAVIOR_IMPL:{behavior['id']}",
+            validate_graph(graph, phase="draft", validate_implementation=validate),
+        )
+
     def test_rejects_cycle_and_invalid_topology(self):
         graph = self.valid_graph()
         graph["cards"][1]["parents"] = ["review-1"]
@@ -341,13 +408,15 @@ class TaskGraphContractTest(unittest.TestCase):
         graph["cards"][2]["body"]["inherited_behavior_ids"] = ["behavior-product-create"]
         self.assertIn("REVIEW_INHERITED_BEHAVIOR_INVALID:review-1:behavior-product-create", validate_graph(graph))
 
-    def test_title_type_and_assignee_must_match_native_identity(self):
+    def test_title_type_assignee_and_workspace_must_match_native_identity(self):
         graph = self.valid_graph()
         graph["cards"][1]["title"] = "G1-Issue138-Review9"
-        graph["cards"][1]["assignee"] = ""
+        graph["cards"][1]["assignee"] = "project-manager"
+        graph["cards"][1]["workspace"] = "other"
         errors = validate_graph(graph)
         self.assertIn("TITLE_CARD_TYPE_MISMATCH:impl-1", errors)
-        self.assertIn("MISSING_ASSIGNEE:impl-1", errors)
+        self.assertIn("ASSIGNEE_MISMATCH:impl-1", errors)
+        self.assertIn("WORKSPACE_MISMATCH:impl-1", errors)
 
     def test_review_rework_requires_same_generation_source_provenance(self):
         graph = self.valid_graph()
@@ -434,6 +503,7 @@ class TaskGraphContractTest(unittest.TestCase):
             "title": "G1-Issue138-Decision1",
             "card_type": "decision",
             "assignee": "project-manager",
+            "workspace": "scratch",
             "status": "blocked",
             "parents": ["review-1"],
             "body": {

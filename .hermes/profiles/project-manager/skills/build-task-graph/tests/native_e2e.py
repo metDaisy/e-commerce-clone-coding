@@ -12,9 +12,12 @@ from pathlib import Path
 from typing import Any
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
+PROFILE_DIR = SKILL_DIR.parents[1]
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
+sys.path.insert(0, str(PROFILE_DIR / "skills" / "run-workflow" / "scripts"))
 from build_task_graph import validate  # noqa: E402
 from graph_contract import validate_graph  # noqa: E402
+from workflow import validate_implementation_admission  # noqa: E402
 
 
 class NativeE2E:
@@ -22,6 +25,8 @@ class NativeE2E:
         self.profile = profile
         self.repository = repository
         self.board = f"btg-e2e-{uuid.uuid4().hex[:8]}"
+        self.workspace: str | None = None
+        self.issue: int | None = None
 
     def run(self, *args: str, json_output: bool = False) -> Any:
         completed = subprocess.run(
@@ -57,13 +62,35 @@ class NativeE2E:
         idempotency_key: str | None = None,
     ) -> str:
         body_text = json.dumps(body, ensure_ascii=False) if isinstance(body, dict) else body
-        args = ["create", title, "--assignee", assignee, "--body", body_text, "--workspace", "scratch"]
+        if self.workspace is None:
+            raise RuntimeError("workspace is not initialized")
+        args = ["create", title, "--assignee", assignee, "--body", body_text, "--workspace", self.workspace]
         for parent in parents or []:
             args.extend(["--parent", parent])
         if idempotency_key:
             args.extend(["--idempotency-key", idempotency_key])
         args.append("--json")
-        return self.task_id(self.board_run(*args, json_output=True))
+        task_id = self.task_id(self.board_run(*args, json_output=True))
+        if assignee == "coder":
+            admission = {
+                "schema": "backend-implementation-admission-v1",
+                "task_id": task_id,
+                "issue": self.issue,
+                "workspace": self.workspace,
+                "card_schema": "backend-implementation-card-v1",
+                "restart": None,
+            }
+            failures = validate_implementation_admission(admission)
+            if failures:
+                raise RuntimeError(f"implementation admission invalid: {failures}")
+            self.board_run(
+                "comment",
+                "--author",
+                "project-manager",
+                task_id,
+                json.dumps(admission, ensure_ascii=False),
+            )
+        return task_id
 
     def show(self, task_id: str) -> dict[str, Any]:
         return self.board_run("show", task_id, "--json", json_output=True)
@@ -86,14 +113,35 @@ class NativeE2E:
             record = records[key]
             record["status"] = task["status"]
             record["assignee"] = task["assignee"]
+            # Native `kanban show` does not expose workspace. Every create call
+            # above is still bound to the fixture workspace, which remains in
+            # this normalized validation wrapper.
             native_parents = [parent["id"] if isinstance(parent, dict) else parent for parent in envelope["parents"]]
             record["parents"] = [reverse[parent] for parent in native_parents]
             if key != "triage":
                 record["body"] = json.loads(task["body"])
+            if record.get("card_type") == "implementation":
+                admissions = []
+                for comment in envelope.get("comments", []):
+                    if not isinstance(comment, dict):
+                        continue
+                    text = comment.get("text", comment.get("body", comment.get("content")))
+                    if not isinstance(text, str):
+                        continue
+                    try:
+                        payload = json.loads(text)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(payload, dict) and payload.get("schema") == "backend-implementation-admission-v1":
+                        admissions.append(payload)
+                if not admissions or validate_implementation_admission(admissions[-1]):
+                    raise RuntimeError(f"implementation admission comment read-back failed: {key}")
         return graph
 
     def execute(self) -> dict[str, Any]:
         fixture = json.loads((SKILL_DIR / "tests" / "fixtures" / "valid-graph-draft.json").read_text(encoding="utf-8"))
+        self.workspace = fixture["workspace"]
+        self.issue = fixture["issue"]["number"]
         cards = {card["key"]: card for card in fixture["cards"]}
         board_created = False
         try:
@@ -209,6 +257,7 @@ class NativeE2E:
                     "title": "G1-Issue138-Impl2",
                     "card_type": "implementation",
                     "assignee": "coder",
+                    "workspace": "scratch",
                     "status": "ready",
                     "parents": ["review-1"],
                     "body": corrective_body,
@@ -221,6 +270,7 @@ class NativeE2E:
                     "title": "G1-Issue138-Review2",
                     "card_type": "review",
                     "assignee": "reviewer",
+                    "workspace": "scratch",
                     "status": "todo",
                     "parents": ["impl-2"],
                     "body": review2_body,
@@ -279,6 +329,7 @@ class NativeE2E:
             return {
                 "draft_validation": "pass",
                 "native_validation": "pass",
+                "implementation_admission_comment_readback": "pass",
                 "triage_promotion": "pass",
                 "review_rework_native_validation": "pass",
                 "review_completion_event_and_finding_readback": "pass",

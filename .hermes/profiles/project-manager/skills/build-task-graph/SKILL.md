@@ -1,14 +1,14 @@
 ---
 name: build-task-graph
 description: "승인된 Issue에서 검증 가능한 Kanban graph를 작성한다."
-version: 0.6.1
+version: 0.7.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [project-management, kanban, task-graph, requirements, verification]
-    related_skills: [codebase-memory-mcp, semble-search]
+    related_skills: [create-triage, service-planning, sync-docs, run-workflow, codebase-memory-mcp, semble-search]
 requires_toolsets: [kanban]
 ---
 
@@ -64,8 +64,12 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
    draft`를 실행한다. Backend Impl은 `template`로 시작해 승인된 사실만 채우고 `validate`한다.
    완료 기준: validator finding이 없다.
 4. **Native graph를 생성한다.** Card와 link를 하나씩 만들며 body, ID, assignee, status와 parent를
-   각각 read-back한다. Wrapper를 read-back 값으로 갱신한다. 완료 기준: 신규 execution card가
-   dispatchable하지 않고 wrapper와 native 상태가 일치한다.
+   각각 read-back한다. 각 Impl에는 PM-owned comment로 `backend-implementation-admission-v1`을 남긴다.
+   이 closed object는 `schema`, actual `task_id`, positive wrapper Issue number인 `issue`, exact `workspace`,
+   `card_schema: backend-implementation-card-v1`, `restart: null`만 가지며 Coder가 native show에서 읽는
+   durable execution intent다. `run-workflow/scripts/workflow.py validate-implementation-admission`으로
+   comment payload를 검증한다. Wrapper를 read-back 값으로 갱신한다. 완료 기준: 신규 execution card가
+   dispatchable하지 않고 wrapper와 native 상태가 일치하며 admission comment가 exact task에 존재한다.
 5. **Activation을 검증한다.** Mode별 activation을 실행한 뒤 `validate-graph --phase native`를
    실행한다. 완료 기준: 정확히 하나의 activation target만 `ready`이거나, unresolved Decision-only
    graph에는 `ready` card가 없다.

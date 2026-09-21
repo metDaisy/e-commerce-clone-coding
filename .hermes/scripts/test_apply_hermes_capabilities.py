@@ -57,8 +57,10 @@ def test_apply_profile_sets_explicit_plugin_allowlist() -> None:
     original_set_config = _POLICY.set_config
     original_get_mcp_servers = _POLICY.get_mcp_servers
     original_verify = _POLICY.verify
+    original_discover_skills = _POLICY.discover_skill_names
+    original_discover_toolsets = _POLICY.discover_toolsets
     try:
-        _POLICY.set_config = lambda profile, key, value: writes.append((profile, key, value))
+        _POLICY.set_config = lambda profile, key, value, **_kwargs: writes.append((profile, key, value))
         _POLICY.get_mcp_servers = lambda _profile: {}
         _POLICY.verify = lambda _profile, _expected, _project_root=None: None
 
@@ -77,6 +79,8 @@ def test_apply_profile_sets_explicit_plugin_allowlist() -> None:
         _POLICY.set_config = original_set_config
         _POLICY.get_mcp_servers = original_get_mcp_servers
         _POLICY.verify = original_verify
+        _POLICY.discover_skill_names = original_discover_skills
+        _POLICY.discover_toolsets = original_discover_toolsets
 
     assert ("project-manager", "plugins.enabled", ["agent-audit"]) in writes
     assert (
@@ -89,6 +93,7 @@ def test_apply_profile_sets_explicit_plugin_allowlist() -> None:
         "agent.disabled_toolsets",
         ["web"],
     ) in writes
+    assert ("project-manager", "platform_toolsets", {}) in writes
 
 
 def test_parse_skill_list_rejects_truncated_names() -> None:
@@ -111,6 +116,50 @@ Plugin toolsets (cli):
 """
 
     assert _POLICY.parse_toolset_names(output) == {"terminal", "web", "kanban"}
+
+
+def test_verify_requires_empty_platform_toolsets_when_policy_has_none() -> None:
+    reads = []
+    original_get_json = _POLICY.get_json_config
+    original_discover_skills = _POLICY.discover_skill_names
+    original_discover_toolsets = _POLICY.discover_toolsets
+    original_get_mcp = _POLICY.get_mcp_servers
+    try:
+        def get_json(_profile, key):
+            reads.append(key)
+            return {
+                "skills.disabled": [],
+                "agent.disabled_toolsets": [],
+                "platform_toolsets": {},
+                "approvals.mode": "smart",
+            }[key]
+
+        _POLICY.get_json_config = get_json
+        _POLICY.discover_skill_names = lambda _profile, _cwd=None: {"hermes-agent"}
+        _POLICY.discover_toolsets = lambda _profile: {"terminal"}
+        _POLICY.get_mcp_servers = lambda _profile: {}
+        _POLICY.verify(
+            "coder",
+            {
+                "skills_allowed": ["hermes-agent"],
+                "skills_disabled": [],
+                "plugins_enabled": None,
+                "toolsets_allowed": ["terminal"],
+                "disabled_toolsets": [],
+                "platform_toolsets": {},
+                "approval": "smart",
+                "stt_enabled": None,
+                "allowed_servers": [],
+                "filters": {},
+            },
+        )
+    finally:
+        _POLICY.get_json_config = original_get_json
+        _POLICY.discover_skill_names = original_discover_skills
+        _POLICY.discover_toolsets = original_discover_toolsets
+        _POLICY.get_mcp_servers = original_get_mcp
+
+    assert "platform_toolsets" in reads
 
 
 def test_profile_expected_requires_mcp_include_filter_for_every_server() -> None:

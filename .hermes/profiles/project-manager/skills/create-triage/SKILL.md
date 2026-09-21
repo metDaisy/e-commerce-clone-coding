@@ -8,7 +8,7 @@ platforms: [windows, linux, macos]
 metadata:
   hermes:
     tags: [project-management, triage, kanban, requirements]
-    related_skills: [build-task-graph]
+    related_skills: [service-planning, sync-docs, build-task-graph]
 requires_toolsets: [kanban]
 ---
 
@@ -108,8 +108,10 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
 2. **Draft를 작성한다.** Issue-specific template을 채우고 모든 문서에 disposition과 근거를
    기록한다. 완료 기준: `validate ... --status triage`가 오류 없이 끝난다.
 3. **재사용하거나 생성한다.** Active Triage를 찾아 정확히 하나를 재사용한다. 없으면
-   `G1-Issue<number>-Triage`, assignee `project-manager`, validated JSON body로 생성한다. 완료 기준:
-   실제 ID, status, assignee, workspace와 body read-back 결과가 일치하고 중복 active card가 없다.
+   `G1-Issue<number>-Triage`, assignee `project-manager`, validated JSON body와 exact `--workspace` 인자로
+   생성한다. 완료 기준: 실제 ID, status, assignee와 body read-back 결과가 일치하고 중복 active card가
+   없다. Native show가 workspace를 반환한다고 주장하지 않고 create intent와 actual process cwd를
+   별도로 확인한다.
 4. **Claim하고 조사한다.** Native lifecycle로 `running`으로 바꾸고 requirement, Issue, snapshot과
    후보 문서를 대조한다. Source 조사는 충돌, 구조 제약 또는 snapshot 불일치가 있을 때만 좁게
    수행한다. 완료 기준: 모든 finding에 evidence와 disposition이 있다.

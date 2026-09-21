@@ -1,9 +1,9 @@
 ---
 name: build-task-graph-board-contract
-version: 6.0.0
+version: 6.1.0
 ---
 
-# build-task-graph board contract v6
+# build-task-graph board contract v6.1
 
 이 문서는 persisted graph의 schema와 machine-checkable invariant를 소유한다. Runtime 절차는
 [`../SKILL.md`](../SKILL.md), Backend Impl body는
@@ -20,6 +20,7 @@ Schema는 `build-task-graph-v1`이다.
 | `mode` | `new | requirement-rework | review-rework` |
 | `issue` | Issue number와 canonical URL |
 | `generation` | 양의 정수 G |
+| `workspace` | 모든 native card가 사용하는 exact workspace identity |
 | `requirement_basis` | path와 Git SHA |
 | `revised_requirement` | `requirement-rework`에서 필수인 path와 Git SHA |
 | `lineage` | Rework에서 필수인 prior generation, prior Summary, archived unfinished keys |
@@ -48,7 +49,9 @@ Decision(`decision-required`)을 최소 하나 포함한다.
 | `partial` / `absent` | `planned` | 실제 Implementation card를 가리키는 `implementation_card_key` |
 | `unknown` | `blocked` | graph 외부 owner가 해결할 blocker |
 
-Planned behavior의 ID/outcome은 참조 Impl body의 effective behavior와 일치한다. Behavior ID는 중복될 수
+Planned behavior의 ID/outcome은 참조 Impl body의 effective behavior와 일치한다. `new`와
+`requirement-rework`에서 각 Impl body의 behavior 집합은 그 Impl에 배정된 planned behavior 집합과
+정확히 같고, `review-rework`에서도 wrapper에 없는 behavior를 포함할 수 없다. Behavior ID는 중복될 수
 없다.
 
 ## Card identity와 body
@@ -64,8 +67,15 @@ G<N>-Issue<M>-Summary
 ```
 
 Issue는 positive number와 canonical HTTPS URL을 가지며 requirement revision은 40자리 Git SHA다.
-Title의 generation, Issue, kind는 wrapper와 `card_type`에 일치한다. Card key와 title은 고유하고
-assignee는 비어 있지 않다. Parent는 존재하는 다른 card를 가리키며 graph는 cycle이 없다.
+Title의 generation, Issue, kind는 wrapper와 `card_type`에 일치한다. Impl body의 Issue도 wrapper Issue와
+정확히 같다. Card key와 title은 고유하고 모든 card workspace는 wrapper workspace와 같다. Assignee는
+Impl=`coder`, Review=`reviewer`, Triage·Decision·Summary=`project-manager`로 고정한다. Parent는 존재하는
+다른 card를 가리키며 graph는 cycle이 없다.
+
+모든 native card는 wrapper의 `workspace`를 exact `kanban create --workspace` 인자로 사용한다. 현재
+native `kanban show`가 workspace를 반환하지 않으므로 PM은 생성 호출과 normalized wrapper에 그
+identity를 보존하고, Coder는 claim 직후 실제 process cwd/worktree를 다시 확인한다. Validator가 native
+workspace read-back까지 증명한다고 보고해서는 안 된다.
 
 Persisted body schema는 다음과 같다.
 

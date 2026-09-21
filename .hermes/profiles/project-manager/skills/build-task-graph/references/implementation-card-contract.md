@@ -7,14 +7,16 @@ Coder `run-impl-card/references/implementation-card-contract.md`가 소유한다
 
 ## Authoring inputs
 
-PM은 승인된 Issue/requirement, 현재 committed source·test·configuration·migration, architecture와 Triage
-근거를 읽고 card를 작성한다. Requirement history나 변경 hunk를 전달하지 않고 이번 card가 완성할
-현재 effective behavior를 materialize한다. 결정되지 않은 business policy, authorization, consistency,
-API, event 또는 error semantics를 추측해서 채우지 않는다.
+PM은 승인된 Issue/requirement, fresh `current-state.md`, architecture와 Triage 근거를 기본 입력으로
+card를 작성한다. Snapshot이 부족·충돌하거나 behavior의 정확한 시작점·구조 제약을 확정해야 할 때만
+관련 committed source·test·configuration·migration을 좁게 확인한다. Requirement history나 변경 hunk를
+전달하지 않고 이번 card가 완성할 현재 effective behavior를 materialize한다. 결정되지 않은 business
+policy, authorization, consistency, API, event 또는 error semantics를 추측해서 채우지 않는다.
 
 ## Required body
 
-Body는 valid JSON object이며 다음 top-level field를 모두 가진다.
+Body는 duplicate key를 허용하지 않는 valid JSON object이며 다음 top-level field만 정확히 가진다.
+Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 field를 추가하지 않는다.
 
 | Field | PM이 작성할 의미 |
 |---|---|
@@ -59,10 +61,14 @@ Body는 valid JSON object이며 다음 top-level field를 모두 가진다.
 ## Coverage invariants
 
 - 모든 `effective_behavior.id`, `acceptance_criteria.id`, `focused_verification.id`는 종류별로 고유하다.
+- `issue` number와 canonical HTTPS URL은 graph wrapper의 leaf Issue와 정확히 같다.
+- Impl의 `effective_behavior` ID 집합은 graph에서 그 Impl에 배정한 planned behavior와 정확히 같고,
+  graph 밖의 behavior를 추가하지 않는다.
 - 모든 acceptance ID는 하나 이상의 focused verification에 연결되며 존재하지 않는 ID를 참조하지 않는다.
 - `test_level`은 `unit | slice | repository | integration | modulith` 중 하나다.
-- PM은 behavior, test level과 required scenario를 정한다. 실제 test FQCN은 Coder가 source 조사 후
-  선택하거나 작성하므로 PM이 존재하지 않는 test command를 발명하지 않는다.
+- PM은 behavior, 최소 test level과 required scenario를 정한다. Coder는 이를 낮추지 않으면서 실제
+  test FQCN, 구현에 필요한 추가 test level과 검증을 source 조사 후 선택하거나 작성한다. PM은
+  존재하지 않는 test command를 발명하지 않는다.
 - `full_backend_verification`은 executor `gradle-mcp`, task `test`로 고정한다.
 - Body에 baseline/planning SHA, assignee, status, dependency, workspace, run 또는 실행 결과를 복제하지
   않는다. 이 값은 PM admission과 native Kanban이 소유한다.

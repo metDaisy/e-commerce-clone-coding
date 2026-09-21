@@ -118,6 +118,7 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 ## Admission invariants
 
 - `schema`는 정확히 `backend-implementation-card-v1`, `card_type`은 `implementation`이다.
+- Body와 모든 nested object는 closed schema이며 duplicate key와 명시되지 않은 field를 허용하지 않는다.
 - `issue.number`, `issue.url`, `goal`, `effective_behavior`, `scope`, `out_of_scope`,
   `implementation_context`, `contracts`, `acceptance_criteria`, `focused_verification`,
   `full_backend_verification`, `traceability`가 존재한다.
@@ -132,8 +133,9 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
   중복되지 않는다.
 - 모든 acceptance ID는 하나 이상의 focused verification에 연결되고, 존재하지 않는 ID를
   참조하지 않는다.
-- `test_level`은 `unit | slice | repository | integration | modulith` 중 하나다. Card의 behavior와
-  scenario는 고정 입력이며 Coder는 실제 source를 조사한 뒤 정확한 test FQCN을 선택하거나 작성한다.
+- `test_level`은 `unit | slice | repository | integration | modulith` 중 하나인 최소 요구다. Card의
+  behavior와 scenario는 고정 입력이며 Coder는 이 수준을 낮추지 않고 실제 source를 조사한 뒤 정확한
+  test FQCN과 필요한 추가 test level을 선택하거나 작성한다.
 - `full_backend_verification`은 `gradle-mcp`의 backend 전체 `test` task로 고정한다. Frontend,
   browser와 npm 검증은 이 schema 범위가 아니다.
 - `traceability`는 provenance locator이지 source 문서를 다시 해석하거나 재기획하라는 지시가 아니다.
@@ -166,8 +168,12 @@ Body는 수정하지 않는다.
 {
   "schema": "backend-implementation-handoff-v1",
   "handoff_id": "handoff-7f3d87b2",
+  "source_run_id": "run-coder-16",
   "implemented_behavior_ids": ["behavior-product-create"],
-  "changed_paths": ["src/main/java/example/product/...", "src/test/java/example/product/..."],
+  "changed_paths": [
+    "src/main/java/example/product/ProductService.java",
+    "src/test/java/example/product/ProductRegistrationIntegrationTest.java"
+  ],
   "acceptance_results": [
     {
       "acceptance_id": "AC-PRODUCT-CREATE",
@@ -181,6 +187,7 @@ Body는 수정하지 않는다.
       "executor": "gradle-mcp",
       "tasks": ["test"],
       "tests": ["example.product.ProductRegistrationIntegrationTest"],
+      "test_levels": ["integration"],
       "scenario_results": [
         {"scenario": "유효한 입력의 성공", "result": "pass"},
         {"scenario": "유효하지 않은 입력의 거절", "result": "pass"}
@@ -205,6 +212,10 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 
 - `handoff_id`는 Coder가 review 요청 시도마다 새로 만드는 비어 있지 않은 opaque ID다. PM checkpoint와
   changes-request는 이 ID를 참조해 최신 handoff와 결합한다.
+- `source_run_id`는 handoff를 만든 현재 native Coder run과 정확히 같다. Focused result의
+  `test_levels`에는 card가 요구한 `test_level`이 반드시 포함되며 추가 실행 level은 함께 기록할 수 있다.
+  Handoff의 structured pass 결과는 Coder self-verification이며 PM은 checkpoint run에서 동일한
+  focused/full Gradle contract를 직접 재실행한다.
 - `implemented_behavior_ids`는 card의 모든 `effective_behavior.id`를 중복 없이 정확히 한 번씩
   포함하고 존재하지 않는 ID를 포함하지 않는다.
 - `acceptance_results`는 모든 `acceptance_criteria.id`를 중복 없이 정확히 한 번씩 포함하며 각
@@ -215,7 +226,9 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
   한 번씩 포함하며 모든 result가 `pass`다.
 - Full backend verification result는 card와 같은 executor/task를 가리키며 `pass`다.
 
-`changed_paths`에는 실제 task 변경만 기록하고 문서 path를 포함하지 않는다. 실행하지 못한 검증,
+`changed_paths`에는 실제 task 변경의 repository-relative literal path만 기록한다. Forward slash를
+사용하고 absolute path, `.`/`..` segment, glob·pathspec·option 표현과 placeholder(`...`, `*`, `**`)를
+허용하지 않으며 문서 path를 포함하지 않는다. 실행하지 못한 검증,
 실패, dirty conflict 또는 미정 policy는 handoff가 아니라 `kanban_block` 대상이다.
 
 ## Changes-request input
@@ -248,3 +261,23 @@ run과 대조한다. `finding_id`는 request 안에서 고유해야 한다. 각 
 문제, 기대 결과, 허용 범위와 다시 실행할 검증을 모두 가져야 한다. 누락, ID 불일치, 일반적인 개선
 요청 또는 card의 제품 의미 변경이 있으면 추측하지 않고 block한다. Valid latest request의 finding만
 수정하고 card의 focused 및 full backend verification을 모두 다시 실행한다.
+
+## Restart recovery input
+
+모든 Impl task에는 PM-owned `backend-implementation-admission-v1` comment가 있어야 한다. 이 closed
+object는 `schema`, actual `task_id`, positive Issue number인 `issue`, create-intent `workspace`,
+`card_schema: backend-implementation-card-v1`, `restart`만 가진다. Coder는 native task ID와 body Issue를
+comment에 대조하고 comment workspace를 dispatcher가 시작한 actual process cwd/worktree identity와
+비교한다. Native `kanban_show` task가 workspace를 직접 반환한다고 가정하지 않는다.
+
+Kanban 기록이 유실된 dirty workflow를 복구할 때에도 task body는 valid
+`backend-implementation-card-v1`이어야 한다. Coder는 latest matching admission comment의 valid
+`restart-task-v1`을 추가 admission input으로 읽는다. 이 object는 Issue, delivery branch, workspace,
+marker/current SHA, exact `dirty_paths`, path별 attribution, 현재 `recovery_task_id`, `assignee: coder`, 단일
+active recovery task, allowed scope, `implementation_card_schema: backend-implementation-card-v1`과
+`required_checkpoint_schema: backend-implementation-checkpoint-v1`을 가진다.
+
+Coder는 native task ID·workspace·Issue와 실제 dirty path가 이 metadata와 정확히 같을 때만 기존 delta를
+인수한다. Body의 behavior·acceptance·verification은 계속 구현 의미를 소유하고 `restart-task-v1`은 dirty
+state의 provenance와 허용 범위만 소유한다. 불일치·누락·추가 dirty path가 있으면 reset·stash·clean하지
+않고 block한다. Recovery도 정상 handoff와 PM checkpoint schema를 사용한다.

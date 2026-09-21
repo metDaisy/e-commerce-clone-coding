@@ -14,9 +14,11 @@ Impl checkpoint는 [`execution-contract.md`](execution-contract.md), graph/card 
 - `tasks` 배열을 가진 normalized native read-back
 - `branch`, `head_sha`, `clean_worktree`를 가진 Git read-back
 
-각 task record는 `key`, canonical `task_id`, `title`, `card_type`, `assignee`, `status`, graph-key
-`parents`, `runs`를 가진다. Graph와 board membership·identity·parent가 일치해야 하며 `done`에는 successful
-latest run이 필요하다. `ready`와 active(`running | review`) task는 각각 최대 하나다. Validator는
+각 task record는 `key`, canonical `task_id`, `title`, `card_type`, `assignee`, `workspace`, `status`, graph-key
+`parents`, `runs`를 가진다. `workspace`는 graph의 create intent를 보존한 normalized field이며 native
+`kanban show` read-back이 아니다. Coder의 process cwd/worktree 확인과 함께 검증한다. Graph와 board
+membership·identity·workspace·parent가 일치해야 하며 `done`에는 successful latest run이 필요하다.
+`ready`와 active(`running | review`) task는 각각 최대 하나다. Validator는
 `eligible_task_ids`, `ready_task_ids`, phase와 하나의 `allowed_transition`을 반환한다.
 
 ## Aggregate Review 결과
@@ -38,9 +40,12 @@ Canonical payload는 completed Review의 latest terminal run metadata에서 읽�
 ## Summary admission
 
 `summary-admission-v1`은 Summary/latest Review task·run ID, Review result, direct/done parent ID,
-unresolved finding ID, `final_implementation_sha`, repository HEAD와 clean state를 가진다. 모든 direct
-parent가 done이고 latest Review가 approved이며 unresolved finding이 없고 clean HEAD가 final
-implementation SHA와 같을 때만 통과한다. 이는 Summary completion이 아니라 release를 시작할 자격이다.
+unresolved finding ID, `final_implementation_sha`, ordered `documentation_commit_shas`, repository HEAD와
+clean state를 가진다. 모든 direct parent가 done이고 latest Review가 approved이며 unresolved finding이
+없어야 한다. Documentation commit이 없으면 clean HEAD는 final implementation SHA와 같고, 있으면
+각 SHA가 implementation SHA와 구분되며 clean HEAD는 마지막 documentation commit SHA와 같다. PM은
+각 documentation commit의 parent ordering과 exact docs-only changed paths를 Git read-back으로 별도
+검증한다. 이는 Summary completion이 아니라 release를 시작할 자격이다.
 
 ## Release 결과
 
@@ -62,9 +67,12 @@ default branch, head는 delivery branch, PR head SHA는 docs commit SHA다. Requ
 
 ### `restart-task-v1`
 
-Marker Issue/branch와 baseline/snapshot SHA, current HEAD, dirty path, path별 Issue attribution/evidence,
-단일 recovery task/assignee, allowed scope와 required checkpoint schema를 가진다. 모든 dirty path가 현재
-Issue에 정확히 귀속되고 active recovery task가 하나일 때만 통과한다.
+Marker Issue/branch/workspace와 baseline/snapshot SHA, current HEAD, dirty path, path별 Issue
+attribution/evidence, 단일 recovery task/assignee, allowed scope, `backend-implementation-card-v1` body와
+required checkpoint schema를 가진다. `restart-task-v1`은 recovery task의 PM-owned
+`backend-implementation-admission-v1` comment에 저장되며 Impl body를 대체하지 않는다. 모든 dirty
+path가 현재 Issue에 정확히 귀속되고 active recovery task가 하나일
+때만 통과한다.
 
 ### `base-sync-v1`
 

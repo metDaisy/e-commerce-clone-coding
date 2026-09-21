@@ -228,12 +228,15 @@ def discover_toolsets(profile: str) -> set[str]:
     return parse_toolset_names(hermes(profile, "tools", "list", "--platform", "cli"))
 
 
-def set_config(profile: str, key: str, value: Any) -> None:
+def set_config(profile: str, key: str, value: Any, *, force: bool = False) -> None:
     # String-typed settings remain plain scalars; lists/maps use compact JSON.
     encoded = value if isinstance(value, str) else json.dumps(
         value, ensure_ascii=False, separators=(",", ":")
     )
-    hermes(profile, "config", "set", key, encoded)
+    args = ["config", "set"]
+    if force:
+        args.append("--force")
+    hermes(profile, *args, key, encoded)
 
 
 def get_json_config(profile: str, key: str) -> Any:
@@ -290,9 +293,8 @@ def verify(profile: str, expected: dict[str, Any], project_root: Path | None = N
             raise RuntimeError(f"{profile}: plugins.enabled read-back mismatch")
 
     actual_platform_toolsets = get_json_config(profile, "platform_toolsets")
-    for platform, expected_toolsets in expected["platform_toolsets"].items():
-        if actual_platform_toolsets.get(platform) != expected_toolsets:
-            raise RuntimeError(f"{profile}: platform_toolsets.{platform} read-back mismatch")
+    if actual_platform_toolsets != expected["platform_toolsets"]:
+        raise RuntimeError(f"{profile}: platform_toolsets read-back mismatch")
 
     if get_json_config(profile, "approvals.mode") != expected["approval"]:
         raise RuntimeError(f"{profile}: approvals.mode read-back mismatch")
@@ -474,8 +476,7 @@ def apply_profile(raw: dict[str, Any], profile: str, project_root: Path | None =
     if expected["plugins_enabled"] is not None:
         set_config(profile, "plugins.enabled", expected["plugins_enabled"])
     set_config(profile, "agent.disabled_toolsets", expected["disabled_toolsets"])
-    for platform, toolsets in expected["platform_toolsets"].items():
-        set_config(profile, f"platform_toolsets.{platform}", toolsets)
+    set_config(profile, "platform_toolsets", expected["platform_toolsets"], force=True)
     set_config(profile, "approvals.mode", expected["approval"])
     if expected["stt_enabled"] is not None:
         set_config(profile, "stt.enabled", expected["stt_enabled"])

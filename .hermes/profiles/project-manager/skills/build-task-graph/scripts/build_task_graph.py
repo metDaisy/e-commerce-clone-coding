@@ -10,6 +10,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from contract_common import is_canonical_https_url
 from graph_contract import requirement_diff, validate_graph
 
 CONTRACT_DIMENSIONS = (
@@ -58,6 +59,7 @@ CARD_FIELDS = {
 }
 HANGUL = re.compile(r"[가-힣]")
 ALPHABETIC = re.compile(r"[A-Za-z가-힣]")
+
 
 
 def _non_empty(value: Any) -> bool:
@@ -357,7 +359,12 @@ def validate(card: Any) -> list[str]:
             isinstance(issue_number, int) and not isinstance(issue_number, bool) and issue_number > 0,
             "INVALID_ISSUE_NUMBER",
         )
-        _error(errors, _non_empty(issue.get("url")), "MISSING_ISSUE_URL")
+        issue_url = issue.get("url")
+        _error(
+            errors,
+            is_canonical_https_url(issue_url),
+            "INVALID_ISSUE_URL",
+        )
     _error(errors, _non_empty(card.get("goal")), "MISSING_GOAL")
     _validate_korean(card.get("goal"), errors, "goal")
     _validate_identified_outcomes(
@@ -402,6 +409,18 @@ def write_json(path: Path, payload: Any) -> None:
     destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _read_json(path: Path) -> Any:
+    def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError(f"DUPLICATE_JSON_KEY:{key}")
+            value[key] = item
+        return value
+
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -433,8 +452,8 @@ def main() -> int:
         return 0
     source = args.graph if args.command == "validate-graph" else args.card
     try:
-        payload = json.loads(source.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        payload = _read_json(source)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
         return 2
     errors = validate_graph(payload, phase=args.phase, validate_implementation=validate) if args.command == "validate-graph" else validate(payload)

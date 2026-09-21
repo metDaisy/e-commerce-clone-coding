@@ -61,6 +61,10 @@ mcp_tools:
       - search_issues
       - search_pull_requests
       - update_pull_request
+  gradle_project_verify:
+    include:
+      - gradle
+      - query_build
   semble_read:
     include:
       - search
@@ -71,7 +75,9 @@ mcp:
     - codebase-memory
     - semble-mcp
     - github-mcp
+    - gradle-mcp
   filters:
     codebase-memory: codebase_read
     github-mcp: github_project_manager
+    gradle-mcp: gradle_project_verify
     semble-mcp: semble_read

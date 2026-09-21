@@ -1,7 +1,7 @@
 ---
 name: implement
 description: 승인된 backend Impl card를 구현하고 검증할 때 사용한다.
-version: 0.4.0
+version: 0.5.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -27,8 +27,9 @@ handoff 사이의 coding loop를 소유한다.
 ## 사전 조건
 
 - 활성 native task가 `coder`에게 배정되어 있고 status가 `running`이다.
-- Immutable card와 rework의 correlated change-request가 `run-impl-card` admission을 통과했다.
-- Worktree가 initial-run 또는 rework dirty-path 규칙을 만족한다.
+- Immutable card와, 해당하는 경우 rework의 correlated change-request 또는 restart recovery metadata가
+  `run-impl-card` admission을 통과했다.
+- Worktree가 initial-run, rework 또는 restart recovery dirty-path 규칙을 만족한다.
 - `gradle-mcp`가 `gradle`과 `query_build`를 제공한다. 사용할 수 없으면 `terminal`로 Gradle을 실행하지
   않고 block한다.
 
@@ -39,6 +40,9 @@ handoff 사이의 coding loop를 소유한다.
   원래 card는 invariant를 보존하고 전체 verification contract를 결정하는 용도로만 사용한다. 관련 없는
   card code를 다시 mapping하거나 개선·단순화하지 않는다. Finding이 더 좁은 test를 지정하더라도
   card가 요구하는 모든 focused verification과 full backend verification을 다시 실행한다.
+- **Restart recovery:** validated `restart-task-v1.dirty_paths`의 기존 delta를 먼저 전체 검토하고 immutable
+  card의 behavior·acceptance에 연결한다. 허용된 dirty path와 card의 필수 propagation 안에서만 완성하며
+  initial run과 같은 focused/full verification을 수행한다.
 
 ## 보조 Skill과 자료 선택
 

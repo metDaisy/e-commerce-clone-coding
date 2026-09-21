@@ -83,7 +83,7 @@ Desktop 앱에서는 실행 전에 같은 환경 변수를 설정하거나 Profi
 
 | Profile | 허용 MCP server |
 |---|---|
-| `project-manager` | `codebase-memory`, `semble-mcp`, `github-mcp` |
+| `project-manager` | `codebase-memory`, `semble-mcp`, `github-mcp`, `gradle-mcp` |
 | `coder` | `semble-mcp`, `codebase-memory`, `gradle-mcp` |
 
 공통 적용 스크립트는 Hermes가 내부적으로 사용하는 deny-list를 allowlist의 여집합으로

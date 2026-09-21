@@ -33,6 +33,14 @@ def _task_id(value: Any) -> bool:
     return isinstance(value, str) and TASK_ID.fullmatch(value) is not None
 
 
+def _literal_repository_path(value: Any) -> bool:
+    if not _non_empty(value) or "\\" in value or value.startswith(("/", "--", ":(")):
+        return False
+    if re.match(r"^[A-Za-z]:", value) or any(part in {"", ".", "..", "..."} for part in value.split("/")):
+        return False
+    return not any(token in value for token in ("*", "?", "[", "]", "{", "}"))
+
+
 def _exact(value: dict[str, Any], allowed: set[str], errors: list[str], prefix: str) -> None:
     for field in sorted(set(value) - allowed):
         errors.append(f"{prefix}:{field}")
@@ -88,9 +96,14 @@ def validate_state(graph: Any, board: Any, git: Any) -> tuple[list[str], dict[st
         if key not in graph_records or key not in board_records:
             continue
         planned, actual = graph_records[key], board_records[key]
-        _exact(actual, {"key", "task_id", "title", "card_type", "assignee", "status", "parents", "runs"}, errors, f"UNEXPECTED_TASK_FIELD:{key}")
+        _exact(actual, {"key", "task_id", "title", "card_type", "assignee", "workspace", "status", "parents", "runs"}, errors, f"UNEXPECTED_TASK_FIELD:{key}")
         _require(_task_id(actual.get("task_id")), errors, f"INVALID_TASK_ID:{key}")
-        for field in ("title", "card_type", "assignee"):
+        _require(
+            _non_empty(planned.get("workspace")) and _non_empty(actual.get("workspace")),
+            errors,
+            f"MISSING_WORKSPACE:{key}",
+        )
+        for field in ("title", "card_type", "assignee", "workspace"):
             _require(actual.get(field) == planned.get(field), errors, f"TASK_{field.upper()}_MISMATCH:{key}")
         status = actual.get("status")
         _require(status in STATUSES, errors, f"INVALID_STATUS:{key}")
@@ -232,7 +245,7 @@ def validate_summary_admission(value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["SUMMARY_ADMISSION_NOT_OBJECT"]
-    allowed = {"schema", "summary_task_id", "latest_review_task_id", "latest_review_run_id", "latest_review_result", "direct_parent_task_ids", "done_parent_task_ids", "unresolved_finding_ids", "final_implementation_sha", "repository_head_sha", "clean_worktree"}
+    allowed = {"schema", "summary_task_id", "latest_review_task_id", "latest_review_run_id", "latest_review_result", "direct_parent_task_ids", "done_parent_task_ids", "unresolved_finding_ids", "final_implementation_sha", "documentation_commit_shas", "repository_head_sha", "clean_worktree"}
     _exact(value, allowed, errors, "UNEXPECTED_SUMMARY_ADMISSION_FIELD")
     _require(value.get("schema") == "summary-admission-v1", errors, "SUMMARY_ADMISSION_SCHEMA")
     for field in ("summary_task_id", "latest_review_task_id"):
@@ -243,8 +256,15 @@ def validate_summary_admission(value: Any) -> list[str]:
     _require(_unique(parents) and bool(parents), errors, "INVALID_SUMMARY_PARENTS")
     _require(_unique(done) and set(done) == set(parents or []), errors, "SUMMARY_PARENT_NOT_DONE")
     _require(value.get("unresolved_finding_ids") == [], errors, "SUMMARY_HAS_UNRESOLVED_FINDINGS")
-    _require(_sha(value.get("final_implementation_sha")), errors, "INVALID_FINAL_IMPLEMENTATION_SHA")
-    _require(value.get("repository_head_sha") == value.get("final_implementation_sha"), errors, "FINAL_IMPLEMENTATION_SHA_MISMATCH")
+    final_sha = value.get("final_implementation_sha")
+    _require(_sha(final_sha), errors, "INVALID_FINAL_IMPLEMENTATION_SHA")
+    docs_shas = value.get("documentation_commit_shas")
+    _require(_unique(docs_shas) and all(_sha(sha) for sha in docs_shas or []), errors, "INVALID_DOCUMENTATION_COMMIT_SHAS")
+    if isinstance(docs_shas, list) and docs_shas:
+        _require(final_sha not in docs_shas, errors, "DOCUMENTATION_SHA_EQUALS_IMPLEMENTATION_SHA")
+        _require(value.get("repository_head_sha") == docs_shas[-1], errors, "FINAL_DOCUMENTATION_SHA_MISMATCH")
+    else:
+        _require(value.get("repository_head_sha") == final_sha, errors, "FINAL_IMPLEMENTATION_SHA_MISMATCH")
     _require(value.get("clean_worktree") is True, errors, "SUMMARY_WORKTREE_NOT_CLEAN")
     return errors
 
@@ -334,15 +354,23 @@ def validate_restart(value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["RESTART_NOT_OBJECT"]
-    allowed = {"schema", "issue", "delivery_branch", "marker_baseline_sha", "marker_snapshot_sha", "current_head_sha", "dirty_paths", "path_attribution", "recovery_task_id", "assignee", "active_recovery_task_ids", "allowed_scope", "required_checkpoint_schema"}
+    allowed = {"schema", "issue", "delivery_branch", "workspace", "marker_baseline_sha", "marker_snapshot_sha", "current_head_sha", "dirty_paths", "path_attribution", "recovery_task_id", "assignee", "active_recovery_task_ids", "allowed_scope", "implementation_card_schema", "required_checkpoint_schema"}
     _exact(value, allowed, errors, "UNEXPECTED_RESTART_FIELD")
     _require(value.get("schema") == "restart-task-v1", errors, "RESTART_SCHEMA")
     _require(isinstance(value.get("issue"), int) and value["issue"] > 0, errors, "INVALID_RESTART_ISSUE")
     _require(_non_empty(value.get("delivery_branch")), errors, "MISSING_RESTART_BRANCH")
+    _require(_non_empty(value.get("workspace")), errors, "MISSING_RESTART_WORKSPACE")
     for field in ("marker_baseline_sha", "marker_snapshot_sha", "current_head_sha"):
         _require(_sha(value.get(field)), errors, f"INVALID_{field.upper()}")
     paths = value.get("dirty_paths")
     _require(_strings(paths), errors, "MISSING_DIRTY_PATHS")
+    _require(
+        isinstance(paths, list)
+        and len(paths) == len(set(paths))
+        and all(_literal_repository_path(path) for path in paths),
+        errors,
+        "INVALID_DIRTY_PATHS",
+    )
     attribution = value.get("path_attribution")
     if not isinstance(attribution, list):
         errors.append("INVALID_PATH_ATTRIBUTION")
@@ -357,13 +385,48 @@ def validate_restart(value: Any) -> list[str]:
             _require(item.get("issue") == value.get("issue"), errors, f"PATH_ISSUE_MISMATCH:{index}")
             _require(_non_empty(item.get("evidence")), errors, f"MISSING_PATH_EVIDENCE:{index}")
             _require(item.get("attributed") is True, errors, f"UNATTRIBUTED_DIRTY_PATH:{index}")
-        _require(len(attributed) == len(set(attributed)) and set(attributed) == set(paths or []), errors, "DIRTY_PATH_ATTRIBUTION_MISMATCH")
+        _require(attributed == (paths or []), errors, "DIRTY_PATH_ATTRIBUTION_MISMATCH")
     _require(_task_id(value.get("recovery_task_id")), errors, "INVALID_RECOVERY_TASK_ID")
     _require(value.get("assignee") == "coder", errors, "INVALID_RECOVERY_ASSIGNEE")
     active = value.get("active_recovery_task_ids")
     _require(active == [value.get("recovery_task_id")], errors, "RESTART_TASK_CARDINALITY")
     _require(_strings(value.get("allowed_scope")), errors, "MISSING_RESTART_SCOPE")
+    _require(value.get("implementation_card_schema") == "backend-implementation-card-v1", errors, "INVALID_RESTART_IMPLEMENTATION_CARD")
     _require(value.get("required_checkpoint_schema") == "backend-implementation-checkpoint-v1", errors, "INVALID_RESTART_CHECKPOINT")
+    return errors
+
+
+def validate_implementation_admission(value: Any) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict):
+        return ["IMPLEMENTATION_ADMISSION_NOT_OBJECT"]
+    allowed = {"schema", "task_id", "issue", "workspace", "card_schema", "restart"}
+    _exact(value, allowed, errors, "UNEXPECTED_IMPLEMENTATION_ADMISSION_FIELD")
+    _require(value.get("schema") == "backend-implementation-admission-v1", errors, "IMPLEMENTATION_ADMISSION_SCHEMA")
+    _require(_task_id(value.get("task_id")), errors, "INVALID_IMPLEMENTATION_ADMISSION_TASK")
+    issue = value.get("issue")
+    _require(
+        isinstance(issue, int) and not isinstance(issue, bool) and issue > 0,
+        errors,
+        "INVALID_IMPLEMENTATION_ADMISSION_ISSUE",
+    )
+    _require(_non_empty(value.get("workspace")), errors, "MISSING_IMPLEMENTATION_ADMISSION_WORKSPACE")
+    _require(
+        value.get("card_schema") == "backend-implementation-card-v1",
+        errors,
+        "INVALID_IMPLEMENTATION_ADMISSION_CARD_SCHEMA",
+    )
+    restart = value.get("restart")
+    if restart is not None:
+        errors.extend(f"INVALID_RESTART:{error}" for error in validate_restart(restart))
+        if isinstance(restart, dict):
+            _require(restart.get("recovery_task_id") == value.get("task_id"), errors, "RESTART_ADMISSION_TASK_MISMATCH")
+            _require(restart.get("issue") == issue, errors, "RESTART_ADMISSION_ISSUE_MISMATCH")
+            _require(
+                restart.get("workspace") == value.get("workspace"),
+                errors,
+                "RESTART_ADMISSION_WORKSPACE_MISMATCH",
+            )
     return errors
 
 
@@ -451,7 +514,7 @@ def main() -> int:
     review = commands.add_parser("validate-review-result")
     review.add_argument("result", type=Path)
     review.add_argument("graph", type=Path)
-    for name in ("summary-admission", "release", "restart", "base-sync", "release-finding"):
+    for name in ("summary-admission", "release", "restart", "implementation-admission", "base-sync", "release-finding"):
         command = commands.add_parser(f"validate-{name}")
         command.add_argument("input", type=Path)
     args = parser.parse_args()
@@ -466,6 +529,7 @@ def main() -> int:
                 "validate-summary-admission": validate_summary_admission,
                 "validate-release": validate_release,
                 "validate-restart": validate_restart,
+                "validate-implementation-admission": validate_implementation_admission,
                 "validate-base-sync": validate_base_sync,
                 "validate-release-finding": validate_release_finding,
             }[args.command]
