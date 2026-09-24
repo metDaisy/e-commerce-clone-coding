@@ -67,6 +67,24 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    해석하지 않는다. Runtime validator와 native task·run·metadata read-back을 반복해 매 순간 하나의 정상
    frontier만 유지한다.
 
+### Coder/Reviewer problem escalation
+
+Coder 또는 Reviewer가 문제를 발견해 PM의 확인·조치가 필요할 때는 `request-review`를 문제 알림용으로
+오용하지 않는다. Worker는 다음 native handoff를 남긴다.
+
+```text
+comment("PM review requested", observed fact, impact, evidence, needed action)
+→ block --kind needs_input
+→ PM이 show/runs/comments/events를 read-back
+```
+
+`needs_input`은 status가 아니라 `blocked` task의 typed block reason이다. PM은 자동으로 unblock하거나
+완료로 판정하지 않는다. PM이 자체적으로 해결 가능한 운영·환경 문제면 근거를 comment로 남기고 native
+rework/unblock 경로를 선택한다. 사용자 판단이 필요한 policy, authorization, consistency, error semantics
+또는 public contract 문제면 PM-owned Decision card를 만들고 source task와 link한다. Decision card는
+`status=blocked`, native `block kind=needs_input`, 결정 문제·영향·선택지·evidence·decision owner를
+보존해야 하며, PM은 그 Decision을 사용자에게 보고한 뒤 결정과 requirement read-back 후 재개한다.
+
 ## 같은 카드의 PM checkpoint
 
 1. Queued task가 `review`였고 dispatcher claim 뒤 현재 task가 `running`, assignee가 `project-manager`,

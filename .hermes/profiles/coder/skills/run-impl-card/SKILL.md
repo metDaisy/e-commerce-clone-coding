@@ -64,6 +64,22 @@ Coder의 입력이 아니다.
 4. Requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow와 사용자 문서를
    수정하지 않는다. 문서 영향은 handoff로만 보고한다.
 
+### 2.5 Problem escalation to PM
+
+구현·검증 중 문제가 생겨 Coder가 스스로 완료하거나 안전하게 다음 단계로 진행할 수 없으면,
+이를 조용히 해결·무시하거나 불완전한 `request-review` handoff로 포장하지 않는다.
+
+1. 현재 task에 관찰 사실, 영향, 재현 근거와 PM에게 필요한 결정·조치를 comment로 남긴다. Comment에는
+   `PM review requested`를 명시한다.
+2. PM의 판단·환경 조치·계약 확인이 필요하면 native `kanban_block(kind="needs_input")`으로 task를
+   block하고 reason을 같은 내용으로 기록한다. `needs_input`은 별도 status가 아니라 `blocked` task의
+   typed reason이다.
+3. `request-review`는 필수 구현·focused verification·full backend verification이 모두 통과한 완료
+   handoff에만 사용한다. 문제 발생을 PM에게 알리는 경로는 `blocked + needs_input + comment`이다.
+4. PM이 문제를 read-back한 뒤 사용자 판단이 필요하다고 판정하면 PM-owned blocked Decision으로
+   escalation한다. Coder는 business policy·authorization·consistency·public contract를 대신 결정하지
+   않는다.
+
 ### 3. PM checkpoint handoff
 
 1. Git status와 diff를 읽고 모든 changed path가 card scope 또는 필수 propagation인지 확인한다.

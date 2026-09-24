@@ -109,6 +109,11 @@ triage → running → done
 `service-planning` card를 만든다. 사용자 결정 → requirement update → 영향 문서·Issue read-back 뒤
 **같은** triage를 재개한다.
 
+Coder 또는 Reviewer가 실행 중 문제를 발견하면 `request-review`를 문제 알림용으로 사용하지 않는다.
+Worker는 `PM review requested` comment와 native `block --kind needs_input`을 남긴다. PM은 task·run·comment·
+event를 read-back한 뒤, 사용자 판단이 필요하면 PM-owned `status=blocked` Decision card와 native
+`needs_input` reason을 만들고 source task와 link하여 사용자에게 보고한다.
+
 ### 3.3 executable graph
 
 frozen triage, approved requirement, fresh current-state, Issue를 입력으로 PM이 manual native graph를 작성한다.
