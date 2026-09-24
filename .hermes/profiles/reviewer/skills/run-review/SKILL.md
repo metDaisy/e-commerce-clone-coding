@@ -51,6 +51,21 @@ fixed-point 고정, Spec/품질 판단 분리, 독립 보고 원칙을 aggregate
 완료 기준: Review contract, child checkpoint, prior finding, actual workspace와 immutable commit 범위가
 서로 일치한다.
 
+### 1.5 Problem escalation to PM
+
+Review 중 입력·checkpoint·workspace·tool·environment 또는 공개 계약이 불완전하여 결론을 낼 수 없으면,
+이를 일반 finding이나 승인으로 위장하지 않고 PM review 요청으로 올린다.
+
+1. 현재 Review task에 관찰 사실, 영향, 재현 근거와 PM에게 필요한 확인·조치를 comment로 남긴다. Comment에는
+   `PM review requested`를 명시한다.
+2. PM의 판단·환경 조치·계약 확인이 필요하면 native `kanban_block(kind="needs_input")`으로 Review task를
+   block한다. `needs_input`은 별도 status가 아니라 `blocked` task의 typed reason이다.
+3. 사용자 정책·authorization·consistency·error/public contract 판단이 필요하다는 finding은
+   `decision-required`로 명시한다. Reviewer는 정책을 결정하거나 Decision card를 임의로 만들지 않고,
+   PM이 PM-owned blocked Decision으로 routing하도록 한다.
+4. 정상적인 구현 결함은 Review 결과 `changes-required`로 남긴다. `request-review`는 문제 알림용으로
+   사용하지 않으며, Coder의 완료 구현을 검토 lane으로 넘기는 의미만 유지한다.
+
 ### 2. 공통 Review context 고정
 
 1. Aggregate acceptance와 각 child의 effective behavior·acceptance·required scenario를 coverage map으로
