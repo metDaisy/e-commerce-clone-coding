@@ -4,12 +4,12 @@
 
 ## 스냅샷
 
-- 확인일: 2026-09-03
-- Git 브랜치: `p2/issue138`
-- 확인 기준 Git SHA: `4c9051d12c6816d1d472a6b8b1bddc9579537358`
-- 기준 상태: 위 SHA의 커밋된 코드·테스트·설정·Flyway·프런트엔드를 확인했다. 미커밋 변경은 검사 대상에서 제외했으며, 이 문서를 갱신하는 후속 문서 커밋은 기준 SHA에 포함하지 않는다.
-- 이전 스냅샷 기준 SHA `a967f6606674b9dbf4fc4f17863e67f0f7b292cb`는 현재 확인 기준 SHA의 조상이다.
-- 검증 실행: 이번 갱신에서는 Gradle `check`·테스트·JaCoCo와 프런트엔드 `lint`·`build`를 실행하지 않았다. 테스트 통과나 커버리지는 주장하지 않는다. Semble·codebase-memory 구조 및 인덱스 확인도 실행하지 않았다.
+- 확인일: 2026-09-24
+- Git 브랜치: `p3/issue31`
+- 확인 기준 Git SHA: `153b9c4c5ecda9325afb1e87f2ffb5d5a4a59048`
+- 기준 상태: 위 SHA의 커밋된 백엔드 `src/**` 코드·테스트·설정·Flyway를 확인했다. 미커밋 변경은 검사 대상에서 제외했으며, 이 문서를 갱신하는 후속 docs-only 커밋은 기준 SHA에 포함하지 않는다.
+- 이전 스냅샷 기준 SHA `4c9051d12c6816d1d472a6b8b1bddc9579537358`는 현재 확인 기준 SHA의 조상이다.
+- 검증 실행: 이번 갱신에서는 Gradle `check`·테스트·JaCoCo를 실행하지 않았다. 테스트 통과나 커버리지는 주장하지 않는다. Semble·codebase-memory 구조 및 인덱스 확인도 실행하지 않았다.
 
 ## 전체 진행 요약
 
@@ -107,19 +107,11 @@ Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_vari
 
 도메인 간 식별자는 Modulith 경계를 따르기 위해 DB 외래 키로 연결하지 않는 정책이며, `addresses.user_id`와 `users.id` 사이의 외래 키는 확인되지 않는다. 현재 Java 엔티티가 확인되는 영역은 사용자·인증·주소·카탈로그·판매자이며, 나머지 테이블은 스키마만 존재한다.
 
-## 프런트엔드
+## 테스트·검증
 
-- `amaazon-front/`에 React·TypeScript·Vite 앱이 있고 `npm run lint`, `npm run build` 스크립트가 정의되어 있다.
-- 홈·내비게이션·상품 그리드·정적 상품 상세와 로그인·회원가입·OAuth UI가 존재한다.
-- 현재 프런트 소스에서 Backend Address·Catalog·Marketplace API 호출은 확인되지 않았다. Address 화면과 상품 데이터는 정적 UI 범위로 남아 있다.
-
-## 테스트·자동화
-
-- JUnit 5, Spring Boot Test, Spring Security Test, Spring Modulith Test, Testcontainers 의존성이 설정되어 있다.
-- Auth·User·Address·Catalog·Seller의 단위·Controller·Repository·일부 통합 테스트와 `ModularityTest`가 존재한다. CatalogProduct 목록·상세 조회 통합 테스트와 `CatalogVariantQueryApi` 테스트, CatalogProduct 식별자 검증, ProductVariant 도메인·명령·Repository·관리자 Controller·통합 테스트가 포함되어 있다.
-- Checkstyle, custom `checkstyle-rules`, JaCoCo와 80% 라인 커버리지 검증 설정이 빌드에 포함되어 있다.
-- `.github/workflows/ci.yml`은 변경 경로 판별, `affected-tests` 기반 테스트 선택, Java 17 컴파일·Checkstyle, `domain-tests.yml` 재사용 워크플로우를 통한 도메인별 병렬 테스트, JaCoCo 리포트·Codecov 업로드를 수행한다. 분석은 별도 Java 21 단계에서 수행하며, `run-domain-test` 액션은 의존성 다운로드 관련 실패를 최대 3회 재시도한다. CodeQL·Dependabot workflow는 현재 확인되지 않았다.
-- 이번 갱신에서는 Gradle과 프런트엔드 명령을 실행하지 않았으므로 현재 통과 여부와 커버리지는 미검증이다.
+- `src/test/java`에는 Auth·User·Address·Catalog·Seller의 단위·Controller·Repository·일부 통합 테스트와 `ModularityTest`가 존재한다. CatalogProduct 목록·상세 조회 통합 테스트와 `CatalogVariantQueryApi` 테스트, CatalogProduct 식별자 검증, ProductVariant 도메인·명령·Repository·관리자 Controller·통합 테스트가 포함되어 있다.
+- 현재 snapshot SHA에서 CatalogProduct 식별자 검증은 지원 verifier를 순회하고, 생성·수정 시 여러 식별자 실패를 필드별 결과로 수집하는 서비스 테스트가 존재한다. ISBN 외부 검증 adapter의 성공·HTTP 실패·client 예외 mapping 테스트도 존재한다.
+- 이번 갱신에서는 Gradle 명령을 실행하지 않았으므로 현재 컴파일·테스트 통과 여부와 커버리지는 미검증이다.
 
 ## 알려진 차이와 다음 작업
 
