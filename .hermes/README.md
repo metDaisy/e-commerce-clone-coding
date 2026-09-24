@@ -111,7 +111,7 @@ MCP server endpoint는 각 컴퓨터의 local Profile에 미리 설정되어 있
 
 프로젝트 플러그인 원본은 검토·커밋할 수 있도록 `.hermes/plugins/`에 둔다.
 
-- `agent-audit/`: Agent lifecycle과 validator evidence를 관찰하는 runtime hook
+- `agent-audit/`: Agent lifecycle, validator evidence 및 `agent-audit` Desktop 화면을 제공하는 통합 plugin
 
 `agent-audit`는 `project-manager`, `coder`, `reviewer` capability policy에서 활성화하도록 선언되어 있다.
 플러그인의 구현과 회귀 테스트는 [`plugins/agent-audit/README.md`](plugins/agent-audit/README.md)를
@@ -128,7 +128,7 @@ MCP server endpoint는 각 컴퓨터의 local Profile에 미리 설정되어 있
 - Session end: 완료·중단 상태
 
 Prompt, conversation history, terminal command, raw tool argument/result, reasoning,
-credential, absolute path는 저장하지 않는다. Desktop Audit Explorer는 이 allowlisted SQLite
+credential, absolute path는 저장하지 않는다. Desktop `agent-audit` 화면은 이 allowlisted SQLite
 데이터만 profile/session/event/rule 기준으로 조회하며 raw Hermes log를 읽거나 표시하지 않는다.
 
 ## Verification 동작
@@ -142,6 +142,7 @@ nudge를 제공한다. 이 플러그인은 tool call을 차단하지 않으며 G
 
 ```bash
 python .hermes/plugins/agent-audit/test_agent_audit.py
+python .hermes/plugins/agent-audit/test_metadata.py
 python .hermes/scripts/test_apply_hermes_capabilities.py
 ```
 
