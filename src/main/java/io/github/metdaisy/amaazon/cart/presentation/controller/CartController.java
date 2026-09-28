@@ -3,9 +3,8 @@ package io.github.metdaisy.amaazon.cart.presentation.controller;
 import io.github.metdaisy.amaazon.cart.application.dto.AddCartItemRequest;
 import io.github.metdaisy.amaazon.cart.application.dto.CartResponse;
 import io.github.metdaisy.amaazon.cart.application.dto.ChangeCartItemQuantityRequest;
+import io.github.metdaisy.amaazon.cart.application.exception.CartInputException;
 import io.github.metdaisy.amaazon.cart.application.service.CartService;
-import io.github.metdaisy.amaazon.cart.domain.exception.CartErrorCode;
-import io.github.metdaisy.amaazon.cart.domain.exception.CartException;
 import io.github.metdaisy.amaazon.cart.presentation.cookie.GuestCartCookieProvider;
 import io.github.metdaisy.amaazon.common.auth.AmaazonPrincipal;
 import io.github.metdaisy.amaazon.common.auth.RequireEnabledUser;
@@ -94,7 +93,7 @@ public class CartController {
     try {
       return UUID.fromString(value);
     } catch (IllegalArgumentException exception) {
-      throw new CartException(CartErrorCode.CART_INVALID_INPUT);
+      throw new CartInputException();
     }
   }
 

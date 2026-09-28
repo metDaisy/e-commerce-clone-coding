@@ -3,6 +3,7 @@ package io.github.metdaisy.amaazon.cart.application.service;
 import io.github.metdaisy.amaazon.cart.application.dto.AddCartItemRequest;
 import io.github.metdaisy.amaazon.cart.application.dto.CartMergeResult;
 import io.github.metdaisy.amaazon.cart.application.dto.CartResponse;
+import io.github.metdaisy.amaazon.cart.application.port.out.OfferNotFoundException;
 import io.github.metdaisy.amaazon.cart.application.port.out.OfferQueryPort;
 import io.github.metdaisy.amaazon.cart.domain.entity.Cart;
 import io.github.metdaisy.amaazon.cart.domain.entity.CartItem;
@@ -195,11 +196,14 @@ public class CartService {
     int itemTypes = member == null ? 0 : member.getItems().size();
     int totalQuantity = member == null ? 0 : member.totalQuantity();
     for (CartItem guestItem : guest.getItems()) {
-      OfferQueryPort.OfferSnapshot offer = offerQueryPort.findById(guestItem.getOfferId()).orElse(null);
+      OfferQueryPort.OfferSnapshot offer = offerQueryPort.findById(guestItem.getOfferId())
+          .orElseThrow(() -> new OfferNotFoundException(guestItem.getOfferId()));
+      if (!offer.isPurchasable() || offer.isOutOfStock()) {
+        throw new CartException(CartErrorCode.CART_OFFER_UNAVAILABLE,
+            new AmaazonExceptionContext(Map.of("offerId", guestItem.getOfferId()), Map.of(), null));
+      }
       CartItem existing = member == null ? null : member.findItem(guestItem.getOfferId());
-      if (offer == null || !offer.isPurchasable()
-          || offer.isOutOfStock()
-          || guestItem.getQuantity() + (existing == null ? 0 : existing.getQuantity())
+      if (guestItem.getQuantity() + (existing == null ? 0 : existing.getQuantity())
           > offer.maxPurchaseQuantity()) {
         conflicts.add(guestItem.getOfferId());
         continue;
@@ -217,8 +221,7 @@ public class CartService {
 
   private OfferQueryPort.OfferSnapshot requirePurchasableOffer(UUID offerId) {
     OfferQueryPort.OfferSnapshot offer = offerQueryPort.findById(offerId)
-        .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_FOUND,
-            AmaazonExceptionContext.logDetails(Map.of("offerId", offerId))));
+        .orElseThrow(() -> new OfferNotFoundException(offerId));
     if (!offer.isPurchasable() || offer.isOutOfStock()) {
       throw new CartException(CartErrorCode.CART_OFFER_UNAVAILABLE,
           new AmaazonExceptionContext(Map.of("offerId", offerId), Map.of(), null));

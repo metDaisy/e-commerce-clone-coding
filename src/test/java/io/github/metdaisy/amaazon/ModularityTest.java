@@ -15,7 +15,7 @@ import org.springframework.modulith.core.ApplicationModules;
 class ModularityTest {
 
   private static final String BASE_PACKAGE = "io.github.metdaisy.amaazon";
-  private static final List<String> DOMAINS = List.of("auth", "user", "catalog");
+  private static final List<String> DOMAINS = List.of("auth", "user", "catalog", "cart");
 
   @Test
   @DisplayName("모듈 경계: 공개 인터페이스 외의 의존성과 순환 의존성이 없다")

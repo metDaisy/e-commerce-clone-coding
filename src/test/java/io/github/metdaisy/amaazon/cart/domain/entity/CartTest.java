@@ -57,6 +57,21 @@ class CartTest {
   }
 
   @Test
+  @DisplayName("서로 다른 Offer 종류가 50개를 초과하면 기존 항목을 보존하고 거절한다")
+  void itemTypeLimitIsAtomic() {
+    Cart cart = Cart.member(UUID.randomUUID());
+    for (int index = 0; index < Cart.MAX_ITEM_TYPES; index++) {
+      cart.addItem(UUID.randomUUID(), 1);
+    }
+
+    assertThatThrownBy(() -> cart.addItem(UUID.randomUUID(), 1))
+        .isInstanceOf(CartException.class)
+        .extracting("code")
+        .isEqualTo(CartErrorCode.CART_ITEM_LIMIT.getCode());
+    assertThat(cart.getItems()).hasSize(Cart.MAX_ITEM_TYPES);
+  }
+
+  @Test
   @DisplayName("전체 수량 1000개 초과는 기존 Cart 상태를 변경하지 않고 거절한다")
   void totalQuantityLimitIsAtomic() {
     Cart cart = Cart.member(UUID.randomUUID());
