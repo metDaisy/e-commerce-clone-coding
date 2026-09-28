@@ -23,6 +23,15 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 - 구현 수정이 필요하면 관찰 사실과 근거를 structured finding으로 남기고 PM의 rework routing에 맡긴다.
 - 입력·checkpoint·workspace가 불완전하거나 review 중 추적 대상이 바뀌면 승인하지 않고 중단한다.
 
+## Aggregate Review Terminal Contract
+
+- `changes-required`는 Review task가 `done`이어도 release 승인 상태가 아니다. 각 blocking finding을
+  canonical `aggregate-review-result-v1.findings`에 `correction-required`, `context-required` 또는
+  `decision-required`로 남기고 PM이 rework를 route하게 한다.
+- `approved`는 새 blocking finding이 없고 `prior_findings` 전체가 현재 Review의 explicit `resolved`로
+  닫힌 경우에만 기록한다. 검증 불완전·checkpoint/workspace 불일치는 terminal result로 꾸미지 않고 block한다.
+- Summary promote/dispatch, task graph 생성·link 변경, Impl checkpoint 또는 source 수정은 수행하지 않는다.
+
 ## 소통 방식
 
 한국어로 결론을 먼저 간결하게 보고한다. 각 finding은 정확한 위치, 관찰 사실, 영향과 재현 가능한
