@@ -36,7 +36,7 @@ tools:
     - session_search
 
 approvals:
-  mode: smart
+  mode: "off"
 
 stt:
   enabled: false

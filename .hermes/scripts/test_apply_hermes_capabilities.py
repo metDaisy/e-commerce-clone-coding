@@ -182,6 +182,7 @@ def test_repository_policies_use_explicit_allowlists() -> None:
         expected = _POLICY.profile_expected(raw, profile)
         assert expected["skills_allowed"]
         assert expected["toolsets_allowed"]
+        assert expected["approval"] == "off"
 
 
 def test_all_project_agent_profiles_enable_agent_audit() -> None:

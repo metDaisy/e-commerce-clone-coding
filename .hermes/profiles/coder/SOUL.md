@@ -35,3 +35,12 @@
 Dispatcher가 Coder에게 배정한 running backend Impl task를 시작하면 `run-impl-card` Skill을 로드한다.
 Actual task/run ID와 process cwd를 입력으로 사용하고, PM checkpoint handoff read-back 또는 durable blocker가
 확정될 때만 조율 역할로 반환한다.
+
+# Kanban Handoff Invariant
+
+- Backend Impl의 terminal action은 Coder completion이 아니라 PM checkpoint 요청이다. 유효한
+  `backend-implementation-handoff-v1`을 현재 run에 남기고 `request-review(reviewer="project-manager")`를
+  호출한 뒤 native read-back에서 `review` 상태를 확인한다.
+- `kanban_complete`, commit, Summary promote/dispatch, aggregate Review rework routing은 Coder의 권한이 아니다.
+- 구현·검증·계약 blocker는 `PM review requested` comment와 `block(kind="needs_input")`으로 올린다.
+  이를 `request-review` handoff 또는 generic completion으로 대체하지 않는다.

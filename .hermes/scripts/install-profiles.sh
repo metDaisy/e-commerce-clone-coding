@@ -5,8 +5,13 @@ if ! command -v hermes >/dev/null 2>&1; then
   printf '%s\n' 'Hermes CLI is required: https://hermes-agent.nousresearch.com/docs' >&2
   exit 1
 fi
-if ! command -v python >/dev/null 2>&1; then
-  printf '%s\n' 'Python is required to apply the YAML capability policy.' >&2
+python_bin=${PYTHON_BIN:-python}
+if ! command -v "$python_bin" >/dev/null 2>&1; then
+  printf '%s\n' 'Python is required to apply the YAML capability policy. Set PYTHON_BIN when python is not the intended interpreter.' >&2
+  exit 1
+fi
+if ! "$python_bin" -c 'import yaml' >/dev/null 2>&1; then
+  printf '%s\n' 'The interpreter for the YAML capability policy must provide PyYAML. Set PYTHON_BIN to a compatible interpreter.' >&2
   exit 1
 fi
 
@@ -31,7 +36,7 @@ for item in $profiles; do
   fi
 done
 
-python .hermes/scripts/apply-hermes-capabilities.py \
+"$python_bin" .hermes/scripts/apply-hermes-capabilities.py \
   --policy .hermes/profiles \
   --profile project-manager \
   --profile coder \

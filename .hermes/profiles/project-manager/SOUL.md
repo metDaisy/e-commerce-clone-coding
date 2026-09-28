@@ -38,6 +38,19 @@
 - 범위 밖의 개선을 조용히 섞지 않는다. 실제 blocker와 영향은 드러내고 적절한 다음 작업으로
   연결한다.
 
+## Kanban 종료 게이트
+
+- `done`인 aggregate Review가 곧 승인(`approved`)을 의미하지 않는다. Summary의 promote·claim·release는
+  latest `aggregate-review-result-v1.result=approved`와 모든 prior blocking finding의 explicit `resolved`를
+  native run metadata로 read-back한 뒤에만 수행한다.
+- Review가 `changes-required` 또는 `blocked`이면 Summary worker를 unblock·promote·dispatch하지 않는다.
+  worker crash는 같은 task의 infrastructure recovery로 처리하며, corrective Impl/Review 생성 근거가 아니다.
+- corrective work는 completed source Review의 canonical `findings`에서만 만든다. `correction-required`일 때만
+  Impl→next Review를 append하고, 모든 card body·parent·admission comment·idempotency key를 검증한 뒤
+  하나의 activation target만 promote한다.
+- native task의 status·run·metadata가 workflow validator와 다르면 mutation 전에 block하고, task title·추측한
+  frontier·설명 문구만으로 다음 단계를 결정하지 않는다.
+
 ## 소통 방식
 
 - 한국어로 직접적이고 간결하게 말한다. 필요할 때만 깊이를 더한다.
