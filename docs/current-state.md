@@ -4,12 +4,12 @@
 
 ## 스냅샷
 
-- 확인일: 2026-09-24
+- 확인일: 2026-09-28
 - Git 브랜치: `p3/issue31`
-- 확인 기준 Git SHA: `153b9c4c5ecda9325afb1e87f2ffb5d5a4a59048`
+- 확인 기준 Git SHA: `62f22935446754f7edb32da0b671a159a017faa9`
 - 기준 상태: 위 SHA의 커밋된 백엔드 `src/**` 코드·테스트·설정·Flyway를 확인했다. 미커밋 변경은 검사 대상에서 제외했으며, 이 문서를 갱신하는 후속 docs-only 커밋은 기준 SHA에 포함하지 않는다.
-- 이전 스냅샷 기준 SHA `4c9051d12c6816d1d472a6b8b1bddc9579537358`는 현재 확인 기준 SHA의 조상이다.
-- 검증 실행: 이번 갱신에서는 Gradle `check`·테스트·JaCoCo를 실행하지 않았다. 테스트 통과나 커버리지는 주장하지 않는다. Semble·codebase-memory 구조 및 인덱스 확인도 실행하지 않았다.
+- 이전 스냅샷 기준 SHA `153b9c4c5ecda9325afb1e87f2ffb5d5a4a59048`는 현재 확인 기준 SHA의 조상이다.
+- 검증 실행: Gradle MCP `:test --rerun-tasks` 507/507 통과를 구현 checkpoint와 독립 Review에서 확인했다. Cart focused unit·slice·integration·repository·Modulith 시나리오도 통과했다. 이번 snapshot 갱신에서는 Gradle 작업을 다시 실행하지 않았다. Checkstyle·Codebase Memory 재색인은 이번 갱신에서 실행하지 않았다.
 
 ## 전체 진행 요약
 
@@ -17,7 +17,7 @@
 |---|---|---|
 | P1 User & Address | 부분 구현 | User 프로필 조회·수정·비활성화, 회원가입 연계, Address 목록·등록·수정·삭제·기본 배송지 지정, 다중 역할, 활성 User 검사와 주소 정렬·잠금이 구현되어 있다. 요구사항의 재인증(`__Host-REAUTH`)과 주문 연계는 확인되지 않았다. |
 | P2 Catalog | 부분 구현 | 공개 Category 트리 조회와 ADMIN 전용 Category 생성·수정, CatalogProduct 생성·수정·식별자 검증·갱신·archive, 관리자·Product Manager용 CatalogProduct 목록·상세 조회(Variant 중첩), ADMIN 전용 ProductVariant 생성·수정·archive가 구현되어 있다. 독립 ProductVariant 조회 HTTP API, CatalogProduct Media와 고객용 Product API는 확인되지 않았다. |
-| P3 Cart | 스키마만 존재 | V1의 `carts`·`cart_items` 테이블은 있으나 Cart 도메인 모듈·API·구현 테스트는 확인되지 않았다. |
+| P3 Cart | 구현 | 회원 Cart와 비회원 Cart의 소유·수명, Offer 추가·합산·수량 변경·삭제·전체 비우기, 현재 Offer 정보 보강 조회, guest cookie, 회원 Cart 병합, 결제 완료 항목 정리 port, Cart persistence와 Modulith 계층 검증이 구현되어 있다. P9의 실제 Offer adapter는 아직 없고 P3의 공개 port seam은 `UnavailableOfferQueryAdapter`로 연결된다. |
 | P4 Coupon | 스키마만 존재 | V1의 쿠폰 테이블은 있으나 Coupon 도메인·API는 확인되지 않았다. |
 | P5 Order, Payment, Delivery | 스키마만 존재 | V1의 주문·결제·배송 테이블은 있으나 해당 도메인 구현·API는 확인되지 않았다. |
 | P6 Outbox & Saga | 기반 부분 구현 | Spring Modulith 이벤트 발행 저장소, Outbox 설정·스케줄러와 관련 테이블이 존재한다. 주문 Saga·보상 흐름은 확인되지 않았다. |
@@ -30,17 +30,18 @@
 
 ## 백엔드 구조
 
-현재 소스 모듈은 `auth`, `user`, `address`, `catalog`, `seller`, `common`, `global`이다. `product`, `cart`, `coupon`, `order`, `payment`, `review`, `media`, `offer`, `inventory` 모듈은 확인되지 않았다.
+현재 소스 모듈은 `auth`, `user`, `address`, `catalog`, `seller`, `cart`, `common`, `global`이다. `product`, `coupon`, `order`, `payment`, `review`, `media`, `offer`, `inventory` 모듈은 별도 구현 모듈로 확인되지 않았다.
 
 - `auth`: 로컬·소셜 Credential, 회원가입, 비밀번호 검증·변경, Form Login·OAuth2 처리, Access/Refresh/Guest JWT, 로그아웃·블랙리스트와 인증 이벤트
 - `user`: 프로필·다중 역할, 활성 User 식별자 중복 검사, 비활성화 이벤트, 공개 `UserQueryApi`
 - `address`: User 소유 주소의 페이지 목록·등록·수정·삭제·기본 배송지 지정. `alias`·`lastUsedAt`, 중복 주소 검사, 기본 배송지 행 잠금과 삭제 후 승격이 구현되어 있다.
 - `catalog`: Category·CatalogProduct·ProductVariant·Tag와 저장소·서비스, QueryDSL 기반 CatalogProduct 페이지 조회, CatalogProduct와 Variant를 조합하는 `CatalogQueryService`, Category 캐시, 관리자 CatalogProduct·ProductVariant 명령, 식별자 검증기, `CatalogVariantQueryApi`. Seller 공개 API는 `CatalogSellerAdapter`를 통해 참조한다.
 - `seller`: Seller 상태·저장소·`SellerQueryApi`
+- `cart`: `Cart`·`CartItem` domain, `CartService`, Cart HTTP controller/cookie, `CartRepository`와 JPA adapter, P2·P9 Offer 조회 공개 port, 회원 병합·결제 정리 공개 port. `package-info.java`는 `common::*`만 허용 dependency로 선언한다.
 - `common`: 공통 인증 주체·예외·DTO·JPA 저장소·MapStruct 설정
 - `global`: Spring 설정, `/api/v1` 경로 prefix, 보안 필터·JWT, 활성 User 인터셉터, 예외 응답, 캐시·Outbox 설정
 
-Spring Modulith `package-info.java`의 `allowedDependencies`와 `@NamedInterface`로 모듈 경계를 관리한다. Catalog는 `seller::api`를 통해 Seller를 참조하고 내부 구현에는 직접 의존하지 않는다.
+Spring Modulith `package-info.java`의 `allowedDependencies`와 `@NamedInterface`로 모듈 경계를 관리한다. Catalog는 `seller::api`를 통해 Seller를 참조하고 내부 구현에는 직접 의존하지 않는다. Cart는 `common::*`만 직접 허용하고 Offer 조회는 Cart가 소유한 `OfferQueryPort` 공개 seam으로 표현한다. `ModularityTest`와 계층 검증 대상에 Cart가 포함된다.
 
 ## 확인된 HTTP 진입점
 
@@ -76,8 +77,15 @@ Controller 경로에는 `WebMvcConfig`가 전역 `/api/v1` prefix를 적용한�
 | POST | `/api/v1/admin/catalog-products/{catalogProductId}/variants` | 구현 · ADMIN 전용 · 201 |
 | PATCH | `/api/v1/admin/product-variants/{id}` | 구현 · ADMIN 전용 · 200 |
 | POST | `/api/v1/admin/product-variants/{id}/archive` | 구현 · ADMIN 전용 · 200 |
+| GET | `/api/v1/cart` | 구현 · 활성 회원 전용 · 현재 Offer 가격·상태·재고를 보강한 Cart 응답 |
+| POST | `/api/v1/cart/items` | 구현 · 회원·비회원 허용 · 성공 204 · 비회원은 `guest_cart_id` 발급 또는 갱신 |
+| PATCH | `/api/v1/cart/items/{cartItemId}` | 구현 · 활성 회원 전용 · 성공 204 · quantity=0은 삭제 |
+| DELETE | `/api/v1/cart/items/{cartItemId}` | 구현 · 활성 회원 전용 · 성공 204 |
+| DELETE | `/api/v1/cart/items` | 구현 · 회원·비회원 허용 · 성공 204 · 비회원 cookie 폐기 |
 
 `/api/v1/catalog-products`와 `/api/v1/catalog-products/{id}`는 Product Manager의 Offer 등록 대상 탐색에 사용되고, `/api/v1/admin/catalog-products`와 `/api/v1/admin/catalog-products/{id}`는 관리자의 운영 조회에 사용된다. `@ActiveSeller`가 적용된 Product Manager 경로는 CatalogProduct와 ProductVariant 모두 `ACTIVE`만 조회하며, ADMIN 경로는 요청한 상태 필터를 사용할 수 있다. 목록·상세 응답은 `catalogProductId`와 중첩 Variant의 `variantId`를 포함한다. 독립 ProductVariant 조회 HTTP API는 현재 존재하지 않는다. 고객용 Product API도 아직 확인되지 않았다. CatalogProduct 생성·식별자 갱신 요청의 `identifiers`는 `ASIN`, `GTIN`, `UPC`, `EAN`, `ISBN` 키를 갖는 맵이다.
+
+Cart의 회원 전용 경로는 `@RequireEnabledUser`로 활성 User를 검사한다. 비회원 Cart는 `guest_cart_id` cookie와 Cart 소유를 함께 확인하며, Cart ID만으로 회원 소유권을 인정하지 않는다. Cart 병합과 결제 완료 정리는 HTTP 경로가 아니라 application 공개 port로 제공된다.
 
 ## 주요 구현 규칙
 
@@ -90,11 +98,16 @@ Controller 경로에는 `WebMvcConfig`가 전역 `/api/v1` prefix를 적용한�
 - `@ActiveSeller`는 ADMIN을 허용하고, 그 외에는 `PRODUCT_MANAGER` 권한과 활성 Seller 상태를 요구한다. CatalogProduct 조회의 ADMIN은 상태 필터를 사용할 수 있고 Product Manager는 ACTIVE 리소스만 조회한다.
 - Address 목록 정렬은 `isPrimary DESC, lastUsedAt DESC NULLS LAST, createdAt DESC, id DESC`이다. 기본 배송지 변경·삭제는 사용자 주소 행 잠금으로 처리한다.
 - `@RequireEnabledUser`가 붙은 Controller는 `EnabledUserInterceptor`를 통해 `UserQueryApi.requireEnabled()`를 호출한다. `__Host-REAUTH` 검증 구현은 확인되지 않았다.
+- 회원 Cart는 `userId`별 하나이고 `expiresAt`은 NULL이다. 비회원 Cart는 `userId`가 NULL이고 30일 `expiresAt`을 가지며 추가 시 수명을 갱신한다. Cart Item의 `(cart_id, offer_id)`는 유일하고 Cart 삭제 시 `CartItem`은 cascade/orphan removal로 정리된다.
+- Cart는 Offer 종류 50개, 전체 수량 1000개, Offer별 구매 가능 수량 제한을 적용한다. quantity=0 변경은 삭제이며, 제한 충돌은 CART-003~CART-005와 병합 CART-007로 구분한다. Offer 미존재는 P9 공개 port의 `OfferNotFoundException`(OFFER-001)을 보존하고, 판매중지·품절은 CART-006으로 표현한다.
+- Cart 조회는 원본 가격·재고·판매 상태를 저장하지 않고 `OfferQueryPort.OfferSnapshot`으로 현재 값을 보강한다. 판매중지·품절·미존재 항목은 Cart에서 제거하지 않고 응답의 `unavailable`·`outOfStock`으로 표시한다.
+- 회원 Cart 변경·삭제와 비회원 Cart 추가·비우기는 소유권을 검사한다. 비회원 성공 추가는 `guest_cart_id`를 HttpOnly·SameSite=Lax·30일 cookie로 발급하며, 비회원 전체 비우기와 병합 성공은 cookie를 폐기한다. `secure` 속성은 `amaazon.cart.guest-cookie.secure` 설정으로 운영 환경에 위임된다.
+- 게스트 병합은 만료 Cart를 삭제하고, 유효성·Offer 상태·Offer별 수량·Cart 전체 제한을 먼저 검증한다. 충돌 시 회원 Cart·게스트 Cart·cookie를 보존하고, 성공 시 항목을 합산한 뒤 게스트 Cart를 삭제한다. 결제 완료 정리는 전달받은 `cartItemIds`만 삭제하며 빈 목록·이미 삭제된 항목에도 멱등적으로 동작한다.
 - Checkstyle은 UTF-8을 명시하고 `NoReplacementCharacterCheck`로 유니코드 대체 문자를, `SuspiciousKoreanEncodingCheck`로 의심스러운 한글·CJK 혼합 토큰을 탐지한다. 예외는 `config/checkstyle/whitelist.yml`의 명시적 목록으로 관리한다.
 
 ## 데이터베이스
 
-Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_variant_with_p2.sql`까지 8개다.
+Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V9__align_cart_ownership_and_limits.sql`까지 9개다.
 
 - V1: 사용자·Credential·주소·포인트·위시리스트, Category·CatalogProduct·Variant·Offer·Inventory·이미지·태그·리뷰, Cart·Coupon, Order·Payment·Delivery, Outbox·Saga·이벤트 발행, Seller 테이블
 - V2: `users.role`을 `user_roles` 다중 역할 테이블로 정규화
@@ -104,14 +117,17 @@ Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_vari
 - V6: CatalogProduct의 ASIN·GTIN·UPC·EAN·ISBN 중 하나 이상 존재 제약 추가
 - V7: CatalogProduct 각 식별자의 형식 제약 추가
 - V8: ProductVariant에서 `sku`·`weight`·`dimensions`를 제거하고 `attributes`·`publication_status`·`archived_at`을 추가하며 표시명·attributes·상태·archive 일관성 제약을 추가
+- V9: `carts.user_id`를 nullable로 변경하고 `expires_at`을 추가한다. 회원 Cart의 userId unique partial index, 회원/비회원 owner-lifecycle check, Cart Item quantity 1~1000 check와 `(cart_id, offer_id)` unique 제약을 적용한다.
 
-도메인 간 식별자는 Modulith 경계를 따르기 위해 DB 외래 키로 연결하지 않는 정책이며, `addresses.user_id`와 `users.id` 사이의 외래 키는 확인되지 않는다. 현재 Java 엔티티가 확인되는 영역은 사용자·인증·주소·카탈로그·판매자이며, 나머지 테이블은 스키마만 존재한다.
+도메인 간 식별자는 Modulith 경계를 따르기 위해 DB 외래 키로 연결하지 않는 정책이며, `addresses.user_id`와 `users.id` 사이의 외래 키는 확인되지 않는다. Cart의 `cart_items.offer_id`도 P9 FK 없이 공개 Offer port로 연결된다. 현재 Java 엔티티가 확인되는 영역은 사용자·인증·주소·카탈로그·판매자·Cart이며, 나머지 테이블은 스키마만 존재한다.
 
 ## 테스트·검증
 
 - `src/test/java`에는 Auth·User·Address·Catalog·Seller의 단위·Controller·Repository·일부 통합 테스트와 `ModularityTest`가 존재한다. CatalogProduct 목록·상세 조회 통합 테스트와 `CatalogVariantQueryApi` 테스트, CatalogProduct 식별자 검증, ProductVariant 도메인·명령·Repository·관리자 Controller·통합 테스트가 포함되어 있다.
-- 현재 snapshot SHA에서 CatalogProduct 식별자 검증은 지원 verifier를 순회하고, 생성·수정 시 여러 식별자 실패를 필드별 결과로 수집하는 서비스 테스트가 존재한다. ISBN 외부 검증 adapter의 성공·HTTP 실패·client 예외 mapping 테스트도 존재한다.
-- 이번 갱신에서는 Gradle 명령을 실행하지 않았으므로 현재 컴파일·테스트 통과 여부와 커버리지는 미검증이다.
+- Cart에는 `CartTest`의 회원·비회원 ownership/lifecycle, 수량·종류·전체 수량 제한 테스트와 `CartServiceTest`의 Offer 조회·오류 의미·병합·결제 정리·멱등성 테스트가 있다.
+- `CartControllerTest`와 `CartIntegrationTest`는 Cart HTTP 성공·권한·오류·cookie 발급/폐기, 현재 Offer 가격·재고·판매 상태 보강, 품절·판매중지 항목 보존, 회원 Cart 병합을 검증한다. `CartJpaRepositoryTest`는 repository 조회·잠금·만료 정리·선택 항목 삭제를 검증한다. `ModularityTest`는 Cart를 포함한 Modulith 및 계층 경계를 검증한다.
+- 최종 구현 SHA `62f22935446754f7edb32da0b671a159a017faa9`에서 Gradle MCP `:test --rerun-tasks`가 507/507 통과했다. 독립 aggregate Review도 Cart focused unit·slice·integration·repository·Modulith 시나리오와 전체 backend test 결과를 재확인했다.
+- 이번 snapshot 갱신에서는 Gradle 명령·Checkstyle·JaCoCo·Codebase Memory 재색인을 실행하지 않았다. 실행하지 않은 검증의 통과나 커버리지는 주장하지 않는다.
 
 ## 알려진 차이와 다음 작업
 
@@ -121,6 +137,7 @@ Flyway 마이그레이션은 `V1__init_schema.sql`부터 `V8__align_product_vari
 4. `addresses.user_id`와 `users.id`의 DB 외래 키가 확인되지 않았다. 소유 관계를 DB 제약으로 보장할지 결정하고 필요한 Flyway migration을 추가한다.
 5. CatalogProduct Media와 고객용 Product API를 구현하고, 현재 관리자·Product Manager 조회와 고객용 응답을 분리한다.
 6. P8 Seller 등록·프로필·등록 요청·운영 API를 구현한다. 현재 Catalog 조회의 active-seller 검증은 적용되어 있다.
-7. P9 Offer·Inventory·Marketplace, P10 Review, P12 MediaUpload 흐름을 구현한다.
+7. P9 Offer·Inventory·Marketplace, P10 Review, P12 MediaUpload 흐름을 구현한다. Cart가 사용하는 `OfferQueryPort`는 실제 P9 adapter가 추가되면 연결 대상이 된다.
 8. ProductVariant 조회는 CatalogProduct 목록·상세 응답에 통합되어 있으며, 현재 단독 ProductVariant 조회 HTTP 경로는 없다. 요구사항·클라이언트 계약에서 단독 조회가 필요해지면 별도 API 여부와 응답 필드를 다시 결정해야 한다.
-9. 구현 범위가 확장되면 해당 모듈의 API·테스트와 Modulith 경계 검증을 함께 추가한다.
+9. Cart 병합·결제 정리의 실제 P11/P5 호출 흐름과 이벤트 운영은 해당 모듈 구현 시 공개 port 계약을 사용해 연결해야 한다. Cart 내부는 정리 contract와 멱등성만 제공한다.
+10. 구현 범위가 확장되면 해당 모듈의 API·테스트와 Modulith 경계 검증을 함께 추가한다.
