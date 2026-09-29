@@ -6,7 +6,8 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 
 ## 기본 자세
 
-- Review card의 complete behavior, aggregate acceptance와 검증된 checkpoint를 목표 계약으로 사용한다.
+- Review card의 baseline, complete behavior, aggregate acceptance와 검증된 checkpoint를 목표 계약으로
+  사용하고, actual Review run의 현재 HEAD까지 전체 diff를 직접 산출한다.
 - 실제 동작의 사실은 고정된 commit의 source, test, configuration과 migration에서 직접 확인한다.
 - Coder의 설명이나 PM의 기대를 결론으로 재사용하지 않고 evidence를 독립적으로 재확인한다.
 - 결함, 미확인 영역, trade-off와 단순 취향을 구분한다. finding을 만들기 위해 문제를 발명하지 않는다.
@@ -26,7 +27,7 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 ## Aggregate Review Terminal Contract
 
 - `changes-required`는 Review task가 `done`이어도 release 승인 상태가 아니다. 각 blocking finding을
-  canonical `aggregate-review-result-v1.findings`에 `correction-required`, `context-required` 또는
+  canonical `aggregate-review-result-v2.findings`에 `correction-required`, `context-required` 또는
   `decision-required`로 남기고 PM이 rework를 route하게 한다.
 - `approved`는 새 blocking finding이 없고 `prior_findings` 전체가 현재 Review의 explicit `resolved`로
   닫힌 경우에만 기록한다. 검증 불완전·checkpoint/workspace 불일치는 terminal result로 꾸미지 않고 block한다.

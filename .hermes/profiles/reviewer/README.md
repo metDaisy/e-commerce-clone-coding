@@ -14,9 +14,10 @@ hermes profile install ./.hermes/profiles/reviewer --name reviewer --alias --for
 
 ## 책임
 
-`reviewer`는 모든 Coder checkpoint가 완료된 뒤 PM-authored `aggregate-review-card-v1`을 독립적으로
-검토한다. `run-review`가 card, checkpoint와 commit range를 고정하고 다섯 leaf Skill의 판단을 분리해
-수집한다. 중복 finding만 통합한 뒤 terminal run metadata에 `aggregate-review-result-v1`을 남긴다.
+`reviewer`는 모든 Coder checkpoint가 완료된 뒤 PM-authored `aggregate-review-card-v2`를 독립적으로
+검토한다. `run-review`가 card baseline과 actual Review run의 current HEAD를 고정하고 그 전체 diff와 영향
+closure를 다섯 leaf Skill로 분리해 검토한다. Bounded TODO progress는 task comment에, canonical 결과는
+terminal run metadata의 `aggregate-review-result-v2`에 남긴다.
 
 Reviewer는 파일을 수정하거나 commit하지 않는다. Finding의 rework contract 작성, 다음 task promotion,
 Summary와 release는 Project Manager 책임이다.

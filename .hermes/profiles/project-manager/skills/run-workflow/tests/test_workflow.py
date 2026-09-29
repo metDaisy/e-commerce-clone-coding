@@ -60,11 +60,13 @@ class WorkflowContractTest(unittest.TestCase):
 
     def review_result(self):
         return {
-            "schema": "aggregate-review-result-v1",
+            "schema": "aggregate-review-result-v2",
             "review_card_key": "review-1",
             "review_task_id": "t_c3",
             "review_run_id": 2,
             "generation": 1,
+            "baseline_sha": self.graph()["planning_baseline_sha"],
+            "reviewed_head_sha": SHA_B,
             "result": "approved",
             "reviewed_checkpoints": [
                 {
@@ -187,6 +189,21 @@ class WorkflowContractTest(unittest.TestCase):
             continues={"source_review_task_id": "t_9f", "source_finding_id": "F-1"},
         )
         self.assertEqual([], validate_review_result(value, self.graph(), value["prior_findings"]))
+
+    def test_review_result_is_bound_to_card_baseline_and_reviewed_head(self):
+        value = self.review_result()
+        value["baseline_sha"] = "f" * 40
+        self.assertIn(
+            "REVIEW_BASELINE_MISMATCH",
+            validate_review_result(value, self.graph(), value["prior_findings"]),
+        )
+
+        value = self.review_result()
+        value["reviewed_head_sha"] = "not-a-sha"
+        self.assertIn(
+            "INVALID_REVIEWED_HEAD_SHA",
+            validate_review_result(value, self.graph(), value["prior_findings"]),
+        )
 
     def test_summary_admission_requires_complete_parents_and_frozen_clean_sha(self):
         value = {

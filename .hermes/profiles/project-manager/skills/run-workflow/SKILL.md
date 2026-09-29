@@ -34,7 +34,7 @@ GitHub를 변경하지 않는다. 설치된 Skill 경로를 resolve해서 실행
    `create-triage`부터 시작한다. Frozen Triage가 준비되면 `build-task-graph`로 graph 전체를 작성한다.
 4. Marker가 있으면 Issue·branch·committed checkpoint·Kanban history를 비교해 정상 재개, `restart-task`,
    base-sync 또는 사용자 결정을 선택한다. Dirty 상태를 새 planning 입력으로 사용하지 않는다.
-5. 기존 `build-task-graph-v1` wrapper와 정규화한 native read-back, Git read-back을 각각 JSON으로 저장하고
+5. 기존 `build-task-graph-v2` wrapper와 정규화한 native read-back, Git read-back을 각각 JSON으로 저장하고
    다음을 실행한다.
 
    `python scripts/workflow.py validate-state <graph.json> <board.json> <git.json>`
@@ -50,8 +50,10 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    요청한다. PM은 dispatcher가 만든 active review run에서만 checkpoint를 수행한다.
 3. Impl 완료 뒤 다시 `validate-state`를 실행한다. Cached ready candidate나 title 순서로 다음 task를
    추측하지 않는다.
-4. Review는 단일 Reviewer가 immutable aggregate contract와 모든 child checkpoint를 읽고 latest terminal
-   run metadata에 `aggregate-review-result-v1`을 남긴다. PM은 다음으로 검증한다.
+4. Review는 단일 Reviewer가 card의 `baseline_sha`와 claim 시점 current HEAD를 고정하고 전체
+   `baseline_sha..reviewed_head_sha` diff와 영향 closure를 검토한다. Reviewer는 comment에 bounded TODO
+   progress snapshot을 남기고 latest terminal run metadata에 `aggregate-review-result-v2`를 남긴다. PM은
+   다음으로 검증한다.
 
    `python scripts/workflow.py validate-review-result <review-result.json> <graph.json> <expected-prior-findings.json>`
 

@@ -39,31 +39,43 @@ fixed-point 고정, Spec/품질 판단 분리, 독립 보고 원칙을 aggregate
 
 1. `kanban_show`로 actual task ID, assignee=`reviewer`, `running` status, current run ID, immutable body,
    parent·child link, comments와 prior Review history를 읽는다.
-2. Body가 closed `aggregate-review-card-v1`이고 complete behavior IDs, implementation card keys,
-   inherited behavior IDs, aggregate acceptance와 explicit `scope_exclusions` 목록을 모두 가지는지 확인한다.
+2. Body가 closed `aggregate-review-card-v2`이고 40자리 `baseline_sha`, complete behavior IDs,
+   implementation card keys, inherited behavior IDs, aggregate acceptance와 explicit `scope_exclusions` 목록을
+   모두 가지는지 확인한다.
 3. 참조 Impl task마다 body, latest terminal checkpoint metadata, task ID와 40자리 commit SHA를 읽는다.
    모든 key가 정확히 한 번 대응하고 task가 `done`인지 확인한다. 이전 blocking finding이 있으면 source
    Review task/run과 finding을 모두 수집한다.
-4. 실제 workspace/cwd, branch, clean Git status와 `HEAD`를 읽는다. 각 checkpoint SHA가 현재 history에
-   존재하고 검토할 final state에 포함되는지 확인한다. Dirty path, 누락 checkpoint, stale run 또는
-   불일치는 수정·stash·reset하지 않고 `kanban_block(kind="needs_input")`으로 중단한다.
+4. 실제 workspace/cwd, branch, clean Git status와 `HEAD`를 읽어 `reviewed_head_sha`로 고정한다. Card의
+   `baseline_sha`와 HEAD가 실제 commit이고 baseline이 HEAD의 ancestor인지 확인한다. 각 checkpoint SHA가
+   `baseline_sha..reviewed_head_sha` history에 존재하고 final state에 포함되는지도 확인한다. Dirty path,
+   누락 checkpoint, stale run 또는 불일치는 수정·stash·reset하지 않고
+   `kanban_block(kind="needs_input")`으로 중단한다.
+5. Admission이 닫히면 `aggregate-review-progress-v1` 시작 comment를 남긴다. Comment에는 actual task/run,
+   baseline, reviewed HEAD와 고정 TODO ID 전체를 넣고 `admission=done`, `diff-inventory=in-progress`, 나머지는
+   `pending`으로 기록한다. Source symbol 목록을 card나 comment에 미리 복제하지 않는다.
 
-완료 기준: Review contract, child checkpoint, prior finding, actual workspace와 immutable commit 범위가
-서로 일치한다.
+완료 기준: Review contract, child checkpoint, prior finding, actual workspace와 immutable
+`baseline_sha..reviewed_head_sha` 범위가 서로 일치하고 시작 TODO comment가 read-back된다.
 
 ### 2. 공통 Review context 고정
 
 1. Aggregate acceptance와 각 child의 effective behavior·acceptance·required scenario를 coverage map으로
    만든다. 원본 requirement locator는 provenance로만 사용하며 제품 의미를 다시 기획하지 않는다.
-2. Fixed base, reviewed HEAD, checkpoint SHA, commit range, changed paths, repository rules, 관련 requirement와
-   prior finding을 `axis-result-contract`의 공통 입력으로 고정한다.
-3. Changed diff와 관련 production source, caller/consumer, test, configuration, migration,
+2. `git diff --name-status --find-renames baseline_sha reviewed_head_sha`와 전체 diff로 모든 changed path를
+   산출한다. 각 path를 `in-scope | supporting | unexpected | excluded-with-basis`로 분류한다. Scope exclusion은
+   제품 범위를 제한할 뿐 실제 changed path를 숨기는 근거가 아니다. `unexpected`는 finding 또는 PM 확인
+   대상으로 disposition한다.
+3. Baseline, reviewed HEAD, checkpoint SHA, 전체 commit range, changed-path inventory, repository rules,
+   관련 requirement와 prior finding을 `axis-result-contract`의 공통 입력으로 고정한다.
+4. Changed diff와 관련 production source, caller/consumer, test, configuration, migration,
    `package-info.java`, architecture/ADR의 후보를 찾는다. Exact locator가 없을 때
    [`code-discovery-guide.md`](references/code-discovery-guide.md)를 읽는다. Behavior 위치 질문은 Semble,
    known symbol의 관계·영향 질문은 Codebase Memory branch를 선택하고 source에서 확정한다.
+5. Diff inventory가 닫히면 두 번째 progress comment를 남겨 `diff-inventory=done`과 changed/unexpected path
+   수를 기록하고 `spec=in-progress`로 전환한다.
 
-완료 기준: 모든 behavior·aggregate acceptance가 하나 이상의 검토 지점에 매핑되고, 다섯 축이 같은
-immutable 입력을 받는다.
+완료 기준: 모든 changed path가 disposition되고 모든 behavior·aggregate acceptance가 하나 이상의 검토
+지점에 매핑되며, 다섯 축이 같은 immutable 입력을 받는다.
 
 ### 3. 다섯 축 분리 실행
 
@@ -100,6 +112,8 @@ identity가 깨진 blocker면 즉시 중단하고, 특정 축에만 국한된 bl
 result를 완료하지 않는다. 각 축은 `reviewed`, `not-applicable`, `blocked` 중 하나이며, 단순
 `no finding`은 `reviewed`다. 다섯 raw result가 모두 닫힌 뒤에만 중복 finding을 통합한다.
 
+다섯 축이 닫히면 세 번째 progress comment로 해당 TODO를 모두 `done`, `security=in-progress`로 기록한다.
+
 완료 기준: 다섯 축의 result가 모두 존재하고 각 result가 공통 입력 identity, evidence, verification,
 finding 또는 근거 있는 no-finding/not-applicable을 포함한다. 하나라도 `blocked`면 aggregate result를
 완료하지 않고 native task를 block한다.
@@ -132,6 +146,7 @@ authorization 의미가 card에 없으면 `decision-required`, 승인된 contrac
 4. 같은 `basis + observed_fact + affected behavior`인 finding만 합친다. 축이 다른 위험이나 서로 충돌하는
    판단은 각각 보존하고, preference·question·repository-wide debt는 blocking finding으로 승격하지 않는다.
 5. 검증 과정에서 tracked file이 바뀌지 않았고 clean worktree와 reviewed HEAD가 유지되는지 다시 읽는다.
+6. 검증이 닫히면 마지막 progress comment로 `verification=done`, `result-readback=in-progress`를 기록한다.
 
 완료 기준: 각 검증의 task/test identity와 실제 pass/fail이 evidence에 연결되고 모든 축과 prior finding이
 설명된다.
@@ -147,12 +162,13 @@ authorization 의미가 card에 없으면 `decision-required`, 승인된 contrac
 3. 새 blocking finding이 없고 모든 prior finding이 resolved되었을 때만 `result: approved`로 한다.
    Blocking finding이 있으면 `changes-required`다. Review prerequisite 문제는 incomplete terminal result로
    꾸미지 말고 task를 block한다.
-4. Current native run ID와 canonical `aggregate-review-result-v1` metadata로 `kanban_complete`를 호출한다.
+4. Current native run ID, card `baseline_sha`와 고정한 `reviewed_head_sha`를 포함한 canonical
+   `aggregate-review-result-v2` metadata로 `kanban_complete`를 호출한다.
    Body, comments 또는 child task는 수정하지 않는다.
 5. `kanban_show`로 task `done`, terminal run, metadata와 result가 저장됐는지 read-back한다.
 
 완료 기준: PM validator가 소비할 canonical result가 latest terminal run에 있고 native task가 `done`이며
-repository는 clean하다.
+repository는 clean하고 HEAD가 `reviewed_head_sha`와 같다.
 
 ## 금지 사항
 

@@ -1,5 +1,5 @@
 name: reviewer
-version: 0.1.0
+version: 0.2.0
 description: "Independently reviews Amaazon aggregate implementation checkpoints."
 hermes_requires: ">=0.12.0"
 author: "Amaazon project"

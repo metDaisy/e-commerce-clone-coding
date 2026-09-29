@@ -25,9 +25,9 @@ def _validate_aggregate_review_result(result: Any, graph: Any) -> list[str]:
     expected = result.get("prior_findings") if isinstance(result, dict) else None
     return module.validate_review_result(result, graph, expected)
 
-GRAPH_SCHEMA = "build-task-graph-v1"
+GRAPH_SCHEMA = "build-task-graph-v2"
 CARD_SCHEMAS = {
-    "review": "aggregate-review-card-v1",
+    "review": "aggregate-review-card-v2",
     "summary": "issue-summary-card-v1",
     "decision": "policy-decision-card-v1",
 }
@@ -93,8 +93,9 @@ def _validate_body(card: dict[str, Any], behavior_ids: set[str], errors: list[st
         return
     _error(errors, body.get("schema") == CARD_SCHEMAS.get(card_type), f"CARD_BODY_SCHEMA:{key}")
     if card_type == "review":
-        allowed = {"schema", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance", "scope_exclusions"}
+        allowed = {"schema", "baseline_sha", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance", "scope_exclusions"}
         _exact_fields(body, allowed, errors, f"UNEXPECTED_REVIEW_BODY_FIELD:{key}")
+        _error(errors, isinstance(body.get("baseline_sha"), str) and bool(SHA.fullmatch(body["baseline_sha"])), f"INVALID_REVIEW_BASELINE:{key}")
         _error(errors, _strings(body.get("effective_behavior_ids")), f"MISSING_REVIEW_BEHAVIORS:{key}")
         _error(errors, isinstance(body.get("implementation_card_keys"), list), f"MISSING_REVIEW_IMPLS:{key}")
         _error(errors, isinstance(body.get("inherited_behavior_ids"), list), f"MISSING_REVIEW_INHERITED:{key}")
@@ -140,7 +141,7 @@ def validate_graph(
     errors: list[str] = []
     if not isinstance(graph, dict):
         return ["GRAPH_NOT_OBJECT"]
-    allowed = {"schema", "mode", "issue", "generation", "workspace", "requirement_basis", "revised_requirement", "lineage", "source_review", "behaviors", "cards", "ready_candidate", "archived_card_keys"}
+    allowed = {"schema", "mode", "issue", "generation", "workspace", "planning_baseline_sha", "requirement_basis", "revised_requirement", "lineage", "source_review", "behaviors", "cards", "ready_candidate", "archived_card_keys"}
     _exact_fields(graph, allowed, errors, "UNEXPECTED_GRAPH_FIELD")
     _error(errors, graph.get("schema") == GRAPH_SCHEMA, "GRAPH_SCHEMA")
     mode = graph.get("mode")
@@ -156,6 +157,8 @@ def validate_graph(
     _error(errors, isinstance(generation, int) and not isinstance(generation, bool) and generation > 0, "INVALID_GENERATION")
     workspace = graph.get("workspace")
     _error(errors, _non_empty(workspace), "MISSING_WORKSPACE")
+    planning_baseline_sha = graph.get("planning_baseline_sha")
+    _error(errors, isinstance(planning_baseline_sha, str) and bool(SHA.fullmatch(planning_baseline_sha)), "INVALID_PLANNING_BASELINE_SHA")
     if mode == "new":
         _error(errors, generation == 1, "NEW_REQUIRES_GENERATION_1")
         _error(errors, graph.get("revised_requirement") is None, "NEW_FORBIDS_REVISED_REQUIREMENT")
@@ -456,6 +459,7 @@ def validate_graph(
         body = records[key].get("body")
         if not isinstance(body, dict):
             continue
+        _error(errors, body.get("baseline_sha") == planning_baseline_sha, f"REVIEW_BASELINE_MISMATCH:{key}")
         for impl_key in body.get("implementation_card_keys", []):
             _error(errors, impl_key in records and records[impl_key].get("card_type") == "implementation", f"REVIEW_IMPL_NOT_FOUND:{key}:{impl_key}")
         for behavior_id in body.get("inherited_behavior_ids", []):

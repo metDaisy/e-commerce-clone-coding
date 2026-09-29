@@ -10,7 +10,7 @@ Impl checkpoint는 [`execution-contract.md`](execution-contract.md), graph/card 
 
 `scripts/workflow.py validate-state`는 다음 세 입력을 받는다.
 
-- `build-task-graph-v1` graph wrapper
+- `build-task-graph-v2` graph wrapper
 - `tasks` 배열을 가진 normalized native read-back
 - `branch`, `head_sha`, `clean_worktree`를 가진 Git read-back
 
@@ -24,9 +24,10 @@ membership·identity·workspace·parent가 일치해야 하며 `done`에는 succ
 ## Aggregate Review 결과
 
 Reviewer 계약이 result 의미와 producer 규칙을 소유하고, 이 문서와 `workflow.py`는 PM의 소비·routing
-invariant만 소유한다. `aggregate-review-result-v1`의 PM 소비 필드는 다음과 같다.
+invariant만 소유한다. `aggregate-review-result-v2`의 PM 소비 필드는 다음과 같다.
 
 - `review_card_key`, `review_task_id`, `review_run_id`, `generation`
+- Review card와 같은 `baseline_sha`, actual Review run에서 고정한 `reviewed_head_sha`
 - `result`: `approved | changes-required`
 - `reviewed_checkpoints`: Impl card/task ID와 40자리 checkpoint SHA
 - `prior_findings`: 이전 blocking finding의 Review task ID, finding ID, verdict
@@ -41,7 +42,7 @@ Canonical payload는 completed Review의 latest terminal run metadata에서 읽�
 
 ## Summary admission
 
-`summary-admission-v1`은 Summary task ID, canonical latest `aggregate-review-result-v1`, direct/done parent
+`summary-admission-v1`은 Summary task ID, canonical latest `aggregate-review-result-v2`, direct/done parent
 ID, `final_implementation_sha`, ordered `documentation_commit_shas`, repository HEAD와 clean state를 가진다.
 Validator는 graph와 normalized native board read-back을 함께 받아 Summary task ID, exact parent keys/task IDs,
 parent `done` 상태와 latest Review identity를 derive해 대조한다. Canonical result는 expected prior-finding

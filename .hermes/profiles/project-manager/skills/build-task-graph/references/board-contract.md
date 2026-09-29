@@ -1,9 +1,9 @@
 ---
 name: build-task-graph-board-contract
-version: 6.1.0
+version: 6.2.0
 ---
 
-# build-task-graph board contract v6.1
+# build-task-graph board contract v6.2
 
 이 문서는 persisted graph의 schema와 machine-checkable invariant를 소유한다. Runtime 절차는
 [`../SKILL.md`](../SKILL.md), Backend Impl body는
@@ -13,7 +13,7 @@ assignee, status, parent, run, comment와 event의 원본이다.
 
 ## Graph wrapper
 
-Schema는 `build-task-graph-v1`이다.
+Schema는 `build-task-graph-v2`이다.
 
 | Field | 계약 |
 |---|---|
@@ -21,6 +21,7 @@ Schema는 `build-task-graph-v1`이다.
 | `issue` | Issue number와 canonical URL |
 | `generation` | 양의 정수 G |
 | `workspace` | 모든 native card가 사용하는 exact workspace identity |
+| `planning_baseline_sha` | 최초 frozen Triage의 `planning_baseline_sha`와 같은 40자리 Git SHA |
 | `requirement_basis` | path와 Git SHA |
 | `revised_requirement` | `requirement-rework`에서 필수인 path와 Git SHA |
 | `lineage` | Rework에서 필수인 prior generation, prior Summary, archived unfinished keys |
@@ -81,14 +82,18 @@ Persisted body schema는 다음과 같다.
 
 - Impl: `backend-implementation-card-v1`. 필드 의미와 validation은
   `implementation-card-contract.md`가 소유한다.
-- Review: `aggregate-review-card-v1`. Complete behavior IDs, 참조 Impl keys, inherited behavior IDs,
-  aggregate acceptance와 explicit `scope_exclusions` 목록을 보존한다. 제외가 없으면 빈 목록이다.
+- Review: `aggregate-review-card-v2`. Graph의 `planning_baseline_sha`와 같은 `baseline_sha`, complete
+  behavior IDs, 참조 Impl keys, inherited behavior IDs, aggregate acceptance와 explicit
+  `scope_exclusions` 목록을 보존한다. 제외가 없으면 빈 목록이다. Review 시점 HEAD나 source symbol 목록은
+  미리 복제하지 않는다. Reviewer가 claim한 actual run에서 현재 HEAD를 `reviewed_head_sha`로 고정하고
+  `baseline_sha..reviewed_head_sha` 전체 diff와 영향 closure를 조사한다.
 - Summary: `issue-summary-card-v1`. Complete behavior IDs, aggregate acceptance와 finalization checks를
   보존한다.
 - Decision: `policy-decision-card-v1`. Source Review key, finding ID, 사용자 질문과
   `decision_owner: user`를 보존한다.
 
-모든 Review의 behavior 집합은 wrapper behavior 집합과 정확히 같다. Latest Review의 Impl 참조는 graph의
+모든 Review의 `baseline_sha`는 wrapper `planning_baseline_sha`와 정확히 같고 behavior 집합은 wrapper
+behavior 집합과 정확히 같다. Latest Review의 Impl 참조는 graph의
 모든 Impl key와, inherited behavior 참조는 모든 `implemented` behavior ID와 정확히 같다. Summary의
 behavior 집합도 wrapper behavior 집합과 정확히 같다. Native task 값은 body에 복제하지 않는다.
 

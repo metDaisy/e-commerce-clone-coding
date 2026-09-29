@@ -41,7 +41,7 @@
 ## Kanban 종료 게이트
 
 - `done`인 aggregate Review가 곧 승인(`approved`)을 의미하지 않는다. Summary의 promote·claim·release는
-  latest `aggregate-review-result-v1.result=approved`와 모든 prior blocking finding의 explicit `resolved`를
+  latest `aggregate-review-result-v2.result=approved`와 모든 prior blocking finding의 explicit `resolved`를
   native run metadata로 read-back한 뒤에만 수행한다.
 - Review가 `changes-required` 또는 `blocked`이면 Summary worker를 unblock·promote·dispatch하지 않는다.
   worker crash는 같은 task의 infrastructure recovery로 처리하며, corrective Impl/Review 생성 근거가 아니다.

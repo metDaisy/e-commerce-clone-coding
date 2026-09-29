@@ -310,11 +310,13 @@ class TaskGraphContractTest(unittest.TestCase):
     def source_review_result(self, graph):
         source = graph["source_review"]
         return {
-            "schema": "aggregate-review-result-v1",
+            "schema": "aggregate-review-result-v2",
             "review_card_key": source["review_key"],
             "review_task_id": "t_c3",
             "review_run_id": 3,
             "generation": graph["generation"],
+            "baseline_sha": graph["planning_baseline_sha"],
+            "reviewed_head_sha": "b" * 40,
             "result": "changes-required",
             "reviewed_checkpoints": [
                 {
@@ -448,6 +450,18 @@ class TaskGraphContractTest(unittest.TestCase):
         graph = self.valid_graph()
         graph["cards"][2]["body"]["inherited_behavior_ids"] = ["behavior-product-create"]
         self.assertIn("REVIEW_INHERITED_BEHAVIOR_INVALID:review-1:behavior-product-create", validate_graph(graph))
+
+    def test_review_is_bound_to_graph_planning_baseline(self):
+        graph = self.valid_graph()
+        graph["cards"][2]["body"]["baseline_sha"] = "f" * 40
+        self.assertIn("REVIEW_BASELINE_MISMATCH:review-1", validate_graph(graph))
+
+    def test_review_requires_valid_baseline_sha(self):
+        graph = self.valid_graph()
+        graph["cards"][2]["body"]["baseline_sha"] = "not-a-sha"
+        errors = validate_graph(graph)
+        self.assertIn("INVALID_REVIEW_BASELINE:review-1", errors)
+        self.assertIn("REVIEW_BASELINE_MISMATCH:review-1", errors)
 
     def test_title_type_assignee_and_workspace_must_match_native_identity(self):
         graph = self.valid_graph()

@@ -76,6 +76,9 @@ def test_reviewer_skills_have_valid_identity_and_capability_edges() -> None:
     assert "`skill_view`로 정확한 leaf Skill 이름을 로드한다" in root
     assert "invocation packet" in root
     assert "다섯 raw result가 모두 닫힌 뒤에만" in root
+    assert "aggregate-review-progress-v1" in root
+    assert "baseline_sha..reviewed_head_sha" in root
+    assert "diff-inventory" in root
 
 
 def test_reviewer_result_example_matches_pm_consumer_validator() -> None:
@@ -86,21 +89,48 @@ def test_reviewer_result_example_matches_pm_consumer_validator() -> None:
         / "references"
         / "aggregate-review-contract.md"
     ).read_text(encoding="utf-8")
-    match = re.search(r"```json\n(.*?)\n```", contract, re.DOTALL)
-    assert match is not None
-    result = json.loads(match.group(1))
+    examples = [json.loads(value) for value in re.findall(r"```json\n(.*?)\n```", contract, re.DOTALL)]
+    result = next(value for value in examples if value.get("schema") == "aggregate-review-result-v2")
     graph = {
         "generation": 1,
         "cards": [
             {
                 "key": "review-1",
                 "card_type": "review",
-                "body": {"implementation_card_keys": ["impl-1"]},
+                "body": {
+                    "baseline_sha": result["baseline_sha"],
+                    "implementation_card_keys": ["impl-1"],
+                },
             }
         ],
     }
 
     assert _load_workflow().validate_review_result(result, graph, result["prior_findings"]) == []
+
+
+def test_reviewer_progress_example_has_fixed_todo_contract() -> None:
+    contract = (
+        REVIEWER
+        / "skills"
+        / "run-review"
+        / "references"
+        / "aggregate-review-contract.md"
+    ).read_text(encoding="utf-8")
+    examples = [json.loads(value) for value in re.findall(r"```json\n(.*?)\n```", contract, re.DOTALL)]
+    progress = next(value for value in examples if value.get("schema") == "aggregate-review-progress-v1")
+    assert [item["id"] for item in progress["todo"]] == [
+        "admission",
+        "diff-inventory",
+        "spec",
+        "maintainability",
+        "persistence",
+        "architecture",
+        "evolution-compatibility",
+        "security",
+        "verification",
+        "result-readback",
+    ]
+    assert progress["baseline_sha"] != progress["reviewed_head_sha"]
 
 
 def test_reviewer_capabilities_are_read_focused_and_have_no_github_write() -> None:
@@ -220,6 +250,7 @@ if __name__ == "__main__":
     test_reviewer_distribution_owns_complete_runtime_contract()
     test_reviewer_skills_have_valid_identity_and_capability_edges()
     test_reviewer_result_example_matches_pm_consumer_validator()
+    test_reviewer_progress_example_has_fixed_todo_contract()
     test_reviewer_capabilities_are_read_focused_and_have_no_github_write()
     test_architecture_review_is_requirement_scoped_and_uses_deepening_helper()
     test_axis_rubrics_embed_selected_review_guidance_without_runtime_dependency()

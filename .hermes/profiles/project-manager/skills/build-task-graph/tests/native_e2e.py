@@ -170,11 +170,13 @@ class NativeE2E:
             if not isinstance(review_run_id, int) or review_run_id <= 0:
                 raise RuntimeError("native Review run has no positive integer ID")
             finding_metadata = {
-                "schema": "aggregate-review-result-v1",
+                "schema": "aggregate-review-result-v2",
                 "review_card_key": "review-1",
                 "review_task_id": review1,
                 "review_run_id": review_run_id,
                 "generation": 1,
+                "baseline_sha": fixture["planning_baseline_sha"],
+                "reviewed_head_sha": "c" * 40,
                 "result": "changes-required",
                 "reviewed_checkpoints": [
                     {
@@ -314,11 +316,13 @@ class NativeE2E:
             if not isinstance(review2_run_id, int) or review2_run_id <= 0:
                 raise RuntimeError("native Review2 run has no positive integer ID")
             resolution_metadata = {
-                "schema": "aggregate-review-result-v1",
+                "schema": "aggregate-review-result-v2",
                 "review_card_key": "review-2",
                 "review_task_id": review2,
                 "review_run_id": review2_run_id,
                 "generation": 1,
+                "baseline_sha": fixture["planning_baseline_sha"],
+                "reviewed_head_sha": "d" * 40,
                 "result": "approved",
                 "reviewed_checkpoints": [
                     {

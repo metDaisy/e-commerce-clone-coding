@@ -2,16 +2,16 @@
 
 이 계약은 `run-review`가 다섯 leaf Review Skill에 동일한 immutable 범위를 전달하고 결과를 빠짐없이
 수집하기 위한 내부 계약이다. Axis result는 intermediate evidence이며 native Kanban metadata에 그대로
-저장하지 않는다. 최종 저장 계약은 `aggregate-review-result-v1`이다.
+저장하지 않는다. 최종 저장 계약은 `aggregate-review-result-v2`이다.
 
 ## 공통 입력
 
 각 leaf Skill은 다음 값을 동일하게 받는다.
 
 - review task/run ID와 generation
-- `aggregate-review-card-v1`의 effective behavior, aggregate acceptance와 scope exclusion
-- fixed base, reviewed HEAD, ordered checkpoint task/key/SHA
-- reviewed commit range와 changed paths
+- `aggregate-review-card-v2`의 effective behavior, aggregate acceptance와 scope exclusion
+- card `baseline_sha`, actual run에서 고정한 `reviewed_head_sha`, ordered checkpoint task/key/SHA
+- 전체 reviewed commit range와 모든 changed path의 disposition
 - 관련 requirement, repository rule, architecture/ADR locator
 - 해당 축이 독립적으로 확인할 source/test/configuration/migration 후보
 - prior finding 중 현재 축이 재검토해야 할 identity와 원래 evidence
@@ -62,5 +62,5 @@ Finding 후보는 axis, basis, observed fact, evidence, impact, suggested verdic
 3. `basis + observed fact + affected behavior`가 같은 중복만 합친다.
 4. 서로 다른 축의 독립 위험과 충돌하는 판정은 근거와 함께 보존한다.
 5. Leaf가 요청한 deterministic verification은 root가 모아 실행하고 실제 결과를 final evidence에 연결한다.
-6. Axis name이나 intermediate observation을 추가하기 위해 `aggregate-review-result-v1` schema를 확장하지
+6. Axis name이나 intermediate observation을 추가하기 위해 `aggregate-review-result-v2` schema를 확장하지
    않는다. PM과 합의한 wire contract만 사용한다.

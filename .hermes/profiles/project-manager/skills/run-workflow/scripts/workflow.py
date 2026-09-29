@@ -75,7 +75,7 @@ def validate_state(graph: Any, board: Any, git: Any) -> tuple[list[str], dict[st
     """Validate a progressed native graph and derive one truthful next transition."""
     errors: list[str] = []
     decision: dict[str, Any] = {"phase": "invalid", "eligible_task_ids": [], "ready_task_ids": [], "allowed_transition": None}
-    if not isinstance(graph, dict) or graph.get("schema") != "build-task-graph-v1":
+    if not isinstance(graph, dict) or graph.get("schema") != "build-task-graph-v2":
         return ["GRAPH_SCHEMA"], decision
     cards = graph.get("cards")
     tasks = board.get("tasks") if isinstance(board, dict) else None
@@ -189,9 +189,9 @@ def validate_review_result(result: Any, graph: Any, expected_prior_findings: Any
     errors: list[str] = []
     if not isinstance(result, dict):
         return ["REVIEW_RESULT_NOT_OBJECT"]
-    allowed = {"schema", "review_card_key", "review_task_id", "review_run_id", "generation", "result", "reviewed_checkpoints", "prior_findings", "findings"}
+    allowed = {"schema", "review_card_key", "review_task_id", "review_run_id", "generation", "baseline_sha", "reviewed_head_sha", "result", "reviewed_checkpoints", "prior_findings", "findings"}
     _exact(result, allowed, errors, "UNEXPECTED_REVIEW_RESULT_FIELD")
-    _require(result.get("schema") == "aggregate-review-result-v1", errors, "REVIEW_RESULT_SCHEMA")
+    _require(result.get("schema") == "aggregate-review-result-v2", errors, "REVIEW_RESULT_SCHEMA")
     _require(_task_id(result.get("review_task_id")), errors, "INVALID_REVIEW_TASK_ID")
     _require(_positive_int(result.get("review_run_id")), errors, "INVALID_REVIEW_RUN_ID")
     _require(result.get("result") in {"approved", "changes-required"}, errors, "INVALID_REVIEW_RESULT")
@@ -200,6 +200,14 @@ def validate_review_result(result: Any, graph: Any, expected_prior_findings: Any
     review = records.get(result.get("review_card_key"))
     _require(isinstance(review, dict) and review.get("card_type") == "review", errors, "REVIEW_CARD_NOT_FOUND")
     _require(result.get("generation") == graph.get("generation") if isinstance(graph, dict) else False, errors, "REVIEW_GENERATION_MISMATCH")
+    review_body = review.get("body", {}) if isinstance(review, dict) else {}
+    _require(_sha(result.get("baseline_sha")), errors, "INVALID_REVIEW_BASELINE_SHA")
+    _require(_sha(result.get("reviewed_head_sha")), errors, "INVALID_REVIEWED_HEAD_SHA")
+    _require(
+        isinstance(review_body, dict) and result.get("baseline_sha") == review_body.get("baseline_sha"),
+        errors,
+        "REVIEW_BASELINE_MISMATCH",
+    )
     expected_impls = set(review.get("body", {}).get("implementation_card_keys", [])) if isinstance(review, dict) and isinstance(review.get("body"), dict) else set()
     checkpoints = result.get("reviewed_checkpoints")
     checkpoint_keys: list[str] = []

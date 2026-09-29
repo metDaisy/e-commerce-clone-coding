@@ -54,7 +54,8 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
 
 ## 공통 작성 절차
 
-1. **입력과 mode를 고정한다.** Leaf Issue, 승인 requirement, planning baseline, workflow marker,
+1. **입력과 mode를 고정한다.** Leaf Issue, 승인 requirement, frozen Triage의
+   `planning_baseline_sha`, workflow marker,
    current-state, 기존 native card를 읽는다. 완료 기준: mode와 requirement basis가 하나로 확정되고
    누락 입력은 owner에게 routing되었다.
 2. **Behavior를 분류한다.** 각 effective behavior를 `implemented | partial | absent | unknown`으로
@@ -80,8 +81,10 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
 
 1. `create-triage`가 freeze한 `running` G1 Triage와 handoff를 읽는다. 완료 기준:
    `build_task_graph.allowed: true`이고 미해결 policy finding이 없다.
-2. Impl, Review1, Summary body와 topology를 작성한다. Impl은 history delta가 아니라 현재 effective
-   behavior 전체를 구현하는 self-contained `backend-implementation-card-v1`이다.
+2. Impl, Review1, Summary body와 topology를 작성한다. Graph `planning_baseline_sha`와 모든 Review body의
+   `baseline_sha`를 frozen Triage baseline으로 고정한다. Impl은 history delta가 아니라 현재 effective
+   behavior 전체를 구현하는 self-contained `backend-implementation-card-v1`이다. Review body에는 현재
+   HEAD나 source symbol 목록을 넣지 않는다.
 3. Planned behavior가 있으면 첫 Impl을 Triage child로 둔다. Planned behavior가 없으면 전체
    inherited behavior를 재검증할 Review1을 Triage child이자 activation target으로 둔다.
 4. 공통 작성 절차를 완료하고 Triage를 완료한다.
@@ -110,7 +113,8 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
 2. `correction-required`는 기존 effective behavior를 충족하는 Impl, `context-required`는 approved
    source를 재확인하는 Review, `decision-required`는 같은 G의 blocked Decision으로 materialize한다.
 3. Completed card/body/link를 그대로 두고 source Review→새 work→next Review/Summary를 append한다.
-   모든 blocking finding의 후속 contract가 정해진 뒤 next Review를 만든다.
+   Next Review는 graph의 최초 `planning_baseline_sha`를 유지해 corrective commit만이 아니라 Issue 전체
+   누적 diff를 다시 검토한다. 모든 blocking finding의 후속 contract가 정해진 뒤 next Review를 만든다.
 4. `source_review`에 review key, finding별 verdict·appended card와 card별 idempotency key를 기록한다.
    Native child와 Summary parents를 read-back해 이미 존재하는 work를 재생성하지 않는다.
 5. Appended Impl이 있으면 첫 Impl을 activation target으로 둔다. Context-only rework이면 next Review를

@@ -1,7 +1,7 @@
-# Aggregate Review 소비·결과 계약 v1
+# Aggregate Review 소비·결과 계약 v2
 
-이 문서는 `reviewer`가 PM-authored `aggregate-review-card-v1`을 해석하고
-`aggregate-review-result-v1`을 작성하는 계약을 소유한다. PM은 graph/card authoring, result의
+이 문서는 `reviewer`가 PM-authored `aggregate-review-card-v2`를 해석하고
+`aggregate-review-result-v2`를 작성하는 계약을 소유한다. PM은 graph/card authoring, result의
 결정론적 validation과 finding routing을 소유한다. Native Kanban task·run·event·comment와 Git read-back이
 identity와 실행 사실의 원본이며 body나 result가 이를 대신하지 않는다.
 
@@ -10,25 +10,63 @@ identity와 실행 사실의 원본이며 body나 result가 이를 대신하지 
 Reviewer는 dispatcher가 시작한 active run에서 다음을 read-back한다.
 
 1. Assignee가 `reviewer`이고 status가 `running`인 actual aggregate Review task
-2. Closed body fields: `schema`, `effective_behavior_ids`, `implementation_card_keys`,
+2. Closed body fields: `schema`, `baseline_sha`, `effective_behavior_ids`, `implementation_card_keys`,
    `inherited_behavior_ids`, `aggregate_acceptance`, `scope_exclusions`
 3. 각 implementation key의 immutable `backend-implementation-card-v1`, done task ID와 latest terminal
    `backend-implementation-checkpoint-v1`
 4. Prior Review의 unresolved blocking finding과 후속 corrective/context/decision evidence
 5. Actual workspace/cwd, branch, clean worktree, current HEAD와 checkpoint commit history
 
-Body의 schema는 `aggregate-review-card-v1`이다. Effective behavior와 aggregate acceptance는 목표 계약이며,
+Body의 schema는 `aggregate-review-card-v2`다. `baseline_sha`는 최초 task graph를 만든 frozen Triage의
+planning baseline이며, effective behavior와 aggregate acceptance는 목표 계약이다.
 implementation/inherited 목록은 evidence coverage를 고정한다. Native task ID, status, run과 workspace를
 body에서 추론하거나 복제값으로 대체하지 않는다.
 
 Admission invariant:
 
 - Body implementation key마다 done task와 유효한 40자리 checkpoint SHA가 정확히 하나 있다.
-- Checkpoint는 현재 review branch history에 존재하고 final reviewed state에 포함된다.
+- `baseline_sha`와 current HEAD는 실제 commit이고 baseline은 HEAD의 ancestor다. Admission에서 current HEAD를
+  `reviewed_head_sha`로 고정한다.
+- Checkpoint는 `baseline_sha..reviewed_head_sha` history에 존재하고 final reviewed state에 포함된다.
 - Prior blocking finding은 source Review task ID, finding ID와 원래 verdict로 추적된다.
 - Repository가 clean하고 current run/task/workspace가 dispatcher read-back과 일치한다.
 
 하나라도 실패하면 result를 만들지 않고 native task를 block한다.
+
+## Progress comment 계약
+
+Reviewer는 작업 가시성을 위해 append-only task comment에 bounded TODO snapshot을 남긴다. Comment는
+canonical finding/result가 아니며 source symbol 목록이나 raw diff를 저장하지 않는다.
+
+```json
+{
+  "schema": "aggregate-review-progress-v1",
+  "review_task_id": "t_a1b2c3",
+  "review_run_id": 21,
+  "baseline_sha": "0123456789abcdef0123456789abcdef01234567",
+  "reviewed_head_sha": "89abcdef0123456789abcdef0123456789abcdef",
+  "phase": "started",
+  "todo": [
+    {"id": "admission", "status": "done"},
+    {"id": "diff-inventory", "status": "in-progress"},
+    {"id": "spec", "status": "pending"},
+    {"id": "maintainability", "status": "pending"},
+    {"id": "persistence", "status": "pending"},
+    {"id": "architecture", "status": "pending"},
+    {"id": "evolution-compatibility", "status": "pending"},
+    {"id": "security", "status": "pending"},
+    {"id": "verification", "status": "pending"},
+    {"id": "result-readback", "status": "pending"}
+  ],
+  "changed_path_count": null,
+  "unexpected_path_count": null
+}
+```
+
+`phase`는 `started | diff-inventoried | axes-complete | verification-complete | blocked`다. TODO ID는 위 목록과
+정확히 같고 status는 `pending | in-progress | done | blocked`다. 정상 run은 시작, diff inventory 완료,
+다섯 축 완료, verification 완료에 최대 네 snapshot을 남긴다. Blocker가 생기면 마지막 snapshot을
+`phase: blocked`로 남기고 원인은 별도 concise PM review comment와 native block reason에 기록한다.
 
 ## Result schema
 
@@ -36,11 +74,13 @@ Reviewer는 latest terminal run metadata에 다음 closed object를 기록한다
 
 ```json
 {
-  "schema": "aggregate-review-result-v1",
+  "schema": "aggregate-review-result-v2",
   "review_card_key": "review-1",
   "review_task_id": "t_a1b2c3",
   "review_run_id": 21,
   "generation": 1,
+  "baseline_sha": "0123456789abcdef0123456789abcdef01234567",
+  "reviewed_head_sha": "89abcdef0123456789abcdef0123456789abcdef",
   "result": "changes-required",
   "reviewed_checkpoints": [
     {
@@ -71,6 +111,7 @@ Reviewer는 latest terminal run metadata에 다음 closed object를 기록한다
 Top-level field 의미:
 
 - `review_card_key`, `review_task_id`, 양의 정수 `review_run_id`, `generation`은 actual card/run과 일치한다.
+- `baseline_sha`는 Review card와 같고 `reviewed_head_sha`는 admission에서 고정한 actual HEAD다.
 - `result`는 `approved | changes-required`다. 정상 review에서 blocking finding이 있으면
   `changes-required`, 없으면 `approved`다. Admission/검증 prerequisite가 없으면 terminal result를
   남기지 말고 native task를 block한다.

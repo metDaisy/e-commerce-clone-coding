@@ -1,5 +1,5 @@
 {
-  "schema": "build-task-graph-v1",
+  "schema": "build-task-graph-v2",
   "mode": "new",
   "issue": {
     "number": 138,
@@ -7,6 +7,7 @@
   },
   "generation": 1,
   "workspace": "scratch",
+  "planning_baseline_sha": "0000000000000000000000000000000000000000",
   "requirement_basis": {
     "path": "docs/requirement/p2/product.md",
     "heading": "상품 등록",
@@ -187,7 +188,8 @@
         "impl-1"
       ],
       "body": {
-        "schema": "aggregate-review-card-v1",
+        "schema": "aggregate-review-card-v2",
+        "baseline_sha": "0000000000000000000000000000000000000000",
         "effective_behavior_ids": [
           "behavior-product-create"
         ],
