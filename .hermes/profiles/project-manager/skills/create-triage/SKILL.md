@@ -74,6 +74,7 @@ Body는 [`references/triage-contract.md`](references/triage-contract.md)의 UTF-
 - goal, scope, explicit out-of-scope, current/desired behavior
 - implementation idea, candidate vertical slices/dependencies, verification direction
 - requirement, architecture, ADR, glossary, ERD, index의 disposition과 locator
+- 소비 module, producer module, capability와 실제 public surface를 구분한 `cross_domain_contracts`
 - 구조화된 policy finding, decision request, blocker
 - `planning_state`와 `build_task_graph` handoff
 
@@ -114,8 +115,11 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
    별도로 확인한다.
 4. **Claim하고 조사한다.** Native lifecycle로 `running`으로 바꾸고 requirement, Issue, snapshot과
    후보 문서를 대조한다. Source 조사는 충돌, 구조 제약 또는 snapshot 불일치가 있을 때만 좁게
-   수행한다. 완료 기준: 모든 finding에 evidence와 disposition이 있다.
-5. **Blocker를 처리한다.** 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
+   수행한다. 소비하는 cross-domain capability는 producer의 named public interface/query/event와 실제
+   error·consistency 의미를 확인한다. consumer-owned port, 항상 empty/default를 반환하는 adapter 또는
+   producer 내부 구현은 published contract가 아니다. 완료 기준: 모든 finding과 cross-domain contract에
+   evidence와 disposition이 있다.
+5. **Blocker를 처리한다.** public contract가 absent/partial이거나 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
    구조화된 open finding·pending decision request·blocker를 기록하고 `blocked`로 바꾼다.
    `service-planning` card를 native link로 연결한다. 완료 기준: 두 card와 link를 read-back했다.
 6. **결정 뒤 재개한다.** 사용자 결정, requirement 변경, 필요한 `sync-docs` 결과와 Issue를

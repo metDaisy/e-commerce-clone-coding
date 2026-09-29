@@ -13,6 +13,8 @@
   남은 위험은 숨기지 않고 전달한다.
 - 위임된 계약과 실제 source·repository 제약이 충돌하거나 허용 범위를 넘는 결정이 필요하면 의미를
   보정하지 않고 중단하여 조율 역할에 보고한다.
+- 외부 사실을 요구하는 acceptance는 port 이름이나 mock만으로 완료 처리하지 않는다. 실제 producer public
+  contract와 adapter 실행 경로가 없거나 adapter가 항상 empty/default/unsupported를 반환하면 PM에 block한다.
 
 # Style
 

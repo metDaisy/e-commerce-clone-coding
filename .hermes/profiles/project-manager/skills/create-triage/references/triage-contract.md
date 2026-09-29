@@ -1,4 +1,4 @@
-# create-triage JSON 계약 v1
+# create-triage JSON 계약 v2
 
 Kanban task의 `body`는 UTF-8 JSON object 하나다. Native Kanban은 task identity, status,
 assignee, link, event, comment와 run을 소유하고, 이 body는 PM planning data를 소유한다. Body에
@@ -8,7 +8,7 @@ assignee, link, event, comment와 run을 소유하고, 이 body는 PM planning d
 
 ```json
 {
-  "schema": "triage-v1",
+  "schema": "triage-v2",
   "planning_state": "planning",
   "frozen_digest": null,
   "issue": {"number": 138, "title": "G1-Issue138-Triage", "url": "https://.../issues/138"},
@@ -24,6 +24,7 @@ assignee, link, event, comment와 run을 소유하고, 이 body는 PM planning d
   "candidate_dependencies": [],
   "verification_direction": ["..."],
   "document_impact": {},
+  "cross_domain_contracts": [],
   "policy_findings": [],
   "decision_requests": [],
   "blocker": null,
@@ -66,6 +67,23 @@ Decision request는 다음 field를 가진다.
 미해결 상태이며 graph gate를 닫는다. `approved`에는 non-empty `approved_change`가 필요하다.
 Native `blocked` card에는 `blocker.kind`와 미해결 decision request가 모두 필요하다.
 
+## Cross-domain public contract
+
+`cross_domain_contracts`는 이번 Issue가 소비하는 외부 capability마다 한 항목을 가진다. 단순 port 이름,
+adapter 클래스 또는 producer 내부 entity/repository는 public contract 증거가 아니다. 각 항목은
+`consumer_module`, `producer_module`, `capability`, non-empty `evidence`와 다음 `status` 중 하나를 가진다.
+
+- `published`: `public_contract`에 실제 named interface/query/event 등 public surface를 기록한다. 이 경우
+  policy finding과 decision request는 없다.
+- `absent-or-partial`: open `policy_finding_id`와 pending/deferred `decision_request_id`를 모두 가리킨다.
+  Graph gate는 닫힌다. P3가 필요로 하는 P9 Offer 사실처럼 producer public contract가 없으면 placeholder
+  adapter를 완료 근거로 사용하지 않는다.
+- `not-applicable`: 구체적인 `not_applicable_reason`을 기록한다.
+
+`triage-v1`은 이미 완료된 historical card read-back을 위한 legacy schema다. 새 Triage는 반드시
+`triage-v2` template으로 만들며, external capability를 `application.port.out`에 두었다는 이유만으로
+published로 판정하지 않는다.
+
 ## Graph gate 검증
 
 `build_task_graph.allowed: true`는 다음을 모두 만족할 때만 유효하다.
@@ -75,6 +93,7 @@ Native `blocked` card에는 `blocker.kind`와 미해결 decision request가 모�
 - `blocker: null`
 - open policy finding과 pending/deferred decision request가 없음
 - `document_impact`에 `blocked`가 없음
+- `triage-v2`의 모든 `cross_domain_contracts`가 `published | not-applicable`
 
 ## Native read-back 검증
 

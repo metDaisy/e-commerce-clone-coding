@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from contract_common import is_canonical_https_url
-from graph_contract import requirement_diff, validate_graph
+from graph_contract import requirement_diff, validate_graph, validate_native_readback
 
 CONTRACT_DIMENSIONS = (
     "actor_authorization",
@@ -434,6 +434,10 @@ def main() -> int:
     graph_parser.add_argument("graph", type=Path)
     graph_parser.add_argument("--phase", choices=("draft", "native"), default="draft")
     graph_parser.add_argument("--source-review-result", type=Path)
+    native_parser = subparsers.add_parser("validate-native-readback", help="compare graph wrapper with full Kanban show read-back")
+    native_parser.add_argument("graph", type=Path)
+    native_parser.add_argument("readback", type=Path)
+    native_parser.add_argument("--source-review-result", type=Path)
     diff_parser = subparsers.add_parser("requirement-diff", help="write a read-only requirement comparison")
     diff_parser.add_argument("--base", required=True)
     diff_parser.add_argument("--revised", required=True)
@@ -451,29 +455,31 @@ def main() -> int:
             print(json.dumps({"valid": False, "errors": [f"REQUIREMENT_DIFF_FAILED:{exc}"]}, ensure_ascii=False))
             return 2
         return 0
-    source = args.graph if args.command == "validate-graph" else args.card
+    source = args.graph if args.command in {"validate-graph", "validate-native-readback"} else args.card
     try:
         payload = _read_json(source)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
         return 2
     source_review_result = None
-    if args.command == "validate-graph" and args.source_review_result is not None:
+    if args.command in {"validate-graph", "validate-native-readback"} and args.source_review_result is not None:
         try:
             source_review_result = _read_json(args.source_review_result)
         except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
             print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
             return 2
-    errors = (
-        validate_graph(
-            payload,
-            phase=args.phase,
-            validate_implementation=validate,
-            source_review_result=source_review_result,
-        )
-        if args.command == "validate-graph"
-        else validate(payload)
-    )
+    if args.command == "validate-native-readback":
+        try:
+            readback = _read_json(args.readback)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+            print(json.dumps({"valid": False, "errors": [f"READ_INPUT_FAILED:{exc}"]}, ensure_ascii=False))
+            return 2
+        errors = validate_graph(payload, phase="native", validate_implementation=validate, source_review_result=source_review_result)
+        errors.extend(validate_native_readback(payload, readback))
+    elif args.command == "validate-graph":
+        errors = validate_graph(payload, phase=args.phase, validate_implementation=validate, source_review_result=source_review_result)
+    else:
+        errors = validate(payload)
     print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=False))
     return 1 if errors else 0
 

@@ -571,6 +571,70 @@ def validate_graph(
     return errors
 
 
+def validate_native_readback(graph: Any, readback: Any) -> list[str]:
+    """Compare every persisted graph card with full public Kanban show read-back."""
+    errors: list[str] = []
+    if not isinstance(graph, dict) or not isinstance(graph.get("cards"), list):
+        return ["GRAPH_SCHEMA"]
+    if not isinstance(readback, list):
+        return ["NATIVE_READBACK_NOT_LIST"]
+    planned_by_key = {
+        card.get("key"): card
+        for card in graph["cards"]
+        if isinstance(card, dict) and _non_empty(card.get("key"))
+    }
+    actual_by_title: dict[str, dict[str, Any]] = {}
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, envelope in enumerate(readback):
+        task = envelope.get("task") if isinstance(envelope, dict) else None
+        if not isinstance(task, dict):
+            errors.append(f"NATIVE_TASK_NOT_OBJECT:{index}")
+            continue
+        task_id, title = task.get("id"), task.get("title")
+        if not _non_empty(task_id):
+            errors.append(f"NATIVE_TASK_ID_MISSING:{index}")
+            continue
+        if not _non_empty(title):
+            errors.append(f"NATIVE_TASK_TITLE_MISSING:{index}")
+            continue
+        if task_id in actual_by_id:
+            errors.append(f"DUPLICATE_NATIVE_TASK_ID:{task_id}")
+        if title in actual_by_title:
+            errors.append(f"DUPLICATE_NATIVE_TASK_TITLE:{title}")
+        actual_by_id[task_id] = envelope
+        actual_by_title[title] = envelope
+    planned_titles = {card.get("title") for card in planned_by_key.values()}
+    _error(errors, planned_titles == set(actual_by_title), "NATIVE_READBACK_MEMBERSHIP_MISMATCH")
+    for key, card in planned_by_key.items():
+        envelope = actual_by_title.get(card.get("title"))
+        if not isinstance(envelope, dict):
+            continue
+        task = envelope["task"]
+        for field in ("assignee", "status"):
+            _error(errors, task.get(field) == card.get(field), f"NATIVE_{field.upper()}_MISMATCH:{key}")
+        body = task.get("body")
+        if card.get("body") is None:
+            _error(errors, body in {None, ""}, f"NATIVE_BODY_MISMATCH:{key}")
+        else:
+            try:
+                native_body = json.loads(body) if isinstance(body, str) else body
+            except json.JSONDecodeError:
+                native_body = None
+                errors.append(f"NATIVE_BODY_NOT_JSON:{key}")
+            _error(errors, native_body == card.get("body"), f"NATIVE_BODY_MISMATCH:{key}")
+        parent_ids = envelope.get("parents")
+        _error(errors, isinstance(parent_ids, list) and all(_non_empty(item) for item in parent_ids), f"NATIVE_PARENTS_INVALID:{key}")
+        if isinstance(parent_ids, list):
+            expected_parent_ids = []
+            for parent_key in card.get("parents", []):
+                parent = planned_by_key.get(parent_key)
+                parent_envelope = actual_by_title.get(parent.get("title")) if isinstance(parent, dict) else None
+                if isinstance(parent_envelope, dict):
+                    expected_parent_ids.append(parent_envelope["task"].get("id"))
+            _error(errors, set(parent_ids) == set(expected_parent_ids), f"NATIVE_PARENT_MISMATCH:{key}")
+    return errors
+
+
 def _git(repository: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=repository, check=True, text=True, encoding="utf-8", capture_output=True).stdout
 

@@ -39,6 +39,37 @@ class TriageContractTest(unittest.TestCase):
     def test_populated_body_is_valid_for_running_card(self):
         self.assertEqual([], validate(self.populated_body(), "running"))
 
+    def test_absent_cross_domain_contract_requires_open_finding_and_decision(self):
+        body = self.populated_body()
+        body["cross_domain_contracts"] = [
+            {
+                "consumer_module": "cart",
+                "producer_module": "offer",
+                "capability": "현재 판매 가능 Offer 조회",
+                "status": "absent-or-partial",
+                "evidence": ["docs/requirement/p3/p3-cart.md#조회"],
+                "public_contract": None,
+                "policy_finding_id": "PF-001",
+                "decision_request_id": "DR-001",
+                "not_applicable_reason": None,
+            }
+        ]
+        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_OPEN_POLICY_FINDING", validate(body, "running"))
+        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_UNRESOLVED_DECISION_REQUEST", validate(body, "running"))
+
+        body["policy_findings"] = [
+            {"id": "PF-001", "problem": "Offer public contract가 없다.", "evidence": ["docs/requirement/p9/p9-index.md#범위"], "status": "open"}
+        ]
+        body["decision_requests"] = [
+            {
+                "id": "DR-001", "problem": "Offer 조회 public contract를 결정한다.", "why": "Cart 불변식이 현재 Offer 사실을 필요로 한다.",
+                "evidence": ["docs/requirement/p3/p3-cart.md#조회"], "options": [{"id": "A", "choice": "named interface query", "impact": "동기 조회 seam을 제공한다."}],
+                "decision_owner": "user", "decision_status": "pending", "approved_change": None,
+            }
+        ]
+        body["blocker"] = {"kind": "cross-domain-contract"}
+        self.assertEqual([], validate(body, "blocked"))
+
     def test_template_preserves_issue_specific_inputs_only(self):
         body = template(
             138,

@@ -231,6 +231,11 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 허용하지 않으며 문서 path를 포함하지 않는다. 실행하지 못한 검증,
 실패, dirty conflict 또는 미정 policy는 handoff가 아니라 `kanban_block` 대상이다.
 
+`external_system.applicable=true`인 card는 port interface·mock test만으로 acceptance를 pass 처리할 수 없다.
+Coder는 consumer port → adapter → producer public surface의 실제 경로와 unavailable/error semantics를 확인해야
+한다. Adapter가 항상 empty/default/unsupported 결과를 반환하거나 producer public contract가 absent/partial이면
+해당 behavior는 handoff 대상이 아니라 `PM review requested` + `kanban_block(kind="needs_input")` 대상이다.
+
 ## Changes-request input
 
 Changes-requested rework에서 Coder는 latest native `request-changes` transition 직전 durable comment의

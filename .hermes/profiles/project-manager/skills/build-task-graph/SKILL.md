@@ -68,7 +68,9 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
    각각 read-back한다. 각 Impl에는 PM-owned comment로 `backend-implementation-admission-v1`을 남긴다.
    이 closed object는 `schema`, actual `task_id`, positive wrapper Issue number인 `issue`, exact `workspace`,
    `card_schema: backend-implementation-card-v1`, `restart: null`만 가지며 Coder가 native show에서 읽는
-   durable execution intent다. `run-workflow/scripts/workflow.py validate-implementation-admission`으로
+   durable execution intent다. 모든 native card의 full `show --json` envelope를 배열로 모아
+   `validate-native-readback`으로 title/body/parent를 wrapper와 대조한 뒤
+   `run-workflow/scripts/workflow.py validate-implementation-admission`으로
    comment payload를 검증한다. Wrapper를 read-back 값으로 갱신한다. 완료 기준: 신규 execution card가
    dispatchable하지 않고 wrapper와 native 상태가 일치하며 admission comment가 exact task에 존재한다.
 5. **Activation을 검증한다.** Mode별 activation을 실행한 뒤 `validate-graph --phase native`를

@@ -59,9 +59,14 @@ Coder의 입력이 아니다.
    loop, bounded simplification, full backend verification과 self-review 절차를 순서대로 수행한다.
 2. 기존 code와 card의 `implementation_context.current_behavior`가 달라 acceptance나 public contract가
    변하면 제품 의미를 다시 해석하지 않고 근거와 영향으로 block한다.
-3. 모든 Gradle 작업은 `gradle-mcp`로만 실행한다. Terminal, shell 또는 IDE의 Gradle 실행,
+3. `external_system.applicable=true`이면 consumer port에서 adapter, producer public surface와 required
+   unavailable/error semantics까지 실제 실행 경로를 확인한다. 항상 `Optional.empty()`, default value 또는
+   unsupported 결과를 반환하는 placeholder adapter는 query/mutation/merge acceptance의 pass 근거가 아니다.
+   Producer public contract가 absent/partial이면 해당 behavior를 구현 완료로 포장하지 않고 PM review requested
+   comment와 `kanban_block(kind="needs_input")`으로 올린다.
+4. 모든 Gradle 작업은 `gradle-mcp`로만 실행한다. Terminal, shell 또는 IDE의 Gradle 실행,
    test 약화·비활성화, validator 우회와 검증 범위 축소는 금지한다.
-4. Requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow와 사용자 문서를
+5. Requirement, architecture, ADR, glossary, `current-state.md`, Profile/workflow와 사용자 문서를
    수정하지 않는다. 문서 영향은 handoff로만 보고한다.
 
 ### 2.5 Problem escalation to PM

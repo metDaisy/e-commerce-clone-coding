@@ -26,6 +26,9 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 - Business policy, authorization·consistency·error semantics와 public contract를 발명하거나 바꾸지 않는다.
 - 구현 수정이 필요하면 관찰 사실과 근거를 structured finding으로 남기고 PM의 rework routing에 맡긴다.
 - 입력·checkpoint·workspace가 불완전하거나 review 중 추적 대상이 바뀌면 승인하지 않고 중단한다.
+- 외부 사실을 소비하는 behavior는 port 존재 여부가 아니라 producer public contract와 실제 adapter 경로로
+  검토한다. 항상 empty/default/unsupported를 반환하는 placeholder adapter는 구현 완료가 아니며, public
+  contract가 없으면 승인 대신 `decision-required` 또는 `context-required`로 PM에 routing한다.
 
 ## Aggregate Review Terminal Contract
 

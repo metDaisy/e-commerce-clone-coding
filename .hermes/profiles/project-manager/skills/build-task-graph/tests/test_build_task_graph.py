@@ -10,7 +10,7 @@ from unittest.mock import patch
 SKILL_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 from build_task_graph import template, validate, write_json  # noqa: E402
-from graph_contract import requirement_diff, validate_graph  # noqa: E402
+from graph_contract import requirement_diff, validate_graph, validate_native_readback  # noqa: E402
 
 
 class BackendImplementationCardContractTest(unittest.TestCase):
@@ -358,6 +358,27 @@ class TaskGraphContractTest(unittest.TestCase):
         graph["cards"][0]["status"] = "done"
         graph["cards"][1]["status"] = "ready"
         self.assertEqual([], validate_graph(graph, phase="native", validate_implementation=validate))
+
+    def test_native_readback_rejects_summary_parent_omission(self):
+        graph = self.valid_graph()
+        graph["cards"][0]["status"] = "done"
+        graph["cards"][1]["status"] = "ready"
+        ids = {card["key"]: f"t_{index + 1}" for index, card in enumerate(graph["cards"])}
+        readback = [
+            {
+                "task": {
+                    "id": ids[card["key"]],
+                    "title": card["title"],
+                    "assignee": card["assignee"],
+                    "status": card["status"],
+                    "body": json.dumps(card["body"], ensure_ascii=False) if card["body"] is not None else "",
+                },
+                "parents": [ids[parent] for parent in card["parents"]],
+            }
+            for card in graph["cards"]
+        ]
+        next(item for item in readback if item["task"]["title"] == "G1-Issue138-Summary")["parents"] = []
+        self.assertIn("NATIVE_PARENT_MISMATCH:summary", validate_native_readback(graph, readback))
 
     def test_implemented_behavior_requires_inherited_evidence(self):
         graph = self.valid_graph()

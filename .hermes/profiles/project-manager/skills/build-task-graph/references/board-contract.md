@@ -172,3 +172,7 @@ promotion될 수 있다.
 Review/Summary coverage, cycle, mode별 topology, phase status, archive invariant를 검증한다. Validator
 통과는 semantic behavior 완료 증거가 아니다. Native persistence는 read-back으로, behavior 완료는 PM
 checkpoint와 독립 Reviewer evidence로 증명한다.
+
+`validate-native-readback`은 모든 active card의 public `kanban show --json` envelope를 배열로 모아 wrapper와
+대조한다. title, assignee, status, body와 parent task ID를 함께 비교하므로 Summary가 Review를 direct parent에서
+누락한 경우를 local wrapper만으로 통과시키지 않는다.

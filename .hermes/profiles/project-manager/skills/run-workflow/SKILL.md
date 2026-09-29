@@ -119,10 +119,10 @@ rework/unblock 경로를 선택한다. 사용자 판단이 필요한 policy, aut
 완료 기준: task `done`, checkpoint SHA/path, clean Git state가 같은 native run과 일치한다. PM checkpoint는
 aggregate Review를 대체하지 않는다.
 
-## Summary와 release
+## Summary와 사용자 최종 검토
 
-Summary는 release 후 완료되는 finalization card다. Native dependency가 Summary를 `ready`로 만들었다는
-사실만으로 완료하지 않는다.
+Summary는 사용자 최종 검토를 위한 local evidence card다. Native dependency가 Summary를 `ready`로 만들었다는
+사실만으로 완료하지 않으며, remote push, PR 생성·merge, GitHub Issue close를 수행하지 않는다.
 
 1. 모든 direct parent가 `done`, latest Review의 native run metadata가 `approved`, prior blocking finding이 모두
    explicit `resolved`인지 read-back한다. 하나라도 아니면 Summary를 unblock·promote·claim·dispatch하지 않는다.
@@ -133,22 +133,15 @@ Summary는 release 후 완료되는 finalization card다. Native dependency가 S
 
    `python scripts/workflow.py validate-summary-admission <admission.json> <graph.json> <native-board.json> <expected-prior-findings.json>`
 
-2. `update-current-state`로 frozen implementation SHA의 `src/**`를 조사하고 active marker를 제거한다.
-   `docs/current-state.md`만 변경한 docs-only commit, inspection SHA, docs commit SHA와 clean tree를 읽는다.
-3. Delivery branch를 push하고 repository default branch 대상 PR을 만든다. PR body에 정확한
-   `Closes #<leaf-issue>`를 넣고 PR number, URL, base/head branch와 actual head SHA를 읽는다.
-4. **실제 PR head SHA**의 required CI check가 모두 terminal success/neutral인지 확인한다. Pending,
-   skipped, cancelled, failed, 다른 SHA의 결과는 통과가 아니다.
-5. Merge를 수행하고 같은 PR/head의 merge SHA를 읽는다. 별도 Issue close mutation 없이 GitHub가 해당
-   PR로 leaf Issue를 auto-close했는지 읽는다.
-6. 모든 사실을 `issue-release-result-v1`로 만들고 검증한다.
+2. Summary admission, final implementation SHA, documentation commit lineage와 clean local worktree를
+   concise evidence로 사용자에게 제시한다. 사용자가 최종 검토할 때까지 Summary를 완료하지 않는다.
+3. 사용자가 local evidence를 승인하면 Summary에 승인 범위와 native read-back을 남기고 `done`으로 완료한다.
+   이 승인도 remote publication 권한을 부여하지 않는다.
+4. push, PR, CI, merge, Issue close와 `issue-release-result-v1`은 Summary 이후 사용자가 별도로 명시한
+   release 작업에서만 수행한다. 그 작업은 새 사용자 승인과 fresh branch/PR/Issue read-back으로 시작한다.
 
-   `python scripts/workflow.py validate-release <release.json>`
-
-7. 검증 통과 후에만 같은 Summary를 complete하고 terminal run metadata와 `done`을 read-back한다.
-
-완료 기준: final implementation SHA, docs-only snapshot commit, PR head CI, merge와 Issue auto-close가 하나의
-검증된 release chain이며 Summary가 마지막에 `done`이다.
+완료 기준: 모든 direct parent, latest approved Review, final implementation SHA, documentation lineage와 clean
+worktree가 read-back되고 사용자가 local evidence를 최종 검토한 뒤 Summary가 `done`이다.
 
 ## Release finding routing
 

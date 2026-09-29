@@ -87,7 +87,9 @@ Review 중 입력·checkpoint·workspace·tool·environment 또는 공개 계약
 4. Changed diff와 관련 production source, caller/consumer, test, configuration, migration,
    `package-info.java`, architecture/ADR의 후보를 찾는다. Exact locator가 없을 때
    [`code-discovery-guide.md`](references/code-discovery-guide.md)를 읽는다. Behavior 위치 질문은 Semble,
-   known symbol의 관계·영향 질문은 Codebase Memory branch를 선택하고 source에서 확정한다.
+   known symbol의 관계·영향 질문은 Codebase Memory branch를 선택하고 source에서 확정한다. external_system
+   behavior마다 producer public contract, consumer port, adapter와 실제 unavailable/error path를 inventory에
+   포함한다. placeholder adapter 또는 public contract 부재를 Coder 설명·mock만으로 pass 처리하지 않는다.
 5. Diff inventory가 닫히면 두 번째 progress comment를 남겨 `diff-inventory=done`과 changed/unexpected path
    수를 기록하고 `spec=in-progress`로 전환한다.
 
@@ -102,7 +104,10 @@ terminal result 하나를 유지하지만, 축별 source discovery와 판단을 
 
 1. `review-spec`, `review-maintainability`, `review-persistence`, `review-architecture`,
    `review-evolution-compatibility` 순서로 한 axis씩 `delegate_task`에 위임한다. 각 child는 fresh isolated
-   axis session이며 local model route에서는 병렬 dispatch하지 않는다.
+   axis session이다. **항상 한 번의 `delegate_task` 호출에 child 하나만** 넣고, 그 child의 terminal result를
+   받아 axis comment를 read-back한 뒤에만 다음 axis를 위임한다. 여러 axis를 한 호출의 `tasks` 배열에 넣거나,
+   실행 중인 child가 있는 동안 다음 axis를 dispatch하지 않는다. `delegation.max_concurrent_children=1`은
+   병렬 실행을 막는 runtime safety cap이며, parent의 순차 dispatch 절차를 대체하지 않는다.
 2. Root는 `axis-result-contract`의 immutable 공통 입력에서 compact invocation packet만 만든다. Packet에는
    task/run identity, fixed base/head, checkpoints, behavior/acceptance/scope exclusions, axis locator와 prior
    finding identity만 둔다. 전체 `kanban_show`, raw diff, raw tool output, full file content, 다른 axis result,

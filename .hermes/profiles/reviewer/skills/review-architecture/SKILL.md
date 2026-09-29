@@ -76,6 +76,9 @@ Modulith test에서 확정한다.
 8. Public seam의 owner, request/event, response/projection, authorization, not-found/error, consistency/transaction,
    ordering/paging/idempotency와 evolution rule이 requirement와 ADR에 의해 충분히 결정됐는지 확인한다.
    결정이 없으면 preferred integration mode를 finding으로 강제하지 않고 context/decision 후보로 돌린다.
+   Consumer adapter가 실제 public surface를 호출하는지까지 확인한다. 항상 empty/default/unsupported를 반환하는
+   adapter는 card가 해당 external behavior를 완료로 주장하면 `correction-required`이며, producer public contract
+   자체가 absent/partial이면 `decision-required` 또는 `context-required`로 남긴다.
 9. Seam마다 실제 variation과 adapter 수를 확인한다. One adapter와 future possibility만으로 abstraction을
    요구하지 않고, caller가 알아야 하는 invariant/order/error가 늘었는지로 depth를 판단한다.
 10. `ApplicationModules.verify()` 또는 project `ModularityTest`와 관련 module integration test를 root에

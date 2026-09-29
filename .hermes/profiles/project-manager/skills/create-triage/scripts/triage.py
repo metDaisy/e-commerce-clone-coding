@@ -18,6 +18,7 @@ STATUSES = {"triage", "todo", "ready", "running", "blocked", "done"}
 PLANNING_STATES = {"planning", "frozen"}
 FINDING_STATUSES = {"open", "resolved"}
 DECISION_STATUSES = {"pending", "approved", "rejected", "deferred"}
+EXTERNAL_CONTRACT_STATUSES = {"published", "absent-or-partial", "not-applicable"}
 SHA = re.compile(r"^[0-9a-f]{40}$")
 TASK_ID = re.compile(r"^t_[0-9a-f]+$")
 
@@ -59,7 +60,7 @@ def template(
         for document in DOCUMENTS
     }
     return {
-        "schema": "triage-v1",
+        "schema": "triage-v2",
         "planning_state": "planning",
         "frozen_digest": None,
         "issue": {"number": issue_number, "title": title, "url": issue_url},
@@ -80,6 +81,7 @@ def template(
         "candidate_dependencies": [],
         "verification_direction": [],
         "document_impact": impacts,
+        "cross_domain_contracts": [],
         "policy_findings": [],
         "decision_requests": [],
         "blocker": None,
@@ -97,7 +99,8 @@ def validate(body: Any, status: str | None = None) -> list[str]:
     if not isinstance(body, dict):
         return ["BODY_NOT_OBJECT"]
 
-    _error(errors, body.get("schema") == "triage-v1", "SCHEMA_VERSION")
+    schema = body.get("schema")
+    _error(errors, schema in {"triage-v1", "triage-v2"}, "SCHEMA_VERSION")
     planning_state = body.get("planning_state")
     _error(errors, planning_state in PLANNING_STATES, "INVALID_PLANNING_STATE")
     frozen_digest = body.get("frozen_digest")
@@ -189,7 +192,75 @@ def validate(body: Any, status: str | None = None) -> list[str]:
             _error(errors, decision_status in DECISION_STATUSES, f"INVALID_{prefix}_STATUS")
             unresolved_requests = unresolved_requests or decision_status in {"pending", "deferred"}
             if decision_status == "approved":
-                _error(errors, _non_empty_string(request.get("approved_change")), f"MISSING_{prefix}_APPROVED_CHANGE")
+                _error(errors, _non_empty(request.get("approved_change")), f"MISSING_{prefix}_APPROVED_CHANGE")
+
+    if schema == "triage-v2":
+        cross_domain_contracts = body.get("cross_domain_contracts")
+        _error(errors, isinstance(cross_domain_contracts, list), "INVALID_CROSS_DOMAIN_CONTRACTS")
+        if isinstance(cross_domain_contracts, list):
+            known_findings = {
+                finding.get("id"): finding.get("status")
+                for finding in policy_findings
+                if isinstance(finding, dict) and _non_empty_string(finding.get("id"))
+            }
+            known_requests = {
+                request.get("id"): request.get("decision_status")
+                for request in decision_requests
+                if isinstance(request, dict) and _non_empty_string(request.get("id"))
+            }
+            capabilities: set[tuple[str, str, str]] = set()
+            for index, contract in enumerate(cross_domain_contracts):
+                prefix = f"CROSS_DOMAIN_CONTRACT:{index}"
+                _error(errors, isinstance(contract, dict), f"INVALID_{prefix}")
+                if not isinstance(contract, dict):
+                    continue
+                _error(
+                    errors,
+                    set(contract)
+                    <= {
+                        "consumer_module",
+                        "producer_module",
+                        "capability",
+                        "status",
+                        "evidence",
+                        "public_contract",
+                        "policy_finding_id",
+                        "decision_request_id",
+                        "not_applicable_reason",
+                    },
+                    f"UNEXPECTED_{prefix}_FIELD",
+                )
+                for field in ("consumer_module", "producer_module", "capability"):
+                    _error(errors, _non_empty_string(contract.get(field)), f"MISSING_{prefix}_{field.upper()}")
+                identity = tuple(contract.get(field) for field in ("consumer_module", "producer_module", "capability"))
+                if all(isinstance(value, str) and value.strip() for value in identity):
+                    if identity in capabilities:
+                        errors.append(f"DUPLICATE_CROSS_DOMAIN_CONTRACT:{':'.join(identity)}")
+                    capabilities.add(identity)
+                status_value = contract.get("status")
+                _error(errors, status_value in EXTERNAL_CONTRACT_STATUSES, f"INVALID_{prefix}_STATUS")
+                _error(errors, _string_list(contract.get("evidence")), f"MISSING_{prefix}_EVIDENCE")
+                if status_value == "published":
+                    _error(errors, _non_empty_string(contract.get("public_contract")), f"MISSING_{prefix}_PUBLIC_CONTRACT")
+                    _error(errors, contract.get("policy_finding_id") is None, f"PUBLISHED_{prefix}_HAS_POLICY_FINDING")
+                    _error(errors, contract.get("decision_request_id") is None, f"PUBLISHED_{prefix}_HAS_DECISION_REQUEST")
+                    _error(errors, contract.get("not_applicable_reason") is None, f"PUBLISHED_{prefix}_HAS_NOT_APPLICABLE_REASON")
+                elif status_value == "absent-or-partial":
+                    finding_id = contract.get("policy_finding_id")
+                    request_id = contract.get("decision_request_id")
+                    _error(errors, _non_empty_string(finding_id) and known_findings.get(finding_id) == "open", f"MISSING_{prefix}_OPEN_POLICY_FINDING")
+                    _error(
+                        errors,
+                        _non_empty_string(request_id) and known_requests.get(request_id) in {"pending", "deferred"},
+                        f"MISSING_{prefix}_UNRESOLVED_DECISION_REQUEST",
+                    )
+                    _error(errors, contract.get("public_contract") is None, f"ABSENT_{prefix}_HAS_PUBLIC_CONTRACT")
+                    _error(errors, contract.get("not_applicable_reason") is None, f"ABSENT_{prefix}_HAS_NOT_APPLICABLE_REASON")
+                elif status_value == "not-applicable":
+                    _error(errors, _non_empty_string(contract.get("not_applicable_reason")), f"MISSING_{prefix}_NOT_APPLICABLE_REASON")
+                    _error(errors, contract.get("public_contract") is None, f"NOT_APPLICABLE_{prefix}_HAS_PUBLIC_CONTRACT")
+                    _error(errors, contract.get("policy_finding_id") is None, f"NOT_APPLICABLE_{prefix}_HAS_POLICY_FINDING")
+                    _error(errors, contract.get("decision_request_id") is None, f"NOT_APPLICABLE_{prefix}_HAS_DECISION_REQUEST")
     blocker = body.get("blocker")
     _error(errors, blocker is None or isinstance(blocker, dict), "INVALID_BLOCKER")
 

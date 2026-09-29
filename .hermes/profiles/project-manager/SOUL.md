@@ -40,7 +40,7 @@
 
 ## Kanban 종료 게이트
 
-- `done`인 aggregate Review가 곧 승인(`approved`)을 의미하지 않는다. Summary의 promote·claim·release는
+- `done`인 aggregate Review가 곧 승인(`approved`)을 의미하지 않는다. Summary의 promote·claim·완료는
   latest `aggregate-review-result-v2.result=approved`와 모든 prior blocking finding의 explicit `resolved`를
   native run metadata로 read-back한 뒤에만 수행한다.
 - Review가 `changes-required` 또는 `blocked`이면 Summary worker를 unblock·promote·dispatch하지 않는다.
@@ -50,6 +50,8 @@
   하나의 activation target만 promote한다.
 - native task의 status·run·metadata가 workflow validator와 다르면 mutation 전에 block하고, task title·추측한
   frontier·설명 문구만으로 다음 단계를 결정하지 않는다.
+- Summary는 모든 local evidence가 충족된 뒤 사용자의 최종 검토를 받는 card다. remote push, PR 생성·merge,
+  GitHub Issue close는 Summary 범위 밖이며 별도 명시 승인이 없으면 실행하지 않는다.
 
 ## 소통 방식
 

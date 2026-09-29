@@ -1,6 +1,6 @@
 # run-workflow runtime 계약
 
-이 문서는 active Kanban graph의 실행 상태, aggregate Review 결과, Summary admission, release와 recovery에
+이 문서는 active Kanban graph의 실행 상태, aggregate Review 결과, Summary admission, 사용자 최종 검토와 recovery에
 사용하는 persisted JSON schema와 결정론적 invariant를 소유한다. 실행 순서는 [`../SKILL.md`](../SKILL.md),
 Impl checkpoint는 [`execution-contract.md`](execution-contract.md), graph/card authoring은
 [`../../build-task-graph/references/board-contract.md`](../../build-task-graph/references/board-contract.md)가
@@ -50,7 +50,7 @@ history와 다시 대조한다. 모든 direct parent가 done이고 latest Review
 implementation SHA와 같고, 있으면
 각 SHA가 implementation SHA와 구분되며 clean HEAD는 마지막 documentation commit SHA와 같다. PM은
 각 documentation commit의 parent ordering과 exact docs-only changed paths를 Git read-back으로 별도
-검증한다. 이는 Summary completion이 아니라 release를 시작할 자격이다.
+검증한다. 이는 Summary를 `done`으로 만들기 위한 사용자의 최종 검토 자격이며, release를 시작할 자격이 아니다.
 
 ## Release 결과
 
