@@ -51,20 +51,34 @@ Modulith test에서 확정한다.
    mutation과 glossary/ADR 수정을 실행하지 않는다.
 3. Spring Modulith를 확인한다: application module ownership, `allowedDependencies`, `@NamedInterface`, internal
    package access, cycle, event publication/consumption과 module test coverage.
-4. Layer 방향을 확인한다: presentation → application → domain, infra adapter → inward contract. Framework,
-   persistence와 transport detail이 domain policy 또는 public contract에 누출되는지 확인한다.
-5. Event가 완료 사실인지 사실상 command인지, transaction coupling·failure semantics·idempotency가 기존
+4. Layer 방향과 책임 배치를 확인한다: presentation → application → domain, infra adapter → inward contract.
+   다음을 changed symbol과 caller로 확인한다.
+   - HTTP path·cookie·body parsing/binding 오류가 presentation-local이며, domain error는 invariant 또는
+     domain policy 위반인가.
+   - 외부 사실이 domain policy·aggregate invariant 판단에 필요하면 outbound port가 `domain.port.out`에,
+     use-case orchestration 또는 side effect 전용이면 `application.port.out`에 있는가.
+   - 다른 module이 호출하는 command/query seam이 `application.port.in`에 있고 aggregate 내부 상태 전이를
+     직접 노출하지 않는가.
+   - application service가 aggregate behavior를 호출하며 item·field를 직접 변경하거나 aggregate가 이미
+     소유한 상태 전이·제한 검증을 중복하지 않는가.
+   Framework, persistence와 transport detail이 domain policy 또는 public contract에 누출되는지도 확인한다.
+5. Error contract의 owner를 확인한다. 업무 error code·exception type은 owner module의 public contract에
+   한 번만 정의돼야 한다. 소비 module이 같은 code·message를 재정의했으면 boundary finding으로 남긴다.
+   Consumer-owned result 변환은 source error의 공개 contract와 변환 이유가 requirement 또는 ADR에 있을 때만
+   허용한다. 공개 error contract가 absent/partial이면 임의 재정의로 승인하지 않고 context/decision 후보로
+   돌린다.
+6. Event가 완료 사실인지 사실상 command인지, transaction coupling·failure semantics·idempotency가 기존
    ADR/contract와 일치하는지 확인한다.
-6. Cross-module seam은 consumer가 요구하는 capability에서 시작해 published contract인지 absent/partial인지
+7. Cross-module seam은 consumer가 요구하는 capability에서 시작해 published contract인지 absent/partial인지
    판정한다. Current synchronous answer가 필요하면 named-interface query, eventual consistency가 승인되고
    consumer-owned read model이 있으면 fact event/projection이 적합한지 확인한다. Internal entity, repository,
    controller 또는 schema를 public contract처럼 사용하면 boundary leak 후보다.
-7. Public seam의 owner, request/event, response/projection, authorization, not-found/error, consistency/transaction,
+8. Public seam의 owner, request/event, response/projection, authorization, not-found/error, consistency/transaction,
    ordering/paging/idempotency와 evolution rule이 requirement와 ADR에 의해 충분히 결정됐는지 확인한다.
    결정이 없으면 preferred integration mode를 finding으로 강제하지 않고 context/decision 후보로 돌린다.
-8. Seam마다 실제 variation과 adapter 수를 확인한다. One adapter와 future possibility만으로 abstraction을
+9. Seam마다 실제 variation과 adapter 수를 확인한다. One adapter와 future possibility만으로 abstraction을
    요구하지 않고, caller가 알아야 하는 invariant/order/error가 늘었는지로 depth를 판단한다.
-9. `ApplicationModules.verify()` 또는 project `ModularityTest`와 관련 module integration test를 root에
+10. `ApplicationModules.verify()` 또는 project `ModularityTest`와 관련 module integration test를 root에
    요청한다. 모든 Gradle 실행은 `gradle-mcp`만 사용한다.
 
 ## Finding 경계
