@@ -21,8 +21,13 @@ Memory 프로젝트 이름이다. 다른 index namespace가 명시적으로 필�
 `codebase-memory/last-indexed-head`로 기록한다. 이 hook은 저장소에 graph
 artifact를 저장하지 않는다.
 
-실행 환경에는 `python`, `codebase-memory-mcp`, Python `mcp` SDK가 필요하다.
-다른 Python 실행 파일을 사용해야 하면 `PYTHON` 환경 변수로 지정한다.
+실행 환경에는 `codebase-memory-mcp`와 Python `mcp` SDK가 필요하다. Hook은 단순히
+PATH의 첫 `python`을 사용하지 않는다. 먼저 명시적인 `PYTHON`, 그 다음
+`HERMES_MCP_PYTHON`, Hermes 관리 venv, `python3`, `python` 순서로 `import mcp`가
+성공하는 interpreter를 선택한다. 다른 Python 실행 파일을 강제해야 하면 `PYTHON`을,
+기본 탐색보다 우선할 Hermes MCP interpreter를 지정하려면 `HERMES_MCP_PYTHON`을
+설정한다. 명시한 `PYTHON`이 `mcp`를 import하지 못하면 hook은 다른 interpreter로
+조용히 대체하지 않고 stale 원인을 보고한다.
 
 색인은 Git commit이 아니다. 추적 대상 worktree 외부의 Codebase Memory
 graph/cache를 갱신하며, freshness 파일도 `.git` metadata 아래에 저장되므로

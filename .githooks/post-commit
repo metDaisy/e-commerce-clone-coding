@@ -6,10 +6,40 @@ repo_root=$(git rev-parse --show-toplevel)
 head_sha=$(git rev-parse HEAD)
 state_file=$(git rev-parse --git-path codebase-memory/last-indexed-head)
 project_name=${CODEBASE_MEMORY_PROJECT_NAME:-C-Users-leee-IdeaProjects-e-commerce-clone-coding}
-python_command=${PYTHON:-python}
 
-if ! command -v "$python_command" >/dev/null 2>&1; then
-  printf '%s\n' "post-commit: $python_command is required; index is stale." >&2
+resolve_mcp_python() {
+  if [ -n "${PYTHON:-}" ]; then
+    if ! command -v "$PYTHON" >/dev/null 2>&1; then
+      printf '%s\n' "post-commit: PYTHON=$PYTHON was not found; index is stale." >&2
+      return 1
+    fi
+    if ! "$PYTHON" -c 'import mcp' >/dev/null 2>&1; then
+      printf '%s\n' "post-commit: PYTHON=$PYTHON cannot import mcp; index is stale." >&2
+      return 1
+    fi
+    printf '%s\n' "$PYTHON"
+    return 0
+  fi
+
+  for candidate in \
+    "${HERMES_MCP_PYTHON:-}" \
+    "${LOCALAPPDATA:-}/hermes/hermes-agent/venv/Scripts/python.exe" \
+    "$HOME/.hermes/hermes-agent/venv/bin/python" \
+    python3 \
+    python; do
+    [ -n "$candidate" ] || continue
+    if command -v "$candidate" >/dev/null 2>&1 \
+      && "$candidate" -c 'import mcp' >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  printf '%s\n' 'post-commit: no Python interpreter with the mcp SDK was found; set PYTHON or HERMES_MCP_PYTHON.' >&2
+  return 1
+}
+
+if ! python_command=$(resolve_mcp_python); then
   exit 1
 fi
 
