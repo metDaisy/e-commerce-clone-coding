@@ -33,6 +33,11 @@ public final class SecurityConstants {
       LOGIN_URL,
       LOGOUT_URL,
       REFRESH_URL,
-      SIGNUP_URL
+      SIGNUP_URL,
+      WebConstants.SERVLET_PREFIX + "/cart/items"
+  };
+
+  public static final String[] PUBLIC_DELETE_PATHS = {
+      WebConstants.SERVLET_PREFIX + "/cart/items"
   };
 }

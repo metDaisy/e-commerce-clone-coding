@@ -27,7 +27,7 @@ tools:
     - kanban
 
 approvals:
-  mode: smart
+  mode: "off"
 
 mcp_tools:
   codebase_read:

@@ -3,8 +3,13 @@ $ErrorActionPreference = 'Stop'
 if (-not (Get-Command hermes -ErrorAction SilentlyContinue)) {
   throw 'Hermes CLI is required: https://hermes-agent.nousresearch.com/docs'
 }
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-  throw 'Python is required to apply the YAML capability policy.'
+$pythonBin = if ($env:PYTHON_BIN) { $env:PYTHON_BIN } else { 'python' }
+if (-not (Get-Command $pythonBin -ErrorAction SilentlyContinue)) {
+  throw 'Python is required to apply the YAML capability policy. Set PYTHON_BIN when python is not the intended interpreter.'
+}
+& $pythonBin -c 'import yaml'
+if ($LASTEXITCODE -ne 0) {
+  throw 'The interpreter for the YAML capability policy must provide PyYAML. Set PYTHON_BIN to a compatible interpreter.'
 }
 
 $rootDir = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
@@ -53,7 +58,7 @@ try {
 
 $policyScript = Join-Path $rootDir '.hermes\scripts\apply-hermes-capabilities.py'
 $policyFile = Join-Path $rootDir '.hermes\profiles'
-python $policyScript --policy $policyFile --profile project-manager --profile coder --profile reviewer --project-root $rootDir
+& $pythonBin $policyScript --policy $policyFile --profile project-manager --profile coder --profile reviewer --project-root $rootDir
 if ($LASTEXITCODE -ne 0) {
   throw 'Failed to apply the YAML capability policy.'
 }

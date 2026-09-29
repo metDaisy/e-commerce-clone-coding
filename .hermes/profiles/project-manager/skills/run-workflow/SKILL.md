@@ -55,13 +55,33 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 
    `python scripts/workflow.py validate-review-result <review-result.json> <graph.json> <expected-prior-findings.json>`
 
-5. `changes-required`의 blocking finding은 canonical Review result와 함께 `build-task-graph
-   review-rework`로 same-generation work를
-   append한다. `correction-required`는 corrective Impl, `context-required`는 next Review,
-   `decision-required`는 native blocked Decision으로 route한다. Source Review/body/run/finding을 수정하거나
-   삭제하지 않는다.
+5. corrective work는 completed source Review의 canonical `findings`에서만 만든다. `changes-required`의
+   `correction-required`만 `build-task-graph review-rework`로 same-generation corrective Impl→next Review를
+   append한다. `context-required`는 근거 보강 뒤 next Review, `decision-required`는 native blocked Decision으로
+   route한다. worker crash·transient error는 같은 task의 infrastructure recovery이며 새 Impl/Review 생성 근거가
+   아니다. Source Review/body/run/finding을 수정하거나 삭제하지 않는다.
 6. Review가 `approved`이고 prior blocking finding이 모두 explicit `resolved`이면 Summary admission으로
-   이동한다. Runtime validator와 native read-back을 반복해 매 순간 하나의 정상 frontier만 유지한다.
+   이동한다. `changes-required`/`blocked` Review는 task status가 `done`이어도 Summary parent completion으로
+   해석하지 않는다. Runtime validator와 native task·run·metadata read-back을 반복해 매 순간 하나의 정상
+   frontier만 유지한다.
+
+### Coder/Reviewer problem escalation
+
+Coder 또는 Reviewer가 문제를 발견해 PM의 확인·조치가 필요할 때는 `request-review`를 문제 알림용으로
+오용하지 않는다. Worker는 다음 native handoff를 남긴다.
+
+```text
+comment("PM review requested", observed fact, impact, evidence, needed action)
+→ block --kind needs_input
+→ PM이 show/runs/comments/events를 read-back
+```
+
+`needs_input`은 status가 아니라 `blocked` task의 typed block reason이다. PM은 자동으로 unblock하거나
+완료로 판정하지 않는다. PM이 자체적으로 해결 가능한 운영·환경 문제면 근거를 comment로 남기고 native
+rework/unblock 경로를 선택한다. 사용자 판단이 필요한 policy, authorization, consistency, error semantics
+또는 public contract 문제면 PM-owned Decision card를 만들고 source task와 link한다. Decision card는
+`status=blocked`, native `block kind=needs_input`, 결정 문제·영향·선택지·evidence·decision owner를
+보존해야 하며, PM은 그 Decision을 사용자에게 보고한 뒤 결정과 requirement read-back 후 재개한다.
 
 ## 같은 카드의 PM checkpoint
 
@@ -101,8 +121,9 @@ aggregate Review를 대체하지 않는다.
 Summary는 release 후 완료되는 finalization card다. Native dependency가 Summary를 `ready`로 만들었다는
 사실만으로 완료하지 않는다.
 
-1. 모든 direct parent가 `done`, latest Review가 `approved`, prior blocking finding이 모두 resolved인지
-   read-back한다. Latest implementation checkpoint의 code commit을 `final_implementation_sha`로 freeze한다.
+1. 모든 direct parent가 `done`, latest Review의 native run metadata가 `approved`, prior blocking finding이 모두
+   explicit `resolved`인지 read-back한다. 하나라도 아니면 Summary를 unblock·promote·claim·dispatch하지 않는다.
+   Latest implementation checkpoint의 code commit을 `final_implementation_sha`로 freeze한다.
    그 뒤의 checkpoint documentation commit을 ordered `documentation_commit_shas`로 모으고, 각각이
    distinct descendant이며 recorded literal docs path만 변경했는지 Git으로 확인한다. Clean `HEAD`가 docs
    commit이 없으면 code SHA, 있으면 마지막 docs SHA인지 확인해 `summary-admission-v1`을 검증한다.

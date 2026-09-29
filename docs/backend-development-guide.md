@@ -74,6 +74,12 @@ presentation -> application -> domain <- infra
 
 - Persistence contract는 module 안쪽의 repository interface로 정의하고 JPA/QueryDSL 구현은 `infra`에 둔다.
 - 외부 시스템 contract는 domain/application의 outbound port로 정의하고 SDK·HTTP·storage 구현은 `infra` adapter에 둔다.
+- Domain policy 또는 aggregate invariant를 판단하려 외부 사실이 필요하면, application service가 호출하더라도 capability contract는 `domain.port.out`에 둔다. 예: 구매 가능 여부, 도메인이 적용하는 상대 리소스 한도, 소유·자격 상태.
+- Use case의 순서 조정이나 외부 side effect를 위한 capability이고 domain policy가 그 contract를 알 필요가 없으면 `application.port.out`에 둔다. 예: 알림 전송, 파일 전달, 결제 요청의 실행.
+- 다른 module이 Cart 같은 use case를 호출하는 command/query contract는 `application.port.in`에 둔다. inbound port는 aggregate 내부 상태 전이를 직접 노출하지 않는다.
+- HTTP path·cookie·body의 형식 파싱과 binding 오류는 `presentation`이 소유한다. domain error는 invariant 또는 domain policy 위반에만 사용하고, application은 같은 오류 의미를 별도 exception type으로 재정의하지 않는다.
+- Error code와 exception type은 해당 업무 의미를 소유한 module이 공개 contract로 단 한 번 정의한다. 소비 module은 공개 오류를 사용하거나 consumer-owned result로 변환하며, 같은 code·message를 복제하지 않는다. 공개 오류 contract가 아직 없으면 임시 재정의 대신 필요한 seam을 decision/blocker로 기록한다.
+- Application service는 transaction과 use case 순서를 조정하고 aggregate의 이름 있는 behavior를 호출한다. item 목록·필드의 직접 변경이나 aggregate가 이미 소유한 상태 전이·제한 검증의 중복 구현은 피한다.
 - 다른 module을 동기 호출해야 하면 상대 module이 공개한 작은 `@NamedInterface`만 사용한다. Entity, repository, service 구현이나 `infra` package를 직접 참조하지 않는다.
 - Cross-module adapter는 호출 module의 port를 구현하고 상대 module의 공개 API를 호출한다.
 - 즉시 결과가 필요하지 않은 사실 통지는 immutable event를 우선한다. Event payload는 작고 안정적이어야 하며 entity를 포함하지 않는다.
