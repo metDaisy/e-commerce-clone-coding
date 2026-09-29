@@ -22,8 +22,9 @@
 
 Root는 매 leaf 실행 직전에 공통 입력을 복사해 axis-specific packet을 만든다. Packet에는 `axis`, immutable
 scope identity와 위 공통 입력만 허용한다. 다른 axis result, aggregate verdict와 구현자의 해석은 넣지
-않는다. Leaf는 packet identity를 결과의 `scope_identity`에 그대로 반환하고, 추가로 조사한 path와 symbol은
-`scope_examined` 또는 `evidence_examined`에 기록한다.
+않는다. `bounded-context-review.md`가 요구하는 fresh isolated axis session에는 full task envelope, raw diff,
+raw tool output 또는 full file content를 전달하지 않는다. Leaf는 packet identity를 결과의 `scope_identity`에
+그대로 반환하고, 추가로 조사한 path와 symbol은 `scope_examined` 또는 `evidence_examined`에 기록한다.
 
 Leaf가 위치를 조사할 때는
 [`code-discovery-guide.md`](code-discovery-guide.md)의 source-direct, Semble, Codebase Memory branch 중

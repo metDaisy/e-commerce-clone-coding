@@ -37,6 +37,7 @@ def test_reviewer_distribution_owns_complete_runtime_contract() -> None:
         "skills/run-review/README.md",
         "skills/run-review/references/aggregate-review-contract.md",
         "skills/run-review/references/axis-result-contract.md",
+        "skills/run-review/references/bounded-context-review.md",
         "skills/run-review/references/code-discovery-guide.md",
         "skills/run-review/references/review-rubric-provenance.md",
         "skills/review-spec/SKILL.md",
@@ -70,12 +71,15 @@ def test_reviewer_skills_have_valid_identity_and_capability_edges() -> None:
     root = (REVIEWER / "skills" / "run-review" / "SKILL.md").read_text(encoding="utf-8")
     for leaf in REVIEW_SKILLS[1:6]:
         assert leaf in root
-    assert "finding은 입력으로 전달하지 않는다" in root
+    assert "다른 axis result" in root
     assert "Cross-cutting security baseline" in root
     assert "auto-fix하지 않는다" in root
-    assert "`skill_view`로 정확한 leaf Skill 이름을 로드한다" in root
+    assert "정확한 leaf Skill을 `skill_view`로 load" in root
     assert "invocation packet" in root
     assert "다섯 raw result가 모두 닫힌 뒤에만" in root
+    assert "fresh isolated axis session" in root
+    assert "aggregate-review-axis-v1" in root
+    assert "raw diff" in root
     assert "aggregate-review-progress-v1" in root
     assert "baseline_sha..reviewed_head_sha" in root
     assert "diff-inventory" in root
@@ -140,6 +144,7 @@ def test_reviewer_capabilities_are_read_focused_and_have_no_github_write() -> No
     assert "run-aggregate-review" not in policy
     assert "gradle-mcp" in policy
     assert "hermes-agent" in policy
+    assert "    - delegation\n" in policy
     assert "github-mcp" not in policy
     plugin_block = re.search(r"(?m)^plugins:\n  enabled:\n((?:    - .+\n)+)", policy)
     assert plugin_block is not None
@@ -250,6 +255,26 @@ def test_leaf_skills_choose_discovery_tool_by_question_and_confirm_source() -> N
         assert "source" in content.lower()
 
 
+def test_reviewer_bounded_context_contract_is_distributed_and_durable() -> None:
+    bounded = (
+        REVIEWER
+        / "skills"
+        / "run-review"
+        / "references"
+        / "bounded-context-review.md"
+    ).read_text(encoding="utf-8")
+
+    for term in (
+        "fresh isolated axis session",
+        "aggregate-review-axis-v1",
+        "one axis per session",
+        "raw diff",
+        "raw tool output",
+        "PM review requested",
+    ):
+        assert term in bounded
+
+
 if __name__ == "__main__":
     test_reviewer_distribution_owns_complete_runtime_contract()
     test_reviewer_skills_have_valid_identity_and_capability_edges()
@@ -259,4 +284,5 @@ if __name__ == "__main__":
     test_architecture_review_is_requirement_scoped_and_uses_deepening_helper()
     test_axis_rubrics_embed_selected_review_guidance_without_runtime_dependency()
     test_leaf_skills_choose_discovery_tool_by_question_and_confirm_source()
+    test_reviewer_bounded_context_contract_is_distributed_and_durable()
     print("reviewer profile tests: passed")

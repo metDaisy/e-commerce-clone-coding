@@ -25,6 +25,7 @@ tools:
     - file
     - skills
     - kanban
+    - delegation
 
 approvals:
   mode: "off"

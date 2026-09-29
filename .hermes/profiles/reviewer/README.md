@@ -16,8 +16,9 @@ hermes profile install ./.hermes/profiles/reviewer --name reviewer --alias --for
 
 `reviewer`는 모든 Coder checkpoint가 완료된 뒤 PM-authored `aggregate-review-card-v2`를 독립적으로
 검토한다. `run-review`가 card baseline과 actual Review run의 current HEAD를 고정하고 그 전체 diff와 영향
-closure를 다섯 leaf Skill로 분리해 검토한다. Bounded TODO progress는 task comment에, canonical 결과는
-terminal run metadata의 `aggregate-review-result-v2`에 남긴다.
+closure를 다섯 leaf Skill로 분리해 검토한다. 각 axis는 fresh isolated session에서 실행하고 concise
+`aggregate-review-axis-v1` comment로 durable handoff한 뒤 root가 통합한다. Bounded TODO progress는 task
+comment에, canonical 결과는 terminal run metadata의 `aggregate-review-result-v2`에 남긴다.
 
 Reviewer는 파일을 수정하거나 commit하지 않는다. Finding의 rework contract 작성, 다음 task promotion,
 Summary와 release는 Project Manager 책임이다.
@@ -38,6 +39,7 @@ Summary와 release는 Project Manager 책임이다.
 `run-review`는 lifecycle과 aggregation을, 각 `review-*` Skill은 축별 evidence rubric을 소유한다.
 `run-review/references/aggregate-review-contract.md`는 Review card 소비와 최종 결과 계약을,
 `axis-result-contract.md`는 leaf invocation packet과 결과·통합 규칙을 소유한다.
+`bounded-context-review.md`는 fresh axis session, compact packet, durable axis handoff와 resume 규칙을 소유한다.
 `code-discovery-guide.md`는 leaf가 exact source, Semble과 Codebase Memory를 선택하는 조건과 source 확인을
 소유한다. `review-rubric-provenance.md`는 참고한 범용 Skill에서 채택·제외한 원칙을 기록하지만 runtime
 절차는 소유하지 않는다. PM Distribution은 card authoring, 결과 validation과 finding routing을 소유한다.

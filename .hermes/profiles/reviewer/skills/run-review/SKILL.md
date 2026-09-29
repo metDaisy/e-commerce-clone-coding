@@ -1,7 +1,7 @@
 ---
 name: run-review
 description: "Run five-axis aggregate review and return evidence."
-version: 0.2.0
+version: 0.3.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -21,6 +21,8 @@ PM이 작성한 immutable aggregate Review contract를 모든 완료 checkpoint�
 의도적인 제외 범위를 감사할 때만
 [`references/review-rubric-provenance.md`](references/review-rubric-provenance.md)를 읽는다. Repository
 규칙과 검증기는 사실의 기준이며 Coder/PM 설명은 확인할 evidence일 뿐 결론이 아니다.
+Aggregate Review의 axis isolation, compact packet, durable progress와 resume은
+[`references/bounded-context-review.md`](references/bounded-context-review.md)가 소유한다.
 
 이 Skill은 review lifecycle과 통합만 소유한다. 다섯 leaf Skill이 축별 판단을 소유하며, root는
 finding을 미리 알려 주거나 한 축의 결론으로 다른 축을 대체하지 않는다. 이 분리는 `/code-review`의
@@ -92,40 +94,35 @@ Review 중 입력·checkpoint·workspace·tool·environment 또는 공개 계약
 완료 기준: 모든 changed path가 disposition되고 모든 behavior·aggregate acceptance가 하나 이상의 검토
 지점에 매핑되며, 다섯 축이 같은 immutable 입력을 받는다.
 
-### 3. 다섯 축 분리 실행
+### 3. 다섯 축의 bounded-context 실행
 
-다음 Skill을 나열된 순서로 하나씩 로드하고 실행한다. 순서는 누락 방지를 위한 orchestration 순서이며
-판정 우선순위가 아니다.
+`bounded-context-review.md`의 **one axis per session** 절차를 적용한다. Root는 현재 Review card 하나와
+terminal result 하나를 유지하지만, 축별 source discovery와 판단을 하나의 긴 worker conversation에 누적하지
+않는다.
 
-1. `review-spec`
-2. `review-maintainability`
-3. `review-persistence`
-4. `review-architecture`
-5. `review-evolution-compatibility`
+1. `review-spec`, `review-maintainability`, `review-persistence`, `review-architecture`,
+   `review-evolution-compatibility` 순서로 한 axis씩 `delegate_task`에 위임한다. 각 child는 fresh isolated
+   axis session이며 local model route에서는 병렬 dispatch하지 않는다.
+2. Root는 `axis-result-contract`의 immutable 공통 입력에서 compact invocation packet만 만든다. Packet에는
+   task/run identity, fixed base/head, checkpoints, behavior/acceptance/scope exclusions, axis locator와 prior
+   finding identity만 둔다. 전체 `kanban_show`, raw diff, raw tool output, full file content, 다른 axis result,
+   Coder/PM conclusion은 child context에 넣지 않는다.
+3. Child는 정확한 leaf Skill을 `skill_view`로 load하고 read-only 조사만 수행한다. Kanban mutation, Gradle
+   execution, source edit, commit 및 다른 axis 재검토는 child 범위 밖이다. Leaf가 요청한 validator는 identity와
+   목적만 반환하고 root 검증 단계에서 실행한다.
+4. Child가 반환한 `axis-result-contract`를 Root가 검사한다. axis name, scope identity, applicability,
+   examined evidence, verification, finding/observation, blocker와 conclusion basis가 누락되면 Root가 추측해
+   채우지 않는다. 같은 axis를 새 fresh isolated axis session에서 한 번만 보완한다.
+5. 유효한 raw result마다 Root는 concise `aggregate-review-axis-v1` comment를 한 번 남기고 read-back한다.
+   이 comment는 durable intermediate evidence이며 canonical result metadata에 복사하지 않는다.
+6. 재개 시 Root는 같은 base/head scope의 `aggregate-review-axis-v1` comments를 먼저 읽어 완료 축을
+   재사용하고, 없는 축만 fresh session으로 실행한다. Root가 죽거나 context capacity가 부족해도 기존 축을
+   처음부터 다시 읽거나 실행하지 않는다.
 
-각 leaf마다 다음 protocol을 끝낸 뒤 다음 leaf로 이동한다.
-
-1. `skill_view`로 정확한 leaf Skill 이름을 로드한다. Catalog description이나 root의 한 줄 요약으로 leaf
-   절차를 대체하지 않는다.
-2. `axis-result-contract`의 immutable 공통 입력에서 다음 invocation packet을 만든다.
-   - `axis`, review task/run ID와 generation
-   - fixed base, reviewed HEAD, ordered checkpoint key/task/SHA와 commit range
-   - effective behavior, aggregate acceptance, scope exclusion과 changed paths
-   - requirement·repository rule·architecture/ADR locator
-   - 이 축의 source/test/configuration/migration 후보와 unresolved prior finding identity
-3. Packet에는 Coder/PM의 결론을 넣지 않고, 다른 축의 finding은 입력으로 전달하지 않는다. 위치 후보는
-   discovery hint로 표시하고 leaf가 source에서 확인하게 한다.
-4. Leaf 절차와 완료 기준을 끝까지 수행해 `axis-result-contract` 형식의 raw result를 별도 axis block에
-   기록한다. Leaf가 요청한 validator는 identity와 목적만 기록하고 root 검증 단계에서 실행한다.
-5. 다음 leaf로 이동하기 전에 axis name, scope identity, applicability, examined evidence, verification,
-   findings, observation, blocker와 conclusion basis가 모두 있는지 검사한다. 누락 필드는 추측해 채우지
-   않고 같은 leaf를 보완한다.
-
-같은 session에서는 위 packet·별도 result block으로 **논리적 독립성**만 보장한다. 실제 context 격리를
-주장하지 않는다. 별도 agent/session은 capability와 lifecycle이 승인된 경우에만 사용한다. Shared scope
-identity가 깨진 blocker면 즉시 중단하고, 특정 축에만 국한된 blocker면 나머지 축을 계속 수집하되 final
-result를 완료하지 않는다. 각 축은 `reviewed`, `not-applicable`, `blocked` 중 하나이며, 단순
-`no finding`은 `reviewed`다. 다섯 raw result가 모두 닫힌 뒤에만 중복 finding을 통합한다.
+Delegation capability 또는 immutable scope가 없거나 child가 capacity/tool/source blocker를 반환하면
+`PM review requested` comment와 native `kanban_block(kind="needs_input")`으로 중단한다. 정상 axis 경계는
+block 사유가 아니다. 각 축은 `reviewed`, `not-applicable`, `blocked` 중 하나이며, 단순 `no finding`은
+`reviewed`다. 다섯 raw result가 모두 닫힌 뒤에만 중복 finding을 통합한다.
 
 다섯 축이 닫히면 세 번째 progress comment로 해당 TODO를 모두 `done`, `security=in-progress`로 기록한다.
 

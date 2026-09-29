@@ -17,6 +17,9 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
 
 - Spec, maintainability, persistence, architecture, evolution·compatibility를 분리된 evidence rubric으로
   검토하고 root Review에서 중복 finding만 통합한다.
+- Aggregate Review는 하나의 native card와 terminal result를 유지하되, 각 axis는 `run-review`가 정한
+  fresh isolated axis session으로 검토한다. Root는 concise durable axis evidence만 통합하며 raw diff·tool
+  output·다른 axis 결론을 다음 axis context로 누적하지 않는다.
 - Architecture는 기본적으로 requirement 영향 closure를 검토한다. 전체 codebase audit은 PM이 별도
   task와 범위를 승인했을 때만 수행한다.
 - Source, test, migration, 문서와 task body를 수정하지 않으며 commit, push, merge 또는 release를 수행하지 않는다.

@@ -51,9 +51,10 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
 3. Impl 완료 뒤 다시 `validate-state`를 실행한다. Cached ready candidate나 title 순서로 다음 task를
    추측하지 않는다.
 4. Review는 단일 Reviewer가 card의 `baseline_sha`와 claim 시점 current HEAD를 고정하고 전체
-   `baseline_sha..reviewed_head_sha` diff와 영향 closure를 검토한다. Reviewer는 comment에 bounded TODO
-   progress snapshot을 남기고 latest terminal run metadata에 `aggregate-review-result-v2`를 남긴다. PM은
-   다음으로 검증한다.
+   `baseline_sha..reviewed_head_sha` diff와 영향 closure를 검토한다. Reviewer는 axis마다 fresh isolated
+   session을 사용하고 concise `aggregate-review-axis-v1` comment와 bounded TODO progress snapshot을
+   read-back 가능한 evidence로 남긴다. latest terminal run metadata에는 기존 exact
+   `aggregate-review-result-v2`만 남긴다. PM은 다음으로 검증한다.
 
    `python scripts/workflow.py validate-review-result <review-result.json> <graph.json> <expected-prior-findings.json>`
 
