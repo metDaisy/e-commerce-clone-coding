@@ -141,7 +141,11 @@ def test_reviewer_capabilities_are_read_focused_and_have_no_github_write() -> No
     assert "gradle-mcp" in policy
     assert "hermes-agent" in policy
     assert "github-mcp" not in policy
-    assert "plugins:" not in policy
+    plugin_block = re.search(r"(?m)^plugins:\n  enabled:\n((?:    - .+\n)+)", policy)
+    assert plugin_block is not None
+    assert re.findall(r"^    - (.+)$", plugin_block.group(1), re.MULTILINE) == [
+        "agent-audit"
+    ]
 
 
 def test_architecture_review_is_requirement_scoped_and_uses_deepening_helper() -> None:
