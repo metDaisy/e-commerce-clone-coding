@@ -19,6 +19,7 @@ PLANNING_STATES = {"planning", "frozen"}
 FINDING_STATUSES = {"open", "resolved"}
 DECISION_STATUSES = {"pending", "approved", "rejected", "deferred"}
 EXTERNAL_CONTRACT_STATUSES = {"published", "absent-or-partial", "not-applicable"}
+CROSS_DOMAIN_ROLES = {"consumer", "producer"}
 SHA = re.compile(r"^[0-9a-f]{40}$")
 TASK_ID = re.compile(r"^t_[0-9a-f]+$")
 
@@ -38,6 +39,34 @@ def _optional_string_list(value: Any) -> bool:
 def _error(errors: list[str], condition: bool, code: str) -> None:
     if not condition:
         errors.append(code)
+
+
+def _validate_minimum_capability(value: Any, errors: list[str], prefix: str) -> None:
+    fields = {
+        "contract_owner",
+        "public_surface",
+        "request_or_event",
+        "response_or_projection",
+        "not_found_and_error_semantics",
+        "consistency_and_transaction_semantics",
+        "verification_plan",
+    }
+    _error(errors, isinstance(value, dict), f"INVALID_{prefix}")
+    if not isinstance(value, dict):
+        return
+    _error(errors, set(value) == fields, f"INVALID_{prefix}_FIELDS")
+    for field in fields:
+        _error(errors, _non_empty_string(value.get(field)), f"MISSING_{prefix}_{field.upper()}")
+
+
+def _validate_follow_up(value: Any, errors: list[str], prefix: str) -> None:
+    fields = {"producer", "consumer", "integration_verification"}
+    _error(errors, isinstance(value, dict), f"INVALID_{prefix}")
+    if not isinstance(value, dict):
+        return
+    _error(errors, set(value) == fields, f"INVALID_{prefix}_FIELDS")
+    for field in fields:
+        _error(errors, _non_empty_string(value.get(field)), f"MISSING_{prefix}_{field.upper()}")
 
 
 def template(
@@ -192,7 +221,7 @@ def validate(body: Any, status: str | None = None) -> list[str]:
             _error(errors, decision_status in DECISION_STATUSES, f"INVALID_{prefix}_STATUS")
             unresolved_requests = unresolved_requests or decision_status in {"pending", "deferred"}
             if decision_status == "approved":
-                _error(errors, _non_empty(request.get("approved_change")), f"MISSING_{prefix}_APPROVED_CHANGE")
+                _error(errors, _non_empty_string(request.get("approved_change")), f"MISSING_{prefix}_APPROVED_CHANGE")
 
     if schema == "triage-v2":
         cross_domain_contracts = body.get("cross_domain_contracts")
@@ -220,10 +249,14 @@ def validate(body: Any, status: str | None = None) -> list[str]:
                     <= {
                         "consumer_module",
                         "producer_module",
+                        "relationship",
                         "capability",
                         "status",
                         "evidence",
                         "public_contract",
+                        "producer_evidence",
+                        "minimum_capability",
+                        "follow_up",
                         "policy_finding_id",
                         "decision_request_id",
                         "not_applicable_reason",
@@ -232,6 +265,7 @@ def validate(body: Any, status: str | None = None) -> list[str]:
                 )
                 for field in ("consumer_module", "producer_module", "capability"):
                     _error(errors, _non_empty_string(contract.get(field)), f"MISSING_{prefix}_{field.upper()}")
+                _error(errors, contract.get("relationship") in CROSS_DOMAIN_ROLES, f"INVALID_{prefix}_RELATIONSHIP")
                 identity = tuple(contract.get(field) for field in ("consumer_module", "producer_module", "capability"))
                 if all(isinstance(value, str) and value.strip() for value in identity):
                     if identity in capabilities:
@@ -242,23 +276,35 @@ def validate(body: Any, status: str | None = None) -> list[str]:
                 _error(errors, _string_list(contract.get("evidence")), f"MISSING_{prefix}_EVIDENCE")
                 if status_value == "published":
                     _error(errors, _non_empty_string(contract.get("public_contract")), f"MISSING_{prefix}_PUBLIC_CONTRACT")
+                    _error(errors, _string_list(contract.get("producer_evidence")), f"MISSING_{prefix}_PRODUCER_EVIDENCE")
+                    _validate_minimum_capability(contract.get("minimum_capability"), errors, f"{prefix}_MINIMUM_CAPABILITY")
+                    _error(errors, contract.get("follow_up") is None, f"PUBLISHED_{prefix}_HAS_FOLLOW_UP")
                     _error(errors, contract.get("policy_finding_id") is None, f"PUBLISHED_{prefix}_HAS_POLICY_FINDING")
                     _error(errors, contract.get("decision_request_id") is None, f"PUBLISHED_{prefix}_HAS_DECISION_REQUEST")
                     _error(errors, contract.get("not_applicable_reason") is None, f"PUBLISHED_{prefix}_HAS_NOT_APPLICABLE_REASON")
                 elif status_value == "absent-or-partial":
                     finding_id = contract.get("policy_finding_id")
                     request_id = contract.get("decision_request_id")
-                    _error(errors, _non_empty_string(finding_id) and known_findings.get(finding_id) == "open", f"MISSING_{prefix}_OPEN_POLICY_FINDING")
-                    _error(
-                        errors,
-                        _non_empty_string(request_id) and known_requests.get(request_id) in {"pending", "deferred"},
-                        f"MISSING_{prefix}_UNRESOLVED_DECISION_REQUEST",
-                    )
+                    finding_status = known_findings.get(finding_id)
+                    decision_status = known_requests.get(request_id)
+                    unresolved = finding_status == "open" and decision_status in {"pending", "deferred"}
+                    approved = finding_status == "resolved" and decision_status == "approved"
+                    _error(errors, unresolved or approved, f"MISSING_{prefix}_DECISION_LIFECYCLE")
                     _error(errors, contract.get("public_contract") is None, f"ABSENT_{prefix}_HAS_PUBLIC_CONTRACT")
+                    _error(errors, contract.get("producer_evidence") is None, f"ABSENT_{prefix}_HAS_PRODUCER_EVIDENCE")
                     _error(errors, contract.get("not_applicable_reason") is None, f"ABSENT_{prefix}_HAS_NOT_APPLICABLE_REASON")
+                    if approved:
+                        _validate_minimum_capability(contract.get("minimum_capability"), errors, f"{prefix}_MINIMUM_CAPABILITY")
+                        _validate_follow_up(contract.get("follow_up"), errors, f"{prefix}_FOLLOW_UP")
+                    else:
+                        _error(errors, contract.get("minimum_capability") is None, f"UNRESOLVED_{prefix}_HAS_MINIMUM_CAPABILITY")
+                        _error(errors, contract.get("follow_up") is None, f"UNRESOLVED_{prefix}_HAS_FOLLOW_UP")
                 elif status_value == "not-applicable":
                     _error(errors, _non_empty_string(contract.get("not_applicable_reason")), f"MISSING_{prefix}_NOT_APPLICABLE_REASON")
                     _error(errors, contract.get("public_contract") is None, f"NOT_APPLICABLE_{prefix}_HAS_PUBLIC_CONTRACT")
+                    _error(errors, contract.get("producer_evidence") is None, f"NOT_APPLICABLE_{prefix}_HAS_PRODUCER_EVIDENCE")
+                    _error(errors, contract.get("minimum_capability") is None, f"NOT_APPLICABLE_{prefix}_HAS_MINIMUM_CAPABILITY")
+                    _error(errors, contract.get("follow_up") is None, f"NOT_APPLICABLE_{prefix}_HAS_FOLLOW_UP")
                     _error(errors, contract.get("policy_finding_id") is None, f"NOT_APPLICABLE_{prefix}_HAS_POLICY_FINDING")
                     _error(errors, contract.get("decision_request_id") is None, f"NOT_APPLICABLE_{prefix}_HAS_DECISION_REQUEST")
     blocker = body.get("blocker")
@@ -385,6 +431,32 @@ def validate_card(task: dict[str, Any], requested_task_id: str, expected_status:
     return errors
 
 
+def validate_decision_alignment(triage_body: Any, decision_body: Any) -> list[str]:
+    """Validate that a Triage decision request and its native Decision body agree."""
+    errors: list[str] = []
+    if not isinstance(triage_body, dict):
+        return ["TRIAGE_BODY_NOT_OBJECT"]
+    requests = triage_body.get("decision_requests")
+    if not isinstance(requests, list):
+        return ["TRIAGE_DECISION_REQUESTS_INVALID"]
+    if not isinstance(decision_body, dict):
+        return ["DECISION_BODY_NOT_OBJECT"]
+    _error(errors, decision_body.get("schema") == "policy-decision-card-v1", "DECISION_SCHEMA")
+    request_id = decision_body.get("decision_request_id")
+    _error(errors, _non_empty_string(request_id), "DECISION_REQUEST_ID_MISSING")
+    matches = [request for request in requests if isinstance(request, dict) and request.get("id") == request_id]
+    _error(errors, len(matches) == 1, "DECISION_REQUEST_NOT_FOUND")
+    if len(matches) != 1:
+        return errors
+    request = matches[0]
+    _error(errors, decision_body.get("decision_status") == request.get("decision_status"), "DECISION_STATUS_MISMATCH")
+    _error(errors, decision_body.get("approved_change") == request.get("approved_change"), "DECISION_APPROVED_CHANGE_MISMATCH")
+    if request.get("decision_status") == "approved":
+        _validate_minimum_capability(decision_body.get("minimum_capability"), errors, "DECISION_MINIMUM_CAPABILITY")
+        _validate_follow_up(decision_body.get("follow_up"), errors, "DECISION_FOLLOW_UP")
+    return errors
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -415,6 +487,12 @@ def main() -> int:
     card_parser.add_argument("--hermes-bin", default="hermes")
     card_parser.add_argument("--report", type=Path)
 
+    decision_parser = subparsers.add_parser("validate-decision", help="read and compare a Triage Decision card")
+    decision_parser.add_argument("--triage-task-id", required=True)
+    decision_parser.add_argument("--decision-task-id", required=True)
+    decision_parser.add_argument("--board", required=True)
+    decision_parser.add_argument("--hermes-bin", default="hermes")
+
     args = parser.parse_args()
     if args.command == "template":
         write_json(
@@ -442,6 +520,19 @@ def main() -> int:
             return 1
         write_json(args.output, frozen)
         return 0
+
+    if args.command == "validate-decision":
+        triage_task = read_card(args.hermes_bin, args.board, args.triage_task_id)
+        decision_task = read_card(args.hermes_bin, args.board, args.decision_task_id)
+        try:
+            triage_body = json.loads(triage_task.get("body", ""))
+            decision_body = json.loads(decision_task.get("body", ""))
+        except (AttributeError, json.JSONDecodeError):
+            print(json.dumps({"valid": False, "errors": ["DECISION_BODY_NOT_JSON"]}, ensure_ascii=False))
+            return 1
+        errors = validate_decision_alignment(triage_body, decision_body)
+        print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=False))
+        return 1 if errors else 0
 
     task = read_card(args.hermes_bin, args.board, args.task_id)
     errors = validate_card(task, args.task_id, args.expected_status, args.expected_assignee)

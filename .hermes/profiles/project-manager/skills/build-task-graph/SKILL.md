@@ -58,9 +58,14 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
    `planning_baseline_sha`, workflow marker,
    current-state, 기존 native card를 읽는다. 완료 기준: mode와 requirement basis가 하나로 확정되고
    누락 입력은 owner에게 routing되었다.
-2. **Behavior를 분류한다.** 각 effective behavior를 `implemented | partial | absent | unknown`으로
+2. **Behavior를 분류한다.** Triage의 모든 candidate slice와 cross-domain capability를 하나 이상의
+   effective behavior로 materialize하고, 각 behavior를 `implemented | partial | absent | unknown`으로
    판정한다. `implemented`는 새 contract를 계속 충족하는 source-backed evidence가 있어야 하며,
-   `partial`/`absent`만 Impl을 만든다. 완료 기준: 모든 behavior에 state, disposition과 근거가 있다.
+   `partial`/`absent`만 Impl을 만든다. approved minimum contract가 있으나 real seam이 없는 consumer
+   behavior는 producer bridge와 consumer integration follow-up을 모두 가진 `planned` behavior로 남긴다.
+   producer 전체 구현을 자동 prerequisite로 만들지 않되 real seam을 요구하는 integration acceptance는
+   producer bridge의 검증 뒤에만 완료할 수 있게 link한다. 완료 기준: 모든 behavior에 state, disposition,
+   근거와 완료 또는 blocker까지의 path가 있다.
 3. **Draft를 검증한다.** `.temp/task-graphs/<issue>/graph.json`을 작성하고 `validate-graph --phase
    draft`를 실행한다. Backend Impl은 `template`로 시작해 승인된 사실만 채우고 `validate`한다.
    완료 기준: validator finding이 없다.
@@ -82,7 +87,9 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
 ## `new` 절차
 
 1. `create-triage`가 freeze한 `running` G1 Triage와 handoff를 읽는다. 완료 기준:
-   `build_task_graph.allowed: true`이고 미해결 policy finding이 없다.
+   `build_task_graph.allowed: true`이고 미해결 policy finding이 없다. Triage Decision card가 있었다면
+   같은 `decision_request_id`, approved change, minimum capability, producer·consumer follow-up을 native
+   read-back으로 대조한다. 불일치하면 graph를 만들지 않는다.
 2. Impl, Review1, Summary body와 topology를 작성한다. Graph `planning_baseline_sha`와 모든 Review body의
    `baseline_sha`를 frozen Triage baseline으로 고정한다. Impl은 history delta가 아니라 현재 effective
    behavior 전체를 구현하는 self-contained `backend-implementation-card-v2`이다. 각 focused verification에는

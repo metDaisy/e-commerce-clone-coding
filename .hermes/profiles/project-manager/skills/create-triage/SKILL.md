@@ -117,14 +117,18 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
    후보 문서를 대조한다. Source 조사는 충돌, 구조 제약 또는 snapshot 불일치가 있을 때만 좁게
    수행한다. 소비하는 cross-domain capability는 producer의 named public interface/query/event와 실제
    error·consistency 의미를 확인한다. consumer-owned port, 항상 empty/default를 반환하는 adapter 또는
-   producer 내부 구현은 published contract가 아니다. 완료 기준: 모든 finding과 cross-domain contract에
-   evidence와 disposition이 있다.
+   producer 내부 구현은 published contract가 아니다. producer 전체 구현을 선행 조건으로 만들지 말고,
+   consumer acceptance에 필요한 최소 capability를 `cross-domain-minimum-capability.md`의 handoff로 고정한다.
+   승인된 target은 실제 seam이 생기기 전까지 `absent-or-partial`이다. 완료 기준: 모든 finding과
+   cross-domain contract에 evidence·관계·minimum capability·disposition이 있다.
 5. **Blocker를 처리한다.** public contract가 absent/partial이거나 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
    구조화된 open finding·pending decision request·blocker를 기록하고 `blocked`로 바꾼다.
    `service-planning` card를 native link로 연결한다. 완료 기준: 두 card와 link를 read-back했다.
-6. **결정 뒤 재개한다.** 사용자 결정, requirement 변경, 필요한 `sync-docs` 결과와 Issue를
-   read-back한다. 같은 Triage를 `running`으로 재개하고 finding/request를 해결 상태로 갱신한다.
-   완료 기준: validator가 unresolved blocker를 보고하지 않는다.
+6. **결정 뒤 재개한다.** 사용자 결정은 PM-owned Decision card에 먼저 기록하고 native read-back한다.
+   같은 `decision_request_id`의 Triage request와 Decision 결과가 일치하는지 확인한 뒤 사용자 결정,
+   requirement 변경, 필요한 `sync-docs` 결과와 Issue를 read-back한다. 같은 Triage를 `running`으로
+   재개하고 finding/request를 해결 상태로 갱신한다. 완료 기준: validator가 unresolved blocker를 보고하지
+   않고 approved minimum contract에는 producer·consumer·integration follow-up이 있다.
 7. **계획을 고정한다.** 모든 blocker가 해소되면 `planning_state: frozen`,
    `build_task_graph.allowed: true`, `blocker: null`인 copy와 `frozen_digest`를 `freeze` 명령으로
    생성해 검증한다. Native card는 `running`으로 유지한다. 완료 기준: digest가 일치하는 frozen

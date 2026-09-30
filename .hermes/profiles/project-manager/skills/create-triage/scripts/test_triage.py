@@ -4,10 +4,28 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from triage import freeze, read_card, template, validate, validate_card, write_json
+from triage import freeze, read_card, template, validate, validate_card, validate_decision_alignment, write_json
 
 
 class TriageContractTest(unittest.TestCase):
+    def minimum_capability(self):
+        return {
+            "contract_owner": "offer",
+            "public_surface": "OfferQueryApi",
+            "request_or_event": "offerId query",
+            "response_or_projection": "OfferSnapshot",
+            "not_found_and_error_semantics": "OFFER-001 is preserved.",
+            "consistency_and_transaction_semantics": "The query does not expose producer persistence.",
+            "verification_plan": "Producer and consumer contract tests verify the real seam.",
+        }
+
+    def approved_follow_up(self):
+        return {
+            "producer": "Implement the offer-owned query bridge.",
+            "consumer": "Implement the cart-owned adapter.",
+            "integration_verification": "Run producer-consumer integration tests.",
+        }
+
     def populated_body(self):
         body = template(
             138,
@@ -45,17 +63,20 @@ class TriageContractTest(unittest.TestCase):
             {
                 "consumer_module": "cart",
                 "producer_module": "offer",
+                "relationship": "consumer",
                 "capability": "현재 판매 가능 Offer 조회",
                 "status": "absent-or-partial",
                 "evidence": ["docs/requirement/p3/p3-cart.md#조회"],
                 "public_contract": None,
+                "producer_evidence": None,
+                "minimum_capability": None,
+                "follow_up": None,
                 "policy_finding_id": "PF-001",
                 "decision_request_id": "DR-001",
                 "not_applicable_reason": None,
             }
         ]
-        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_OPEN_POLICY_FINDING", validate(body, "running"))
-        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_UNRESOLVED_DECISION_REQUEST", validate(body, "running"))
+        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_DECISION_LIFECYCLE", validate(body, "running"))
 
         body["policy_findings"] = [
             {"id": "PF-001", "problem": "Offer public contract가 없다.", "evidence": ["docs/requirement/p9/p9-index.md#범위"], "status": "open"}
@@ -69,6 +90,61 @@ class TriageContractTest(unittest.TestCase):
         ]
         body["blocker"] = {"kind": "cross-domain-contract"}
         self.assertEqual([], validate(body, "blocked"))
+
+    def test_approved_minimum_contract_remains_absent_until_producer_is_real(self):
+        body = self.populated_body()
+        body["policy_findings"] = [
+            {"id": "PF-001", "problem": "Offer public contract implementation is absent.", "evidence": ["docs/requirement/p9/p9-index.md#범위"], "status": "resolved"}
+        ]
+        body["decision_requests"] = [
+            {
+                "id": "DR-001", "problem": "Offer query public contract is selected.", "why": "Cart needs current Offer facts.",
+                "evidence": ["docs/requirement/p3/p3-cart.md#조회"], "options": [{"id": "A", "choice": "named interface query", "impact": "동기 조회 seam을 제공한다."}],
+                "decision_owner": "user", "decision_status": "approved", "approved_change": "OfferQueryApi 최소 계약을 승인한다.",
+            }
+        ]
+        body["cross_domain_contracts"] = [
+            {
+                "consumer_module": "cart", "producer_module": "offer", "relationship": "consumer",
+                "capability": "현재 판매 가능 Offer 조회", "status": "absent-or-partial",
+                "evidence": ["docs/requirement/p3/p3-cart.md#조회"], "public_contract": None,
+                "producer_evidence": None, "minimum_capability": self.minimum_capability(),
+                "follow_up": self.approved_follow_up(), "policy_finding_id": "PF-001",
+                "decision_request_id": "DR-001", "not_applicable_reason": None,
+            }
+        ]
+        self.assertEqual([], validate(freeze(body), "running"))
+
+    def test_published_contract_requires_real_producer_evidence(self):
+        body = self.populated_body()
+        body["cross_domain_contracts"] = [
+            {
+                "consumer_module": "catalog", "producer_module": "seller", "relationship": "consumer",
+                "capability": "활성 Seller 조회", "status": "published",
+                "evidence": ["docs/current-state.md#백엔드 구조"], "public_contract": "SellerQueryApi.isActiveSeller",
+                "producer_evidence": [], "minimum_capability": self.minimum_capability(), "follow_up": None,
+                "policy_finding_id": None, "decision_request_id": None, "not_applicable_reason": None,
+            }
+        ]
+        self.assertIn("MISSING_CROSS_DOMAIN_CONTRACT:0_PRODUCER_EVIDENCE", validate(body, "running"))
+
+    def test_decision_card_must_match_approved_triage_request(self):
+        body = self.populated_body()
+        body["decision_requests"] = [
+            {
+                "id": "DR-001", "problem": "Offer query public contract is selected.", "why": "Cart needs current Offer facts.",
+                "evidence": ["docs/requirement/p3/p3-cart.md#조회"], "options": [{"id": "A", "choice": "named interface query", "impact": "동기 조회 seam을 제공한다."}],
+                "decision_owner": "user", "decision_status": "approved", "approved_change": "OfferQueryApi 최소 계약을 승인한다.",
+            }
+        ]
+        decision = {
+            "schema": "policy-decision-card-v1", "decision_request_id": "DR-001", "decision_status": "pending",
+            "approved_change": None,
+        }
+        self.assertIn("DECISION_STATUS_MISMATCH", validate_decision_alignment(body, decision))
+        decision.update({"decision_status": "approved", "approved_change": "OfferQueryApi 최소 계약을 승인한다.",
+                         "minimum_capability": self.minimum_capability(), "follow_up": self.approved_follow_up()})
+        self.assertEqual([], validate_decision_alignment(body, decision))
 
     def test_template_preserves_issue_specific_inputs_only(self):
         body = template(

@@ -71,13 +71,17 @@ Native `blocked` card에는 `blocker.kind`와 미해결 decision request가 모�
 
 `cross_domain_contracts`는 이번 Issue가 소비하는 외부 capability마다 한 항목을 가진다. 단순 port 이름,
 adapter 클래스 또는 producer 내부 entity/repository는 public contract 증거가 아니다. 각 항목은
-`consumer_module`, `producer_module`, `capability`, non-empty `evidence`와 다음 `status` 중 하나를 가진다.
+`consumer_module`, `producer_module`, `relationship: consumer | producer`, `capability`, non-empty `evidence`와
+다음 `status` 중 하나를 가진다. 상세 판단·예시는
+[`cross-domain-minimum-capability.md`](cross-domain-minimum-capability.md)를 따른다.
 
-- `published`: `public_contract`에 실제 named interface/query/event 등 public surface를 기록한다. 이 경우
-  policy finding과 decision request는 없다.
-- `absent-or-partial`: open `policy_finding_id`와 pending/deferred `decision_request_id`를 모두 가리킨다.
-  Graph gate는 닫힌다. P3가 필요로 하는 P9 Offer 사실처럼 producer public contract가 없으면 placeholder
-  adapter를 완료 근거로 사용하지 않는다.
+- `published`: `public_contract`, `producer_evidence`, 완전한 `minimum_capability`를 기록한다. `producer_evidence`는
+  committed producer public surface와 실제 producer 경로 locator다. 이 경우 policy finding, decision request,
+  follow-up은 없다.
+- `absent-or-partial`: public seam의 현재 사실이 없다거나 부분 구현임을 뜻한다. open finding과 pending/deferred
+  decision이면 Graph gate는 닫힌다. 승인된 최소 contract가 있으면 finding은 `resolved`, decision은 `approved`이며,
+  `minimum_capability`와 producer·consumer·integration verification `follow_up`을 기록한다. 이 상태는 목표가
+  승인됐어도 실제 seam은 아직 없다는 뜻이므로 `published`로 바꾸지 않는다.
 - `not-applicable`: 구체적인 `not_applicable_reason`을 기록한다.
 
 `triage-v1`은 이미 완료된 historical card read-back을 위한 legacy schema다. 새 Triage는 반드시
@@ -93,7 +97,8 @@ published로 판정하지 않는다.
 - `blocker: null`
 - open policy finding과 pending/deferred decision request가 없음
 - `document_impact`에 `blocked`가 없음
-- `triage-v2`의 모든 `cross_domain_contracts`가 `published | not-applicable`
+- 미해결 Decision이 없는 `absent-or-partial` 항목은 approved minimum contract와 complete follow-up을 가진다.
+  실제 producer seam은 follow-up 완료·검증 뒤에만 `published`가 된다.
 
 ## Native read-back 검증
 

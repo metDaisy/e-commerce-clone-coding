@@ -88,7 +88,9 @@ comment("PM review requested", observed fact, impact, evidence, needed action)
 rework/unblock 경로를 선택한다. 사용자 판단이 필요한 policy, authorization, consistency, error semantics
 또는 public contract 문제면 PM-owned Decision card를 만들고 source task와 link한다. Decision card는
 `status=blocked`, native `block kind=needs_input`, 결정 문제·영향·선택지·evidence·decision owner를
-보존해야 하며, PM은 그 Decision을 사용자에게 보고한 뒤 결정과 requirement read-back 후 재개한다.
+보존해야 하며, cross-domain contract Decision에는 `decision_request_id`, minimum capability와
+producer·consumer·integration follow-up도 보존해야 한다. PM은 사용자 결정을 먼저 Decision card에
+기록·read-back하고, 같은 Triage request와 상태·approved change를 대조한 뒤 requirement read-back 후 재개한다.
 
 ## 같은 카드의 PM checkpoint
 
