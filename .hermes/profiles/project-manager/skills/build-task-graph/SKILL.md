@@ -67,7 +67,7 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
 4. **Native graph를 생성한다.** Card와 link를 하나씩 만들며 body, ID, assignee, status와 parent를
    각각 read-back한다. 각 Impl에는 PM-owned comment로 `backend-implementation-admission-v1`을 남긴다.
    이 closed object는 `schema`, actual `task_id`, positive wrapper Issue number인 `issue`, exact `workspace`,
-   `card_schema: backend-implementation-card-v1`, `restart: null`만 가지며 Coder가 native show에서 읽는
+   `card_schema: backend-implementation-card-v2`, `restart: null`만 가지며 Coder가 native show에서 읽는
    durable execution intent다. 모든 native card의 full `show --json` envelope를 배열로 모아
    `validate-native-readback`으로 title/body/parent를 wrapper와 대조한 뒤
    `run-workflow/scripts/workflow.py validate-implementation-admission`으로
@@ -85,8 +85,10 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
    `build_task_graph.allowed: true`이고 미해결 policy finding이 없다.
 2. Impl, Review1, Summary body와 topology를 작성한다. Graph `planning_baseline_sha`와 모든 Review body의
    `baseline_sha`를 frozen Triage baseline으로 고정한다. Impl은 history delta가 아니라 현재 effective
-   behavior 전체를 구현하는 self-contained `backend-implementation-card-v1`이다. Review body에는 현재
-   HEAD나 source symbol 목록을 넣지 않는다.
+   behavior 전체를 구현하는 self-contained `backend-implementation-card-v2`이다. 각 focused verification에는
+   실제 FQCN selector가 있는 `CHECK`, workspace-relative `CWD: "."`, success-only `EXPECT: "BUILD SUCCESSFUL"`를
+   넣고, Review body에는 다섯 review axis와 root Gradle verification contract를 넣는다. 현재 HEAD나 source
+   symbol 목록을 body에 넣지 않는다.
 3. Planned behavior가 있으면 첫 Impl을 Triage child로 둔다. Planned behavior가 없으면 전체
    inherited behavior를 재검증할 Review1을 Triage child이자 activation target으로 둔다.
 4. 공통 작성 절차를 완료하고 Triage를 완료한다.

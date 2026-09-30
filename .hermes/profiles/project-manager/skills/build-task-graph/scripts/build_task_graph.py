@@ -41,7 +41,7 @@ FORBIDDEN_FIELDS = {
     "result",
     "results",
 }
-FULL_BACKEND_FIELDS = {"executor", "task", "expectation"}
+FULL_BACKEND_FIELDS = {"runner", "CHECK", "CWD", "EXPECT"}
 CARD_FIELDS = {
     "schema",
     "card_type",
@@ -111,7 +111,7 @@ def _append_forbidden_fields(value: Any, errors: list[str]) -> None:
 def template(issue: int, issue_url: str) -> dict[str, Any]:
     """Create a fact-only card scaffold; PM authors all behavior and evidence."""
     return {
-        "schema": "backend-implementation-card-v1",
+        "schema": "backend-implementation-card-v2",
         "card_type": "implementation",
         "issue": {"number": issue, "url": issue_url},
         "goal": "",
@@ -130,9 +130,10 @@ def template(issue: int, issue_url: str) -> dict[str, Any]:
         "acceptance_criteria": [],
         "focused_verification": [],
         "full_backend_verification": {
-            "executor": "gradle-mcp",
-            "task": "test",
-            "expectation": "backend 전체 Gradle test suite가 통과한다.",
+            "runner": "gradle-mcp",
+            "CHECK": "test",
+            "CWD": ".",
+            "EXPECT": "BUILD SUCCESSFUL",
         },
         "traceability": [],
     }
@@ -252,7 +253,7 @@ def _validate_focused_verification(
             continue
         _unexpected_fields(
             verification,
-            {"id", "acceptance_ids", "test_level", "required_scenarios"},
+            {"id", "acceptance_ids", "test_level", "required_scenarios", "runner", "CHECK", "CWD", "EXPECT"},
             errors,
             f"UNEXPECTED_VERIFICATION_FIELD:{index}",
         )
@@ -279,6 +280,19 @@ def _validate_focused_verification(
                     covered.add(acceptance_id)
         test_level = verification.get("test_level")
         _error(errors, isinstance(test_level, str) and test_level in TEST_LEVELS, f"INVALID_TEST_LEVEL:{label}")
+        _error(errors, verification.get("runner") == "gradle-mcp", f"INVALID_VERIFICATION_RUNNER:{label}")
+        check = verification.get("CHECK")
+        _error(errors, isinstance(check, dict), f"INVALID_VERIFICATION_CHECK:{label}")
+        if isinstance(check, dict):
+            _unexpected_fields(check, {"task", "tests"}, errors, f"UNEXPECTED_VERIFICATION_CHECK_FIELD:{label}")
+            _error(errors, _non_empty(check.get("task")), f"MISSING_VERIFICATION_TASK:{label}")
+            tests = check.get("tests")
+            _error(errors, _strings(tests), f"MISSING_VERIFICATION_TESTS:{label}")
+            if isinstance(tests, list):
+                _error(errors, len(tests) == len(set(tests)), f"DUPLICATE_VERIFICATION_TEST:{label}")
+                _error(errors, all(re.fullmatch(r"[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+(?:#[A-Za-z_$][\w$]*)?", test or "") for test in tests), f"INVALID_VERIFICATION_TEST:{label}")
+        _error(errors, verification.get("CWD") == ".", f"INVALID_VERIFICATION_CWD:{label}")
+        _error(errors, verification.get("EXPECT") == "BUILD SUCCESSFUL", f"INVALID_VERIFICATION_EXPECT:{label}")
         scenarios = verification.get("required_scenarios")
         _error(errors, _strings(scenarios), f"MISSING_REQUIRED_SCENARIOS:{label}")
         _validate_korean_strings(scenarios, errors, f"focused_verification:{label}:required_scenarios")
@@ -294,10 +308,10 @@ def _validate_full_backend(value: Any, errors: list[str]) -> None:
         return
     for field in sorted(set(value) - FULL_BACKEND_FIELDS):
         errors.append(f"UNEXPECTED_FULL_BACKEND_FIELD:{field}")
-    _error(errors, value.get("executor") == "gradle-mcp", "INVALID_FULL_BACKEND_EXECUTOR")
-    _error(errors, value.get("task") == "test", "INVALID_FULL_BACKEND_TASK")
-    _error(errors, _non_empty(value.get("expectation")), "MISSING_FULL_BACKEND_EXPECTATION")
-    _validate_korean(value.get("expectation"), errors, "full_backend_verification:expectation")
+    _error(errors, value.get("runner") == "gradle-mcp", "INVALID_FULL_BACKEND_RUNNER")
+    _error(errors, value.get("CHECK") == "test", "INVALID_FULL_BACKEND_CHECK")
+    _error(errors, value.get("CWD") == ".", "INVALID_FULL_BACKEND_CWD")
+    _error(errors, value.get("EXPECT") == "BUILD SUCCESSFUL", "INVALID_FULL_BACKEND_EXPECT")
 
 
 def _validate_locator(value: Any, errors: list[str], index: int) -> None:
@@ -346,7 +360,7 @@ def validate(card: Any) -> list[str]:
     _append_forbidden_fields(card, errors)
     for field in sorted(set(card) - CARD_FIELDS):
         errors.append(f"UNEXPECTED_CARD_FIELD:{field}")
-    _error(errors, card.get("schema") == "backend-implementation-card-v1", "SCHEMA_VERSION")
+    _error(errors, card.get("schema") == "backend-implementation-card-v2", "SCHEMA_VERSION")
     _error(errors, card.get("card_type") == "implementation", "INVALID_CARD_TYPE")
     issue = card.get("issue")
     if not isinstance(issue, dict):

@@ -50,8 +50,12 @@ board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block
    요청한다. PM은 dispatcher가 만든 active review run에서만 checkpoint를 수행한다.
 3. Impl 완료 뒤 다시 `validate-state`를 실행한다. Cached ready candidate나 title 순서로 다음 task를
    추측하지 않는다.
-4. Review는 단일 Reviewer가 card의 `baseline_sha`와 claim 시점 current HEAD를 고정하고 전체
-   `baseline_sha..reviewed_head_sha` diff와 영향 closure를 검토한다. Reviewer는 axis마다 fresh isolated
+4. Review를 promote하기 직전에 PM은 다음 exact field만 가진 `aggregate-review-admission-v1` comment를
+   `validate-review-admission`으로 검증한 뒤 남기고 read-back한다:
+   `schema`, `task_id`, `baseline_sha`, `reviewed_head_sha`, `checkpoints`.
+   각 checkpoint는 `implementation_card_key`, `implementation_task_id`, `checkpoint_sha`를 가진다. 그 뒤 단일
+   Reviewer가 이 comment의 fixed HEAD를 검증하고 전체 `baseline_sha..reviewed_head_sha` diff와 영향 closure를
+   검토한다. Reviewer는 axis마다 fresh isolated
    session을 사용하고 concise `aggregate-review-axis-v1` comment와 bounded TODO progress snapshot을
    read-back 가능한 evidence로 남긴다. latest terminal run metadata에는 기존 exact
    `aggregate-review-result-v2`만 남긴다. PM은 다음으로 검증한다.
@@ -90,8 +94,9 @@ rework/unblock 경로를 선택한다. 사용자 판단이 필요한 policy, aut
 
 1. Queued task가 `review`였고 dispatcher claim 뒤 현재 task가 `running`, assignee가 `project-manager`,
    active run의 claimed event `source_status`가 `review`인지 확인한다.
-2. Immutable `backend-implementation-card-v1`과 latest Coder run의
-   `backend-implementation-handoff-v1` metadata를 read-back한다. Handoff source run, exact tests,
+2. Immutable `backend-implementation-card-v2`과 latest Coder run의
+   `backend-implementation-handoff-v1` metadata를 read-back한다. Handoff source run, card의 literal
+   `runner`/`CHECK`/`CWD`/`EXPECT`, exact tests,
    `test_levels`, scenario result와 full backend result를 검수한다. 이는 Coder self-verification record이며
    PM checkpoint 실행을 대체하지 않는다.
 3. Workspace·branch·Git status와 전체 diff를 읽고, PM review run에서 handoff의 exact focused tests,
@@ -163,7 +168,7 @@ head의 reviewed code range를 바꾸면 이전 Review·CI 결론을 재사용�
 
 Marker는 현재 Issue/branch를 가리키고 모든 dirty path가 그 Issue에만 evidence로 귀속되지만 Kanban 기록이
 유실된 경우에만 하나의 Coder recovery card를 만든다. Body는 현재 승인 requirement와 확인된 dirty
-delta를 self-contained하게 materialize한 정상 `backend-implementation-card-v1`이다. PM은
+delta를 self-contained하게 materialize한 정상 `backend-implementation-card-v2`이다. PM은
 task/workspace/exact dirty path를 결합한 `restart-task-v1`을
 `python scripts/workflow.py validate-restart <restart.json>`으로 검증한 뒤, 해당 recovery task의 새
 `backend-implementation-admission-v1` comment의 `restart` 필드에 저장한다. `kanban_show`로 comment를

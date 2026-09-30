@@ -9,7 +9,7 @@ Coder의 구현·검증·handoff 생성 절차는 Coder `run-impl-card` 계약�
 
 PM은 dispatcher가 시작한 active native review run에서 다음 입력을 read-back한다.
 
-1. immutable `backend-implementation-card-v1` body
+1. immutable `backend-implementation-card-v2` body
 2. latest Coder run의 `backend-implementation-handoff-v1` metadata
 3. 실제 workspace, branch, Git status와 complete diff
 4. PM checkpoint review run에서 직접 재실행한 focused 및 full backend `gradle-mcp` result

@@ -27,7 +27,7 @@ def _validate_aggregate_review_result(result: Any, graph: Any) -> list[str]:
 
 GRAPH_SCHEMA = "build-task-graph-v2"
 CARD_SCHEMAS = {
-    "review": "aggregate-review-card-v2",
+    "review": "aggregate-review-card-v3",
     "summary": "issue-summary-card-v1",
     "decision": "policy-decision-card-v1",
 }
@@ -86,20 +86,29 @@ def _validate_body(card: dict[str, Any], behavior_ids: set[str], errors: list[st
     if card_type == "implementation":
         _error(errors, isinstance(body, dict), f"MISSING_IMPLEMENTATION_BODY:{key}")
         if isinstance(body, dict):
-            _error(errors, body.get("schema") == "backend-implementation-card-v1", f"IMPLEMENTATION_SCHEMA:{key}")
+            _error(errors, body.get("schema") == "backend-implementation-card-v2", f"IMPLEMENTATION_SCHEMA:{key}")
         return
     if not isinstance(body, dict):
         errors.append(f"MISSING_CARD_BODY:{key}")
         return
     _error(errors, body.get("schema") == CARD_SCHEMAS.get(card_type), f"CARD_BODY_SCHEMA:{key}")
     if card_type == "review":
-        allowed = {"schema", "baseline_sha", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance", "scope_exclusions"}
+        allowed = {"schema", "baseline_sha", "effective_behavior_ids", "implementation_card_keys", "inherited_behavior_ids", "aggregate_acceptance", "scope_exclusions", "review_axes", "verification"}
         _exact_fields(body, allowed, errors, f"UNEXPECTED_REVIEW_BODY_FIELD:{key}")
         _error(errors, isinstance(body.get("baseline_sha"), str) and bool(SHA.fullmatch(body["baseline_sha"])), f"INVALID_REVIEW_BASELINE:{key}")
         _error(errors, _strings(body.get("effective_behavior_ids")), f"MISSING_REVIEW_BEHAVIORS:{key}")
         _error(errors, isinstance(body.get("implementation_card_keys"), list), f"MISSING_REVIEW_IMPLS:{key}")
         _error(errors, isinstance(body.get("inherited_behavior_ids"), list), f"MISSING_REVIEW_INHERITED:{key}")
         _error(errors, _strings(body.get("aggregate_acceptance")), f"MISSING_REVIEW_ACCEPTANCE:{key}")
+        _error(errors, body.get("review_axes") == ["spec", "maintainability", "persistence", "architecture", "evolution-compatibility"], f"INVALID_REVIEW_AXES:{key}")
+        verification = body.get("verification")
+        _error(errors, isinstance(verification, dict), f"MISSING_REVIEW_VERIFICATION:{key}")
+        if isinstance(verification, dict):
+            _exact_fields(verification, {"runner", "CHECK", "CWD", "EXPECT"}, errors, f"UNEXPECTED_REVIEW_VERIFICATION_FIELD:{key}")
+            _error(errors, verification.get("runner") == "gradle-mcp", f"INVALID_REVIEW_RUNNER:{key}")
+            _error(errors, _non_empty(verification.get("CHECK")), f"MISSING_REVIEW_CHECK:{key}")
+            _error(errors, verification.get("CWD") == ".", f"INVALID_REVIEW_CWD:{key}")
+            _error(errors, verification.get("EXPECT") == "BUILD SUCCESSFUL", f"INVALID_REVIEW_EXPECT:{key}")
         exclusions = body.get("scope_exclusions")
         _error(
             errors,

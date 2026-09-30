@@ -1,6 +1,6 @@
-# PM backend Impl card authoring contract v1
+# PM backend Impl card authoring contract v2
 
-이 문서는 Project Manager가 `backend-implementation-card-v1` body를 작성하는 의미와 책임을 소유한다.
+이 문서는 Project Manager가 `backend-implementation-card-v2` body를 작성하는 의미와 책임을 소유한다.
 결정론적 field shape와 validation은 인접한 `scripts/build_task_graph.py`, 생성 예시는
 `tests/fixtures/valid-new-delivery.json`이 함께 소유한다. Coder의 admission·소비 규칙과 handoff schema는
 Coder `run-impl-card/references/implementation-card-contract.md`가 소유한다.
@@ -20,7 +20,7 @@ Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 
 
 | Field | PM이 작성할 의미 |
 |---|---|
-| `schema` | 정확히 `backend-implementation-card-v1` |
+| `schema` | 정확히 `backend-implementation-card-v2` |
 | `card_type` | 정확히 `implementation` |
 | `issue` | 승인된 leaf Issue의 `number`, `url` |
 | `goal` | 이 card 하나가 달성할 사용자 관찰 가능 결과 |
@@ -30,8 +30,8 @@ Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 
 | `implementation_context` | 확인된 현재 동작, 조사 시작점, 구조 제약 |
 | `contracts` | 모든 applicability dimension의 결정된 규칙 또는 구체적인 비적용 사유 |
 | `acceptance_criteria` | 결과 중심 완료 조건과 고유 ID |
-| `focused_verification` | acceptance 연결, test level, 필수 scenario |
-| `full_backend_verification` | `gradle-mcp` backend `test` |
+| `focused_verification` | acceptance 연결, test level, 필수 scenario와 exact `runner`/`CHECK`/`CWD`/`EXPECT` |
+| `full_backend_verification` | exact `runner: gradle-mcp`, `CHECK: test`, `CWD: .`, `EXPECT: BUILD SUCCESSFUL` |
 | `traceability` | PM이 확인한 requirement/repository 근거 locator |
 
 `implementation_context.entry_points`는 PM이 확인한 조사 시작점이며 Coder의 caller/consumer 조사나 수정
@@ -66,10 +66,12 @@ Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 
   graph 밖의 behavior를 추가하지 않는다.
 - 모든 acceptance ID는 하나 이상의 focused verification에 연결되며 존재하지 않는 ID를 참조하지 않는다.
 - `test_level`은 `unit | slice | repository | integration | modulith` 중 하나다.
-- PM은 behavior, 최소 test level과 required scenario를 정한다. Coder는 이를 낮추지 않으면서 실제
-  test FQCN, 구현에 필요한 추가 test level과 검증을 source 조사 후 선택하거나 작성한다. PM은
-  존재하지 않는 test command를 발명하지 않는다.
-- `full_backend_verification`은 executor `gradle-mcp`, task `test`로 고정한다.
+- PM은 behavior, 최소 test level, required scenario와 현재 존재하거나 card에서 새로 만들 fully-qualified
+  test selector를 정한다. `focused_verification`마다 `runner: gradle-mcp`, non-empty `CHECK.task`, 하나 이상의
+  actual FQCN 또는 `FQCN#method`, `CWD: "."`, `EXPECT: "BUILD SUCCESSFUL"`를 기록한다. 존재하지 않는
+  selector를 추측할 수 있으면 card를 만들지 말고 investigation으로 route한다.
+- `full_backend_verification`은 `runner: gradle-mcp`, `CHECK: test`, `CWD: "."`,
+  `EXPECT: "BUILD SUCCESSFUL"`로 고정한다.
 - Body에 baseline/planning SHA, assignee, status, dependency, workspace, run 또는 실행 결과를 복제하지
   않는다. 이 값은 PM admission과 native Kanban이 소유한다.
 - Credential, raw tool output, prompt와 hidden reasoning을 기록하지 않는다.

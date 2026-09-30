@@ -1,5 +1,5 @@
 {
-  "schema": "backend-implementation-card-v1",
+  "schema": "backend-implementation-card-v2",
   "card_type": "implementation",
   "issue": {
     "number": 138,
@@ -104,6 +104,15 @@
         "AC-PRODUCT-CREATE"
       ],
       "test_level": "integration",
+      "runner": "gradle-mcp",
+      "CHECK": {
+        "task": "test",
+        "tests": [
+          "example.product.ProductCreateIntegrationTest#createsProduct"
+        ]
+      },
+      "CWD": ".",
+      "EXPECT": "BUILD SUCCESSFUL",
       "required_scenarios": [
         "유효한 입력의 성공",
         "유효하지 않은 입력의 거절"
@@ -111,9 +120,10 @@
     }
   ],
   "full_backend_verification": {
-    "executor": "gradle-mcp",
-    "task": "test",
-    "expectation": "backend 전체 Gradle test suite가 통과한다."
+    "runner": "gradle-mcp",
+    "CHECK": "test",
+    "CWD": ".",
+    "EXPECT": "BUILD SUCCESSFUL"
   },
   "traceability": [
     {

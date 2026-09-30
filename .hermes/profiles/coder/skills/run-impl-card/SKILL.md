@@ -32,12 +32,13 @@ Coder의 입력이 아니다.
    `backend-implementation-admission-v1` comment에서 actual task ID, Issue, card schema와 create-intent
    workspace를 읽고, 이를 dispatcher가 시작한 actual process cwd/worktree identity와 비교한다. Native
    `kanban_show` task 자체가 workspace를 반환한다고 가정하지 않는다.
-2. Body가 valid JSON이며 `schema: backend-implementation-card-v1`,
+2. Body가 valid JSON이며 `schema: backend-implementation-card-v2`,
    `card_type: implementation`인지 확인한다. Canonical contract의 required field와 reference가
    모두 존재해야 한다.
 3. Card의 goal, effective behavior, scope, exclusions, contracts, acceptance, focused verification와
-   full backend verification을 읽는다. Traceability locator는 PM 근거이며 requirement를 다시
-   해석하라는 지시가 아니다.
+   full backend verification을 읽는다. 모든 focused/full gate의 literal `runner`, `CHECK`, `CWD`, `EXPECT`를
+   read-back하고 `CHECK`가 actual FQCN selector를 갖지 않거나 `EXPECT`가 success-only oracle이 아니면 실행 전
+   `needs_input`으로 block한다. Traceability locator는 PM 근거이며 requirement를 다시 해석하라는 지시가 아니다.
 4. Git branch와 status 및 native run history를 읽어 initial run, changes-requested rework와
    restart recovery를 구분한다. Initial run은 staged, unstaged 또는 untracked path가 하나라도 있으면
    덮어쓰기·commit·stash·reset·clean하지 않고 `kanban_block(kind="needs_input")`으로 중단한다.

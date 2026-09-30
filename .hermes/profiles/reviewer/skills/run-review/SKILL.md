@@ -41,13 +41,15 @@ fixed-point 고정, Spec/품질 판단 분리, 독립 보고 원칙을 aggregate
 
 1. `kanban_show`로 actual task ID, assignee=`reviewer`, `running` status, current run ID, immutable body,
    parent·child link, comments와 prior Review history를 읽는다.
-2. Body가 closed `aggregate-review-card-v2`이고 40자리 `baseline_sha`, complete behavior IDs,
-   implementation card keys, inherited behavior IDs, aggregate acceptance와 explicit `scope_exclusions` 목록을
-   모두 가지는지 확인한다.
+2. Body가 closed `aggregate-review-card-v3`이고 40자리 `baseline_sha`, complete behavior IDs,
+   implementation card keys, inherited behavior IDs, aggregate acceptance, ordered five `review_axes`, exact root
+   `verification.runner`/`CHECK`/`CWD`/`EXPECT`와 explicit `scope_exclusions` 목록을 모두 가지는지 확인한다.
 3. 참조 Impl task마다 body, latest terminal checkpoint metadata, task ID와 40자리 commit SHA를 읽는다.
    모든 key가 정확히 한 번 대응하고 task가 `done`인지 확인한다. 이전 blocking finding이 있으면 source
    Review task/run과 finding을 모두 수집한다.
-4. 실제 workspace/cwd, branch, clean Git status와 `HEAD`를 읽어 `reviewed_head_sha`로 고정한다. Card의
+4. 실제 workspace/cwd, branch, clean Git status와 `HEAD`를 읽어 `reviewed_head_sha`로 고정하고 PM-owned
+   `aggregate-review-admission-v1` comment에 task/run, baseline, reviewed HEAD, checkpoint task/SHA가 정확히
+   일치하는지 read-back한다. Card의
    `baseline_sha`와 HEAD가 실제 commit이고 baseline이 HEAD의 ancestor인지 확인한다. 각 checkpoint SHA가
    `baseline_sha..reviewed_head_sha` history에 존재하고 final state에 포함되는지도 확인한다. Dirty path,
    누락 checkpoint, stale run 또는 불일치는 수정·stash·reset하지 않고

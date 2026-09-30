@@ -1,6 +1,6 @@
-# Aggregate Review 소비·결과 계약 v2
+# Aggregate Review 소비·결과 계약 v3
 
-이 문서는 `reviewer`가 PM-authored `aggregate-review-card-v2`를 해석하고
+이 문서는 `reviewer`가 PM-authored `aggregate-review-card-v3`를 해석하고
 `aggregate-review-result-v2`를 작성하는 계약을 소유한다. PM은 graph/card authoring, result의
 결정론적 validation과 finding routing을 소유한다. Native Kanban task·run·event·comment와 Git read-back이
 identity와 실행 사실의 원본이며 body나 result가 이를 대신하지 않는다.
@@ -11,13 +11,13 @@ Reviewer는 dispatcher가 시작한 active run에서 다음을 read-back한다.
 
 1. Assignee가 `reviewer`이고 status가 `running`인 actual aggregate Review task
 2. Closed body fields: `schema`, `baseline_sha`, `effective_behavior_ids`, `implementation_card_keys`,
-   `inherited_behavior_ids`, `aggregate_acceptance`, `scope_exclusions`
-3. 각 implementation key의 immutable `backend-implementation-card-v1`, done task ID와 latest terminal
+   `inherited_behavior_ids`, `aggregate_acceptance`, ordered five `review_axes`, root `verification`, `scope_exclusions`
+3. 각 implementation key의 immutable `backend-implementation-card-v2`, done task ID와 latest terminal
    `backend-implementation-checkpoint-v1`
 4. Prior Review의 unresolved blocking finding과 후속 corrective/context/decision evidence
 5. Actual workspace/cwd, branch, clean worktree, current HEAD와 checkpoint commit history
 
-Body의 schema는 `aggregate-review-card-v2`다. `baseline_sha`는 최초 task graph를 만든 frozen Triage의
+Body의 schema는 `aggregate-review-card-v3`다. `baseline_sha`는 최초 task graph를 만든 frozen Triage의
 planning baseline이며, effective behavior와 aggregate acceptance는 목표 계약이다.
 implementation/inherited 목록은 evidence coverage를 고정한다. Native task ID, status, run과 workspace를
 body에서 추론하거나 복제값으로 대체하지 않는다.
@@ -30,6 +30,9 @@ Admission invariant:
 - Checkpoint는 `baseline_sha..reviewed_head_sha` history에 존재하고 final reviewed state에 포함된다.
 - Prior blocking finding은 source Review task ID, finding ID와 원래 verdict로 추적된다.
 - Repository가 clean하고 current run/task/workspace가 dispatcher read-back과 일치한다.
+- PM-owned `aggregate-review-admission-v1` comment가 actual task/run, baseline, fixed reviewed HEAD와 ordered
+  checkpoint task/SHA를 가지며 live read-back과 정확히 일치한다. 없거나 stale하면 Reviewer가 만들거나
+  보정하지 않고 `needs_input`으로 block한다.
 
 하나라도 실패하면 result를 만들지 않고 native task를 block한다.
 

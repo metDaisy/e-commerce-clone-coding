@@ -45,7 +45,7 @@
         "triage"
       ],
       "body": {
-        "schema": "backend-implementation-card-v1",
+        "schema": "backend-implementation-card-v2",
         "card_type": "implementation",
         "issue": {
           "number": 138,
@@ -184,7 +184,7 @@
         "impl-1"
       ],
       "body": {
-        "schema": "aggregate-review-card-v2",
+        "schema": "aggregate-review-card-v3",
         "baseline_sha": "0000000000000000000000000000000000000000",
         "effective_behavior_ids": [
           "behavior-product-create"

@@ -285,7 +285,7 @@ class WorkflowContractTest(unittest.TestCase):
             "assignee": "coder",
             "active_recovery_task_ids": ["t_a1"],
             "allowed_scope": ["현재 dirty delta를 검증 가능한 checkpoint로 복원한다."],
-            "implementation_card_schema": "backend-implementation-card-v1",
+            "implementation_card_schema": "backend-implementation-card-v2",
             "required_checkpoint_schema": "backend-implementation-checkpoint-v1",
         }
         self.assertEqual([], validate_restart(value))
@@ -305,11 +305,27 @@ class WorkflowContractTest(unittest.TestCase):
             "task_id": "t_a1",
             "issue": 138,
             "workspace": "scratch",
-            "card_schema": "backend-implementation-card-v1",
+            "card_schema": "backend-implementation-card-v2",
             "restart": None,
         }
 
         self.assertEqual([], validate_implementation_admission(admission))
+
+    def test_review_admission_binds_fixed_head_and_checkpoints(self):
+        from workflow import validate_review_admission
+
+        admission = {
+            "schema": "aggregate-review-admission-v1",
+            "task_id": "t_a1",
+            "baseline_sha": SHA_A,
+            "reviewed_head_sha": SHA_B,
+            "checkpoints": [
+                {"implementation_card_key": "impl-1", "implementation_task_id": "t_b2", "checkpoint_sha": SHA_B}
+            ],
+        }
+        self.assertEqual([], validate_review_admission(admission))
+        admission["checkpoints"].append(dict(admission["checkpoints"][0]))
+        self.assertIn("DUPLICATE_REVIEW_ADMISSION_CHECKPOINT", validate_review_admission(admission))
 
     def test_base_sync_requires_user_decision_for_semantic_conflict(self):
         value = {

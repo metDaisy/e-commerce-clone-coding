@@ -49,9 +49,13 @@ class CheckpointContractTest(unittest.TestCase):
             "focused_verification_results": [
                 {
                     "verification_id": "FV-PRODUCT-CREATE",
-                    "executor": "gradle-mcp",
-                    "tasks": ["test"],
-                    "tests": ["example.product.ProductRegistrationIntegrationTest"],
+                    "runner": "gradle-mcp",
+                    "CHECK": {
+                        "task": "test",
+                        "tests": ["example.product.ProductCreateIntegrationTest#createsProduct"],
+                    },
+                    "CWD": ".",
+                    "EXPECT": "BUILD SUCCESSFUL",
                     "test_levels": ["integration"],
                     "scenario_results": [
                         {"scenario": "유효한 입력의 성공", "result": "pass"},
@@ -61,8 +65,10 @@ class CheckpointContractTest(unittest.TestCase):
                 }
             ],
             "full_backend_verification_result": {
-                "executor": "gradle-mcp",
-                "task": "test",
+                "runner": "gradle-mcp",
+                "CHECK": "test",
+                "CWD": ".",
+                "EXPECT": "BUILD SUCCESSFUL",
                 "result": "pass",
             },
             "documentation_impact": {"detected": False, "details": []},

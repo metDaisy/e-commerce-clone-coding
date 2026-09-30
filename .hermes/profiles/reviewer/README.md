@@ -14,7 +14,7 @@ hermes profile install ./.hermes/profiles/reviewer --name reviewer --alias --for
 
 ## 책임
 
-`reviewer`는 모든 Coder checkpoint가 완료된 뒤 PM-authored `aggregate-review-card-v2`를 독립적으로
+`reviewer`는 모든 Coder checkpoint가 완료된 뒤 PM-authored `aggregate-review-card-v3`를 독립적으로
 검토한다. `run-review`가 card baseline과 actual Review run의 current HEAD를 고정하고 그 전체 diff와 영향
 closure를 다섯 leaf Skill로 분리해 검토한다. 각 axis는 fresh isolated session에서 실행하고 concise
 `aggregate-review-axis-v1` comment로 durable handoff한 뒤 root가 통합한다. Bounded TODO progress는 task

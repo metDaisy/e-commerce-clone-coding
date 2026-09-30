@@ -491,7 +491,7 @@ def validate_restart(value: Any) -> list[str]:
     active = value.get("active_recovery_task_ids")
     _require(active == [value.get("recovery_task_id")], errors, "RESTART_TASK_CARDINALITY")
     _require(_strings(value.get("allowed_scope")), errors, "MISSING_RESTART_SCOPE")
-    _require(value.get("implementation_card_schema") == "backend-implementation-card-v1", errors, "INVALID_RESTART_IMPLEMENTATION_CARD")
+    _require(value.get("implementation_card_schema") == "backend-implementation-card-v2", errors, "INVALID_RESTART_IMPLEMENTATION_CARD")
     _require(value.get("required_checkpoint_schema") == "backend-implementation-checkpoint-v1", errors, "INVALID_RESTART_CHECKPOINT")
     return errors
 
@@ -512,7 +512,7 @@ def validate_implementation_admission(value: Any) -> list[str]:
     )
     _require(_non_empty(value.get("workspace")), errors, "MISSING_IMPLEMENTATION_ADMISSION_WORKSPACE")
     _require(
-        value.get("card_schema") == "backend-implementation-card-v1",
+        value.get("card_schema") == "backend-implementation-card-v2",
         errors,
         "INVALID_IMPLEMENTATION_ADMISSION_CARD_SCHEMA",
     )
@@ -527,6 +527,34 @@ def validate_implementation_admission(value: Any) -> list[str]:
                 errors,
                 "RESTART_ADMISSION_WORKSPACE_MISMATCH",
             )
+    return errors
+
+
+def validate_review_admission(value: Any) -> list[str]:
+    """Validate the PM-owned immutable scope handed to an aggregate reviewer."""
+    errors: list[str] = []
+    if not isinstance(value, dict):
+        return ["REVIEW_ADMISSION_NOT_OBJECT"]
+    allowed = {"schema", "task_id", "baseline_sha", "reviewed_head_sha", "checkpoints"}
+    _exact(value, allowed, errors, "UNEXPECTED_REVIEW_ADMISSION_FIELD")
+    _require(value.get("schema") == "aggregate-review-admission-v1", errors, "REVIEW_ADMISSION_SCHEMA")
+    _require(_task_id(value.get("task_id")), errors, "INVALID_REVIEW_ADMISSION_TASK")
+    _require(_sha(value.get("baseline_sha")), errors, "INVALID_REVIEW_ADMISSION_BASELINE")
+    _require(_sha(value.get("reviewed_head_sha")), errors, "INVALID_REVIEW_ADMISSION_HEAD")
+    checkpoints = value.get("checkpoints")
+    if not isinstance(checkpoints, list):
+        return errors + ["INVALID_REVIEW_ADMISSION_CHECKPOINTS"]
+    keys: list[str] = []
+    for index, checkpoint in enumerate(checkpoints):
+        if not isinstance(checkpoint, dict):
+            errors.append(f"REVIEW_ADMISSION_CHECKPOINT_NOT_OBJECT:{index}")
+            continue
+        _exact(checkpoint, {"implementation_card_key", "implementation_task_id", "checkpoint_sha"}, errors, f"UNEXPECTED_REVIEW_ADMISSION_CHECKPOINT_FIELD:{index}")
+        keys.append(str(checkpoint.get("implementation_card_key")))
+        _require(_non_empty(checkpoint.get("implementation_card_key")), errors, f"MISSING_REVIEW_ADMISSION_CHECKPOINT_KEY:{index}")
+        _require(_task_id(checkpoint.get("implementation_task_id")), errors, f"INVALID_REVIEW_ADMISSION_CHECKPOINT_TASK:{index}")
+        _require(_sha(checkpoint.get("checkpoint_sha")), errors, f"INVALID_REVIEW_ADMISSION_CHECKPOINT_SHA:{index}")
+    _require(bool(keys) and len(keys) == len(set(keys)), errors, "DUPLICATE_REVIEW_ADMISSION_CHECKPOINT")
     return errors
 
 
@@ -620,7 +648,7 @@ def main() -> int:
     summary.add_argument("graph", type=Path)
     summary.add_argument("board", type=Path)
     summary.add_argument("expected_prior_findings", type=Path)
-    for name in ("release", "restart", "implementation-admission", "base-sync", "release-finding"):
+    for name in ("release", "restart", "implementation-admission", "review-admission", "base-sync", "release-finding"):
         command = commands.add_parser(f"validate-{name}")
         command.add_argument("input", type=Path)
     args = parser.parse_args()
@@ -641,6 +669,7 @@ def main() -> int:
                 "validate-release": validate_release,
                 "validate-restart": validate_restart,
                 "validate-implementation-admission": validate_implementation_admission,
+                "validate-review-admission": validate_review_admission,
                 "validate-base-sync": validate_base_sync,
                 "validate-release-finding": validate_release_finding,
             }[args.command]

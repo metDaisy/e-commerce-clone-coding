@@ -1,6 +1,6 @@
-# Coder Impl card consumption contract v1
+# Coder Impl card consumption contract v2
 
-이 문서는 `coder`가 admitted `backend-implementation-card-v1`을 해석하고
+이 문서는 `coder`가 admitted `backend-implementation-card-v2`을 해석하고
 `backend-implementation-handoff-v1`을 작성하는 계약을 소유한다. PM의 card authoring shape와
 validation은 PM `build-task-graph/references/implementation-card-contract.md`가 소유한다. Native
 Kanban이 task ID, title, assignee, status, links, workspace, run, comment와 event를 소유하며 이
@@ -14,7 +14,7 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 
 ```json
 {
-  "schema": "backend-implementation-card-v1",
+  "schema": "backend-implementation-card-v2",
   "card_type": "implementation",
   "issue": {
     "number": 138,
@@ -93,13 +93,18 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
       "id": "FV-PRODUCT-CREATE",
       "acceptance_ids": ["AC-PRODUCT-CREATE"],
       "test_level": "integration",
+      "runner": "gradle-mcp",
+      "CHECK": {"task": "test", "tests": ["example.product.ProductCreateIntegrationTest#createsProduct"]},
+      "CWD": ".",
+      "EXPECT": "BUILD SUCCESSFUL",
       "required_scenarios": ["유효한 입력의 성공", "유효하지 않은 입력의 거절"]
     }
   ],
   "full_backend_verification": {
-    "executor": "gradle-mcp",
-    "task": "test",
-    "expectation": "backend 전체 Gradle test suite가 통과한다."
+    "runner": "gradle-mcp",
+    "CHECK": "test",
+    "CWD": ".",
+    "EXPECT": "BUILD SUCCESSFUL"
   },
   "traceability": [
     {
@@ -117,7 +122,7 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 
 ## Admission invariants
 
-- `schema`는 정확히 `backend-implementation-card-v1`, `card_type`은 `implementation`이다.
+- `schema`는 정확히 `backend-implementation-card-v2`, `card_type`은 `implementation`이다.
 - Body와 모든 nested object는 closed schema이며 duplicate key와 명시되지 않은 field를 허용하지 않는다.
 - `issue.number`, `issue.url`, `goal`, `effective_behavior`, `scope`, `out_of_scope`,
   `implementation_context`, `contracts`, `acceptance_criteria`, `focused_verification`,
@@ -134,9 +139,10 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 - 모든 acceptance ID는 하나 이상의 focused verification에 연결되고, 존재하지 않는 ID를
   참조하지 않는다.
 - `test_level`은 `unit | slice | repository | integration | modulith` 중 하나인 최소 요구다. Card의
-  behavior와 scenario는 고정 입력이며 Coder는 이 수준을 낮추지 않고 실제 source를 조사한 뒤 정확한
-  test FQCN과 필요한 추가 test level을 선택하거나 작성한다.
-- `full_backend_verification`은 `gradle-mcp`의 backend 전체 `test` task로 고정한다. Frontend,
+  behavior와 scenario, `CHECK.tests`의 actual FQCN/FQCN#method, `CWD: "."`, `EXPECT: "BUILD SUCCESSFUL"`은
+  고정 입력이며 Coder는 이를 낮추거나 다른 selector로 바꾸지 않는다.
+- `full_backend_verification`은 `runner: gradle-mcp`, `CHECK: test`, `CWD: "."`,
+  `EXPECT: "BUILD SUCCESSFUL"`로 고정한다. Frontend,
   browser와 npm 검증은 이 schema 범위가 아니다.
 - `traceability`는 provenance locator이지 source 문서를 다시 해석하거나 재기획하라는 지시가 아니다.
 - Credential, raw tool output, prompt와 hidden reasoning은 body나 handoff에 기록하지 않는다.
@@ -271,15 +277,15 @@ run의 양의 정수 native ID와 대조한다. `finding_id`는 request 안에�
 
 모든 Impl task에는 PM-owned `backend-implementation-admission-v1` comment가 있어야 한다. 이 closed
 object는 `schema`, actual `task_id`, positive Issue number인 `issue`, create-intent `workspace`,
-`card_schema: backend-implementation-card-v1`, `restart`만 가진다. Coder는 native task ID와 body Issue를
+`card_schema: backend-implementation-card-v2`, `restart`만 가진다. Coder는 native task ID와 body Issue를
 comment에 대조하고 comment workspace를 dispatcher가 시작한 actual process cwd/worktree identity와
 비교한다. Native `kanban_show` task가 workspace를 직접 반환한다고 가정하지 않는다.
 
 Kanban 기록이 유실된 dirty workflow를 복구할 때에도 task body는 valid
-`backend-implementation-card-v1`이어야 한다. Coder는 latest matching admission comment의 valid
+`backend-implementation-card-v2`이어야 한다. Coder는 latest matching admission comment의 valid
 `restart-task-v1`을 추가 admission input으로 읽는다. 이 object는 Issue, delivery branch, workspace,
 marker/current SHA, exact `dirty_paths`, path별 attribution, 현재 `recovery_task_id`, `assignee: coder`, 단일
-active recovery task, allowed scope, `implementation_card_schema: backend-implementation-card-v1`과
+active recovery task, allowed scope, `implementation_card_schema: backend-implementation-card-v2`과
 `required_checkpoint_schema: backend-implementation-checkpoint-v1`을 가진다.
 
 Coder는 native task ID·workspace·Issue와 실제 dirty path가 이 metadata와 정확히 같을 때만 기존 delta를

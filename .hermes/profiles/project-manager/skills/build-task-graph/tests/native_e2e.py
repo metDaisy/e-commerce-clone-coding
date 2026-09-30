@@ -77,7 +77,7 @@ class NativeE2E:
                 "task_id": task_id,
                 "issue": self.issue,
                 "workspace": self.workspace,
-                "card_schema": "backend-implementation-card-v1",
+                "card_schema": "backend-implementation-card-v2",
                 "restart": None,
             }
             failures = validate_implementation_admission(admission)

@@ -185,7 +185,7 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
                 continue
             _unexpected(
                 result,
-                {"verification_id", "executor", "tasks", "tests", "test_levels", "scenario_results", "result"},
+                {"verification_id", "runner", "CHECK", "CWD", "EXPECT", "test_levels", "scenario_results", "result"},
                 errors,
                 f"UNEXPECTED_FOCUSED_RESULT_FIELD:{index}",
             )
@@ -193,18 +193,21 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
             if isinstance(verification_id, str):
                 result_verification_ids.append(verification_id)
             label = verification_id or str(index)
-            if result.get("executor") != "gradle-mcp":
-                errors.append(f"INVALID_FOCUSED_EXECUTOR:{label}")
-            if not _strings(result.get("tasks")):
-                errors.append(f"MISSING_FOCUSED_TASKS:{label}")
-            if not _strings(result.get("tests")):
-                errors.append(f"MISSING_FOCUSED_TESTS:{label}")
+            contract = verification_contracts.get(verification_id, {})
+            if result.get("runner") != contract.get("runner"):
+                errors.append(f"FOCUSED_RUNNER_MISMATCH:{label}")
+            if result.get("CHECK") != contract.get("CHECK"):
+                errors.append(f"FOCUSED_CHECK_MISMATCH:{label}")
+            if result.get("CWD") != contract.get("CWD"):
+                errors.append(f"FOCUSED_CWD_MISMATCH:{label}")
+            if result.get("EXPECT") != contract.get("EXPECT"):
+                errors.append(f"FOCUSED_EXPECT_MISMATCH:{label}")
             test_levels = result.get("test_levels")
             if (
                 not _strings(test_levels)
                 or len(test_levels) != len(set(test_levels))
                 or any(level not in TEST_LEVELS for level in test_levels)
-                or verification_contracts.get(verification_id, {}).get("test_level") not in test_levels
+                or contract.get("test_level") not in test_levels
             ):
                 errors.append(f"TEST_LEVEL_NOT_SATISFIED:{label}")
             if result.get("result") != "pass":
@@ -242,11 +245,15 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
     if not isinstance(full, dict):
         errors.append("INVALID_FULL_BACKEND_RESULT")
     else:
-        _unexpected(full, {"executor", "task", "result"}, errors, "UNEXPECTED_FULL_RESULT_FIELD")
-        if full.get("executor") != contract_full.get("executor"):
-            errors.append("FULL_BACKEND_EXECUTOR_MISMATCH")
-        if full.get("task") != contract_full.get("task"):
-            errors.append("FULL_BACKEND_TASK_MISMATCH")
+        _unexpected(full, {"runner", "CHECK", "CWD", "EXPECT", "result"}, errors, "UNEXPECTED_FULL_RESULT_FIELD")
+        if full.get("runner") != contract_full.get("runner"):
+            errors.append("FULL_BACKEND_RUNNER_MISMATCH")
+        if full.get("CHECK") != contract_full.get("CHECK"):
+            errors.append("FULL_BACKEND_CHECK_MISMATCH")
+        if full.get("CWD") != contract_full.get("CWD"):
+            errors.append("FULL_BACKEND_CWD_MISMATCH")
+        if full.get("EXPECT") != contract_full.get("EXPECT"):
+            errors.append("FULL_BACKEND_EXPECT_MISMATCH")
         if full.get("result") != "pass":
             errors.append("FULL_BACKEND_NOT_PASS")
 

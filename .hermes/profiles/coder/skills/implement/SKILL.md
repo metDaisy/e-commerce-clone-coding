@@ -14,7 +14,7 @@ requires_toolsets: [file, terminal]
 
 # 구현
 
-Admission을 통과한 `backend-implementation-card-v1` 하나를 검증된 최소 backend code 변경으로 만든다.
+Admission을 통과한 `backend-implementation-card-v2` 하나를 검증된 최소 backend code 변경으로 만든다.
 `run-impl-card`는 admission, Kanban 전이, blocker routing과 handoff를 소유하고, 이 Skill은 admission과
 handoff 사이의 coding loop를 소유한다.
 

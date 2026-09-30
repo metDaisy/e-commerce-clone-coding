@@ -9,7 +9,7 @@
 각 leaf Skill은 다음 값을 동일하게 받는다.
 
 - review task/run ID와 generation
-- `aggregate-review-card-v2`의 effective behavior, aggregate acceptance와 scope exclusion
+- `aggregate-review-card-v3`의 effective behavior, aggregate acceptance, ordered review axes와 scope exclusion
 - card `baseline_sha`, actual run에서 고정한 `reviewed_head_sha`, ordered checkpoint task/key/SHA
 - 전체 reviewed commit range와 모든 changed path의 disposition
 - 관련 requirement, repository rule, architecture/ADR locator

@@ -48,7 +48,7 @@
         "triage"
       ],
       "body": {
-        "schema": "backend-implementation-card-v1",
+        "schema": "backend-implementation-card-v2",
         "card_type": "implementation",
         "issue": {
           "number": 138,
@@ -153,6 +153,15 @@
               "AC-PRODUCT-CREATE"
             ],
             "test_level": "integration",
+            "runner": "gradle-mcp",
+            "CHECK": {
+              "task": "test",
+              "tests": [
+                "example.product.ProductCreateIntegrationTest#createsProduct"
+              ]
+            },
+            "CWD": ".",
+            "EXPECT": "BUILD SUCCESSFUL",
             "required_scenarios": [
               "유효한 입력의 성공",
               "유효하지 않은 입력의 거절"
@@ -160,9 +169,10 @@
           }
         ],
         "full_backend_verification": {
-          "executor": "gradle-mcp",
-          "task": "test",
-          "expectation": "backend 전체 Gradle test suite가 통과한다."
+          "runner": "gradle-mcp",
+          "CHECK": "test",
+          "CWD": ".",
+          "EXPECT": "BUILD SUCCESSFUL"
         },
         "traceability": [
           {
@@ -188,7 +198,7 @@
         "impl-1"
       ],
       "body": {
-        "schema": "aggregate-review-card-v2",
+        "schema": "aggregate-review-card-v3",
         "baseline_sha": "0000000000000000000000000000000000000000",
         "effective_behavior_ids": [
           "behavior-product-create"
@@ -200,6 +210,19 @@
         "aggregate_acceptance": [
           "상품 등록 요구사항 전체가 구현되고 검증되었다."
         ],
+        "review_axes": [
+          "spec",
+          "maintainability",
+          "persistence",
+          "architecture",
+          "evolution-compatibility"
+        ],
+        "verification": {
+          "runner": "gradle-mcp",
+          "CHECK": "test",
+          "CWD": ".",
+          "EXPECT": "BUILD SUCCESSFUL"
+        },
         "scope_exclusions": [
           "상품 이미지 업로드와 frontend는 검토 범위에서 제외한다."
         ]

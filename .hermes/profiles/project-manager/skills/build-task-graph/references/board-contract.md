@@ -80,9 +80,9 @@ workspace read-back까지 증명한다고 보고해서는 안 된다.
 
 Persisted body schema는 다음과 같다.
 
-- Impl: `backend-implementation-card-v1`. 필드 의미와 validation은
+- Impl: `backend-implementation-card-v2`. 필드 의미와 validation은
   `implementation-card-contract.md`가 소유한다.
-- Review: `aggregate-review-card-v2`. Graph의 `planning_baseline_sha`와 같은 `baseline_sha`, complete
+- Review: `aggregate-review-card-v3`. Graph의 `planning_baseline_sha`와 같은 `baseline_sha`, complete
   behavior IDs, 참조 Impl keys, inherited behavior IDs, aggregate acceptance와 explicit
   `scope_exclusions` 목록을 보존한다. 제외가 없으면 빈 목록이다. Review 시점 HEAD나 source symbol 목록은
   미리 복제하지 않는다. Reviewer가 claim한 actual run에서 현재 HEAD를 `reviewed_head_sha`로 고정하고

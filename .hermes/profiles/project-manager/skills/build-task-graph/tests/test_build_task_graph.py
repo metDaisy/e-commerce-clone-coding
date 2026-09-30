@@ -33,7 +33,7 @@ class BackendImplementationCardContractTest(unittest.TestCase):
 
     def test_template_is_fact_only_and_requires_authoring(self):
         card = template(138, "https://github.com/example/repository/issues/138")
-        self.assertEqual("backend-implementation-card-v1", card["schema"])
+        self.assertEqual("backend-implementation-card-v2", card["schema"])
         self.assertNotIn("assignee", card)
         self.assertNotIn("baseline_sha", card)
         self.assertIn("MISSING_GOAL", validate(card))
@@ -98,15 +98,26 @@ class BackendImplementationCardContractTest(unittest.TestCase):
         self.assertIn("INVALID_TEST_LEVEL:FV-PRODUCT-CREATE", errors)
         self.assertIn("MISSING_REQUIRED_SCENARIOS:FV-PRODUCT-CREATE", errors)
 
-    def test_requires_gradle_mcp_full_backend_test(self):
+    def test_requires_exact_gradle_mcp_full_backend_gate(self):
         for field, value, error in (
-            ("executor", "gradle", "INVALID_FULL_BACKEND_EXECUTOR"),
-            ("task", "check", "INVALID_FULL_BACKEND_TASK"),
+            ("runner", "gradle", "INVALID_FULL_BACKEND_RUNNER"),
+            ("CHECK", "check", "INVALID_FULL_BACKEND_CHECK"),
+            ("CWD", "src", "INVALID_FULL_BACKEND_CWD"),
+            ("EXPECT", "passed", "INVALID_FULL_BACKEND_EXPECT"),
         ):
             with self.subTest(field=field):
                 card = self.valid_card()
                 card["full_backend_verification"][field] = value
                 self.assertIn(error, validate(card))
+
+    def test_requires_runnable_focused_verification_gate(self):
+        card = self.valid_card()
+        verification = card["focused_verification"][0]
+        verification["CHECK"]["tests"] = ["planned-ProductTest"]
+        verification["EXPECT"] = "passed"
+        errors = validate(card)
+        self.assertIn("INVALID_VERIFICATION_TEST:FV-PRODUCT-CREATE", errors)
+        self.assertIn("INVALID_VERIFICATION_EXPECT:FV-PRODUCT-CREATE", errors)
 
     def test_rejects_frontend_verification_fields(self):
         card = self.valid_card()
@@ -264,7 +275,7 @@ class BackendImplementationCardContractTest(unittest.TestCase):
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             output = Path(directory) / ".temp/task-graphs/issue-138/impl-1.json"
-            self.assertEqual("backend-implementation-card-v1", json.loads(output.read_text(encoding="utf-8"))["schema"])
+            self.assertEqual("backend-implementation-card-v2", json.loads(output.read_text(encoding="utf-8"))["schema"])
 
 
 class TaskGraphContractTest(unittest.TestCase):
@@ -483,6 +494,15 @@ class TaskGraphContractTest(unittest.TestCase):
         errors = validate_graph(graph)
         self.assertIn("INVALID_REVIEW_BASELINE:review-1", errors)
         self.assertIn("REVIEW_BASELINE_MISMATCH:review-1", errors)
+
+    def test_review_requires_bounded_axes_and_runnable_gate(self):
+        graph = self.valid_graph()
+        review = graph["cards"][2]["body"]
+        review["review_axes"] = ["spec"]
+        review["verification"]["EXPECT"] = "passed"
+        errors = validate_graph(graph)
+        self.assertIn("INVALID_REVIEW_AXES:review-1", errors)
+        self.assertIn("INVALID_REVIEW_EXPECT:review-1", errors)
 
     def test_title_type_assignee_and_workspace_must_match_native_identity(self):
         graph = self.valid_graph()
