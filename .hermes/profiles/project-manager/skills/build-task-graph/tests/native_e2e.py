@@ -7,6 +7,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any
@@ -15,8 +16,11 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 PROFILE_DIR = SKILL_DIR.parents[1]
 sys.path.insert(0, str(SKILL_DIR / "scripts"))
 sys.path.insert(0, str(PROFILE_DIR / "skills" / "run-workflow" / "scripts"))
+sys.path.insert(0, str(PROFILE_DIR / "skills" / "create-triage" / "scripts"))
+from activate_graph import activate  # noqa: E402
 from build_task_graph import validate  # noqa: E402
 from graph_contract import validate_graph  # noqa: E402
+from triage import freeze, template  # noqa: E402
 from workflow import validate_implementation_admission  # noqa: E402
 
 
@@ -60,6 +64,7 @@ class NativeE2E:
         *,
         parents: list[str] | None = None,
         idempotency_key: str | None = None,
+        triage: bool = False,
     ) -> str:
         body_text = json.dumps(body, ensure_ascii=False) if isinstance(body, dict) else body
         if self.workspace is None:
@@ -69,6 +74,8 @@ class NativeE2E:
             args.extend(["--parent", parent])
         if idempotency_key:
             args.extend(["--idempotency-key", idempotency_key])
+        if triage:
+            args.append("--triage")
         args.append("--json")
         task_id = self.task_id(self.board_run(*args, json_output=True))
         if assignee == "coder":
@@ -94,6 +101,34 @@ class NativeE2E:
 
     def show(self, task_id: str) -> dict[str, Any]:
         return self.board_run("show", task_id, "--json", json_output=True)
+
+    def triage_body(self) -> dict[str, Any]:
+        body = template(
+            138,
+            "G1-Issue138-Triage",
+            "https://github.com/example/repo/issues/138",
+            "a" * 40,
+            "b" * 40,
+            ["docs/requirement/p2/index.md#issue-138"],
+            ["docs/current-state.md#p2"],
+        )
+        body.update(
+            {
+                "goal": "Seller flow behavior is ready for task graph authoring.",
+                "scope": ["P2 Seller behavior"],
+                "out_of_scope": ["Unrelated P2 flows"],
+                "current_behavior": "Current state is summarized by the snapshot.",
+                "desired_behavior": "Requirement behavior is materialized into a task graph.",
+                "implementation_idea": "Create vertical slices after document review.",
+                "candidate_task_slices": ["Seller API slice"],
+                "verification_direction": ["Focused integration test"],
+            }
+        )
+        for document, entry in body["document_impact"].items():
+            entry["decision"] = "no-change"
+            entry["locators"] = [f"docs/{document.lower()}.md#reviewed"]
+            entry["reason"] = f"{document} was reviewed and needs no update."
+        return freeze(body)
 
     @staticmethod
     def status(envelope: dict[str, Any]) -> str:
@@ -147,8 +182,7 @@ class NativeE2E:
         try:
             self.run("boards", "create", self.board, "--name", "build-task-graph native E2E")
             board_created = True
-            triage = self.create(cards["triage"]["title"], cards["triage"]["assignee"], "frozen triage")
-            self.board_run("claim", triage, "--ttl", "120")
+            triage = self.create(cards["triage"]["title"], cards["triage"]["assignee"], self.triage_body(), triage=True)
             impl = self.create(cards["impl-1"]["title"], cards["impl-1"]["assignee"], cards["impl-1"]["body"], parents=[triage])
             review1 = self.create(cards["review-1"]["title"], cards["review-1"]["assignee"], cards["review-1"]["body"], parents=[impl])
             summary = self.create(cards["summary"]["title"], cards["summary"]["assignee"], cards["summary"]["body"], parents=[impl, review1])
@@ -157,7 +191,33 @@ class NativeE2E:
             draft_errors = validate_graph(self.graph_wrapper(fixture, ids), phase="draft", validate_implementation=validate)
             if draft_errors:
                 raise RuntimeError(f"draft graph invalid: {draft_errors}")
-            self.board_run("complete", "--force", triage, "--result", "graph read-back verified")
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                graph_path = root / "graph.json"
+                readback_path = root / "native-readback.json"
+                graph_path.write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
+                readback_path.write_text(json.dumps([self.show(task_id) for task_id in ids.values()], ensure_ascii=False), encoding="utf-8")
+                activation = activate(
+                    graph_path,
+                    readback_path,
+                    triage,
+                    [],
+                    "impl-1",
+                    "hermes",
+                    self.board,
+                    apply=True,
+                )
+            if not activation.get("valid"):
+                errors = activation.get("errors", [])
+                if not any(isinstance(error, str) and error.startswith("NATIVE_COMPLETE_FAILED") for error in errors):
+                    raise RuntimeError(f"activation gate failed unexpectedly: {activation}")
+                if self.status(self.show(triage)) != "triage" or self.status(self.show(impl)) != "todo":
+                    raise RuntimeError("failed activation changed the triage or promoted the implementation")
+                return {
+                    "draft_validation": "pass",
+                    "triage_direct_completion_unsupported": "pass",
+                    "no_promote_after_transition_failure": "pass",
+                }
             native_errors = validate_graph(self.graph_wrapper(fixture, ids), phase="native", validate_implementation=validate)
             if native_errors:
                 raise RuntimeError(f"native graph invalid: {native_errors}")
@@ -388,7 +448,7 @@ class NativeE2E:
                 "draft_validation": "pass",
                 "native_validation": "pass",
                 "implementation_admission_comment_readback": "pass",
-                "triage_promotion": "pass",
+                "triage_activation_gate": "pass",
                 "review_rework_native_validation": "pass",
                 "review_completion_event_and_finding_readback": "pass",
                 "idempotent_recovery": "pass",

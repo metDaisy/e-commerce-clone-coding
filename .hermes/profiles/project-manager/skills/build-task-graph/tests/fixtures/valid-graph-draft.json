@@ -33,7 +33,7 @@
       "card_type": "triage",
       "assignee": "project-manager",
       "workspace": "scratch",
-      "status": "running",
+      "status": "triage",
       "parents": [],
       "body": null
     },

@@ -324,7 +324,7 @@ def validate(body: Any, status: str | None = None) -> list[str]:
         if allowed is True:
             _error(errors, planning_state == "frozen", "OPEN_GRAPH_GATE_WITHOUT_FROZEN_PLAN")
             if status is not None:
-                _error(errors, status in {"running", "done"}, "OPEN_GRAPH_GATE_IN_INVALID_STATUS")
+                _error(errors, status in {"triage", "done"}, "OPEN_GRAPH_GATE_IN_INVALID_STATUS")
             _error(errors, blocker is None, "OPEN_GRAPH_GATE_WITH_BLOCKER")
             _error(errors, not open_findings, "OPEN_GRAPH_GATE_WITH_POLICY_FINDING")
             _error(errors, not unresolved_requests, "OPEN_GRAPH_GATE_WITH_DECISION_REQUEST")
@@ -332,11 +332,7 @@ def validate(body: Any, status: str | None = None) -> list[str]:
         if planning_state == "frozen":
             _error(errors, allowed is True, "FROZEN_PLAN_WITH_CLOSED_GRAPH_GATE")
         if status == "blocked":
-            _error(errors, allowed is False, "BLOCKED_GRAPH_GATE")
-            _error(errors, planning_state == "planning", "BLOCKED_FROZEN_PLAN")
-            _error(errors, isinstance(blocker, dict) and _non_empty_string(blocker.get("kind")), "MISSING_BLOCKER")
-            _error(errors, open_findings, "BLOCKED_WITHOUT_OPEN_POLICY_FINDING")
-            _error(errors, unresolved_requests, "BLOCKED_WITHOUT_DECISION_REQUEST")
+            errors.append("TRIAGE_MUST_REMAIN_NATIVE_TRIAGE")
         if status == "done":
             _error(errors, allowed is True, "DONE_GRAPH_GATE")
             _error(errors, blocker is None, "DONE_WITH_BLOCKER")
@@ -514,7 +510,7 @@ def main() -> int:
         return 1 if errors else 0
     if args.command == "freeze":
         frozen = freeze(_read_json(args.body))
-        errors = validate(frozen, "running")
+        errors = validate(frozen, "triage")
         print(json.dumps({"valid": not errors, "errors": errors}, ensure_ascii=False))
         if errors:
             return 1

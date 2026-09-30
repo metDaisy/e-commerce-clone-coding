@@ -370,6 +370,35 @@ class TaskGraphContractTest(unittest.TestCase):
         graph["cards"][1]["status"] = "ready"
         self.assertEqual([], validate_graph(graph, phase="native", validate_implementation=validate))
 
+    def test_draft_requires_native_triage_status(self):
+        graph = self.valid_graph()
+        graph["cards"][0]["status"] = "running"
+        self.assertIn("DRAFT_TRIAGE_STATUS", validate_graph(graph, validate_implementation=validate))
+
+    def test_new_graph_rejects_planning_decision_card(self):
+        graph = self.valid_graph()
+        graph["cards"].insert(
+            1,
+            {
+                "key": "decision-1",
+                "title": "G1-Issue138-Decision1",
+                "card_type": "decision",
+                "assignee": "project-manager",
+                "workspace": "scratch",
+                "status": "blocked",
+                "parents": [],
+                "body": {
+                    "schema": "policy-decision-card-v1",
+                    "source_review_key": "review-1",
+                    "finding_ids": ["F-1"],
+                    "question": "정책을 결정한다.",
+                    "decision_owner": "user",
+                },
+            },
+        )
+        graph["cards"][-1]["parents"].append("decision-1")
+        self.assertIn("PLANNING_DECISION_MUST_NOT_BE_GRAPH_CARD", validate_graph(graph, validate_implementation=validate))
+
     def test_native_readback_rejects_summary_parent_omission(self):
         graph = self.valid_graph()
         graph["cards"][0]["status"] = "done"
@@ -390,6 +419,24 @@ class TaskGraphContractTest(unittest.TestCase):
         ]
         next(item for item in readback if item["task"]["title"] == "G1-Issue138-Summary")["parents"] = []
         self.assertIn("NATIVE_PARENT_MISMATCH:summary", validate_native_readback(graph, readback))
+
+    def test_native_readback_accepts_separate_triage_body(self):
+        graph = self.valid_graph()
+        ids = {card["key"]: f"t_{index + 1}" for index, card in enumerate(graph["cards"])}
+        readback = [
+            {
+                "task": {
+                    "id": ids[card["key"]],
+                    "title": card["title"],
+                    "assignee": card["assignee"],
+                    "status": card["status"],
+                    "body": '{"schema":"triage-v2"}' if card["key"] == "triage" else json.dumps(card["body"], ensure_ascii=False),
+                },
+                "parents": [ids[parent] for parent in card["parents"]],
+            }
+            for card in graph["cards"]
+        ]
+        self.assertEqual([], validate_native_readback(graph, readback))
 
     def test_implemented_behavior_requires_inherited_evidence(self):
         graph = self.valid_graph()

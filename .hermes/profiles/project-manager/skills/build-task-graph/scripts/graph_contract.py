@@ -43,7 +43,7 @@ EXPECTED_ASSIGNEES = {
     "summary": "project-manager",
     "decision": "project-manager",
 }
-STATUSES = {"running", "todo", "ready", "blocked", "done", "archived"}
+STATUSES = {"triage", "running", "todo", "ready", "blocked", "done", "archived"}
 TITLE_TYPES = {
     "Triage": "triage",
     "Summary": "summary",
@@ -396,6 +396,12 @@ def validate_graph(
         summary_parents = set(records[summaries[0]].get("parents", []))
         required_parents = {key for key, card in records.items() if card.get("card_type") in {"implementation", "review", "decision"}}
         _error(errors, required_parents == summary_parents, "SUMMARY_MEMBERSHIP_MISMATCH")
+    if mode in {"new", "requirement-rework"}:
+        _error(
+            errors,
+            not any(card.get("card_type") == "decision" for card in records.values()),
+            "PLANNING_DECISION_MUST_NOT_BE_GRAPH_CARD",
+        )
     for key in reviews:
         _error(errors, bool(records[key].get("parents")), f"REVIEW_WITHOUT_PARENT:{key}")
     for key, card in records.items():
@@ -530,7 +536,7 @@ def validate_graph(
     if phase == "draft":
         _error(errors, not ready, "DRAFT_HAS_READY_CARD")
         if triages:
-            expected_triage = "done" if mode == "review-rework" else "running"
+            expected_triage = "done" if mode == "review-rework" else "triage"
             _error(errors, records[triages[0]].get("status") == expected_triage, "DRAFT_TRIAGE_STATUS")
         source_key = source_review.get("review_key")
         for key, card in records.items():
@@ -622,7 +628,9 @@ def validate_native_readback(graph: Any, readback: Any) -> list[str]:
         for field in ("assignee", "status"):
             _error(errors, task.get(field) == card.get(field), f"NATIVE_{field.upper()}_MISMATCH:{key}")
         body = task.get("body")
-        if card.get("body") is None:
+        if card.get("body") is None and card.get("card_type") == "triage":
+            _error(errors, isinstance(body, str) and bool(body.strip()), f"NATIVE_TRIAGE_BODY_MISSING:{key}")
+        elif card.get("body") is None:
             _error(errors, body in {None, ""}, f"NATIVE_BODY_MISMATCH:{key}")
         else:
             try:

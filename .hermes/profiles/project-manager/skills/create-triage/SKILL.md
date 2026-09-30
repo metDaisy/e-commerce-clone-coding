@@ -43,7 +43,7 @@ card는 구현 아이디어, 문서 영향, 정책 질문과 다음 단계의 �
 
 | Skill | 사용하는 경우 | 사용하는 방법과 복귀 조건 |
 |---|---|---|
-| `service-planning` | Policy, authorization, consistency, 오류 의미 또는 UI 의미를 source만으로 결정할 수 없다. | Triage를 `blocked`로 유지하고 human-readable decision card를 연결한다. 사용자의 결정과 requirement 반영을 read-back한 뒤 재개한다. |
+| `service-planning` | Policy, authorization, consistency, 오류 의미 또는 UI 의미를 source만으로 결정할 수 없다. | Triage는 native `triage`로 유지하고 linked Planning Decision을 만든다. 사용자의 결정과 requirement 반영을 read-back한 뒤 재개한다. |
 | `sync-docs` | 승인 requirement와 파생 문서 또는 GitHub Issue가 불일치한다. | `current-state.md`를 제외한 영향 대상을 동기화하고 외부 mutation을 read-back한다. 모든 불일치가 해소되면 재검증한다. |
 | `build-task-graph` | Triage가 frozen이고 graph gate가 열렸다. | Frozen body, 승인 requirement, fresh snapshot과 Issue를 넘긴다. Graph 전체 검증 뒤 이 Skill이 Triage를 완료하고 첫 실행 대상 하나만 `ready`로 만든다. |
 
@@ -52,15 +52,15 @@ card는 구현 아이디어, 문서 영향, 정책 질문과 다음 단계의 �
 ## Kanban lifecycle
 
 ```text
-triage → running planning → frozen running graph gate → done
-          └──────────────→ blocked → running planning
+triage planning → frozen triage graph gate → done
+       └→ Planning Decision blocked → user comment + running → PM reply → approved → done
 ```
 
-- 초기 상태는 native `triage`다. Runtime이 이를 노출하지 않을 때만 `todo`로 생성·검증한 뒤
-  `ready`로 승격하고 claim한다.
-- `needs-input`은 status가 아니다. `blocker.kind`와 decision request를 기록하고 `blocked`를 사용한다.
-- Frozen Triage는 graph 작성 중 첫 실행 대상의 scheduling parent다. `build-task-graph`가 graph 전체를
-  read-back하기 전에는 `done`으로 바꾸지 않는다.
+- Triage는 planning 내내 native `triage`다. PM은 Triage를 claim하거나 block하지 않는다.
+- 사용자 입력은 조건부 Planning Decision의 `blocked → running`과 comment로 표현한다. 그 card만
+  `needs-input` reason을 보존하며 Triage에는 open finding/decision request와 graph gate false를 기록한다.
+- Frozen Triage는 graph 작성 중 첫 실행 대상의 scheduling parent다. 전체 graph read-back과 activation
+  preflight 전에는 `done`으로 바꾸지 않는다.
 
 ## 정본 body
 
@@ -99,8 +99,9 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
   기록한다. 이후 body가 바뀌면 validation이 실패한다.
 - `validate-card`: 공식 `hermes kanban ... show --json`으로 card 하나를 읽어 native envelope와 body를
   검사한다.
-- Helper는 Kanban을 생성·수정·연결·claim·block·complete하지 않는다. 모든 mutation은 native
-  `kanban_*` tool로 수행하고 정확한 card를 다시 읽는다.
+Helper는 Kanban을 생성·수정·연결·claim·block·complete하지 않는다. 일반 graph activation은
+`references/triage-decision-collaboration.md`의 PM-only `activate_graph.py`만 사용하며, 그 외 mutation은
+native `kanban_*` surface와 exact read-back으로 수행한다.
 
 ## 절차
 
@@ -113,7 +114,7 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
    생성한다. 완료 기준: 실제 ID, status, assignee와 body read-back 결과가 일치하고 중복 active card가
    없다. Native show가 workspace를 반환한다고 주장하지 않고 create intent와 actual process cwd를
    별도로 확인한다.
-4. **Claim하고 조사한다.** Native lifecycle로 `running`으로 바꾸고 requirement, Issue, snapshot과
+4. **조사한다.** Triage를 native `triage`로 유지한 채 requirement, Issue, snapshot과
    후보 문서를 대조한다. Source 조사는 충돌, 구조 제약 또는 snapshot 불일치가 있을 때만 좁게
    수행한다. 소비하는 cross-domain capability는 producer의 named public interface/query/event와 실제
    error·consistency 의미를 확인한다. consumer-owned port, 항상 empty/default를 반환하는 adapter 또는
@@ -121,21 +122,22 @@ python "$TRIAGE_PY" validate-card --task-id <actual-id> --board <board> --expect
    consumer acceptance에 필요한 최소 capability를 `cross-domain-minimum-capability.md`의 handoff로 고정한다.
    승인된 target은 실제 seam이 생기기 전까지 `absent-or-partial`이다. 완료 기준: 모든 finding과
    cross-domain contract에 evidence·관계·minimum capability·disposition이 있다.
-5. **Blocker를 처리한다.** public contract가 absent/partial이거나 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
-   구조화된 open finding·pending decision request·blocker를 기록하고 `blocked`로 바꾼다.
-   `service-planning` card를 native link로 연결한다. 완료 기준: 두 card와 link를 read-back했다.
-6. **결정 뒤 재개한다.** 사용자 결정은 PM-owned Decision card에 먼저 기록하고 native read-back한다.
-   같은 `decision_request_id`의 Triage request와 Decision 결과가 일치하는지 확인한 뒤 사용자 결정,
-   requirement 변경, 필요한 `sync-docs` 결과와 Issue를 read-back한다. 같은 Triage를 `running`으로
-   재개하고 finding/request를 해결 상태로 갱신한다. 완료 기준: validator가 unresolved blocker를 보고하지
-   않고 approved minimum contract에는 producer·consumer·integration follow-up이 있다.
+5. **사용자 결정을 요청한다.** public contract가 absent/partial이거나 정책 결정이 필요하면 `planning_state: planning`, graph gate false,
+   구조화된 open finding·pending decision request·blocker를 기록하고 Triage와 함께 PM-owned Planning
+   Decision을 native link로 만든다. Decision은 질문·선택지·evidence를 담은 `blocked` card다. 사용자가
+   comment를 남기고 `running`으로 바꾸면 PM은 next workflow run에서 comment를 read-back하고 답변을 남긴다.
+6. **결정 뒤 고정한다.** Decision body와 Triage의 같은 `decision_request_id`가 approved change,
+   minimum capability, producer·consumer·integration follow-up까지 일치하는지 확인한다. 사용자 결정,
+   requirement 변경, 필요한 `sync-docs` 결과와 Issue를 read-back한 뒤 finding/request를 해결 상태로 갱신한다.
+   완료 기준: validator가 unresolved blocker를 보고하지 않는다.
 7. **계획을 고정한다.** 모든 blocker가 해소되면 `planning_state: frozen`,
    `build_task_graph.allowed: true`, `blocker: null`인 copy와 `frozen_digest`를 `freeze` 명령으로
-   생성해 검증한다. Native card는 `running`으로 유지한다. 완료 기준: digest가 일치하는 frozen
+   생성해 검증한다. Native card는 `triage`로 유지한다. 완료 기준: digest가 일치하는 frozen
    body와 열린 graph gate를 read-back했다.
-8. **Graph로 넘긴다.** `build-task-graph`에 frozen body와 승인 근거를 전달한다. Graph 전체와 link,
-   activation 결과가 검증된 뒤에만 해당 Skill이 Triage를 `done`으로 바꾼다. 완료 기준: Triage가
-   `done`이고 첫 Impl 또는 no-Impl Review 하나만 `ready`다.
+8. **Graph로 넘긴다.** `build-task-graph`에 frozen body와 승인 근거를 전달한다. graph 전체의 native
+   read-back 뒤 `activate_graph.py` preflight를 통과한다. 현재 native runtime은 `triage → done`을 지원하지
+   않으므로 `--apply` 실패 뒤 promote하지 않는 것이 안전 결과다. core transition이 제공된 뒤에만 Planning
+   Decision/Triage 완료와 첫 Impl 또는 no-Impl Review의 single `ready`를 수행한다.
 
 ## 사용자 결정 요청
 
@@ -152,7 +154,7 @@ read-back한다. 추천은 결정과 구분한다.
 - Current-state snapshot SHA와 freshness
 - 모든 문서의 disposition, locator와 follow-up
 - 정책 결정과 requirement/document/Issue 동기화 evidence
-- `planning_state: frozen`, 열린 graph gate와 `running` creator-gate
+- `planning_state: frozen`, 열린 graph gate와 native `triage` creator-gate
 - Graph 작성 뒤 Triage `done`과 exactly-one-ready 결과
 
 Helper가 증명하지 않는 clean tree, leaf lineage, active-card uniqueness와 native link는 절차의

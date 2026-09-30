@@ -22,8 +22,9 @@ finding을 대신 판단하지 않는다.
 Persisted runtime schema와 결정론적 invariant는
 [`references/workflow-contract.md`](references/workflow-contract.md), same-card checkpoint schema는
 [`references/execution-contract.md`](references/execution-contract.md)가 소유한다. Graph/card 작성은
-`../build-task-graph/`가 소유한다. `scripts/workflow.py`와 `scripts/checkpoint.py`는 read-only validator이며 Git, Kanban,
-GitHub를 변경하지 않는다. 설치된 Skill 경로를 resolve해서 실행한다.
+`scripts/workflow.py`와 `scripts/checkpoint.py`는 read-only validator이며 Git, Kanban,
+GitHub를 변경하지 않는다. `scripts/activate_graph.py`만 frozen Triage/Planning Decision의 complete와
+single-target promotion을 fail-closed로 수행한다. 설치된 Skill 경로를 resolve해서 실행한다.
 
 ## 시작과 재개
 
@@ -31,7 +32,8 @@ GitHub를 변경하지 않는다. 설치된 Skill 경로를 resolve해서 실행
    tool이 없는 일반 PM session은 공식 `hermes kanban` CLI의 현재 `--help`를 읽은 뒤 사용한다.
 2. Branch, `HEAD`, 전체 Git status, `current-state.md` freshness와 active marker를 읽는다.
 3. Marker가 없고 repository가 clean이면 새 leaf Issue의 canonical delivery branch를 선택하고
-   `create-triage`부터 시작한다. Frozen Triage가 준비되면 `build-task-graph`로 graph 전체를 작성한다.
+   `create-triage`부터 시작한다. Planning Decision이 있으면 사용자 comment/running과 PM reply loop를
+   완료한 뒤 frozen Triage를 `build-task-graph`로 materialize한다.
 4. Marker가 있으면 Issue·branch·committed checkpoint·Kanban history를 비교해 정상 재개, `restart-task`,
    base-sync 또는 사용자 결정을 선택한다. Dirty 상태를 새 planning 입력으로 사용하지 않는다.
 5. 기존 `build-task-graph-v2` wrapper와 정규화한 native read-back, Git read-back을 각각 JSON으로 저장하고
@@ -41,6 +43,16 @@ GitHub를 변경하지 않는다. 설치된 Skill 경로를 resolve해서 실행
 
 완료 기준: validator가 현재 phase, eligible/ready task와 **하나의** `allowed_transition`을 반환하고 실제
 board·branch·marker와 일치한다. 오류가 있으면 mutation 전에 block한다.
+
+## Planning graph activation
+
+Graph native read-back을 만든 뒤 먼저 `activate_graph.py`를 `--apply` 없이 실행한다. report가
+`valid: true`일 때만 `--apply`를 실행한다. native complete/read-back 실패 뒤 script는 promote나 다른
+graph mutation을 실행하지 않는다.
+
+현재 native CLI는 `triage → done` direct transition을 지원하지 않는다. 따라서 이 runtime에서는 apply
+failure와 unchanged Triage/target read-back이 fail-closed 결과이며, PM은 `specify`로 우회하거나 graph를
+dispatch하지 않는다. core transition이 제공되기 전에는 planning graph를 실행하지 않는다.
 
 ## Kanban 실행 반복
 
@@ -195,7 +207,8 @@ Authorization·consistency·API/error meaning 또는 effective behavior가 달�
 ## 실패 처리
 
 - Validator error, stale run, workspace/branch mismatch, unexpected dirty path: mutation 없이 block한다.
-- Native transition 실패: task/run/event를 다시 읽고 종료된 run에서 재시도하지 않는다.
+- Graph activation은 `activate_graph.py` 외의 ad-hoc complete/promote로 우회하지 않는다. Native transition
+  실패 시 script가 이후 promote를 실행하지 않으며 task/run/event를 다시 읽고 종료된 run에서 재시도하지 않는다.
 - Git commit 실패 또는 dirty post-commit: task를 완료하지 않고 같은 review run에서 복구한다.
 - CI/PR finding: 분류 contract 없이 retry·dismiss·merge하지 않는다.
 - External mutation 성공 응답만으로 완료하지 않고 exact target을 read-back한다.

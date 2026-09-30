@@ -89,8 +89,9 @@ Persisted body schema는 다음과 같다.
   `baseline_sha..reviewed_head_sha` 전체 diff와 영향 closure를 조사한다.
 - Summary: `issue-summary-card-v1`. Complete behavior IDs, aggregate acceptance와 finalization checks를
   보존한다.
-- Decision: `policy-decision-card-v1`. Source Review key, finding ID, 사용자 질문과
-  `decision_owner: user`를 보존한다.
+- Decision: `policy-decision-card-v1`. Graph 내부 Decision은 completed Review finding에서 파생된
+  review-rework card이며 Source Review key, finding ID, 사용자 질문과 `decision_owner: user`를 보존한다.
+  Triage와 함께 만드는 Planning Decision은 graph wrapper 밖의 linked provenance record다.
 
 모든 Review의 `baseline_sha`는 wrapper `planning_baseline_sha`와 정확히 같고 behavior 집합은 wrapper
 behavior 집합과 정확히 같다. Latest Review의 Impl 참조는 graph의
@@ -103,11 +104,11 @@ Native parent는 scheduling prerequisite다.
 
 ### `new`와 `requirement-rework`
 
-- Triage는 graph 작성 중 `running`인 creator gate다.
+- Triage는 graph 작성 중 native `triage`인 creator gate다.
 - Planned behavior가 있으면 `ready_candidate`는 Implementation이며 Triage를 parent로 가진다.
 - Planned behavior가 없으면 `ready_candidate`는 aggregate Review이며 Triage를 parent로 가진다.
 - 각 Impl은 최소 하나의 Review와 Summary의 parent다.
-- 모든 Review와 Decision은 Summary의 parent다.
+- 모든 Review는 Summary의 parent다. Planning Decision은 Summary parent가 아니다.
 
 ### `review-rework`
 
@@ -129,15 +130,15 @@ total order를 이뤄야 하며 서로 ancestor 관계가 아닌 두 executable 
 
 ### Draft
 
-- `new`와 `requirement-rework`: Triage는 `running`; 다른 execution card는 `todo`, Decision은
-  `todo | blocked`; `ready` card는 없다.
+- `new`와 `requirement-rework`: Triage는 `triage`; 다른 execution card는 `todo`; `ready` card는 없다.
+  Planning Decision은 wrapper 밖에서 관리한다.
 - `review-rework`: Triage와 pre-existing history는 `done`; Summary와 appended execution card는
   `todo`, Decision은 `todo | blocked`; `ready` card는 없다.
 
 ### Native
 
 - `new`와 `requirement-rework`: Triage는 `done`; `ready_candidate` 하나만 `ready`; 나머지 execution
-  card는 `todo`, Decision은 `todo | blocked`다.
+  card는 `todo`다. Planning Decision은 activation 전에 `done`이어야 한다.
 - `review-rework`: Triage, source Review와 pre-existing history는 `done`; candidate가 있으면 그 card
   하나만 `ready`; appended 후속 card와 Summary는 `todo`다. Decision-only면 ready card가 없고
   Decision은 `blocked`다.

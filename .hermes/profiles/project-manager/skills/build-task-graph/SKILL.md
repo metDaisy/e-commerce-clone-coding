@@ -40,7 +40,7 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
 - 새 leaf Issue의 G1 planning record가 없으면 `create-triage`를 사용한다. G{N+1} rework Triage는 이
   Skill이 작성한다.
 - Policy·authorization·consistency·오류 의미·UI 의미에 사용자 결정이 남으면
-  `service-planning`을 사용하고 Triage를 `blocked`로 유지한다.
+  `service-planning`을 사용하고 Triage와 linked Planning Decision의 협업을 완료할 때까지 graph 작성을 중단한다.
 - 승인 requirement와 파생 문서 또는 Issue가 불일치하면 `sync-docs`를 사용하고 mutation을
   read-back한다.
 - `current-state.md`가 fresh하지 않거나 판정 근거가 부족하면 graph 작성을 중단하고
@@ -78,15 +78,18 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
    `run-workflow/scripts/workflow.py validate-implementation-admission`으로
    comment payload를 검증한다. Wrapper를 read-back 값으로 갱신한다. 완료 기준: 신규 execution card가
    dispatchable하지 않고 wrapper와 native 상태가 일치하며 admission comment가 exact task에 존재한다.
-5. **Activation을 검증한다.** Mode별 activation을 실행한 뒤 `validate-graph --phase native`를
-   실행한다. 완료 기준: 정확히 하나의 activation target만 `ready`이거나, unresolved Decision-only
-   graph에는 `ready` card가 없다.
+5. **Activation을 검증한다.** `run-workflow/scripts/activate_graph.py`의 read-only preflight를 먼저
+   통과하고, `--apply`가 Triage/Planning Decision completion과 target 하나의 promotion을 모두 read-back한
+   경우에만 `validate-graph --phase native`를 통과로 인정한다. 완료 기준: 정확히 하나의 activation target만
+   `ready`이거나, review-rework의 unresolved Decision-only graph에는 `ready` card가 없다.
+   현재 native `triage → done`이 지원되지 않는 runtime에서는 `--apply` failure와 no-promote read-back을
+   기록하고 graph를 dispatch하지 않는다.
 
 Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않는다.
 
 ## `new` 절차
 
-1. `create-triage`가 freeze한 `running` G1 Triage와 handoff를 읽는다. 완료 기준:
+1. `create-triage`가 freeze한 native `triage` G1 Triage와 handoff를 읽는다. 완료 기준:
    `build_task_graph.allowed: true`이고 미해결 policy finding이 없다. Triage Decision card가 있었다면
    같은 `decision_request_id`, approved change, minimum capability, producer·consumer follow-up을 native
    read-back으로 대조한다. 불일치하면 graph를 만들지 않는다.
@@ -98,7 +101,7 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
    symbol 목록을 body에 넣지 않는다.
 3. Planned behavior가 있으면 첫 Impl을 Triage child로 둔다. Planned behavior가 없으면 전체
    inherited behavior를 재검증할 Review1을 Triage child이자 activation target으로 둔다.
-4. 공통 작성 절차를 완료하고 Triage를 완료한다.
+4. 공통 작성 절차를 완료한 뒤 PM-only activation gate로 Triage를 완료한다.
 
 완료 기준: Triage는 `done`이고 첫 Impl 또는 no-Impl Review 하나만 `ready`다.
 

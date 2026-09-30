@@ -54,8 +54,8 @@ class TriageContractTest(unittest.TestCase):
             entry["reason"] = f"{document} was reviewed and needs no update."
         return body
 
-    def test_populated_body_is_valid_for_running_card(self):
-        self.assertEqual([], validate(self.populated_body(), "running"))
+    def test_populated_body_is_valid_for_native_triage_card(self):
+        self.assertEqual([], validate(self.populated_body(), "triage"))
 
     def test_absent_cross_domain_contract_requires_open_finding_and_decision(self):
         body = self.populated_body()
@@ -89,7 +89,7 @@ class TriageContractTest(unittest.TestCase):
             }
         ]
         body["blocker"] = {"kind": "cross-domain-contract"}
-        self.assertEqual([], validate(body, "blocked"))
+        self.assertEqual([], validate(body, "triage"))
 
     def test_approved_minimum_contract_remains_absent_until_producer_is_real(self):
         body = self.populated_body()
@@ -113,7 +113,7 @@ class TriageContractTest(unittest.TestCase):
                 "decision_request_id": "DR-001", "not_applicable_reason": None,
             }
         ]
-        self.assertEqual([], validate(freeze(body), "running"))
+        self.assertEqual([], validate(freeze(body), "triage"))
 
     def test_published_contract_requires_real_producer_evidence(self):
         body = self.populated_body()
@@ -166,15 +166,12 @@ class TriageContractTest(unittest.TestCase):
         body["current_state"]["freshness"] = "stale"
         self.assertIn("CURRENT_STATE_NOT_FRESH", validate(body, "running"))
 
-    def test_blocked_card_requires_blocker_and_closed_graph_gate(self):
+    def test_triage_rejects_blocked_native_status(self):
         body = self.populated_body()
         body["build_task_graph"]["allowed"] = True
-        self.assertIn("BLOCKED_GRAPH_GATE", validate(body, "blocked"))
-        self.assertIn("MISSING_BLOCKER", validate(body, "blocked"))
-        self.assertIn("BLOCKED_WITHOUT_OPEN_POLICY_FINDING", validate(body, "blocked"))
-        self.assertIn("BLOCKED_WITHOUT_DECISION_REQUEST", validate(body, "blocked"))
+        self.assertIn("TRIAGE_MUST_REMAIN_NATIVE_TRIAGE", validate(body, "blocked"))
 
-    def test_blocked_card_accepts_structured_pending_decision(self):
+    def test_native_triage_accepts_structured_pending_decision(self):
         body = self.populated_body()
         body["blocker"] = {"kind": "policy-decision"}
         body["policy_findings"] = [
@@ -192,7 +189,7 @@ class TriageContractTest(unittest.TestCase):
                 "approved_change": None,
             }
         ]
-        self.assertEqual([], validate(body, "blocked"))
+        self.assertEqual([], validate(body, "triage"))
 
     def test_document_decision_requires_valid_locators(self):
         body = self.populated_body()
@@ -216,11 +213,11 @@ class TriageContractTest(unittest.TestCase):
 
     def test_frozen_resolved_plan_opens_graph_gate(self):
         body = freeze(self.populated_body())
-        self.assertEqual([], validate(body, "running"))
-        self.assertIn("OPEN_GRAPH_GATE_IN_INVALID_STATUS", validate(body, "triage"))
+        self.assertEqual([], validate(body, "triage"))
+        self.assertIn("OPEN_GRAPH_GATE_IN_INVALID_STATUS", validate(body, "running"))
 
         body["goal"] = "The frozen plan was changed."
-        self.assertIn("FROZEN_BODY_DIGEST_MISMATCH", validate(body, "running"))
+        self.assertIn("FROZEN_BODY_DIGEST_MISMATCH", validate(body, "triage"))
 
     def test_decision_request_requires_structured_options(self):
         body = self.populated_body()
