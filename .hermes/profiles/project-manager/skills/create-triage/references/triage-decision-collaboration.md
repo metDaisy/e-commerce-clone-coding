@@ -59,23 +59,23 @@ read-back한다. 이 시점에는 아직 Coder card를 `ready`로 만들지 않�
 5. candidate graph를 Triage done + target ready 상태로 검증
 6. 모두 통과한 경우에만 native complete(Decision..., Triage)를 시도
 7. 각 done status read-back
-8. target 하나 promote
+8. `recompute_ready()`가 target을 자동 ready로 만들었는지 확인하고, 아직 `todo`일 때만 target 하나를 promote
 9. graph native phase와 native envelopes 재검증
 ```
 
 기본 실행은 preflight-only다. `--apply`가 있을 때만 6~9를 수행한다. 어느 단계든 실패하면 뒤 mutation은
 실행하지 않는다. 예를 들어 native `complete`가 실패하면 `promote`는 실행되지 않는다.
 
-### 현재 native runtime 제약 — 2026-09-30 확인
+### Native Triage 종료 전이 — 2026-10-01 적용
 
-현재 CLI는 native `triage` task에 대한 direct `complete`와 `promote`를 모두 거부한다. 실제 검증에서
-`complete --result ... <triage-id>`는 `unknown id or terminal state`, `promote <triage-id>`는
-`promote only applies to todo or blocked`를 반환했다. 따라서 PM-only script는 **실패 후 promote를 막는
-gate로는 동작하지만**, 사용자 제안의 `triage → done`을 아직 실현할 수는 없다.
+Hermes core의 `complete`는 frozen native `triage` task도 non-empty result와 충족된 parent 조건에서
+`done`으로 전이한다. 완료는 native event/run으로 기록되고 `recompute_ready()`가 후속 card의 readiness를
+다시 계산한다. `activate_graph.py`는 이 전이를 사용해 Planning Decision과 Triage를 완료한 뒤 target 하나만
+promotion한다.
 
-이 lifecycle을 실현하려면 Hermes core에 triage 종료 transition이 필요하다. `specify`를 임시 우회로
-사용하지 않는다. 이는 triage specifier가 body를 자동 변경하고 `todo`로 promotion하는 별도 workflow이므로,
-PM이 승인한 frozen planning record를 보존한다는 이 계약과 다르다.
+이 전이는 PM graph activation의 명시적 종료 경로다. `specify`를 임시 우회로 사용하지 않는다. 이는 triage
+specifier가 body를 자동 변경하고 `todo`로 promotion하는 별도 workflow이므로, PM이 승인한 frozen planning
+record를 보존한다는 이 계약과 다르다.
 
 ```text
 python .hermes/profiles/project-manager/skills/run-workflow/scripts/activate_graph.py \
@@ -125,9 +125,10 @@ materialize한다. Planning validator는 ownership과 follow-up completeness를 
 Planning Decision이 있는 Issue는 다음이 모두 참일 때만 activation할 수 있다.
 
 - Triage는 frozen이며 native `triage` 상태다.
-- 모든 linked Planning Decision은 native `running`, body `approved`이며 Triage request와 정합하다.
+- 모든 linked Planning Decision은 native `running` 또는 이미 성공적으로 완료된 `done`이고, body
+  `approved`이며 Triage request와 정합하다. `done`은 terminal successful run을 read-back해야 한다.
 - 실행 graph에는 Planning Decision을 card/parent로 복제하지 않는다.
 - Impl/Review/Summary의 body, parent, assignee, status가 native read-back과 일치한다.
 - `activate_graph.py` preflight가 valid다.
-- native core가 triage 종료 transition을 제공한 뒤에만 `--apply` 뒤 Triage/Decision은 `done`, 정확히 한
-  Impl 또는 Review만 `ready`다. 그 전에는 script failure와 unchanged native read-back이 정상 안전 결과다.
+- `--apply` 뒤 Triage/Decision은 `done`, 정확히 한 Impl 또는 Review만 `ready`다. activation 중 이미
+  완료된 Decision은 successful run과 approved payload가 정합하면 재시도에서 다시 complete하지 않는다.

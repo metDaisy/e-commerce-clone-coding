@@ -66,7 +66,7 @@ class ActivateGraphTest(unittest.TestCase):
             )
         return graph, readback
 
-    def runner_for(self, readback):
+    def runner_for(self, readback, *, auto_ready_after_triage_completion=False):
         by_id = {entry["task"]["id"]: copy.deepcopy(entry) for entry in readback}
         calls = []
 
@@ -82,6 +82,8 @@ class ActivateGraphTest(unittest.TestCase):
                     task_ids = task_ids[2:]
                 for task_id in task_ids:
                     by_id[task_id]["task"]["status"] = "done"
+                    if auto_ready_after_triage_completion and task_id == "t_1":
+                        by_id["t_2"]["task"]["status"] = "ready"
                 return subprocess.CompletedProcess(command, 0, "", "")
             if action == "promote":
                 by_id[command[7]]["task"]["status"] = "ready"
@@ -123,7 +125,7 @@ class ActivateGraphTest(unittest.TestCase):
         runner, calls = self.runner_for(readback)
         report = self.invoke(graph, readback, runner, apply=True)
         self.assertFalse(report["valid"])
-        self.assertIn("TRIAGE_NOT_NATIVE_TRIAGE", report["errors"])
+        self.assertIn("TRIAGE_NOT_NATIVE_TRIAGE_OR_DONE", report["errors"])
         self.assertFalse(report["mutated"])
         self.assertTrue(all(command[6] == "show" for command in calls))
 
@@ -135,6 +137,17 @@ class ActivateGraphTest(unittest.TestCase):
         self.assertTrue(report["mutated"])
         mutations = [command[6] for command in calls if command[6] != "show"]
         self.assertEqual(["complete", "promote"], mutations)
+
+
+    def test_apply_accepts_target_auto_promoted_by_triage_completion(self):
+        graph, readback = self.graph_and_readback()
+        runner, calls = self.runner_for(readback, auto_ready_after_triage_completion=True)
+
+        report = self.invoke(graph, readback, runner, apply=True)
+
+        self.assertTrue(report["valid"])
+        mutations = [command[6] for command in calls if command[6] != "show"]
+        self.assertEqual(["complete"], mutations)
 
 
 if __name__ == "__main__":

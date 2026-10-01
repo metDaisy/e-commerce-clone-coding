@@ -53,7 +53,10 @@ def _parse_show(payload: str) -> dict[str, Any]:
     parents = parsed.get("parents", task.get("parents", []))
     if not isinstance(parents, list):
         raise ValueError("KANBAN_SHOW_INVALID_PARENTS")
-    return {"task": task, "parents": parents}
+    runs = parsed.get("runs", [])
+    if not isinstance(runs, list):
+        raise ValueError("KANBAN_SHOW_INVALID_RUNS")
+    return {"task": task, "parents": parents, "runs": runs}
 
 
 def _run_kanban(
@@ -88,6 +91,15 @@ def _body(task: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("NATIVE_BODY_NOT_OBJECT")
     return parsed
+
+
+def _has_successful_completion(envelope: dict[str, Any]) -> bool:
+    return any(
+        isinstance(run, dict)
+        and run.get("status") in {"done", "completed"}
+        and run.get("outcome") == "completed"
+        for run in envelope.get("runs", [])
+    )
 
 
 def _native_id_by_key(graph: dict[str, Any], readback: list[Any]) -> dict[str, str]:
@@ -164,8 +176,11 @@ def _preflight(
     try:
         triage_envelope = _show(hermes_bin, board, triage_task_id, runner=runner)
         triage_task = triage_envelope["task"]
-        if triage_task.get("status") != "triage":
-            errors.append("TRIAGE_NOT_NATIVE_TRIAGE")
+        triage_status = triage_task.get("status")
+        if triage_status not in {"triage", "done"}:
+            errors.append("TRIAGE_NOT_NATIVE_TRIAGE_OR_DONE")
+        if triage_status == "done" and not _has_successful_completion(triage_envelope):
+            errors.append("TRIAGE_DONE_WITHOUT_SUCCESSFUL_RUN")
         triage_body = _body(triage_task)
         errors.extend(validate_triage(triage_body, triage_task.get("status")))
         details["triage_status"] = triage_task.get("status")
@@ -185,8 +200,11 @@ def _preflight(
             envelope = _show(hermes_bin, board, task_id, runner=runner)
             task = envelope["task"]
             decision_body = _body(task)
-            if task.get("status") != "running":
-                errors.append(f"DECISION_NOT_RUNNING:{task_id}")
+            decision_status = task.get("status")
+            if decision_status not in {"running", "done"}:
+                errors.append(f"DECISION_NOT_RUNNING_OR_DONE:{task_id}")
+            if decision_status == "done" and not _has_successful_completion(envelope):
+                errors.append(f"DECISION_DONE_WITHOUT_SUCCESSFUL_RUN:{task_id}")
             if decision_body.get("decision_status") != "approved":
                 errors.append(f"DECISION_NOT_APPROVED:{task_id}")
             if isinstance(triage_body, dict):
@@ -243,14 +261,34 @@ def activate(
     if errors or not apply:
         return {"valid": not errors, "errors": errors, "mutated": False, "details": details}
 
-    close_ids = [*decision_task_ids, triage_task_id]
-    completed = _run_kanban(
-        hermes_bin,
-        board,
-        ["complete", "--result", "planning graph materialized and activation verified", *close_ids],
-        runner=runner,
-    )
-    if completed.returncode != 0:
+    pending_decision_ids: list[str] = []
+    for task_id in decision_task_ids:
+        try:
+            current = _show(hermes_bin, board, task_id, runner=runner)["task"]
+        except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
+            return {"valid": False, "errors": [str(exc)], "mutated": False, "details": details}
+        if current.get("status") == "running":
+            pending_decision_ids.append(task_id)
+
+    try:
+        triage_status = _show(hermes_bin, board, triage_task_id, runner=runner)["task"].get("status")
+    except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        return {"valid": False, "errors": [str(exc)], "mutated": False, "details": details}
+    close_ids = [*pending_decision_ids]
+    if triage_status == "triage":
+        close_ids.append(triage_task_id)
+    mutated = bool(close_ids)
+
+    if not close_ids:
+        completed = None
+    else:
+        completed = _run_kanban(
+            hermes_bin,
+            board,
+            ["complete", "--result", "planning graph materialized and activation verified", *close_ids],
+            runner=runner,
+        )
+    if completed is not None and completed.returncode != 0:
         diagnostic = (completed.stderr or completed.stdout).strip().replace("\n", " ")
         return {
             "valid": False,
@@ -274,11 +312,24 @@ def activate(
     target_id = _native_id_by_key(graph, readback).get(activation_key)
     if target_id is None:
         return {"valid": False, "errors": ["ACTIVATION_TASK_ID_MISSING"], "mutated": True, "details": details}
-    promoted = _run_kanban(hermes_bin, board, ["promote", target_id, "approved triage graph"], runner=runner)
-    if promoted.returncode != 0:
+    try:
+        target_status = _show(hermes_bin, board, target_id, runner=runner)["task"].get("status")
+    except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
+        return {"valid": False, "errors": [str(exc)], "mutated": True, "details": details}
+    if target_status == "todo":
+        promoted = _run_kanban(hermes_bin, board, ["promote", target_id, "approved triage graph"], runner=runner)
+        if promoted.returncode != 0:
+            return {
+                "valid": False,
+                "errors": [f"NATIVE_PROMOTE_FAILED:{promoted.returncode}"],
+                "mutated": True,
+                "details": details,
+            }
+        mutated = True
+    elif target_status != "ready":
         return {
             "valid": False,
-            "errors": [f"NATIVE_PROMOTE_FAILED:{promoted.returncode}"],
+            "errors": [f"ACTIVATION_TARGET_INVALID_STATUS:{target_id}:{target_status}"],
             "mutated": True,
             "details": details,
         }
@@ -287,7 +338,7 @@ def activate(
         observed_graph = _with_native_statuses(graph, current_readback)
         errors = validate_graph(observed_graph, phase="native", validate_implementation=validate_implementation)
         errors.extend(validate_native_readback(observed_graph, current_readback))
-        return {"valid": not errors, "errors": sorted(set(errors)), "mutated": True, "details": details}
+        return {"valid": not errors, "errors": sorted(set(errors)), "mutated": mutated, "details": details}
     except (RuntimeError, ValueError, json.JSONDecodeError) as exc:
         return {"valid": False, "errors": [str(exc)], "mutated": True, "details": details}
 

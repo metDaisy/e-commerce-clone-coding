@@ -50,9 +50,10 @@ Graph native read-back을 만든 뒤 먼저 `activate_graph.py`를 `--apply` 없
 `valid: true`일 때만 `--apply`를 실행한다. native complete/read-back 실패 뒤 script는 promote나 다른
 graph mutation을 실행하지 않는다.
 
-현재 native CLI는 `triage → done` direct transition을 지원하지 않는다. 따라서 이 runtime에서는 apply
-failure와 unchanged Triage/target read-back이 fail-closed 결과이며, PM은 `specify`로 우회하거나 graph를
-dispatch하지 않는다. core transition이 제공되기 전에는 planning graph를 실행하지 않는다.
+Native `complete`는 frozen `triage → done` 전이를 지원한다. PM은 draft/native/Triage/Decision preflight가
+통과한 경우에만 `activate_graph.py --apply`로 이 전이를 실행한다. 이미 `done`인 Planning Decision은
+successful terminal run과 approved payload/Triage alignment를 다시 검증한 뒤 재사용하며, 다시 complete하지
+않는다. PM은 `specify`로 frozen planning record를 우회하지 않는다.
 
 ## Kanban 실행 반복
 
