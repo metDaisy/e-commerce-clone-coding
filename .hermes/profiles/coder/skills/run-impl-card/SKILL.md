@@ -1,7 +1,7 @@
 ---
 name: run-impl-card
 description: Use when admitting and running a PM-authored backend Impl card through its PM checkpoint.
-version: 0.8.0
+version: 0.9.0
 author: "Amaazon project"
 license: MIT
 platforms: [linux, macos, windows]
@@ -32,7 +32,8 @@ Coder의 입력이 아니다.
    `backend-implementation-admission-v1` comment에서 actual task ID, Issue, card schema와 create-intent
    workspace를 읽고, 이를 dispatcher가 시작한 actual process cwd/worktree identity와 비교한다. Native
    `kanban_show` task 자체가 workspace를 반환한다고 가정하지 않는다.
-2. Body가 valid JSON이며 `schema: backend-implementation-card-v2`,
+2. Body가 valid JSON이며 legacy `backend-implementation-card-v2` 또는 current
+   `backend-implementation-card-v3`,
    `card_type: implementation`인지 확인한다. Canonical contract의 required field와 reference가
    모두 존재해야 한다.
 3. Card의 goal, effective behavior, scope, exclusions, contracts, acceptance, focused verification와
@@ -91,9 +92,10 @@ Coder의 입력이 아니다.
 1. Git status와 diff를 읽고 모든 changed path가 card scope 또는 필수 propagation인지 확인한다.
    문서 path나 설명할 수 없는 path가 있으면 review를 요청하지 않는다.
 2. 이번 요청에 새 `handoff_id`를 부여하고 현재 native Coder run ID로 canonical
-   `backend-implementation-handoff-v1` metadata를 작성한다. Actual changed paths,
-   acceptance별 focused verification, 실제 `test_levels`, full backend result, documentation impact와 residual risk만
-   기록한다. Raw output, credential, prompt와 reasoning은 기록하지 않는다.
+   `backend-implementation-handoff-v2` metadata를 작성한다. Actual changed paths,
+   acceptance별 focused verification, 실제 `test_levels`, full backend result, documentation impact, residual risk와
+   implementation convention readback만 기록한다. Readback은 적용한 guide section, layer owner와 checked boundary의
+   짧은 사실이며 raw output, credential, prompt와 reasoning은 기록하지 않는다.
 3. 한국어 summary와 metadata로 `kanban_request_review(reviewer="project-manager")`를 호출한다.
    Coder가 `kanban_complete`를 호출하거나 commit하지 않는다.
 4. `kanban_show`로 task가 `review`이고 PM reviewer handoff와 metadata가 저장됐는지 read-back한다.

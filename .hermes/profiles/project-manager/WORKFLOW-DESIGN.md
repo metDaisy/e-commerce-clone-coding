@@ -260,7 +260,7 @@ mutation 대신 default-branch PR의 closing keyword와 merge 뒤 auto-close rea
 다음은 **결정된 workflow**이지만 아직 모두 runtime으로 검증된 것은 아니다.
 
 - manual native graph, `new`·`requirement-rework`·`review-rework` procedure와 finding contract는 설계 기준으로 합의됐다.
-- `build-task-graph` helper/validator는 `backend-implementation-card-v2`, `aggregate-review-card-v3`, graph-level Summary·Decision body/topology와 `new`·rework mode를 지원하며 native Triage gate E2E를 제공한다.
+- `build-task-graph` helper/validator는 current `backend-implementation-card-v3` (historical v2 read-back compatible), `aggregate-review-card-v3`, graph-level Summary·Decision body/topology와 `new`·rework mode를 지원하며 native Triage gate E2E를 제공한다.
 - Root `run-workflow`는 runtime frontier, backend Impl handoff·changes-request·checkpoint, Review finding closure, Summary admission, release, base-sync, interrupted-workflow와 CI/PR finding contract·validator를 지원한다. Native graph E2E는 Review finding·idempotent rework·Summary admission frontier까지 검증하며 실제 GitHub release E2E는 외부 Issue에서 수행해야 한다.
 - `update-current-state`는 `src/**` freshness, 문서 schema, recovery marker와 read-only inspection helper를 지원한다.
 - `service-planning`은 근거 분류, 선택지 비교, UI 결정 필드, requirement read-back과 보류 규칙을 지원한다.

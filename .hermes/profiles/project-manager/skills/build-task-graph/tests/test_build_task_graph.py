@@ -33,7 +33,7 @@ class BackendImplementationCardContractTest(unittest.TestCase):
 
     def test_template_is_fact_only_and_requires_authoring(self):
         card = template(138, "https://github.com/example/repository/issues/138")
-        self.assertEqual("backend-implementation-card-v2", card["schema"])
+        self.assertEqual("backend-implementation-card-v3", card["schema"])
         self.assertNotIn("assignee", card)
         self.assertNotIn("baseline_sha", card)
         self.assertIn("MISSING_GOAL", validate(card))
@@ -49,6 +49,33 @@ class BackendImplementationCardContractTest(unittest.TestCase):
         card = self.valid_card()
         del card["contracts"]["transaction_consistency"]
         self.assertIn("MISSING_CONTRACT:transaction_consistency", validate(card))
+
+    def test_v3_api_requires_delivery_boundary_contract(self):
+        card = self.valid_card()
+        del card["contracts"]["delivery_boundary"]
+        self.assertIn("MISSING_CONTRACT:delivery_boundary", validate(card))
+
+    def test_v3_rejects_api_delivery_boundary_mismatch(self):
+        card = self.valid_card()
+        card["contracts"]["delivery_boundary"] = {
+            "applicable": False,
+            "not_applicable_reason": "HTTP endpoint가 없다.",
+        }
+        self.assertIn("API_DELIVERY_BOUNDARY_APPLICABILITY_MISMATCH", validate(card))
+
+    def test_v3_requires_web_level_verification_for_each_api_acceptance(self):
+        card = self.valid_card()
+        card["focused_verification"][0]["test_level"] = "unit"
+        self.assertIn(
+            "DELIVERY_BOUNDARY_ACCEPTANCE_WITHOUT_WEB_LEVEL:AC-PRODUCT-CREATE",
+            validate(card),
+        )
+
+    def test_legacy_v2_card_remains_readback_compatible(self):
+        card = self.valid_card()
+        card["schema"] = "backend-implementation-card-v2"
+        del card["contracts"]["delivery_boundary"]
+        self.assertEqual([], validate(card))
 
     def test_requires_applicable_contract_rules(self):
         card = self.valid_card()
@@ -275,7 +302,7 @@ class BackendImplementationCardContractTest(unittest.TestCase):
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             output = Path(directory) / ".temp/task-graphs/issue-138/impl-1.json"
-            self.assertEqual("backend-implementation-card-v2", json.loads(output.read_text(encoding="utf-8"))["schema"])
+            self.assertEqual("backend-implementation-card-v3", json.loads(output.read_text(encoding="utf-8"))["schema"])
 
 
 class TaskGraphContractTest(unittest.TestCase):

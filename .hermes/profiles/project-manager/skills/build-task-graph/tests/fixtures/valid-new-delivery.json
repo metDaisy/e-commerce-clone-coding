@@ -1,5 +1,5 @@
 {
-  "schema": "backend-implementation-card-v2",
+  "schema": "backend-implementation-card-v3",
   "card_type": "implementation",
   "issue": {
     "number": 138,
@@ -89,6 +89,20 @@
     "external_system": {
       "applicable": false,
       "not_applicable_reason": "외부 시스템 협업이 없다."
+    },
+    "delivery_boundary": {
+      "applicable": true,
+      "request_model": "application.dto.request의 생성 요청 DTO가 이름, 가격과 재고의 필수값을 Bean Validation으로 검증한다.",
+      "binding_and_validation": "표현 계층은 형식이 지정된 요청 본문과 검증 어노테이션으로 검증한 전송 독립 값을 application에 전달한다.",
+      "response_or_result_model": "application 결과와 표현 계층 응답을 분리하며 상태와 응답 변환은 표현 계층이 소유한다.",
+      "transport_error_mapping": "형식과 validation 오류는 presentation exception flow에서 기존 validation error contract로 응답하고 업무 error는 상품 module이 소유한다.",
+      "api_acceptance_ids": [
+        "AC-PRODUCT-CREATE"
+      ],
+      "required_web_scenarios": [
+        "유효한 요청의 생성 응답",
+        "필수값 또는 형식 오류의 거절 응답"
+      ]
     }
   },
   "acceptance_criteria": [

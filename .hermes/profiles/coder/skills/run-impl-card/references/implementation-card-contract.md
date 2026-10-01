@@ -1,7 +1,7 @@
-# Coder Impl card consumption contract v2
+# Coder Impl card consumption contract v3
 
-이 문서는 `coder`가 admitted `backend-implementation-card-v2`을 해석하고
-`backend-implementation-handoff-v1`을 작성하는 계약을 소유한다. PM의 card authoring shape와
+이 문서는 `coder`가 admitted `backend-implementation-card-v2` 또는 `backend-implementation-card-v3`을 해석하고
+current `backend-implementation-handoff-v2` (historical v1 read-back compatible)을 작성하는 계약을 소유한다. PM의 card authoring shape와
 validation은 PM `build-task-graph/references/implementation-card-contract.md`가 소유한다. Native
 Kanban이 task ID, title, assignee, status, links, workspace, run, comment와 event를 소유하며 이
 schema는 그 값을 body에 복제하지 않는다.
@@ -14,7 +14,7 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 
 ```json
 {
-  "schema": "backend-implementation-card-v2",
+  "schema": "backend-implementation-card-v3",
   "card_type": "implementation",
   "issue": {
     "number": 138,
@@ -80,6 +80,15 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
     "external_system": {
       "applicable": false,
       "not_applicable_reason": "외부 시스템 협업이 없다."
+    },
+    "delivery_boundary": {
+      "applicable": true,
+      "request_model": "application.dto.request의 생성 요청 DTO가 이름, 가격과 재고의 필수값을 Bean Validation으로 검증한다.",
+      "binding_and_validation": "표현 계층은 형식이 지정된 요청 본문과 검증 어노테이션으로 검증한 전송 독립 값을 application에 전달한다.",
+      "response_or_result_model": "application 결과와 표현 계층 응답을 분리하며 상태와 응답 변환은 표현 계층이 소유한다.",
+      "transport_error_mapping": "형식과 validation 오류는 presentation exception flow에서 기존 validation error contract로 응답하고 업무 error는 상품 module이 소유한다.",
+      "api_acceptance_ids": ["AC-PRODUCT-CREATE"],
+      "required_web_scenarios": ["유효한 요청의 생성 응답", "필수값 또는 형식 오류의 거절 응답"]
     }
   },
   "acceptance_criteria": [
@@ -122,7 +131,9 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 
 ## Admission invariants
 
-- `schema`는 정확히 `backend-implementation-card-v2`, `card_type`은 `implementation`이다.
+- `schema`는 legacy `backend-implementation-card-v2` 또는 current `backend-implementation-card-v3`이고,
+  `card_type`은 `implementation`이다. 새 card는 v3여야 하며 v2는 이미 생성된 historical card를 재개할 때만
+  허용한다.
 - Body와 모든 nested object는 closed schema이며 duplicate key와 명시되지 않은 field를 허용하지 않는다.
 - `issue.number`, `issue.url`, `goal`, `effective_behavior`, `scope`, `out_of_scope`,
   `implementation_context`, `contracts`, `acceptance_criteria`, `focused_verification`,
@@ -161,9 +172,29 @@ Coder는 아래와 같은 valid JSON object를 입력으로 받는다. 이 예�
 | `event` | 발행·소비 사실, payload, ordering/idempotency |
 | `module_boundary` | named interface, allowed dependency와 ownership |
 | `external_system` | 외부 port/adapter, timeout·failure 의미 |
+| `delivery_boundary` (v3) | HTTP request DTO, framework binding, response/result, malformed input과 error mapping의 owner |
 
 `not_applicable`은 누락된 제품 의미를 보충하라는 뜻이 아니다. 적용 여부, rules 또는 비적용 사유가
 불완전하거나 구현에 새 정책 결정이 필요하면 Coder는 추측하지 않고 block한다.
+
+## Delivery boundary (v3)
+
+`contracts.api.applicable=true`인 v3 card는 `delivery_boundary.applicable=true`여야 한다. PM이 명시한
+`request_model`, `binding_and_validation`, `response_or_result_model`, `transport_error_mapping`,
+`api_acceptance_ids`, `required_web_scenarios`는 구현 checklist가 아니라 observable contract다. Coder는 다음을 확인한다.
+
+- request DTO와 Bean Validation은 request boundary에 있고 Controller의 `@Valid`가 실제 constraint를 실행한다.
+- Spring MVC가 지원하는 type conversion은 typed parameter로 위임한다. 수동 `String` parsing과 이를 감싸는
+  application exception을 새로 만들지 않는다.
+- application command/result는 transport-neutral이며 HTTP status, response body, `exceptionCode()` 같은
+  presentation mapping helper를 소유하지 않는다.
+- malformed binding은 presentation error mapping에서 카드가 정한 code로 응답하며, 업무 error는 owner module의
+  공개 contract를 사용한다. consumer가 producer code/message를 복제하면 handoff 대신 block한다.
+- 각 `api_acceptance_ids`는 해당 acceptance를 참조하는 `slice` 또는 `integration` test와
+  `required_web_scenarios`의 관찰 결과를 가져야 한다.
+
+legacy v2 card에 이 정보가 없더라도 Coder는 `docs/backend-development-guide.md`의 기존 규칙을 적용한다.
+해당 규칙과 card의 동작을 함께 만족시킬 수 없으면 PM에 contract blocker를 올린다.
 
 ## Coder review handoff metadata
 
@@ -172,7 +203,7 @@ Body는 수정하지 않는다.
 
 ```json
 {
-  "schema": "backend-implementation-handoff-v1",
+  "schema": "backend-implementation-handoff-v2",
   "handoff_id": "handoff-7f3d87b2",
   "source_run_id": 16,
   "implemented_behavior_ids": ["behavior-product-create"],
@@ -210,6 +241,17 @@ Body는 수정하지 않는다.
     "detected": false,
     "details": []
   },
+  "implementation_convention_readback": {
+    "backend_development_guide_sections": ["Module과 계층", "Presentation 구현 규칙"],
+    "backend_test_guide_sections": ["Controller test"],
+    "architecture_sections": [],
+    "package_info_paths": [],
+    "layer_ownership": [
+      {"concern": "요청 형식 검증", "owner": "presentation"},
+      {"concern": "상품 생성 상태 전이", "owner": "domain"}
+    ],
+    "checked_boundaries": ["application DTO에 HTTP annotation이 없다."]
+  },
   "residual_risks": []
 }
 ```
@@ -231,10 +273,16 @@ Handoff는 다음 coverage invariant를 모두 만족한다.
 - 각 focused result의 `scenario_results`는 card의 모든 `required_scenarios`를 중복 없이 정확히
   한 번씩 포함하며 모든 result가 `pass`다.
 - Full backend verification result는 card와 같은 executor/task를 가리키며 `pass`다.
+- Current v2 handoff는 `implementation_convention_readback`을 가져야 한다. `backend_development_guide_sections`,
+  `backend_test_guide_sections`, `checked_boundaries`는 중복 없는 비어 있지 않은 목록이고, `architecture_sections`와
+  `package_info_paths`는 해당하지 않으면 빈 목록이다. `package_info_paths`는 repository-relative
+  `package-info.java` path만 허용한다. `layer_ownership`의 각 `concern`은 고유하고 owner는
+  `presentation | application | domain | infra` 중 하나다. 이는 guide 적용의 짧은 사실 record이며 reasoning이나
+  PM이 확인하지 않은 성공 주장으로 사용하지 않는다.
 
 `changed_paths`에는 실제 task 변경의 repository-relative literal path만 기록한다. Forward slash를
 사용하고 absolute path, `.`/`..` segment, glob·pathspec·option 표현과 placeholder(`...`, `*`, `**`)를
-허용하지 않으며 문서 path를 포함하지 않는다. 실행하지 못한 검증,
+허용하지 않으며 문서 path를 포함하지 않는다. Historical v1 handoff에는 convention readback이 없을 수 있으며 read-back만 허용한다. 실행하지 못한 검증,
 실패, dirty conflict 또는 미정 policy는 handoff가 아니라 `kanban_block` 대상이다.
 
 `external_system.applicable=true`인 card는 port interface·mock test만으로 acceptance를 pass 처리할 수 없다.
@@ -277,15 +325,15 @@ run의 양의 정수 native ID와 대조한다. `finding_id`는 request 안에�
 
 모든 Impl task에는 PM-owned `backend-implementation-admission-v1` comment가 있어야 한다. 이 closed
 object는 `schema`, actual `task_id`, positive Issue number인 `issue`, create-intent `workspace`,
-`card_schema: backend-implementation-card-v2`, `restart`만 가진다. Coder는 native task ID와 body Issue를
+`card_schema: backend-implementation-card-v3`, `restart`만 가진다. Coder는 native task ID와 body Issue를
 comment에 대조하고 comment workspace를 dispatcher가 시작한 actual process cwd/worktree identity와
 비교한다. Native `kanban_show` task가 workspace를 직접 반환한다고 가정하지 않는다.
 
 Kanban 기록이 유실된 dirty workflow를 복구할 때에도 task body는 valid
-`backend-implementation-card-v2`이어야 한다. Coder는 latest matching admission comment의 valid
+`backend-implementation-card-v3`이어야 한다. Coder는 latest matching admission comment의 valid
 `restart-task-v1`을 추가 admission input으로 읽는다. 이 object는 Issue, delivery branch, workspace,
 marker/current SHA, exact `dirty_paths`, path별 attribution, 현재 `recovery_task_id`, `assignee: coder`, 단일
-active recovery task, allowed scope, `implementation_card_schema: backend-implementation-card-v2`과
+active recovery task, allowed scope, `implementation_card_schema: backend-implementation-card-v3`과
 `required_checkpoint_schema: backend-implementation-checkpoint-v1`을 가진다.
 
 Coder는 native task ID·workspace·Issue와 실제 dirty path가 이 metadata와 정확히 같을 때만 기존 delta를

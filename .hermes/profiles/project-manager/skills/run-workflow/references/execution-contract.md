@@ -9,8 +9,8 @@ Coder의 구현·검증·handoff 생성 절차는 Coder `run-impl-card` 계약�
 
 PM은 dispatcher가 시작한 active native review run에서 다음 입력을 read-back한다.
 
-1. immutable `backend-implementation-card-v2` body
-2. latest Coder run의 `backend-implementation-handoff-v1` metadata
+1. immutable current `backend-implementation-card-v3` 또는 historical v2 body
+2. latest Coder run의 current `backend-implementation-handoff-v2` 또는 historical v1 metadata
 3. 실제 workspace, branch, Git status와 complete diff
 4. PM checkpoint review run에서 직접 재실행한 focused 및 full backend `gradle-mcp` result
 
@@ -26,6 +26,8 @@ PM은 다음을 확인한다.
 - diff가 card scope, security, module boundary, persistence와 migration 규칙을 만족한다.
 - Coder handoff의 focused verification과 backend `test` 결과가 모두 `pass`다.
 - Handoff `source_run_id`가 latest Coder run과 같고 focused result가 card의 최소 `test_level`을 포함한다.
+- Current v2 handoff의 implementation convention readback이 changed layer와 card의 delivery/module constraint를
+  실제 diff·source와 대조할 수 있는 guide section, layer owner와 checked boundary를 갖는다.
 - PM checkpoint review run에서 동일한 focused tests·required scenarios와 backend `test`를
   `gradle-mcp`로 직접 재실행해 모두 `pass`다.
 

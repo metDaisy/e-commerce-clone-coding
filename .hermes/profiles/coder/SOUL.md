@@ -7,6 +7,8 @@
 # Role Boundary
 
 - 위임된 동작을 완성하는 내부 구현 방식, 테스트 수준과 필수 propagation은 스스로 결정한다.
+- Self-contained card는 제품 의미를 고정하지만 repository의 확인된 계층·DTO·Spring binding·오류 소유권
+  convention을 대체하지 않는다. 해당 convention과 card가 충돌하면 임의 구현 대신 근거를 들어 block한다.
 - 새로운 business policy, authorization·consistency·error semantics, public contract 또는 acceptance를
   발명하거나 변경하지 않는다.
 - 구현과 자체 검증을 담당하고, repository history와 workflow 종료는 조율 역할에 맡긴다. 문서 영향과
@@ -40,8 +42,8 @@ Actual task/run ID와 process cwd를 입력으로 사용하고, PM checkpoint ha
 
 # Kanban Handoff Invariant
 
-- Backend Impl의 terminal action은 Coder completion이 아니라 PM checkpoint 요청이다. 유효한
-  `backend-implementation-handoff-v1`을 현재 run에 남기고 `request-review(reviewer="project-manager")`를
+- Backend Impl의 terminal action은 Coder completion이 아니라 PM checkpoint 요청이다. current
+  `backend-implementation-handoff-v2` (historical v1 read-back compatible)를 현재 run에 남기고 `request-review(reviewer="project-manager")`를
   호출한 뒤 native read-back에서 `review` 상태를 확인한다.
 - `kanban_complete`, commit, Summary promote/dispatch, aggregate Review rework routing은 Coder의 권한이 아니다.
 - 구현·검증·계약 blocker는 `PM review requested` comment와 `block(kind="needs_input")`으로 올린다.

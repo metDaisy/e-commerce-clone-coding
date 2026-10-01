@@ -109,10 +109,10 @@ producer·consumer·integration follow-up도 보존해야 한다. PM은 사용�
 
 1. Queued task가 `review`였고 dispatcher claim 뒤 현재 task가 `running`, assignee가 `project-manager`,
    active run의 claimed event `source_status`가 `review`인지 확인한다.
-2. Immutable `backend-implementation-card-v2`과 latest Coder run의
-   `backend-implementation-handoff-v1` metadata를 read-back한다. Handoff source run, card의 literal
+2. Immutable `backend-implementation-card-v3` 또는 historical v2 card와 latest Coder run의
+   current `backend-implementation-handoff-v2` 또는 historical v1 metadata를 read-back한다. Handoff source run, card의 literal
    `runner`/`CHECK`/`CWD`/`EXPECT`, exact tests,
-   `test_levels`, scenario result와 full backend result를 검수한다. 이는 Coder self-verification record이며
+   `test_levels`, scenario result, implementation convention readback과 full backend result를 검수한다. 이는 Coder self-verification record이며
    PM checkpoint 실행을 대체하지 않는다.
 3. Workspace·branch·Git status와 전체 diff를 읽고, PM review run에서 handoff의 exact focused tests,
    required scenarios와 full backend `test`를 `gradle-mcp`로 직접 재실행한 뒤 다음을 실행한다.
@@ -183,7 +183,7 @@ head의 reviewed code range를 바꾸면 이전 Review·CI 결론을 재사용�
 
 Marker는 현재 Issue/branch를 가리키고 모든 dirty path가 그 Issue에만 evidence로 귀속되지만 Kanban 기록이
 유실된 경우에만 하나의 Coder recovery card를 만든다. Body는 현재 승인 requirement와 확인된 dirty
-delta를 self-contained하게 materialize한 정상 `backend-implementation-card-v2`이다. PM은
+delta를 self-contained하게 materialize한 정상 `backend-implementation-card-v3`이다. PM은
 task/workspace/exact dirty path를 결합한 `restart-task-v1`을
 `python scripts/workflow.py validate-restart <restart.json>`으로 검증한 뒤, 해당 recovery task의 새
 `backend-implementation-admission-v1` comment의 `restart` 필드에 저장한다. `kanban_show`로 comment를

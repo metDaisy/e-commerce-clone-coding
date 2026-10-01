@@ -86,7 +86,7 @@ def _validate_body(card: dict[str, Any], behavior_ids: set[str], errors: list[st
     if card_type == "implementation":
         _error(errors, isinstance(body, dict), f"MISSING_IMPLEMENTATION_BODY:{key}")
         if isinstance(body, dict):
-            _error(errors, body.get("schema") == "backend-implementation-card-v2", f"IMPLEMENTATION_SCHEMA:{key}")
+            _error(errors, body.get("schema") in {"backend-implementation-card-v2", "backend-implementation-card-v3"}, f"IMPLEMENTATION_SCHEMA:{key}")
         return
     if not isinstance(body, dict):
         errors.append(f"MISSING_CARD_BODY:{key}")

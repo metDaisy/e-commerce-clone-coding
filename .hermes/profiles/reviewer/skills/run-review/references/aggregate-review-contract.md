@@ -12,7 +12,7 @@ Reviewer는 dispatcher가 시작한 active run에서 다음을 read-back한다.
 1. Assignee가 `reviewer`이고 status가 `running`인 actual aggregate Review task
 2. Closed body fields: `schema`, `baseline_sha`, `effective_behavior_ids`, `implementation_card_keys`,
    `inherited_behavior_ids`, `aggregate_acceptance`, ordered five `review_axes`, root `verification`, `scope_exclusions`
-3. 각 implementation key의 immutable `backend-implementation-card-v2`, done task ID와 latest terminal
+3. 각 implementation key의 immutable current `backend-implementation-card-v3` 또는 historical v2 card, done task ID와 latest terminal
    `backend-implementation-checkpoint-v1`
 4. Prior Review의 unresolved blocking finding과 후속 corrective/context/decision evidence
 5. Actual workspace/cwd, branch, clean worktree, current HEAD와 checkpoint commit history

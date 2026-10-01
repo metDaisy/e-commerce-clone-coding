@@ -491,7 +491,7 @@ def validate_restart(value: Any) -> list[str]:
     active = value.get("active_recovery_task_ids")
     _require(active == [value.get("recovery_task_id")], errors, "RESTART_TASK_CARDINALITY")
     _require(_strings(value.get("allowed_scope")), errors, "MISSING_RESTART_SCOPE")
-    _require(value.get("implementation_card_schema") == "backend-implementation-card-v2", errors, "INVALID_RESTART_IMPLEMENTATION_CARD")
+    _require(value.get("implementation_card_schema") in {"backend-implementation-card-v2", "backend-implementation-card-v3"}, errors, "INVALID_RESTART_IMPLEMENTATION_CARD")
     _require(value.get("required_checkpoint_schema") == "backend-implementation-checkpoint-v1", errors, "INVALID_RESTART_CHECKPOINT")
     return errors
 
@@ -512,7 +512,7 @@ def validate_implementation_admission(value: Any) -> list[str]:
     )
     _require(_non_empty(value.get("workspace")), errors, "MISSING_IMPLEMENTATION_ADMISSION_WORKSPACE")
     _require(
-        value.get("card_schema") == "backend-implementation-card-v2",
+        value.get("card_schema") in {"backend-implementation-card-v2", "backend-implementation-card-v3"},
         errors,
         "INVALID_IMPLEMENTATION_ADMISSION_CARD_SCHEMA",
     )

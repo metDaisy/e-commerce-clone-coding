@@ -285,7 +285,7 @@ class WorkflowContractTest(unittest.TestCase):
             "assignee": "coder",
             "active_recovery_task_ids": ["t_a1"],
             "allowed_scope": ["현재 dirty delta를 검증 가능한 checkpoint로 복원한다."],
-            "implementation_card_schema": "backend-implementation-card-v2",
+            "implementation_card_schema": "backend-implementation-card-v3",
             "required_checkpoint_schema": "backend-implementation-checkpoint-v1",
         }
         self.assertEqual([], validate_restart(value))
@@ -305,7 +305,7 @@ class WorkflowContractTest(unittest.TestCase):
             "task_id": "t_a1",
             "issue": 138,
             "workspace": "scratch",
-            "card_schema": "backend-implementation-card-v2",
+            "card_schema": "backend-implementation-card-v3",
             "restart": None,
         }
 

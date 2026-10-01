@@ -1,7 +1,7 @@
 ---
 name: review-spec
 description: "Review changed behavior against its frozen contract."
-version: 0.1.0
+version: 0.2.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -39,6 +39,9 @@ test ID 또는 configuration key는 local literal search를 사용한다. 발견
 3. 각 contract item을 관련 test assertion과 연결한다. Happy path만 있고 rejection·boundary·transition이
    빠졌거나 assertion이 관찰 결과를 증명하지 않으면 coverage gap으로 기록한다. Test가 mock interaction,
    method call count 또는 implementation structure만 확인하고 observable behavior를 증명하지 않는지도 본다.
+   v3 card의 `delivery_boundary.required_web_scenarios`는 API acceptance의 일부다. request DTO validation,
+   malformed path/query/cookie binding, response/result와 transport error mapping이 각각 그 scenario를 실제로
+   증명하는 web/integration test를 가지는지 확인한다.
 4. `missing`, `partial`, `incorrect`, `scope-creep`을 구분한다. Card가 정하지 않은 business policy,
    authorization, consistency 또는 error semantics가 필요하면 preferred behavior를 발명하지 않고
    `context-required` 또는 `decision-required` 후보로 돌린다.

@@ -10,6 +10,8 @@ PM이 고정한 aggregate Review 계약을 기준으로 최종 committed 동작�
   사용하고, actual Review run의 현재 HEAD까지 전체 diff를 직접 산출한다.
 - 실제 동작의 사실은 고정된 commit의 source, test, configuration과 migration에서 직접 확인한다.
 - Coder의 설명이나 PM의 기대를 결론으로 재사용하지 않고 evidence를 독립적으로 재확인한다.
+- 테스트 통과와 layer test 통과만으로 API 경계의 책임 배치를 승인하지 않는다. transport binding, DTO,
+  error ownership과 public result가 각 owner에 있는지를 실제 source·web test까지 추적한다.
 - 결함, 미확인 영역, trade-off와 단순 취향을 구분한다. finding을 만들기 위해 문제를 발명하지 않는다.
 - 작은 수정으로 해소할 수 있는 구체적 위험을 우선하며, speculative abstraction을 권하지 않는다.
 

@@ -1,7 +1,7 @@
 ---
 name: implement
 description: 승인된 backend Impl card를 구현하고 검증할 때 사용한다.
-version: 0.5.0
+version: 0.7.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -14,7 +14,8 @@ requires_toolsets: [file, terminal]
 
 # 구현
 
-Admission을 통과한 `backend-implementation-card-v2` 하나를 검증된 최소 backend code 변경으로 만든다.
+Admission을 통과한 current `backend-implementation-card-v3` 또는 historical `backend-implementation-card-v2`
+하나를 검증된 최소 backend code 변경으로 만든다.
 `run-impl-card`는 admission, Kanban 전이, blocker routing과 handoff를 소유하고, 이 Skill은 admission과
 handoff 사이의 coding loop를 소유한다.
 
@@ -46,10 +47,19 @@ handoff 사이의 coding loop를 소유한다.
 
 ## 보조 Skill과 자료 선택
 
-구현 map을 작성하기 전에 `docs/backend-development-guide.md`와
-`docs/backend-test-guide.md`에서 변경에 해당하는 규칙을 읽는다. 전자는 Java/Spring/Modulith 구현
-convention을, 후자는 test level·fixture·assertion·검증 convention을 소유한다. `docs/architecture.md`는
-module seam, event 또는 계층 방향을 변경할 때 추가로 읽는다.
+구현 map을 작성하기 전에 항상 `docs/backend-development-guide.md`의 `기술 기준과 변경 원칙`,
+`Module과 계층`과 `변경별 확인 기준`, 그리고 `docs/backend-test-guide.md`의 해당 test type 규칙을 읽는다.
+전자는 Java/Spring/Modulith 구현 convention을, 후자는 test level·fixture·assertion·검증 convention을 소유한다.
+`docs/architecture.md`와 관련 ADR 및 양쪽 `package-info.java`는 module seam, event 또는 계층 방향을 변경할 때
+추가로 읽는다. Requirement 문서는 제품 의미의 입력이 아니며 immutable card를 대체하지 않는다.
+
+| 변경 대상 | 추가로 읽을 `backend-development-guide.md` section | 구현 map에서 확인할 사실 |
+|---|---|---|
+| domain entity/value/invariant/exception/repository | `Domain 구현 규칙`, `Port, adapter와 module seam`, `Persistence와 Flyway` | aggregate·error owner, domain repository와 JPA adapter 분리 |
+| application service/port/result | `Application 구현 규칙`, `Transaction`, `DTO와 MapStruct` | transaction owner, domain behavior 호출, transport-neutral command/result |
+| JPA/QueryDSL/migration/external adapter | `Infra 구현 규칙`, `Persistence와 Flyway` | inner contract 구현 여부, business policy 부재, repository/integration test |
+| controller/request DTO/validation/error | `Presentation 구현 규칙`, `DTO와 MapStruct`, `API, error와 security` | typed binding, `@Valid`, malformed input mapping, HTTP 책임의 presentation 소유 |
+| module public seam/event | `Port, adapter와 module seam`, `architecture.md`, 관련 ADR과 양쪽 `package-info.java` | named interface, allowed dependency, producer/consumer error owner, Modulith verification |
 
 `related_skills`는 항상 load하는 목록이 아니다. 아래 조건이 성립할 때 해당 Skill 하나를 load하고,
 결과를 현재 checkout의 repository file로 확인한다.
@@ -72,11 +82,21 @@ module seam, event 또는 계층 방향을 변경할 때 추가로 읽는다.
 
 1. Card의 모든 entry point와 가장 가까운 test를 읽은 다음 `search_files`와 `read_file`로 definition,
    caller, consumer, DTO, mapping, adapter, repository, event와 `package-info.java` boundary를 추적한다.
+   `contracts.api` 또는 `contracts.delivery_boundary`가 적용되면 같은 module의 controller, request/response
+   DTO, exception mapping과 web slice test를 추가로 읽어 확인된 local convention을 map에 기록한다.
 2. 위 선택표에서 현재 질문에 맞는 가장 좁은 탐색 경로 하나를 선택하고, 도구 결과를 repository
    file에서 직접 확인한다.
 3. Initial run에서는 각 `effective_behavior.id`와 acceptance criterion을 code seam과 focused
    verification ID에 연결한다. Rework에서는 card의 전체 verification map을 유지하면서 검증된 finding만
    수정 seam에 연결한다.
+4. 실제 변경하는 layer마다 guide의 해당 layer rule과 현재 code를 대조해 owner, 금지 dependency와 test surface를
+   implementation convention readback에 기록한다. “문서를 읽었다”는 선언만으로 통과하지 않으며, 각 항목은
+   card behavior에 연결된 concrete concern이어야 한다.
+5. `delivery_boundary`가 적용되면 아래 네 책임을 각각 one owner와 one observable test로 연결한다.
+   - request DTO의 field/Bean Validation과 `@Valid` 진입점
+   - path/query/cookie의 framework binding과 malformed input response
+   - transport-neutral application command/result와 presentation response mapping
+   - 업무 error code의 owner module 및 producer/consumer 변환 여부
 
 완료 조건: 모든 initial-run behavior 또는 rework finding에 구체적인 수정·test 위치가 있거나, 누락된
 contract 또는 결정 사항을 정확히 기록하고 task를 block했다.
@@ -104,6 +124,10 @@ contract 또는 결정 사항을 정확히 기록하고 task를 block했다.
    finding이 정의한 정확한 defect를 수정한다.
 2. Compilation과 확인된 contract가 요구하는 변경만 caller, DTO, mapping, adapter, persistence,
    configuration, migration과 test에 전파한다.
+   HTTP endpoint는 framework binding을 재구현하지 않는다. Spring이 typed `@PathVariable`, `@RequestParam`,
+   `@CookieValue` 또는 request body validation으로 처리할 수 있는 변환을 `String` parsing helper와
+   application exception으로 복제하지 않는다. application DTO에는 HTTP annotation·response mapping을
+   넣지 않고, request DTO/result/error owner는 `docs/backend-development-guide.md`의 경계에 맞춘다.
 3. Card가 명시적으로 변경하지 않는 한 public contract, transaction semantics, module boundary,
    exception convention과 기존 style을 유지한다.
 4. Card에 없는 speculative abstraction, 관련 없는 defect repair, 광범위한 refactor 또는 compatibility
@@ -155,11 +179,15 @@ Focused verification이 green인 뒤에만 card의 정확한 `full_backend_verif
 
 ### 7. 자체 검토 후 workflow로 반환
 
-1. Git status와 전체 diff를 읽는다. Behavior, security, module boundary, persistence, migration 순서,
+1. Git status와 전체 diff를 읽는다. Behavior, security, module boundary, delivery boundary, persistence, migration 순서,
    test와 의도하지 않은 generated file 또는 document file을 확인한다.
+   delivery boundary가 적용되면 request DTO validation, typed framework binding, malformed-input mapping,
+   application transport-neutrality, producer error code duplication과 public result의 HTTP/error helper 혼합을
+   확인한다. 하나라도 확인하지 못하면 self-review를 완료하지 않는다.
 2. Changed path가 정확히 task code artifact인지, 모든 card behavior, acceptance와 scenario에 통과 evidence가
    있는지 확인한다. 문서를 수정하지 않고 documentation impact만 보고한다.
-3. Canonical handoff를 작성하고 PM checkpoint를 요청하도록 제어를 `run-impl-card`에 반환한다.
+3. Canonical handoff의 `implementation_convention_readback`에 실제로 적용한 guide section, layer owner와
+   checked boundary를 기록하고 PM checkpoint를 요청하도록 제어를 `run-impl-card`에 반환한다.
 
 완료 조건: diff가 scope 안에 있고 review 가능하며 두 verification 단계가 통과했고 unresolved risk를
 숨기지 않았다. Coder는 stage, commit, push 또는 card 완료를 수행하지 않았다.

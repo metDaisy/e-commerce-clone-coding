@@ -1,7 +1,7 @@
 ---
 name: review-architecture
 description: "Review requirement-scoped architecture and module seams."
-version: 0.1.0
+version: 0.2.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -55,6 +55,13 @@ Modulith test에서 확정한다.
    다음을 changed symbol과 caller로 확인한다.
    - HTTP path·cookie·body parsing/binding 오류가 presentation-local이며, domain error는 invariant 또는
      domain policy 위반인가.
+   - Controller가 framework가 제공하는 UUID/enum/number/시간 type conversion을 `String` parsing helper로
+     재구현하지 않으며, malformed input이 presentation exception mapping으로 흐르는가.
+   - request DTO의 Bean Validation이 실제 `@Valid` entry point에서 실행되고, application DTO가 HTTP/Jackson
+     annotation·status·response mapping을 소유하지 않는가.
+   - public use-case result가 `exceptionCode()`, HTTP status 또는 response body helper처럼 error/presentation
+     mapping 책임을 함께 가지지 않는가. 결과가 success/rejection을 표현해야 하면 owner module의 typed
+     use-case contract인지와 caller mapping을 확인한다.
    - 외부 사실이 domain policy·aggregate invariant 판단에 필요하면 outbound port가 `domain.port.out`에,
      use-case orchestration 또는 side effect 전용이면 `application.port.out`에 있는가.
    - 다른 module이 호출하는 command/query seam이 `application.port.in`에 있고 aggregate 내부 상태 전이를
@@ -67,6 +74,9 @@ Modulith test에서 확정한다.
    Consumer-owned result 변환은 source error의 공개 contract와 변환 이유가 requirement 또는 ADR에 있을 때만
    허용한다. 공개 error contract가 absent/partial이면 임의 재정의로 승인하지 않고 context/decision 후보로
    돌린다.
+   `contracts.api` 또는 v3 `delivery_boundary`가 적용된 card는 card에 기록된 request model, binding/validation,
+   response/result, transport error mapping과 required web scenario를 모두 source와 web/integration test에서
+   대조한다. 이 중 하나를 확인하지 않은 axis는 no-finding으로 닫을 수 없다.
 6. Event가 완료 사실인지 사실상 command인지, transaction coupling·failure semantics·idempotency가 기존
    ADR/contract와 일치하는지 확인한다.
 7. Cross-module seam은 consumer가 요구하는 capability에서 시작해 published contract인지 absent/partial인지

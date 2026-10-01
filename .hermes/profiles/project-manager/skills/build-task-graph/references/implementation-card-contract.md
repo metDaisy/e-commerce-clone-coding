@@ -1,6 +1,6 @@
-# PM backend Impl card authoring contract v2
+# PM backend Impl card authoring contract v3
 
-이 문서는 Project Manager가 `backend-implementation-card-v2` body를 작성하는 의미와 책임을 소유한다.
+이 문서는 Project Manager가 `backend-implementation-card-v3` body를 작성하는 의미와 책임을 소유한다.
 결정론적 field shape와 validation은 인접한 `scripts/build_task_graph.py`, 생성 예시는
 `tests/fixtures/valid-new-delivery.json`이 함께 소유한다. Coder의 admission·소비 규칙과 handoff schema는
 Coder `run-impl-card/references/implementation-card-contract.md`가 소유한다.
@@ -20,7 +20,7 @@ Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 
 
 | Field | PM이 작성할 의미 |
 |---|---|
-| `schema` | 정확히 `backend-implementation-card-v2` |
+| `schema` | 정확히 `backend-implementation-card-v3` |
 | `card_type` | 정확히 `implementation` |
 | `issue` | 승인된 leaf Issue의 `number`, `url` |
 | `goal` | 이 card 하나가 달성할 사용자 관찰 가능 결과 |
@@ -54,13 +54,43 @@ Top-level과 모든 nested object는 closed schema이므로 명시되지 않은 
 | `event` | 발행·소비 사실, payload, ordering/idempotency |
 | `module_boundary` | named interface, allowed dependency, ownership |
 | `external_system` | 외부 port/adapter, timeout·failure 의미 |
+| `delivery_boundary` (v3) | API가 있을 때 request DTO, framework binding/validation, application result, transport error mapping과 web scenario의 owner |
 
 새 제품 의미가 필요한 dimension을 `not_applicable`로 숨기지 않는다. PM이 승인 근거로 결정할 수 없는
 정책은 card 생성 전에 사용자 결정으로 route한다.
 
+## Delivery boundary contract (v3)
+
+새 card는 `backend-implementation-card-v3`을 사용한다. `api.applicable=true`면
+`delivery_boundary.applicable=true`가 필수이며 아래 closed object를 작성한다.
+
+```json
+{
+  "applicable": true,
+  "request_model": "request DTO package/type와 required field·Bean Validation owner",
+  "binding_and_validation": "Spring MVC typed binding, @Valid 진입점과 application에 넘기는 transport-neutral value",
+  "response_or_result_model": "presentation response와 application/public use-case result의 분리 및 owner",
+  "transport_error_mapping": "malformed binding/validation의 presentation mapping과 업무 error owner",
+  "api_acceptance_ids": ["API acceptance criterion ID"],
+  "required_web_scenarios": ["유효한 요청", "형식 또는 validation 오류"]
+}
+```
+
+- `binding_and_validation`은 “입력을 검증한다”처럼 일반적으로 쓰지 않는다. path/query/cookie/body의 type
+  conversion owner와 malformed input의 response contract를 쓴다.
+- `response_or_result_model`은 request DTO, presentation response와 cross-module/public use-case result를
+  혼합하지 않음을 명시한다. result에 `exceptionCode()`나 HTTP helper를 넣는 설계를 기본값으로 사용하지 않는다.
+- `transport_error_mapping`은 generic global mapping이 endpoint requirement의 code를 약화하지 않는지까지
+  결정한다. 업무 error code/message의 owner module과 consumer 변환 여부도 적는다.
+- API가 아니면 `delivery_boundary`에는 구체적인 `not_applicable_reason`을 쓴다. 기존 v2 card는 historical
+  read-back만 허용하며 새 graph에 재사용하지 않는다.
+
 ## Coverage invariants
 
 - 모든 `effective_behavior.id`, `acceptance_criteria.id`, `focused_verification.id`는 종류별로 고유하다.
+- v3 API card는 `delivery_boundary`의 다섯 field, `api_acceptance_ids`와 `required_web_scenarios`를 모두
+  가진다. 각 `api_acceptance_ids`는 실제 acceptance ID여야 하며, 그 acceptance를 참조하는 focused
+  verification 중 하나 이상이 `slice` 또는 `integration` test level이어야 한다.
 - `issue` number와 canonical HTTPS URL은 graph wrapper의 leaf Issue와 정확히 같다.
 - Impl의 `effective_behavior` ID 집합은 graph에서 그 Impl에 배정한 planned behavior와 정확히 같고,
   graph 밖의 behavior를 추가하지 않는다.

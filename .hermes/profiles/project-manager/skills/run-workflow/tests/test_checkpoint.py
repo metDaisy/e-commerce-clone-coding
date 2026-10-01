@@ -31,7 +31,7 @@ class CheckpointContractTest(unittest.TestCase):
 
     def handoff(self):
         return {
-            "schema": "backend-implementation-handoff-v1",
+            "schema": "backend-implementation-handoff-v2",
             "handoff_id": "handoff-7f3d87b2",
             "source_run_id": 16,
             "implemented_behavior_ids": ["behavior-product-create"],
@@ -73,6 +73,17 @@ class CheckpointContractTest(unittest.TestCase):
             },
             "documentation_impact": {"detected": False, "details": []},
             "residual_risks": [],
+            "implementation_convention_readback": {
+                "backend_development_guide_sections": ["Module과 계층", "Presentation 구현 규칙"],
+                "backend_test_guide_sections": ["Controller test"],
+                "architecture_sections": [],
+                "package_info_paths": [],
+                "layer_ownership": [
+                    {"concern": "요청 형식 검증", "owner": "presentation"},
+                    {"concern": "상품 생성 상태 전이", "owner": "domain"}
+                ],
+                "checked_boundaries": ["application DTO에 HTTP annotation이 없다."]
+            },
         }
 
     def checkpoint(self):
@@ -111,6 +122,24 @@ class CheckpointContractTest(unittest.TestCase):
         errors = validate_handoff(self.card(), handoff)
         self.assertIn("BEHAVIOR_COVERAGE_MISMATCH", errors)
         self.assertIn("ACCEPTANCE_COVERAGE_MISMATCH", errors)
+
+    def test_current_handoff_requires_convention_readback(self):
+        handoff = self.handoff()
+        del handoff["implementation_convention_readback"]
+        self.assertIn("INVALID_IMPLEMENTATION_CONVENTION_READBACK", validate_handoff(self.card(), handoff))
+
+    def test_current_handoff_rejects_malformed_convention_readback_without_crashing(self):
+        handoff = self.handoff()
+        handoff["implementation_convention_readback"]["package_info_paths"] = [42]
+        errors = validate_handoff(self.card(), handoff)
+        self.assertIn("INVALID_IMPLEMENTATION_CONVENTION_PACKAGE_INFO_PATHS", errors)
+        self.assertIn("INVALID_IMPLEMENTATION_CONVENTION_PACKAGE_INFO_PATH:42", errors)
+
+    def test_legacy_handoff_remains_readback_compatible(self):
+        handoff = self.handoff()
+        handoff["schema"] = "backend-implementation-handoff-v1"
+        del handoff["implementation_convention_readback"]
+        self.assertEqual([], validate_handoff(self.card(), handoff))
 
     def test_handoff_requires_exact_scenario_coverage(self):
         handoff = self.handoff()

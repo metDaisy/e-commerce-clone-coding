@@ -13,7 +13,9 @@ from typing import Any
 from contract_common import is_canonical_https_url
 from graph_contract import requirement_diff, validate_graph, validate_native_readback
 
-CONTRACT_DIMENSIONS = (
+LEGACY_CARD_SCHEMA = "backend-implementation-card-v2"
+CURRENT_CARD_SCHEMA = "backend-implementation-card-v3"
+BASE_CONTRACT_DIMENSIONS = (
     "actor_authorization",
     "input_output",
     "state_invariants",
@@ -25,6 +27,7 @@ CONTRACT_DIMENSIONS = (
     "module_boundary",
     "external_system",
 )
+CONTRACT_DIMENSIONS = BASE_CONTRACT_DIMENSIONS + ("delivery_boundary",)
 TEST_LEVELS = {"unit", "slice", "repository", "integration", "modulith"}
 FORBIDDEN_FIELDS = {
     "baseline_sha",
@@ -111,7 +114,7 @@ def _append_forbidden_fields(value: Any, errors: list[str]) -> None:
 def template(issue: int, issue_url: str) -> dict[str, Any]:
     """Create a fact-only card scaffold; PM authors all behavior and evidence."""
     return {
-        "schema": "backend-implementation-card-v2",
+        "schema": CURRENT_CARD_SCHEMA,
         "card_type": "implementation",
         "issue": {"number": issue, "url": issue_url},
         "goal": "",
@@ -199,14 +202,63 @@ def _validate_implementation_context(value: Any, errors: list[str]) -> None:
             _validate_korean(entry.get("reason"), errors, f"entry_points:{index}:reason")
 
 
-def _validate_contracts(value: Any, errors: list[str]) -> None:
+def _validate_delivery_boundary(value: Any, api_applicable: bool, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append("MISSING_CONTRACT:delivery_boundary")
+        return
+    applicable = value.get("applicable")
+    if not isinstance(applicable, bool):
+        errors.append("INVALID_CONTRACT_APPLICABILITY:delivery_boundary")
+        return
+    if applicable:
+        fields = {
+            "applicable",
+            "request_model",
+            "binding_and_validation",
+            "response_or_result_model",
+            "transport_error_mapping",
+            "api_acceptance_ids",
+            "required_web_scenarios",
+        }
+        _unexpected_fields(value, fields, errors, "UNEXPECTED_DELIVERY_BOUNDARY_FIELD")
+        for field in (
+            "request_model",
+            "binding_and_validation",
+            "response_or_result_model",
+            "transport_error_mapping",
+        ):
+            _error(errors, _non_empty(value.get(field)), f"MISSING_DELIVERY_BOUNDARY_{field.upper()}")
+            _validate_korean(value.get(field), errors, f"delivery_boundary:{field}")
+        _error(errors, _strings(value.get("required_web_scenarios")), "MISSING_DELIVERY_BOUNDARY_REQUIRED_WEB_SCENARIOS")
+        _validate_korean_strings(value.get("required_web_scenarios"), errors, "delivery_boundary:required_web_scenarios")
+        if isinstance(value.get("required_web_scenarios"), list) and len(value["required_web_scenarios"]) != len(set(value["required_web_scenarios"])):
+            errors.append("DUPLICATE_DELIVERY_BOUNDARY_REQUIRED_WEB_SCENARIO")
+        acceptance_ids = value.get("api_acceptance_ids")
+        _error(errors, _strings(acceptance_ids), "MISSING_DELIVERY_BOUNDARY_API_ACCEPTANCE_IDS")
+        if isinstance(acceptance_ids, list) and all(isinstance(item, str) for item in acceptance_ids) and len(acceptance_ids) != len(set(acceptance_ids)):
+            errors.append("DUPLICATE_DELIVERY_BOUNDARY_API_ACCEPTANCE_ID")
+    else:
+        _unexpected_fields(value, {"applicable", "not_applicable_reason"}, errors, "UNEXPECTED_DELIVERY_BOUNDARY_FIELD")
+        _error(errors, _non_empty(value.get("not_applicable_reason")), "MISSING_NOT_APPLICABLE_REASON:delivery_boundary")
+        _validate_korean(value.get("not_applicable_reason"), errors, "delivery_boundary:not_applicable_reason")
+    if api_applicable != applicable:
+        errors.append("API_DELIVERY_BOUNDARY_APPLICABILITY_MISMATCH")
+
+
+def _validate_contracts(value: Any, schema: Any, errors: list[str]) -> None:
     if not isinstance(value, dict):
         errors.append("MISSING_CONTRACTS")
         return
-    for field in sorted(set(value) - set(CONTRACT_DIMENSIONS)):
+    dimensions = CONTRACT_DIMENSIONS if schema == CURRENT_CARD_SCHEMA else BASE_CONTRACT_DIMENSIONS
+    for field in sorted(set(value) - set(dimensions)):
         errors.append(f"UNEXPECTED_CONTRACT:{field}")
-    for field in CONTRACT_DIMENSIONS:
+    api_contract = value.get("api")
+    api_applicable = isinstance(api_contract, dict) and api_contract.get("applicable") is True
+    for field in dimensions:
         contract = value.get(field)
+        if field == "delivery_boundary":
+            _validate_delivery_boundary(contract, api_applicable, errors)
+            continue
         if not isinstance(contract, dict):
             errors.append(f"MISSING_CONTRACT:{field}")
             continue
@@ -221,7 +273,7 @@ def _validate_contracts(value: Any, errors: list[str]) -> None:
             errors.append(f"INVALID_CONTRACT_APPLICABILITY:{field}")
         elif applicable:
             _error(errors, _strings(contract.get("rules")), f"MISSING_CONTRACT_RULES:{field}")
-            _validate_korean_strings(contract.get("rules"), errors, f"contracts:{field}:rules")
+            _validate_korean_strings(contract.get("rules"), errors, f"contract:{field}")
             _error(errors, "not_applicable_reason" not in contract, f"CONFLICTING_CONTRACT:{field}")
         else:
             _error(
@@ -235,6 +287,34 @@ def _validate_contracts(value: Any, errors: list[str]) -> None:
                 f"contracts:{field}:not_applicable_reason",
             )
             _error(errors, "rules" not in contract, f"CONFLICTING_CONTRACT:{field}")
+
+
+def _validate_delivery_boundary_coverage(
+    contracts: Any,
+    acceptance_ids: set[str],
+    verifications: Any,
+    errors: list[str],
+) -> None:
+    if not isinstance(contracts, dict):
+        return
+    boundary = contracts.get("delivery_boundary")
+    if not isinstance(boundary, dict) or boundary.get("applicable") is not True:
+        return
+    api_acceptance_ids = boundary.get("api_acceptance_ids")
+    if not isinstance(api_acceptance_ids, list):
+        return
+    for acceptance_id in api_acceptance_ids:
+        if acceptance_id not in acceptance_ids:
+            errors.append(f"UNKNOWN_DELIVERY_BOUNDARY_ACCEPTANCE_ID:{acceptance_id}")
+            continue
+        has_web_level = isinstance(verifications, list) and any(
+            isinstance(item, dict)
+            and acceptance_id in item.get("acceptance_ids", [])
+            and isinstance(item.get("test_level"), str)
+            and item.get("test_level") in {"slice", "integration"}
+            for item in verifications
+        )
+        _error(errors, has_web_level, f"DELIVERY_BOUNDARY_ACCEPTANCE_WITHOUT_WEB_LEVEL:{acceptance_id}")
 
 
 def _validate_focused_verification(
@@ -360,7 +440,8 @@ def validate(card: Any) -> list[str]:
     _append_forbidden_fields(card, errors)
     for field in sorted(set(card) - CARD_FIELDS):
         errors.append(f"UNEXPECTED_CARD_FIELD:{field}")
-    _error(errors, card.get("schema") == "backend-implementation-card-v2", "SCHEMA_VERSION")
+    schema = card.get("schema")
+    _error(errors, schema in {LEGACY_CARD_SCHEMA, CURRENT_CARD_SCHEMA}, "SCHEMA_VERSION")
     _error(errors, card.get("card_type") == "implementation", "INVALID_CARD_TYPE")
     issue = card.get("issue")
     if not isinstance(issue, dict):
@@ -393,7 +474,7 @@ def validate(card: Any) -> list[str]:
     _validate_korean_strings(card.get("scope"), errors, "scope")
     _validate_korean_strings(card.get("out_of_scope"), errors, "out_of_scope")
     _validate_implementation_context(card.get("implementation_context"), errors)
-    _validate_contracts(card.get("contracts"), errors)
+    _validate_contracts(card.get("contracts"), schema, errors)
     acceptance_ids = _validate_identified_outcomes(
         card.get("acceptance_criteria"),
         errors,
@@ -401,6 +482,8 @@ def validate(card: Any) -> list[str]:
         item_code="ACCEPTANCE",
         duplicate_code="DUPLICATE_ACCEPTANCE_ID",
     )
+    if schema == CURRENT_CARD_SCHEMA:
+        _validate_delivery_boundary_coverage(card.get("contracts"), acceptance_ids, card.get("focused_verification"), errors)
     _validate_focused_verification(card.get("focused_verification"), acceptance_ids, errors)
     _validate_full_backend(card.get("full_backend_verification"), errors)
     _validate_traceability(card.get("traceability"), errors)

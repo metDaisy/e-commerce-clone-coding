@@ -1,7 +1,7 @@
 ---
 name: build-task-graph
 description: "승인된 Issue에서 검증 가능한 Kanban graph를 작성한다."
-version: 0.7.0
+version: 0.8.0
 author: "Amaazon project, Hermes Agent"
 license: MIT
 platforms: [linux, macos, windows]
@@ -66,13 +66,17 @@ aggregate Review 승인 뒤 requirement가 바뀌면 기존 graph를 수정하�
    producer 전체 구현을 자동 prerequisite로 만들지 않되 real seam을 요구하는 integration acceptance는
    producer bridge의 검증 뒤에만 완료할 수 있게 link한다. 완료 기준: 모든 behavior에 state, disposition,
    근거와 완료 또는 blocker까지의 path가 있다.
+   HTTP API behavior는 card authoring 전에 request DTO, framework binding/validation, application
+   command/result, malformed-input mapping과 업무 error owner를 분리해 결정한다. 이 중 하나라도 requirement와
+   repository convention으로 확정할 수 없으면 vague Impl card를 만들지 않고 Decision 또는 investigation으로
+   route한다.
 3. **Draft를 검증한다.** `.temp/task-graphs/<issue>/graph.json`을 작성하고 `validate-graph --phase
    draft`를 실행한다. Backend Impl은 `template`로 시작해 승인된 사실만 채우고 `validate`한다.
    완료 기준: validator finding이 없다.
 4. **Native graph를 생성한다.** Card와 link를 하나씩 만들며 body, ID, assignee, status와 parent를
    각각 read-back한다. 각 Impl에는 PM-owned comment로 `backend-implementation-admission-v1`을 남긴다.
    이 closed object는 `schema`, actual `task_id`, positive wrapper Issue number인 `issue`, exact `workspace`,
-   `card_schema: backend-implementation-card-v2`, `restart: null`만 가지며 Coder가 native show에서 읽는
+   `card_schema: backend-implementation-card-v3`, `restart: null`만 가지며 Coder가 native show에서 읽는
    durable execution intent다. 모든 native card의 full `show --json` envelope를 배열로 모아
    `validate-native-readback`으로 title/body/parent를 wrapper와 대조한 뒤
    `run-workflow/scripts/workflow.py validate-implementation-admission`으로
@@ -95,7 +99,7 @@ Built-in decomposer는 이 계약을 표현하지 못하므로 사용하지 않�
    read-back으로 대조한다. 불일치하면 graph를 만들지 않는다.
 2. Impl, Review1, Summary body와 topology를 작성한다. Graph `planning_baseline_sha`와 모든 Review body의
    `baseline_sha`를 frozen Triage baseline으로 고정한다. Impl은 history delta가 아니라 현재 effective
-   behavior 전체를 구현하는 self-contained `backend-implementation-card-v2`이다. 각 focused verification에는
+   behavior 전체를 구현하는 self-contained `backend-implementation-card-v3`이다. 각 focused verification에는
    실제 FQCN selector가 있는 `CHECK`, workspace-relative `CWD: "."`, success-only `EXPECT: "BUILD SUCCESSFUL"`를
    넣고, Review body에는 다섯 review axis와 root Gradle verification contract를 넣는다. 현재 HEAD나 source
    symbol 목록을 body에 넣지 않는다.

@@ -16,7 +16,9 @@ from build_task_graph import validate as validate_card  # noqa: E402
 
 SHA = re.compile(r"^[0-9a-f]{40}$")
 TEST_LEVELS = {"unit", "slice", "repository", "integration", "modulith"}
-HANDOFF_FIELDS = {
+LEGACY_HANDOFF_SCHEMA = "backend-implementation-handoff-v1"
+CURRENT_HANDOFF_SCHEMA = "backend-implementation-handoff-v2"
+BASE_HANDOFF_FIELDS = {
     "schema",
     "handoff_id",
     "source_run_id",
@@ -28,6 +30,8 @@ HANDOFF_FIELDS = {
     "documentation_impact",
     "residual_risks",
 }
+HANDOFF_FIELDS = BASE_HANDOFF_FIELDS | {"implementation_convention_readback"}
+LAYERS = {"presentation", "application", "domain", "infra"}
 CHECKPOINT_FIELDS = {
     "schema",
     "source_handoff_id",
@@ -93,6 +97,51 @@ def _is_literal_repository_path(path: str) -> bool:
     return all(part not in {"", ".", ".."} for part in path.split("/"))
 
 
+def _validate_implementation_convention_readback(value: Any, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        errors.append("INVALID_IMPLEMENTATION_CONVENTION_READBACK")
+        return
+    _unexpected(
+        value,
+        {"backend_development_guide_sections", "backend_test_guide_sections", "architecture_sections", "package_info_paths", "layer_ownership", "checked_boundaries"},
+        errors,
+        "UNEXPECTED_IMPLEMENTATION_CONVENTION_READBACK_FIELD",
+    )
+    for field in ("backend_development_guide_sections", "backend_test_guide_sections", "checked_boundaries"):
+        items = value.get(field)
+        if not _strings(items) or len(items) != len(set(items)):
+            errors.append(f"INVALID_IMPLEMENTATION_CONVENTION_{field.upper()}")
+    for field in ("architecture_sections", "package_info_paths"):
+        items = value.get(field)
+        if not _strings(items, allow_empty=True) or len(items) != len(set(items)):
+            errors.append(f"INVALID_IMPLEMENTATION_CONVENTION_{field.upper()}")
+    package_paths = value.get("package_info_paths")
+    if isinstance(package_paths, list):
+        for path in package_paths:
+            if isinstance(path, str) and path.endswith("package-info.java") and _is_literal_repository_path(path):
+                continue
+            errors.append(f"INVALID_IMPLEMENTATION_CONVENTION_PACKAGE_INFO_PATH:{path}")
+    ownership = value.get("layer_ownership")
+    if not isinstance(ownership, list) or not ownership:
+        errors.append("INVALID_IMPLEMENTATION_CONVENTION_LAYER_OWNERSHIP")
+        return
+    concerns: list[str] = []
+    for index, item in enumerate(ownership):
+        if not isinstance(item, dict):
+            errors.append(f"IMPLEMENTATION_CONVENTION_LAYER_OWNERSHIP_NOT_OBJECT:{index}")
+            continue
+        _unexpected(item, {"concern", "owner"}, errors, f"UNEXPECTED_IMPLEMENTATION_CONVENTION_LAYER_OWNERSHIP_FIELD:{index}")
+        concern = item.get("concern")
+        if _non_empty(concern):
+            concerns.append(concern)
+        else:
+            errors.append(f"MISSING_IMPLEMENTATION_CONVENTION_CONCERN:{index}")
+        if item.get("owner") not in LAYERS:
+            errors.append(f"INVALID_IMPLEMENTATION_CONVENTION_OWNER:{index}")
+    if len(concerns) != len(set(concerns)):
+        errors.append("DUPLICATE_IMPLEMENTATION_CONVENTION_CONCERN")
+
+
 def validate_handoff(card: Any, handoff: Any) -> list[str]:
     """Validate a Coder review handoff against its immutable Impl card."""
     errors: list[str] = []
@@ -101,13 +150,16 @@ def validate_handoff(card: Any, handoff: Any) -> list[str]:
         return [f"INVALID_CARD:{error}" for error in card_errors]
     if not isinstance(handoff, dict):
         return ["HANDOFF_NOT_OBJECT"]
-    _unexpected(handoff, HANDOFF_FIELDS, errors, "UNEXPECTED_HANDOFF_FIELD")
-    if handoff.get("schema") != "backend-implementation-handoff-v1":
+    schema = handoff.get("schema")
+    _unexpected(handoff, HANDOFF_FIELDS if schema == CURRENT_HANDOFF_SCHEMA else BASE_HANDOFF_FIELDS, errors, "UNEXPECTED_HANDOFF_FIELD")
+    if schema not in {LEGACY_HANDOFF_SCHEMA, CURRENT_HANDOFF_SCHEMA}:
         errors.append("HANDOFF_SCHEMA")
     if not _non_empty(handoff.get("handoff_id")):
         errors.append("MISSING_HANDOFF_ID")
     if not _positive_int(handoff.get("source_run_id")):
         errors.append("MISSING_SOURCE_RUN_ID")
+    if schema == CURRENT_HANDOFF_SCHEMA:
+        _validate_implementation_convention_readback(handoff.get("implementation_convention_readback"), errors)
 
     behavior_ids = {
         entry.get("id")

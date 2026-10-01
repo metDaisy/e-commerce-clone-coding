@@ -80,7 +80,7 @@ workspace read-back까지 증명한다고 보고해서는 안 된다.
 
 Persisted body schema는 다음과 같다.
 
-- Impl: `backend-implementation-card-v2`. 필드 의미와 validation은
+- Impl: current `backend-implementation-card-v3` (historical v2 read-back compatible). 필드 의미와 validation은
   `implementation-card-contract.md`가 소유한다.
 - Review: `aggregate-review-card-v3`. Graph의 `planning_baseline_sha`와 같은 `baseline_sha`, complete
   behavior IDs, 참조 Impl keys, inherited behavior IDs, aggregate acceptance와 explicit
