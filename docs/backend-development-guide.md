@@ -43,6 +43,46 @@ presentation -> application -> domain <- infra
 
 새 class는 책임을 기준으로 배치한다. 기존 package가 혼재되어 있다는 이유만으로 잘못된 방향을 복제하거나, 현재 작업에서 대규모 package migration을 함께 수행하지 않는다.
 
+### Domain 구현 규칙
+
+- `domain`에는 entity, value object, aggregate behavior, domain exception/error code와 repository·outbound port contract를 둔다.
+- Domain entity는 Java 표준 라이브러리, 같은 module의 domain type, 명시적으로 허용된 `common` 기반 type,
+  `jakarta.persistence`와 기존 Lombok만 사용한다. `org.springframework`, Spring Data, HTTP/Jackson, 외부 SDK,
+  `infra` 구현과 다른 module entity를 참조하지 않는다.
+- Domain exception/error code는 aggregate invariant 또는 domain policy 위반만 표현한다. HTTP binding/validation
+  오류나 다른 module이 소유한 error code/message를 domain exception으로 새로 만들지 않는다.
+- Domain repository는 persistence capability를 표현하는 interface다. `JpaRepository`, `EntityManager`, QueryDSL과
+  database query 구현은 `infra` adapter에 둔다. 프로젝트 공통 `DomainRepository` 같은 승인된 domain-facing
+  abstraction은 사용할 수 있다.
+
+### Application 구현 규칙
+
+- `application`은 use case 순서, transaction, authorization/resource ownership 확인, domain behavior와 port 호출을 조정한다.
+- Command/query/result는 transport-neutral이다. `HttpServletRequest`, `ResponseEntity`, Spring MVC/Jackson annotation,
+  cookie/path/query 문자열 parsing과 HTTP status/error mapping을 application DTO·service에 넣지 않는다.
+- Application service는 aggregate의 이름 있는 behavior를 호출한다. entity field·collection을 직접 변경하거나 domain이
+  이미 소유한 invariant를 중복 구현하지 않는다.
+- Producer의 공개 error contract는 그대로 사용하거나 승인된 consumer-owned result로 의미 있게 변환한다. 같은 error
+  code/message를 application exception으로 복제하지 않는다.
+
+### Infra 구현 규칙
+
+- `infra`에는 Spring Data/JPA/QueryDSL repository, external SDK/HTTP client, security·storage adapter와 framework
+  integration을 둔다.
+- Infra는 안쪽 계층이 정의한 repository/outbound port를 구현한다. 새로운 business policy, authorization rule,
+  aggregate invariant 또는 public error 의미를 infra에서 결정하지 않는다.
+- Fetch, lock, query, timeout, retry와 serialization 같은 기술 detail은 adapter에 남기고 domain/application contract를
+  우회하지 않는다.
+
+### Presentation 구현 규칙
+
+- `presentation`은 typed HTTP binding, request DTO의 `@Valid` 진입점, principal 추출, status/header/response와
+  malformed binding/validation error mapping을 소유한다.
+- Spring MVC가 지원하는 UUID/enum/number/date conversion을 `String` parsing helper와 application exception으로
+  재구현하지 않는다.
+- Controller는 request를 application input으로 변환하고 application result를 HTTP response로 매핑한다. JPA entity,
+  repository, `infra` 구현을 직접 사용하거나 업무 상태 전이·persistence 조정을 수행하지 않는다.
+
 ## Dependency injection과 Spring component
 
 - 필수 dependency는 constructor injection으로 드러내고 field를 `final`로 유지한다. 기존 code와 일치할 때 `@RequiredArgsConstructor`를 사용한다.
